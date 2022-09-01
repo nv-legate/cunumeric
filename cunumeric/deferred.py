@@ -255,7 +255,7 @@ class DeferredArray(NumPyThunk):
         if not self.base.overlaps(other.base):
             return self
         copy = cast(
-            "DeferredArray",
+            DeferredArray,
             self.runtime.create_empty_thunk(
                 self.shape, self.dtype, inputs=[self]
             ),
@@ -288,7 +288,10 @@ class DeferredArray(NumPyThunk):
                 initializer = _CuNumericNDarray(
                     shape, self.dtype, address, strides, False
                 )
-                return np.asarray(initializer)
+                result = np.asarray(initializer)
+                if self.shape == ():
+                    result = result.reshape(())
+                return result
 
             result = cast("npt.NDArray[Any]", alloc.consume(construct_ndarray))
 
@@ -440,17 +443,15 @@ class DeferredArray(NumPyThunk):
         # NOTE: We need to instantiate a RegionField of non-primitive
         # dtype, to store N-dimensional index points, to be used as the
         # indirection field in a copy.
-        # Such dtypes are technically not supported,
-        # but it should be safe to directly create a DeferredArray
-        # of that dtype, so long as we don't try to convert it to a
-        # NumPy array.
         N = self.ndim
         pointN_dtype = self.runtime.get_point_type(N)
-        store = self.context.create_store(
-            pointN_dtype, shape=out_shape, optimize_scalar=True
-        )
-        output_arr = DeferredArray(
-            self.runtime, base=store, dtype=cast("np.dtype[Any]", pointN_dtype)
+        output_arr = cast(
+            DeferredArray,
+            self.runtime.create_empty_thunk(
+                shape=out_shape,
+                dtype=pointN_dtype,
+                inputs=[self],
+            ),
         )
 
         # call ZIP function to combine index arrays into a singe array
@@ -468,7 +469,7 @@ class DeferredArray(NumPyThunk):
 
         return output_arr
 
-    def _copy_store(self, store: Any) -> NumPyThunk:
+    def _copy_store(self, store: Any) -> DeferredArray:
         store_to_copy = DeferredArray(
             self.runtime,
             base=store,
@@ -480,7 +481,7 @@ class DeferredArray(NumPyThunk):
             inputs=[store_to_copy],
         )
         store_copy.copy(store_to_copy, deep=True)
-        return store_copy
+        return cast(DeferredArray, store_copy)
 
     def _create_indexing_array(
         self, key: Any, is_set: bool = False
@@ -503,6 +504,31 @@ class DeferredArray(NumPyThunk):
                         f"dimension {i} doesn't match to the shape of the"
                         f"index array which is {rhs.shape[i]}"
                     )
+
+            # if key or rhs are empty, return an empty array with correct shape
+            if key.size == 0 or rhs.size == 0:
+                if rhs.size == 0 and key.size != 0:
+                    # we need to calculate shape of the 0 dim of output region
+                    # even though the size of it is 0
+                    # this can potentially be replaced with COUNT_NONZERO
+                    s = key.nonzero()[0].size
+                else:
+                    s = 0
+
+                out_shape = (s,) + tuple(
+                    rhs.shape[i] for i in range(key.ndim, rhs.ndim)
+                )
+                out = cast(
+                    DeferredArray,
+                    self.runtime.create_empty_thunk(
+                        out_shape,
+                        rhs.dtype,
+                        inputs=[rhs],
+                    ),
+                )
+                out.fill(np.zeros((), dtype=out.dtype))
+                return False, rhs, out, self
+
             key_store = key.base
             # bring key to the same shape as rhs
             for i in range(key_store.ndim, rhs.ndim):
@@ -514,9 +540,7 @@ class DeferredArray(NumPyThunk):
             # indirect copy operation
             if is_set:
                 N = rhs.ndim
-                out_dtype = cast(
-                    "np.dtype[Any]", rhs.runtime.get_point_type(N)
-                )
+                out_dtype = rhs.runtime.get_point_type(N)
 
             # TODO : current implementation of the ND output regions
             # requires out.ndim == rhs.ndim. This will be fixed in the
@@ -542,21 +566,27 @@ class DeferredArray(NumPyThunk):
             # requires out.ndim == rhs.ndim.
             # The logic below will be removed in the future
             out_dim = rhs.ndim - key_dims + 1
+
             if out_dim != rhs.ndim:
                 out_tmp = out.base
-                for dim in range(rhs.ndim - out_dim):
-                    out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
 
-                out = cast(
-                    DeferredArray,
-                    self.runtime.create_empty_thunk(
-                        out_tmp.shape,
-                        out_dtype,
-                        inputs=[out],
-                    ),
-                )
+                if out.size == 0:
+                    out_shape = tuple(out.shape[i] for i in range(0, out_dim))
+                    out = cast(
+                        DeferredArray,
+                        self.runtime.create_empty_thunk(
+                            out_shape,
+                            out_dtype,
+                            inputs=[out],
+                        ),
+                    )
+                    if not is_set:
+                        out.fill(np.array(0, dtype=out_dtype))
+                else:
+                    for dim in range(rhs.ndim - out_dim):
+                        out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
 
-                out = cast(DeferredArray, out._copy_store(out_tmp))
+                    out = out._copy_store(out_tmp)
 
             return False, rhs, out, self
 
@@ -649,7 +679,7 @@ class DeferredArray(NumPyThunk):
             # after store is transformed we need to to return a copy of
             # the store since Copy operation can't be done on
             # the store with transformation
-            rhs = cast(DeferredArray, self._copy_store(store))
+            rhs = self._copy_store(store)
 
         if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
@@ -717,19 +747,19 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    def _convert_future_to_store(self, a: Any) -> DeferredArray:
+    def _convert_future_to_regionfield(self) -> DeferredArray:
         store = self.context.create_store(
-            a.dtype,
-            shape=a.shape,
+            self.dtype,
+            shape=self.shape,
             optimize_scalar=False,
         )
-        store_copy = DeferredArray(
+        thunk_copy = DeferredArray(
             self.runtime,
             base=store,
-            dtype=a.dtype,
+            dtype=self.dtype,
         )
-        store_copy.copy(a, deep=True)
-        return store_copy
+        thunk_copy.copy(self, deep=True)
+        return thunk_copy
 
     def get_item(self, key: Any) -> NumPyThunk:
         # Check to see if this is advanced indexing or not
@@ -742,15 +772,13 @@ class DeferredArray(NumPyThunk):
                 self,
             ) = self._create_indexing_array(key)
 
-            store = rhs.base
-
             if copy_needed:
+
                 if rhs.base.kind == Future:
-                    rhs = self._convert_future_to_store(rhs)
-                store = rhs.base
+                    rhs = rhs._convert_future_to_regionfield()
                 result: NumPyThunk
                 if index_array.base.kind == Future:
-                    index_array = self._convert_future_to_store(index_array)
+                    index_array = index_array._convert_future_to_regionfield()
                     result_store = self.context.create_store(
                         self.dtype,
                         shape=index_array.shape,
@@ -761,6 +789,7 @@ class DeferredArray(NumPyThunk):
                         base=result_store,
                         dtype=self.dtype,
                     )
+
                 else:
                     result = self.runtime.create_empty_thunk(
                         index_array.base.shape,
@@ -770,7 +799,7 @@ class DeferredArray(NumPyThunk):
 
                 copy = self.context.create_copy()
                 copy.set_source_indirect_out_of_range(False)
-                copy.add_input(store)
+                copy.add_input(rhs.base)
                 copy.add_source_indirect(index_array.base)
                 copy.add_output(result.base)  # type: ignore
                 copy.execute()
@@ -826,21 +855,22 @@ class DeferredArray(NumPyThunk):
                     base=rhs_store,
                     dtype=rhs.dtype,
                 )
-                rhs_tmp2 = self._convert_future_to_store(rhs_tmp)
+                rhs_tmp2 = rhs_tmp._convert_future_to_regionfield()
                 rhs_store = rhs_tmp2.base
 
             if index_array.base.kind == Future:
-                index_array = self._convert_future_to_store(index_array)
+                index_array = index_array._convert_future_to_regionfield()
             if lhs.base.kind == Future:
-                lhs = self._convert_future_to_store(lhs)
+                lhs = lhs._convert_future_to_regionfield()
 
-            copy = self.context.create_copy()
-            copy.set_target_indirect_out_of_range(False)
+            if index_array.size != 0:
+                copy = self.context.create_copy()
+                copy.set_target_indirect_out_of_range(False)
 
-            copy.add_input(rhs_store)
-            copy.add_target_indirect(index_array.base)
-            copy.add_output(lhs.base)
-            copy.execute()
+                copy.add_input(rhs_store)
+                copy.add_target_indirect(index_array.base)
+                copy.add_output(lhs.base)
+                copy.execute()
 
             # TODO this copy will be removed when affine copies are
             # supported in Legion/Realm
@@ -3016,6 +3046,19 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
+    def argwhere(self) -> NumPyThunk:
+        result = self.runtime.create_unbound_thunk(np.dtype(np.int64), ndim=2)
+
+        task = self.context.create_task(CuNumericOpCode.ARGWHERE)
+
+        task.add_output(result.base)
+        task.add_input(self.base)
+        task.add_broadcast(self.base, axes=range(1, self.ndim))
+
+        task.execute()
+
+        return result
+
     # A helper method for attaching arguments
     def add_arguments(
         self,
@@ -3236,3 +3279,34 @@ class DeferredArray(NumPyThunk):
         scale = tuple(8 if dim == axis else 1 for dim in range(src.ndim))
         task.add_constraint(p_out <= p_in * scale)  # type: ignore
         task.execute()
+
+    @auto_convert([1])
+    def _wrap(self, src: Any, new_len: int) -> None:
+        if src.base.kind == Future or src.base.transformed:
+            src = src._convert_future_to_regionfield()
+
+        # first, we create indirect array with PointN type that
+        # (len,) shape and is used to copy data from original array
+        # to the target 1D wrapped array
+        N = src.ndim
+        pointN_dtype = self.runtime.get_point_type(N)
+        indirect = cast(
+            DeferredArray,
+            self.runtime.create_empty_thunk(
+                shape=(new_len,),
+                dtype=pointN_dtype,
+                inputs=[src],
+            ),
+        )
+
+        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task.add_output(indirect.base)
+        task.add_scalar_arg(src.shape, (ty.int64,))
+        task.execute()
+
+        copy = self.context.create_copy()
+        copy.set_target_indirect_out_of_range(False)
+        copy.add_input(src.base)
+        copy.add_source_indirect(indirect.base)
+        copy.add_output(self.base)
+        copy.execute()

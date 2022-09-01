@@ -668,6 +668,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def argwhere(self) -> NumPyThunk:
+        ...
+
+    @abstractmethod
     def where(self, rhs1: Any, rhs2: Any, rhs3: Any) -> None:
         ...
 
@@ -704,4 +708,8 @@ class NumPyThunk(ABC):
     def unpackbits(
         self, src: Any, axis: Union[int, None], bitorder: BitOrder
     ) -> None:
+        ...
+
+    @abstractmethod
+    def _wrap(self, src: Any, new_len: int) -> None:
         ...

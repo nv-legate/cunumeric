@@ -69,6 +69,8 @@ if TYPE_CHECKING:
         SortType,
     )
 
+from math import prod
+
 FALLBACK_WARNING = (
     "cuNumeric has not fully implemented {name} "
     + "and is falling back to canonical numpy. "
@@ -3165,6 +3167,20 @@ class ndarray:
         else:
             shape = args
 
+        if self.size == 0 and self.ndim > 1:
+            if shape == (-1,):
+                shape = (0,)
+            new_size = prod(shape)
+            if new_size > 0:
+                raise ValueError("new shape has bigger size than original")
+            result = ndarray(
+                shape=shape,
+                dtype=self.dtype,
+                inputs=(self,),
+            )
+            result.fill(0)
+            return result
+
         computed_shape = tuple(operator.index(extent) for extent in shape)
 
         num_unknowns = sum(extent < 0 for extent in computed_shape)
@@ -4106,4 +4122,17 @@ class ndarray:
             dtype=dtype,
             nan_to_identity=nan_to_identity,
         )
+        return out
+
+    def _wrap(self, new_len: int) -> ndarray:
+        if new_len == 1:
+            idxs = tuple(0 for i in range(self.ndim))
+            return self[idxs]
+
+        out = ndarray(
+            shape=(new_len,),
+            dtype=self.dtype,
+            inputs=(self,),
+        )
+        out._thunk._wrap(src=self._thunk, new_len=new_len)
         return out

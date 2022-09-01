@@ -99,6 +99,19 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 }
 
 template <typename VAL>
+static __global__ void bincount_kernel_rd_global(AccessorRD<SumReduction<int64_t>, false, 1> lhs,
+                                                 AccessorRO<VAL, 1> rhs,
+                                                 const size_t volume,
+                                                 Point<1> origin)
+{
+  // Just blast out the atomic writes into global memory.
+  auto idx = global_tid_1d();
+  if (idx >= volume) return;
+  auto bin = rhs[idx + origin[0]];
+  lhs[bin] <<= 1;
+}
+
+template <typename VAL>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   weighted_bincount_kernel_rd(AccessorRD<SumReduction<double>, false, 1> lhs,
                               AccessorRO<VAL, 1> rhs,
@@ -117,6 +130,21 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   }
 }
 
+template <typename VAL>
+static __global__ void weighted_bincount_kernel_rd_global(
+  AccessorRD<SumReduction<double>, false, 1> lhs,
+  AccessorRO<VAL, 1> rhs,
+  AccessorRO<double, 1> weights,
+  const size_t volume,
+  Point<1> origin)
+{
+  // Just blast out the atomic writes into global memory.
+  auto idx = global_tid_1d();
+  if (idx >= volume) return;
+  auto bin = rhs[idx + origin[0]];
+  lhs[bin] <<= weights[idx + origin[0]];
+}
+
 template <LegateTypeCode CODE>
 struct BincountImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
@@ -129,15 +157,24 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
     const auto volume   = rect.volume();
     const auto num_bins = lhs_rect.volume();
     const auto bin_size = num_bins * sizeof(int32_t);
+    auto stream         = get_cached_stream();
 
     int32_t num_ctas = 0;
     cudaOccupancyMaxActiveBlocksPerMultiprocessor(
       &num_ctas, bincount_kernel_rd<VAL>, THREADS_PER_BLOCK, bin_size);
-    assert(num_ctas > 0);
-    // Launch a kernel with this number of CTAs
-    auto stream = get_cached_stream();
-    bincount_kernel_rd<VAL>
-      <<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(lhs, rhs, volume, num_bins, rect.lo);
+    // If the number of bins is relatively low, attempt to use an algorithm that
+    // buffers bincounts local to each SM in shared memory. If there are too many
+    // bins to fit in shared memory, fall back to an approach that just blasts
+    // updates out to global memory.
+    if (num_ctas > 0) {
+      // Launch a kernel with this number of CTAs
+      bincount_kernel_rd<VAL>
+        <<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(lhs, rhs, volume, num_bins, rect.lo);
+    } else {
+      auto blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+      bincount_kernel_rd_global<VAL>
+        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(lhs, rhs, volume, rect.lo);
+    }
     CHECK_CUDA_STREAM(stream);
   }
 
@@ -150,15 +187,23 @@ struct BincountImplBody<VariantKind::GPU, CODE> {
     const auto volume   = rect.volume();
     const auto num_bins = lhs_rect.volume();
     const auto bin_size = num_bins * sizeof(double);
+    auto stream         = get_cached_stream();
 
     int32_t num_ctas = 0;
     cudaOccupancyMaxActiveBlocksPerMultiprocessor(
       &num_ctas, weighted_bincount_kernel_rd<VAL>, THREADS_PER_BLOCK, bin_size);
-    assert(num_ctas > 0);
-    // Launch a kernel with this number of CTAs
-    auto stream = get_cached_stream();
-    weighted_bincount_kernel_rd<VAL><<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(
-      lhs, rhs, weights, volume, num_bins, rect.lo);
+    // If the number of bins is relatively low, attempt to use an algorithm that
+    // buffers bincounts local to each SM in shared memory. If there are too many
+    // bins to fit in shared memory, fall back to an approach that just blasts
+    // updates out to global memory.
+    if (num_ctas > 0) {
+      weighted_bincount_kernel_rd<VAL><<<num_ctas, THREADS_PER_BLOCK, bin_size, stream>>>(
+        lhs, rhs, weights, volume, num_bins, rect.lo);
+    } else {
+      auto blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+      weighted_bincount_kernel_rd_global<VAL>
+        <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(lhs, rhs, weights, volume, rect.lo);
+    }
     CHECK_CUDA_STREAM(stream);
   }
 };

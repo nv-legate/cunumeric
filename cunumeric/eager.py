@@ -493,13 +493,7 @@ class EagerArray(NumPyThunk):
             if self.array.size == 1:
                 self.array.fill(rhs.array.item())
             else:
-                if (
-                    rhs.array.dtype.kind == "c"
-                    and self.array.dtype.kind != "c"
-                ):
-                    self.array[:] = rhs.array.real
-                else:
-                    self.array[:] = rhs.array
+                self.array[:] = rhs.array
 
     def fill(self, value: Any) -> None:
         if self.deferred is not None:
@@ -1538,6 +1532,12 @@ class EagerArray(NumPyThunk):
         else:
             self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
 
+    def argwhere(self) -> NumPyThunk:
+        if self.deferred is not None:
+            return self.deferred.argwhere()
+        else:
+            return EagerArray(self.runtime, np.argwhere(self.array))
+
     def trilu(self, rhs: Any, k: int, lower: bool) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
@@ -1622,3 +1622,19 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.unpackbits(
                 src.array, axis=axis, bitorder=bitorder
             )
+
+    def _wrap(self, src: Any, new_len: int) -> None:
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred._wrap(src, new_len)
+        else:
+            src_flat = np.ravel(src.array)
+            if src_flat.size == new_len:
+                self.array[:] = src_flat[:]
+            elif src_flat.size > new_len:
+                self.array[:] = src_flat[:new_len]
+            else:
+                reps = (new_len + src_flat.size - 1) // src_flat.size
+                if reps > 1:
+                    src_flat = np.tile(src_flat, reps)
+                self.array[:] = src_flat[:new_len]
