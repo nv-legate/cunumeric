@@ -483,6 +483,42 @@ class DeferredArray(NumPyThunk):
         store_copy.copy(store_to_copy, deep=True)
         return cast(DeferredArray, store_copy)
 
+    def _slice_store(
+        self, k: slice, store: Store, dim: int
+    ) -> tuple(slice, Store):
+        start = k.start
+        end = k.stop
+        step = k.step
+        size = store.shape[dim]
+
+        if (
+            (
+                (start is not None)
+                and (start >= size)
+                and (end is None or end >= size)
+            )
+            or ((start is not None) and (end is not None) and (start == end))
+            or ((start is None) and (end is not None) and (end == 0))
+        ):
+            start = 0
+            end = 0
+            step = 1
+        elif (start is None) and (end is not None) and (end < 0):
+            end = size + end
+        elif end is not None and end >= size:
+            end = size
+        elif start is not None and start < 0:
+            start = size + start
+        k = slice(start, end, step)
+
+        if start == end and start == 0:  # empty slice
+            store = store.project(dim, 0)
+            store = store.promote(dim, 0)
+        else:
+            store = store.slice(dim, k)
+
+        return k, store
+
     def _create_indexing_array(
         self, key: Any, is_set: bool = False
     ) -> tuple[bool, Any, Any, Any]:
@@ -647,35 +683,7 @@ class DeferredArray(NumPyThunk):
             elif k is np.newaxis:
                 store = store.promote(dim + shift, 1)
             elif isinstance(k, slice):
-                start = k.start
-                end = k.stop
-                step = k.step
-                size = self.shape[dim + shift]
-                if (
-                    (
-                        (start is not None)
-                        and (start >= size)
-                        and (end is None or end >= size)
-                    )
-                    or (
-                        (start is not None)
-                        and (end is not None)
-                        and (start == end)
-                    )
-                    or ((start is None) and (end is not None) and (end <= 0))
-                ):
-                    start = 0
-                    end = 0
-                    step = 1
-                elif end is not None and end >= size:
-                    end = size
-                k = slice(start, end, step)
-
-                if start == end and start == 0:  # empty slice
-                    store = store.project(dim + shift, 0)
-                    store = store.promote(dim + shift, 0)
-                else:
-                    store = store.slice(dim + shift, k)
+                k, store = self._slice_store(k, store, dim + shift)
             elif isinstance(k, NumPyThunk):
                 if not isinstance(key, DeferredArray):
                     k = self.runtime.to_deferred_array(k)
@@ -709,6 +717,8 @@ class DeferredArray(NumPyThunk):
             # the store with transformation
             rhs = self._copy_store(store)
 
+        if len(tuple_of_arrays) == 0:
+            return False, rhs, rhs, self
         if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
             return True, rhs, output_arr, self
@@ -743,35 +753,7 @@ class DeferredArray(NumPyThunk):
             if k is np.newaxis:
                 store = store.promote(dim + shift, 1)
             elif isinstance(k, slice):
-                start = k.start
-                end = k.stop
-                step = k.step
-                size = self.shape[dim + shift]
-                if (
-                    (
-                        (start is not None)
-                        and (start >= size)
-                        and (end is None or end >= size)
-                    )
-                    or (
-                        (start is not None)
-                        and (end is not None)
-                        and (start == end)
-                    )
-                    or ((start is None) and (end is not None) and (end <= 0))
-                ):
-                    start = 0
-                    end = 0
-                    step = 1
-                elif end is not None and end >= size:
-                    end = size
-                k = slice(start, end, step)
-
-                if start == end and start == 0:  # empty slice
-                    store = store.project(dim + shift, 0)
-                    store = store.promote(dim + shift, 0)
-                else:
-                    store = store.slice(dim + shift, k)
+                k, store = self._slice_store(k, store, dim + shift)
             elif np.isscalar(k):
                 if k < 0:  # type: ignore
                     k += store.shape[dim + shift]
