@@ -2118,12 +2118,7 @@ def array_split(
         split_pts = list(indices)
         # adding the size of the target dimension.
         # This helps create dummy or last subarray correctly
-        try:
-            split_pts.append(array.shape[axis])
-        except AttributeError:
-            raise ValueError(
-                "axis has to be shorter than the length of the list indexes"
-            )
+        split_pts.append(array.shape[axis])
 
     else:
         raise ValueError("Integer or array for split should be provided")
