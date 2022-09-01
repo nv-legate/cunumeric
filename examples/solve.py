@@ -66,5 +66,5 @@ if __name__ == "__main__":
         dest="dtype",
         help="data type",
     )
-    args, unknown = parser.parse_known_args()
+    args = parser.parse_args()
     solve(args.m, args.n, args.nrhs, args.dtype)

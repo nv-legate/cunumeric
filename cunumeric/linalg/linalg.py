@@ -124,14 +124,14 @@ def solve(a: ndarray, b: ndarray) -> ndarray:
         )
     if b.ndim < 1:
         raise LinAlgError(
-            f"{a.ndim}-dimensional array given. "
+            f"{b.ndim}-dimensional array given. "
             "Array must be at least one-dimensional"
         )
     if np.dtype("e") in (a.dtype, b.dtype):
         raise TypeError("array type float16 is unsupported in linalg")
     if a.ndim > 2 or b.ndim > 2:
         raise NotImplementedError(
-            "cuNumeric needs to support stacked 2d arrays"
+            "cuNumeric does not yet support stacked 2d arrays"
         )
     if a.shape[-2] != a.shape[-1]:
         raise LinAlgError("Last 2 dimensions of the array must be square")
