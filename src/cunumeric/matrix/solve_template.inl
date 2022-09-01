@@ -54,21 +54,45 @@ struct SolveImpl {
   {
     using VAL = legate_type_of<CODE>;
 
+#ifdef DEBUG_CUNUMERIC
+    assert(a_array.dim() == 2);
+    assert(b_array.dim() == 1 || b_array.dim() == 2);
+#endif
     const auto a_shape = a_array.shape<2>();
-    const auto b_shape = b_array.shape<2>();
 
-    if (a_shape.empty() || b_shape.empty()) return;
+    const int64_t m = a_shape.hi[0] - a_shape.lo[0] + 1;
+    const int64_t n = a_shape.hi[1] - a_shape.lo[1] + 1;
+
+#ifdef DEBUG_CUNUMERIC
+    // The Python code guarantees this property
+    assert(m == n);
+#endif
 
     size_t a_strides[2];
-    size_t b_strides[2];
+    VAL* a = a_array.read_write_accessor<VAL, 2>(a_shape).ptr(a_shape, a_strides);
+    VAL* b = nullptr;
 
-    const auto m    = static_cast<int64_t>(a_shape.hi[0] - a_shape.lo[0] + 1);
-    const auto n    = static_cast<int64_t>(a_shape.hi[1] - a_shape.lo[1] + 1);
-    const auto nrhs = static_cast<int64_t>(b_shape.hi[1] - b_shape.lo[1] + 1);
-    auto a          = a_array.write_accessor<VAL, 2>(a_shape).ptr(a_shape, a_strides);
-    auto b          = b_array.write_accessor<VAL, 2>(b_shape).ptr(b_shape, b_strides);
+    int64_t nrhs = 1;
+    if (b_array.dim() == 1) {
+      const auto b_shape = b_array.shape<1>();
+#ifdef DEBUG_CUNUMERIC
+      assert(m == b_shape.hi[0] - b_shape.lo[0] + 1);
+#endif
+      size_t b_strides;
+      b = b_array.read_write_accessor<VAL, 1>(b_shape).ptr(b_shape, &b_strides);
+    } else {
+      const auto b_shape = b_array.shape<2>();
+#ifdef DEBUG_CUNUMERIC
+      assert(m == b_shape.hi[0] - b_shape.lo[0] + 1);
+#endif
+      nrhs = b_shape.hi[1] - b_shape.lo[1] + 1;
+      size_t b_strides[2];
+      b = b_array.read_write_accessor<VAL, 2>(b_shape).ptr(b_shape, b_strides);
+    }
 
+#ifdef DEBUG_CUNUMERIC
     assert(m > 0 && n > 0 && nrhs > 0);
+#endif
 
     SolveImplBody<KIND, CODE>()(m, n, nrhs, a, b);
   }

@@ -14,12 +14,11 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from cunumeric.config import CuNumericOpCode
 
-from legate.core import types as ty
-
+from .cholesky import transpose_copy_single
 from .exception import LinAlgError
 
 if TYPE_CHECKING:
@@ -27,22 +26,6 @@ if TYPE_CHECKING:
     from legate.core.store import Store
 
     from ..deferred import DeferredArray
-
-
-def transpose_copy_single(
-    context: Context, input: Store, output: Store
-) -> None:
-    task = context.create_auto_task(CuNumericOpCode.TRANSPOSE_COPY_2D)
-    task.add_output(output)
-    task.add_input(input)
-    # Output has the same shape as input, but is mapped
-    # to a column major instance
-    task.add_scalar_arg(False, ty.int32)
-
-    task.add_broadcast(input)
-    task.add_broadcast(output)
-
-    task.execute()
 
 
 def solve_single(context: Context, a: Store, b: Store) -> None:
@@ -60,12 +43,20 @@ def solve_single(context: Context, a: Store, b: Store) -> None:
 
 
 def solve(output: DeferredArray, a: DeferredArray, b: DeferredArray) -> None:
+    from ..deferred import DeferredArray
 
+    runtime = output.runtime
     context = output.context
 
-    a_output = a
+    a_copy = cast(
+        DeferredArray,
+        runtime.create_empty_thunk(a.shape, dtype=a.dtype, inputs=(a,)),
+    )
+    transpose_copy_single(context, a.base, a_copy.base)
 
-    transpose_copy_single(context, a.base, a_output.base)
-    transpose_copy_single(context, b.base, output.base)
+    if b.ndim > 1:
+        transpose_copy_single(context, b.base, output.base)
+    else:
+        output.copy(b)
 
-    solve_single(context, a_output.base, b.base)
+    solve_single(context, a_copy.base, output.base)

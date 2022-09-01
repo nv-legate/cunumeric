@@ -23,7 +23,11 @@ from cunumeric.module import dot, empty_like, eye, matmul, ndarray
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 
+from .exception import LinAlgError
+
 if TYPE_CHECKING:
+    from typing import Optional
+
     import numpy.typing as npt
 
 
@@ -82,22 +86,40 @@ def cholesky(a: ndarray) -> ndarray:
 
 @add_boilerplate("a", "b")
 def solve(a: ndarray, b: ndarray) -> ndarray:
-    if len(a.shape) < 2:
-        raise ValueError(
-            f"{len(a.shape)}-dimensional array given. "
+    if a.ndim < 2:
+        raise LinAlgError(
+            f"{a.ndim}-dimensional array given. "
             "Array must be at least two-dimensional"
         )
-
-    if len(b.shape) < 1:
-        raise ValueError(
-            f"{len(a.shape)}-dimensional array given. "
+    if b.ndim < 1:
+        raise LinAlgError(
+            f"{a.ndim}-dimensional array given. "
             "Array must be at least one-dimensional"
         )
-
-    if len(a.shape) > 2 or len(b.shape) > 2:
+    if np.dtype("e") in (a.dtype, b.dtype):
+        raise TypeError("array type float16 is unsupported in linalg")
+    if a.ndim > 2 or b.ndim > 2:
         raise NotImplementedError(
             "cuNumeric needs to support stacked 2d arrays"
         )
+    if a.shape[-2] != a.shape[-1]:
+        raise LinAlgError("Last 2 dimensions of the array must be square")
+    if a.shape[-1] != b.shape[0]:
+        if b.ndim == 1:
+            raise ValueError(
+                "Input operand 1 has a mismatch in its dimension 0, "
+                f"with signature (m,m),(m)->(m) (size {b.shape[0]} "
+                f"is different from {a.shape[-1]})"
+            )
+        else:
+            raise ValueError(
+                "Input operand 1 has a mismatch in its dimension 0, "
+                f"with signature (m,m),(m,n)->(m,n) (size {b.shape[0]} "
+                f"is different from {a.shape[-1]})"
+            )
+    if a.size == 0 or b.size == 0:
+        return empty_like(b)
+
     return _solve(a, b)
 
 
@@ -578,17 +600,33 @@ def _cholesky(a: ndarray, no_tril: bool = False) -> ndarray:
     return output
 
 
-def _solve(a: ndarray, b: ndarray) -> ndarray:
-    a_input = a
-    b_input = b
-    if a_input.dtype.kind not in ("f", "c"):
-        a_input = a_input.astype("float64")
-    if b_input.dtype.kind not in ("f", "c"):
-        b_input = b_input.astype("float64")
-    output = ndarray(
-        shape=b_input.shape,
-        dtype=b_input.dtype,
-        inputs=(b_input,),
-    )
-    output._thunk.solve(a_input._thunk, b_input._thunk)
-    return output
+def _solve(
+    a: ndarray, b: ndarray, output: Optional[ndarray] = None
+) -> ndarray:
+    if a.dtype.kind not in ("f", "c"):
+        a = a.astype("float64")
+    if b.dtype.kind not in ("f", "c"):
+        b = b.astype("float64")
+    if a.dtype != b.dtype:
+        dtype = np.find_common_type([a.dtype, b.dtype], [])
+        a = a.astype(dtype)
+        b = b.astype(dtype)
+
+    if output is not None:
+        out = output
+        if out.shape != b.shape:
+            raise ValueError(
+                f"Output shape mismatch: expected {b.shape}, "
+                f"but found {out.shape}"
+            )
+    else:
+        out = ndarray(
+            shape=b.shape,
+            dtype=b.dtype,
+            inputs=(
+                a,
+                b,
+            ),
+        )
+    out._thunk.solve(a._thunk, b._thunk)
+    return out

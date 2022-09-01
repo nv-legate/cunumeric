@@ -25,27 +25,20 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <typename Getrf, typename Getrs, typename VAL>
-static inline void solve_template(
-  Getrf getrf, Getrs getrs, int32_t m, int32_t n, int32_t nrhs, VAL* a, VAL* b)
-{
-  const char trans = 'N';
-  int32_t info     = 0;
-
-  auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-  auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
-
-  getrf(&m, &n, a, &m, ipiv.ptr(0), &info);
-  getrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
-
-  if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-}
-
 template <>
 struct SolveImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, float* a, float* b)
   {
-    solve_template(sgetrf_, sgetrs_, m, n, nrhs, a, b);
+    const char trans = 'N';
+    int32_t info     = 0;
+
+    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
+
+    LAPACK_sgetrf(&m, &n, a, &m, ipiv.ptr(0), &info);
+    LAPACK_sgetrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
+
+    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
   }
 };
 
@@ -53,35 +46,56 @@ template <>
 struct SolveImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, double* a, double* b)
   {
-    solve_template(dgetrf_, dgetrs_, m, n, nrhs, a, b);
+    const char trans = 'N';
+    int32_t info     = 0;
+
+    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
+
+    LAPACK_dgetrf(&m, &n, a, &m, ipiv.ptr(0), &info);
+    LAPACK_dgetrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
+
+    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
   }
 };
 
 template <>
 struct SolveImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
-  void operator()(int32_t m, int32_t n, int32_t nrhs, complex<float>* a, complex<float>* b)
+  void operator()(int32_t m, int32_t n, int32_t nrhs, complex<float>* a_, complex<float>* b_)
   {
-    solve_template(cgetrf_,
-                   cgetrs_,
-                   m,
-                   n,
-                   nrhs,
-                   reinterpret_cast<__complex__ float*>(a),
-                   reinterpret_cast<__complex__ float*>(b));
+    const char trans = 'N';
+    int32_t info     = 0;
+
+    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
+
+    auto a = reinterpret_cast<__complex__ float*>(a_);
+    auto b = reinterpret_cast<__complex__ float*>(b_);
+
+    LAPACK_cgetrf(&m, &n, a, &m, ipiv.ptr(0), &info);
+    LAPACK_cgetrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
+
+    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
   }
 };
 
 template <>
 struct SolveImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
-  void operator()(int32_t m, int32_t n, int32_t nrhs, complex<double>* a, complex<double>* b)
+  void operator()(int32_t m, int32_t n, int32_t nrhs, complex<double>* a_, complex<double>* b_)
   {
-    solve_template(zgetrf_,
-                   zgetrs_,
-                   m,
-                   n,
-                   nrhs,
-                   reinterpret_cast<__complex__ double*>(a),
-                   reinterpret_cast<__complex__ double*>(b));
+    const char trans = 'N';
+    int32_t info     = 0;
+
+    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
+
+    auto a = reinterpret_cast<__complex__ double*>(a_);
+    auto b = reinterpret_cast<__complex__ double*>(b_);
+
+    LAPACK_zgetrf(&m, &n, a, &m, ipiv.ptr(0), &info);
+    LAPACK_zgetrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
+
+    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
   }
 };
 
