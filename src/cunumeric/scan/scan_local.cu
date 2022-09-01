@@ -184,10 +184,16 @@ void cuda_scan(const RES *A, RES *B, uint64_t len, uint64_t stride, OP func, RES
   }
 
   batch_scan_cuda<RES, OP><<<grid_dim, THREADS_PER_BLOCK, 0, stream>>>(A, B, len, stride, func, identity, blocked_sum);
+  CHECK_CUDA_STREAM(stream);
 
   if(stride > THREADS_PER_BLOCK){
     cuda_scan(blocked_sum, blocked_sum, blocked_len, blocked_stride, func, identity, stream);
     cuda_add<<<grid_dim, THREADS_PER_BLOCK, 0, stream>>>(B, len, stride, func, blocked_sum);
+    CHECK_CUDA_STREAM(stream);
+  }
+  
+  if(stride > THREADS_PER_BLOCK){
+    CHECK_CUDA( cudaFree(blocked_sum) );
   }
 }
   
@@ -218,8 +224,13 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     VAL identity = (VAL)ScanOp<OP_CODE, CODE>::nan_identity;
 
-    cuda_scan<VAL, OP>(inptr, outptr, volume, stride, func, identity, stream);
-    
+    if(volume == stride){
+      // Thrust is slightly faster for the 1D case
+      thrust::inclusive_scan(thrust::cuda::par.on(stream), inptr, inptr + stride, outptr, func);      
+    } else {
+      cuda_scan<VAL, OP>(inptr, outptr, volume, stride, func, identity, stream);
+    }
+      
     uint64_t grid_dim = ((volume / stride) - 1) / THREADS_PER_BLOCK + 1;
     partition_sum<<<grid_dim, THREADS_PER_BLOCK, 0, stream>>>(outptr, sum_valsptr, pitches, volume, stride);
     CHECK_CUDA_STREAM(stream);
