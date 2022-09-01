@@ -83,7 +83,7 @@ def run_einsum(expr, N, iters, warmup, dtype, cupy_compatibility):
 
     # Run contraction
     start = time()
-    for idx in range(iters):
+    for idx in range(iters + warmup):
         if idx == warmup:
             start = time()
         if cupy_compatibility:
