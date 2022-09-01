@@ -619,7 +619,7 @@ def driver():
         nargs="?",
         type=int,
         required=False,
-        default=os.environ.get("THREAD_COUNT"),
+        default=os.environ.get("CPU_COUNT"),
         help="Number of threads used to compile.",
     )
     parser.add_argument(
