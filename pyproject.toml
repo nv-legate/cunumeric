@@ -61,3 +61,17 @@ implicit_reexport = true
 strict_equality = true
 
 warn_unused_configs = true
+
+[[tool.mypy.overrides]]
+# ignore auto-generated files
+# or files depending on auto-generated field
+# legate files need to be listed here for now
+# since they are included in the type check
+module = [
+  "cunumeric.install_info",
+  "cunumeric._version",
+  "legate._version",
+  "legate.__main__",
+  "legate.install_info",
+]
+ignore_errors = true
