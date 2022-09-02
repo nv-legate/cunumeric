@@ -23,7 +23,6 @@
 #include "cunumeric/unary/unary_red_util.h"
 #include "cunumeric/pitches.h"
 #include "cunumeric/execution_policy/reduction/scalar_reduction.h"
-#include "cunumeric/execution_policy/execution_policy_helpers.h"
 
 namespace cunumeric {
 
@@ -77,7 +76,7 @@ struct ScalarUnaryRed {
 #endif
   }
 
-  CUDA_FUNCTION void operator()(LHS& lhs, size_t idx, DenseReduction) const noexcept
+  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, DenseReduction) const noexcept
   {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
       if (inptr[idx] == to_find) { lhs = true; }
@@ -89,7 +88,7 @@ struct ScalarUnaryRed {
     }
   }
 
-  CUDA_FUNCTION void operator()(LHS& lhs, size_t idx, SparseReduction) const noexcept
+  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, SparseReduction) const noexcept
   {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
       auto point = pitches.unflatten(idx, origin);
@@ -126,7 +125,7 @@ struct ScalarUnaryRedImpl {
   void operator()(ScalarUnaryRedArgs& args) const
   {
     // The operation is always valid for contains
-    if constexpr (UnaryRedOp<OP_CODE, CODE>::valid || OP_CODE == UnaryRedCode::CONTAINS){
+    if constexpr (UnaryRedOp<OP_CODE, CODE>::valid || OP_CODE == UnaryRedCode::CONTAINS) {
       ScalarUnaryRed<KIND, OP_CODE, CODE, DIM> red(args);
       red.execute();
     }

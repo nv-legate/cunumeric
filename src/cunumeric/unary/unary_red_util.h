@@ -307,16 +307,14 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   }
 };
 
-
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::CONTAINS, TYPE_CODE> {
   static constexpr bool valid = false;
 
-  using RHS = legate::legate_type_of<TYPE_CODE>;
-  using VAL = bool;
+  using RHS     = legate::legate_type_of<TYPE_CODE>;
+  using VAL     = bool;
   using _RED_OP = UnaryRedOp<UnaryRedCode::SUM, legate::LegateTypeCode::BOOL_LT>;
-  using OP  = _RED_OP::OP;
-
+  using OP      = _RED_OP::OP;
 };
 
 }  // namespace cunumeric
