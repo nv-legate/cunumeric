@@ -1,3 +1,6 @@
+#ifndef SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_SCALAR_REDUCTION_CUH_
+#define SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_SCALAR_REDUCTION_CUH_
+
 #include "cunumeric/execution_policy/reduction/scalar_reduction.h"
 #include "cunumeric/cuda_help.h"
 
@@ -51,3 +54,5 @@ struct ScalarReductionPolicy<VariantKind::GPU, LG_OP, Tag> {
 };
 
 } // namespace cunumeric
+
+#endif // SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_SCALAR_REDUCTION_CUH_

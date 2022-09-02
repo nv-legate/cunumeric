@@ -1,3 +1,6 @@
+#ifndef SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_SCALAR_REDUCTION_OMP_H_
+#define SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_SCALAR_REDUCTION_OMP_H_
+
 #include "cunumeric/execution_policy/reduction/scalar_reduction.h"
 #include "cunumeric/omp_help.h"
 
@@ -24,3 +27,5 @@ struct ScalarReductionPolicy<VariantKind::OMP, LG_OP, Tag> {
 };
 
 }
+
+#endif // SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_SCALAR_REDUCTION_OMP_H_
