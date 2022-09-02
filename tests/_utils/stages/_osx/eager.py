@@ -60,4 +60,5 @@ class Eager(TestStage):
         degree = min(N, 60)  # ~LEGION_MAX_NUM_PROCS just in case
         workers = adjust_workers(degree, config.requested_workers)
 
-        return StageSpec(workers, [])
+        # return a dummy set of shards just for the runner to iterate over
+        return StageSpec(workers, [(i,) for i in range(workers)])

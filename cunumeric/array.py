@@ -4122,3 +4122,16 @@ class ndarray:
             nan_to_identity=nan_to_identity,
         )
         return out
+
+    def _wrap(self, new_len: int) -> ndarray:
+        if new_len == 1:
+            idxs = tuple(0 for i in range(self.ndim))
+            return self[idxs]
+
+        out = ndarray(
+            shape=(new_len,),
+            dtype=self.dtype,
+            inputs=(self,),
+        )
+        out._thunk._wrap(src=self._thunk, new_len=new_len)
+        return out
