@@ -40,14 +40,14 @@ class Test_flags:
         "c_contiguous",
         "f_contiguous",
         "owndata",
-        "fnc",
-        "forc",
-        "behaved",
-        "carray",
-        "farray",
         "writeable",
         "aligned",
         "writebackifcopy",
+        "behaved",
+        "carray",
+        "farray",
+        "fnc",
+        "forc",
     ]
 
     @pytest.mark.parametrize("view_test", [False, True], ids=bool)
@@ -71,12 +71,28 @@ class Test_flags:
         c = self.arr_num.flags if view_test else self.arr_num.view().flags
         is_equal = True
         err_arr = None
+
+        short = ["C", "F", "O", "W", "A", "X", "B", "CA", "FA"]
         # test default values in `ndarrray.flags`
         for attr in self.attrs:
             attr_upper = attr.upper()
             if b[attr_upper] != c[attr_upper]:
                 is_equal = False
                 err_arr = [attr, b[attr_upper], c[attr_upper]]
+                break
+
+        for idx, attr in enumerate(short):
+            if b[attr] != c[attr]:
+                is_equal = False
+                err_arr = [attr, b[attr], c[attr]]
+                break
+            if b[attr] is not b[self.attrs[idx].upper()]:
+                is_equal = False
+                err_arr = [
+                    (attr, self.attrs[idx].upper()),
+                    b[attr],
+                    self.attrs[idx].upper(),
+                ]
                 break
 
         _print_result(is_equal, "np.ndarray.flags", err_arr)
@@ -87,7 +103,7 @@ class Test_flags:
         c = self.arr_num if view_test else self.arr_num.view()
         is_equal = True
         err_arr = None
-        for attr in self.attrs[-3:]:
+        for attr in self.attrs[3:6]:
             attr = attr.upper()
             # alter flags
             error_b = False

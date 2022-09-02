@@ -155,7 +155,10 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
         return obj
     # Ask the runtime to make a numpy thunk for this object
     thunk = runtime.get_numpy_thunk(obj, share=share)
-    return ndarray(shape=None, thunk=thunk)
+    flags = flagsobj(
+        writeable=obj.flags.writeable if isinstance(obj, np.ndarray) else None
+    )
+    return ndarray(shape=None, thunk=thunk, flags=flags)
 
 
 def convert_to_predicate_ndarray(obj: Any) -> bool:
@@ -202,6 +205,18 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
 
 
 class flagsobj(object):
+    short = {
+        "C": "c_contiguous",
+        "F": "f_contiguous",
+        "O": "owndata",
+        "W": "writeable",
+        "A": "aligned",
+        "X": "writebackifcopy",
+        "B": "behaved",
+        "CA": "carray",
+        "FA": "farray",
+    }
+
     def __init__(
         self,
         c_contiguous: bool = True,
@@ -217,38 +232,6 @@ class flagsobj(object):
         self._writeable = writeable
         self._aligned = aligned
         self._writebackifcopy = writebackifcopy
-
-    def __getitem__(self, key: Any) -> bool:
-        key = self.check_flag(key)
-        return getattr(self, key)
-
-    def __setitem__(self, key: str, value: Any) -> None:
-        key = self.check_flag(key)
-        setattr(self, key, value)
-
-    def __repr__(self) -> str:
-        output = ""
-        for each in self.__dict__:
-            output += f"{each.strip('_').upper()} : {self.__dict__[each]} \n"
-        return output
-
-    def __str__(self) -> str:
-        return repr(self)
-
-    def check_flag(self, key: str) -> str:
-        key = key.lower()
-        if len(key) == 1:
-            if key == "x":
-                key = "writebackifcopy"
-            else:
-                for attr in self.__dict__.keys():
-                    if (str)(attr).strip("_")[0] == key:
-                        key = (str)(attr)
-                        break
-
-        if not hasattr(self, key):
-            raise AttributeError(f"{key} is unknown flag for ndarray.flags")
-        return key
 
     @property
     def c_contiguous(self) -> bool:
@@ -315,6 +298,33 @@ class flagsobj(object):
                 "cannot set WRITEBACKIFCOPY flag to True for this array"
             )
         self._writebackifcopy = value
+
+    def __getitem__(self, key: Any) -> bool:
+        key = self.check_flag(key)
+        return getattr(self, key)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        key = self.check_flag(key)
+        setattr(self, key, value)
+
+    def __repr__(self) -> str:
+        output = ""
+        for each in self.__dict__:
+            output += f"{each.strip('_').upper()} : {self.__dict__[each]} \n"
+        return output
+
+    def __str__(self) -> str:
+        return repr(self)
+
+    def check_flag(self, key: str) -> str:
+        if len(key) <= 2:
+            if key in flagsobj.short.keys():
+                key = flagsobj.short[key]
+        else:
+            key = key.lower()
+        if not hasattr(self, key):
+            raise AttributeError(f"{key} is unknown flag for ndarray.flags")
+        return key
 
 
 @clone_np_ndarray
