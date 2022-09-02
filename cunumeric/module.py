@@ -18,7 +18,17 @@ import math
 import re
 from collections import Counter
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
@@ -1535,7 +1545,7 @@ def broadcast_arrays(
     Multiple GPUs, Multiple CPUs
 
     """
-    arrs = list(convert_to_cunumeric_ndarray(arr) for arr in args)
+    arrs = [convert_to_cunumeric_ndarray(arr) for arr in args]
     return _broadcast_arrays(arrs, subok=subok)
 
 
@@ -1543,7 +1553,9 @@ class broadcast:
     def __init__(self, *arrays: Sequence[Any]) -> None:
         """
 
-        Produce an object that mimics broadcasting.
+        Produce an object that broadcasts input parameters
+        against one another. It has shape and nd properties,
+        and may be used as an iterator.
 
         Parameters
         ----------
@@ -1555,21 +1567,13 @@ class broadcast:
             otherwise the returned arrays will be forced to
             be a base-class array (default).
 
-        Returns
-        -------
-        b : broadcast object
-            Broadcast the input parameters against one another,
-            and return an object that encapsulates the result.
-            Amongst others, it has shape and nd properties,
-            and may be used as an iterator.
-
         """
-        arrs = list(convert_to_cunumeric_ndarray(arr) for arr in arrays)
+        arrs = [convert_to_cunumeric_ndarray(arr) for arr in arrays]
         broadcasted = _broadcast_arrays(arrs)
         self._iters = tuple(arr.flat for arr in broadcasted)
         self._index = 0
         self._shape = broadcasted[0].shape
-        self._size = np.prod(self.shape)
+        self._size = np.prod(self.shape, dtype=int)
 
     def __iter__(self) -> broadcast:
         self._index = 0
@@ -1580,8 +1584,6 @@ class broadcast:
             result = tuple(each[self._index] for each in self._iters)
             self._index += 1
             return result
-        else:
-            raise StopIteration
 
     def reset(self) -> None:
         self._index = 0
@@ -1591,8 +1593,8 @@ class broadcast:
         return self._index
 
     @property
-    def iters(self) -> tuple[Any]:
-        return self._iters  # type: ignore [return-value]
+    def iters(self) -> Tuple[Iterable[Any], ...]:
+        return self._iters
 
     @property
     def numiter(self) -> int:
@@ -1612,7 +1614,7 @@ class broadcast:
 
     @property
     def size(self) -> int:
-        return self._size  # type: ignore [return-value]
+        return self._size
 
 
 # Joining arrays
