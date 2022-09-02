@@ -497,7 +497,7 @@ class DeferredArray(NumPyThunk):
                 and (start >= size)
                 and (end is None or end >= size)
             )
-            or ((start is not None) and (end is not None) and (start == end))
+            or ((start is not None) and (end is not None) and (start >= end))
             or ((start is None) and (end is not None) and (end == 0))
         ):
             start = 0

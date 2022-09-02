@@ -51,8 +51,12 @@ def test_empty_slice():
     assert np.array_equal(a_np[-1:], a_num[-1:])
 
     a_np = np.arange(20).reshape(5, 2, 2)
-    a_num = num.array([1, 2, 3])
+    a_num = num.array(a_np)
     assert np.array_equal(a_np[:, 1:1, 1], a_num[:, 1:1, 1])
+    assert np.array_equal(a_np[:, 2:1, 1], a_num[:, 2:1, 1])
+    assert np.array_equal(a_np[:, :, -1:], a_num[:, :, -1:])
+    assert np.array_equal(a_np[:, :, 1:-1], a_num[:, :, 1:-1])
+    assert np.array_equal(a_np[:, :, :-1], a_num[:, :, :-1])
 
 
 if __name__ == "__main__":
