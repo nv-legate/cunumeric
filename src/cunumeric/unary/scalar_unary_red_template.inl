@@ -125,7 +125,8 @@ struct ScalarUnaryRedImpl {
   template <LegateTypeCode CODE, int DIM>
   void operator()(ScalarUnaryRedArgs& args) const
   {
-    if constexpr (UnaryRedOp<OP_CODE, CODE>::valid) {
+    // The operation is always valid for contains
+    if constexpr (UnaryRedOp<OP_CODE, CODE>::valid || OP_CODE == UnaryRedCode::CONTAINS){
       ScalarUnaryRed<KIND, OP_CODE, CODE, DIM> red(args);
       red.execute();
     }
