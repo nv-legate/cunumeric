@@ -42,6 +42,8 @@ package:
 source:
 {% if package_tar is defined %}
   url: {{ package_tar }}
+{% elif use_local_path is defined %}
+  path: ../../
 {% else %}
   git_url: ../../
 {% endif %}
@@ -51,10 +53,20 @@ build:
   number: {{ build_number }}
   missing_dso_whitelist:
     -  '*libcuda.so*'
+{% if use_local_path is not defined %}
+# use git hash
 {% if not gpu_enabled_bool %}
   string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ PKG_BUILDNUM }}_cpu"
 {% else %}
   string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ GIT_DESCRIBE_HASH }}_{{ PKG_BUILDNUM }}"
+{% endif %}
+{% else %}
+# do not use git hash
+{% if not gpu_enabled_bool %}
+  string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ PKG_BUILDNUM }}_cpu"
+{% else %}
+  string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ PKG_BUILDNUM }}"
+{% endif %}
 {% endif %}
   script_env:
     - SCCACHE_BUCKET
