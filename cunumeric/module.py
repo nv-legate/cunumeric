@@ -3671,6 +3671,84 @@ def diagonal(
     )
 
 
+@add_boilerplate("a", "val")
+def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:
+    """
+    Fill the main diagonal of the given array of any dimensionality.
+
+    For an array a with a.ndim >= 2, the diagonal is the list of locations with
+    indices a[i, ..., i] all identical. This function modifies the input
+    array in-place, it does not return a value.
+
+    Parameters
+    ----------
+
+    a : array, at least 2-D.
+        Array whose diagonal is to be filled, it gets modified in-place.
+    val : scalar or array_like
+        Value(s) to write on the diagonal. If val is scalar, the value is
+        written along the diagonal.
+        If array-like, the flattened val is written along
+        the diagonal, repeating if necessary to fill all diagonal entries.
+    wrap : bool
+        If true, the diagonal "wraps" after N columns, for tall 2d matrices.
+
+    Raises
+    ------
+    ValueError
+        If the dimension of `a` is less than 2.
+
+    Notes
+    -----
+
+    See Also
+    --------
+    numpy.fill_diagonal
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    if val.size == 0 or a.size == 0:
+        return
+
+    if a.ndim < 2:
+        raise ValueError("array must be at least 2-d")
+
+    n = _builtin_min(a.shape)
+
+    if a.ndim > 2:
+        for s in a.shape:
+            if s != n:
+                raise ValueError(
+                    "All dimensions of input must be of equal length"
+                )
+
+    len_val = n
+
+    if a.ndim == 2 and wrap and a.shape[0] > a.shape[1]:
+        len_val = a.shape[0] - (a.shape[0] // (a.shape[1] + 1))
+
+    if (val.size != len_val and val.ndim > 0) or val.ndim > 1:
+        val = val._wrap(len_val)
+
+    if a.ndim == 2 and wrap and a.shape[0] > a.shape[1]:
+        idx0_tmp = arange(a.shape[1], dtype=int)
+        idx0 = idx0_tmp.copy()
+        while idx0.size < len_val:
+            idx0_tmp = idx0_tmp + (a.shape[1] + 1)
+            idx0 = hstack((idx0, idx0_tmp))
+        idx0 = idx0[0:len_val]
+        idx1 = arange(len_val, dtype=int) % a.shape[1]
+        a[idx0, idx1] = val
+    else:
+        idx = arange(n, dtype=int)
+        indices = (idx,) * a.ndim
+
+        a[indices] = val
+
+
 ################
 # Linear algebra
 ################

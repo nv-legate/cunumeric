@@ -181,6 +181,12 @@ def test_empty_bool():
     arr_num[idx_num] = val_num
     assert np.array_equal(arr_np, arr_num)
 
+    arr_np = np.array([[1, 2, 3], [2, 3, 4]])
+    arr_num = num.array(arr_np)
+    idx_np = np.array([False, False], dtype=bool)
+    idx_num = num.array([False, False], dtype=bool)
+    assert np.array_equal(arr_np[idx_np], arr_num[idx_num])
+
 
 def test_future_stores():
     # array is a future:

@@ -443,17 +443,15 @@ class DeferredArray(NumPyThunk):
         # NOTE: We need to instantiate a RegionField of non-primitive
         # dtype, to store N-dimensional index points, to be used as the
         # indirection field in a copy.
-        # Such dtypes are technically not supported,
-        # but it should be safe to directly create a DeferredArray
-        # of that dtype, so long as we don't try to convert it to a
-        # NumPy array.
         N = self.ndim
         pointN_dtype = self.runtime.get_point_type(N)
-        store = self.context.create_store(
-            pointN_dtype, shape=out_shape, optimize_scalar=True
-        )
-        output_arr = DeferredArray(
-            self.runtime, base=store, dtype=cast("np.dtype[Any]", pointN_dtype)
+        output_arr = cast(
+            DeferredArray,
+            self.runtime.create_empty_thunk(
+                shape=out_shape,
+                dtype=pointN_dtype,
+                inputs=[self],
+            ),
         )
 
         # call ZIP function to combine index arrays into a singe array
@@ -542,9 +540,7 @@ class DeferredArray(NumPyThunk):
             # indirect copy operation
             if is_set:
                 N = rhs.ndim
-                out_dtype = cast(
-                    "np.dtype[Any]", rhs.runtime.get_point_type(N)
-                )
+                out_dtype = rhs.runtime.get_point_type(N)
 
             # TODO : current implementation of the ND output regions
             # requires out.ndim == rhs.ndim. This will be fixed in the
@@ -573,9 +569,24 @@ class DeferredArray(NumPyThunk):
 
             if out_dim != rhs.ndim:
                 out_tmp = out.base
-                for dim in range(rhs.ndim - out_dim):
-                    out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
-                out = out._copy_store(out_tmp)
+
+                if out.size == 0:
+                    out_shape = tuple(out.shape[i] for i in range(0, out_dim))
+                    out = cast(
+                        DeferredArray,
+                        self.runtime.create_empty_thunk(
+                            out_shape,
+                            out_dtype,
+                            inputs=[out],
+                        ),
+                    )
+                    if not is_set:
+                        out.fill(np.array(0, dtype=out_dtype))
+                else:
+                    for dim in range(rhs.ndim - out_dim):
+                        out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
+
+                    out = out._copy_store(out_tmp)
 
             return False, rhs, out, self
 
@@ -853,7 +864,6 @@ class DeferredArray(NumPyThunk):
                 lhs = lhs._convert_future_to_regionfield()
 
             if index_array.size != 0:
-
                 copy = self.context.create_copy()
                 copy.set_target_indirect_out_of_range(False)
 
@@ -1160,7 +1170,7 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_auto_task(CuNumericOpCode.CONVERT)
         task.add_output(lhs)
         task.add_input(rhs)
-        task.add_dtype_arg(lhs_array.dtype)  # type: ignore
+        task.add_dtype_arg(lhs_array.dtype)
 
         task.add_alignment(lhs, rhs)
 
@@ -3274,3 +3284,34 @@ class DeferredArray(NumPyThunk):
         scale = tuple(8 if dim == axis else 1 for dim in range(src.ndim))
         task.add_constraint(p_out <= p_in * scale)  # type: ignore
         task.execute()
+
+    @auto_convert([1])
+    def _wrap(self, src: Any, new_len: int) -> None:
+        if src.base.kind == Future or src.base.transformed:
+            src = src._convert_future_to_regionfield()
+
+        # first, we create indirect array with PointN type that
+        # (len,) shape and is used to copy data from original array
+        # to the target 1D wrapped array
+        N = src.ndim
+        pointN_dtype = self.runtime.get_point_type(N)
+        indirect = cast(
+            DeferredArray,
+            self.runtime.create_empty_thunk(
+                shape=(new_len,),
+                dtype=pointN_dtype,
+                inputs=[src],
+            ),
+        )
+
+        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task.add_output(indirect.base)
+        task.add_scalar_arg(src.shape, (ty.int64,))
+        task.execute()
+
+        copy = self.context.create_copy()
+        copy.set_target_indirect_out_of_range(False)
+        copy.add_input(src.base)
+        copy.add_source_indirect(indirect.base)
+        copy.add_output(self.base)
+        copy.execute()

@@ -41,6 +41,7 @@ Inserting data into arrays
 
 .. autosummary::
    :toctree: generated/
-
+ 
+   fill_diagonal
    put_along_axis
    place

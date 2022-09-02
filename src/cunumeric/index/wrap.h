@@ -16,32 +16,29 @@
 
 #pragma once
 
-#include <vector>
+#include "cunumeric/cunumeric.h"
 
 namespace cunumeric {
 
-// Simple STL vector-based thread local storage for OpenMP threads to avoid false sharing
-template <typename VAL>
-struct ThreadLocalStorage {
- private:
-  static constexpr size_t CACHE_LINE_SIZE = 64;
+struct WrapArgs {
+  const Array& out;                 // Array with Point<N> type that is used to
+                                    // copy information from original array to the
+                                    //  `wrapped` one
+  const Legion::DomainPoint shape;  // shape of the original array
+};
+
+class WrapTask : public CuNumericTask<WrapTask> {
+ public:
+  static const int TASK_ID = CUNUMERIC_WRAP;
 
  public:
-  ThreadLocalStorage(size_t num_threads)
-    : storage_(CACHE_LINE_SIZE * num_threads), num_threads_(num_threads)
-  {
-  }
-  ~ThreadLocalStorage() {}
-
- public:
-  VAL& operator[](size_t idx)
-  {
-    return *reinterpret_cast<VAL*>(storage_.data() + CACHE_LINE_SIZE * idx);
-  }
-
- private:
-  std::vector<int8_t> storage_;
-  size_t num_threads_;
+  static void cpu_variant(legate::TaskContext& context);
+#ifdef LEGATE_USE_OPENMP
+  static void omp_variant(legate::TaskContext& context);
+#endif
+#ifdef LEGATE_USE_CUDA
+  static void gpu_variant(legate::TaskContext& context);
+#endif
 };
 
 }  // namespace cunumeric
