@@ -14,7 +14,6 @@
  *
  */
 
-
 #include "cunumeric/unary/scalar_unary_red.h"
 #include "cunumeric/unary/scalar_unary_red_template.inl"
 #include "cunumeric/execution_policy/reduction/scalar_reduction_omp.h"

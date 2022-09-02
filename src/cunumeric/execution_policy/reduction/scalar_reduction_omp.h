@@ -26,6 +26,6 @@ struct ScalarReductionPolicy<VariantKind::OMP, LG_OP, Tag> {
   }
 };
 
-}
+}  // namespace cunumeric
 
-#endif // SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_SCALAR_REDUCTION_OMP_H_
+#endif  // SRC_CUNUMERIC_EXECUTION_POLICY_REDUCTION_SCALAR_REDUCTION_OMP_H_
