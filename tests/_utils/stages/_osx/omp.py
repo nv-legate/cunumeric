@@ -66,4 +66,5 @@ class OMP(TestStage):
             len(system.cpus) // procs, config.requested_workers
         )
 
-        return StageSpec(workers, [])
+        # return a dummy set of shards just for the runner to iterate over
+        return StageSpec(workers, [(i,) for i in range(workers)])

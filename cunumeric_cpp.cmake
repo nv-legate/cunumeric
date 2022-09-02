@@ -129,6 +129,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/index/advanced_indexing.cc
   src/cunumeric/index/choose.cc
   src/cunumeric/index/repeat.cc
+  src/cunumeric/index/wrap.cc
   src/cunumeric/index/zip.cc
   src/cunumeric/item/read.cc
   src/cunumeric/item/write.cc
@@ -179,6 +180,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/index/advanced_indexing_omp.cc
     src/cunumeric/index/choose_omp.cc
     src/cunumeric/index/repeat_omp.cc
+    src/cunumeric/index/wrap_omp.cc
     src/cunumeric/index/zip_omp.cc
     src/cunumeric/matrix/contract_omp.cc
     src/cunumeric/matrix/diag_omp.cc
@@ -223,6 +225,7 @@ if(Legion_USE_CUDA)
     src/cunumeric/index/advanced_indexing.cu
     src/cunumeric/index/choose.cu
     src/cunumeric/index/repeat.cu
+    src/cunumeric/index/wrap.cu
     src/cunumeric/index/zip.cu
     src/cunumeric/item/read.cu
     src/cunumeric/item/write.cu

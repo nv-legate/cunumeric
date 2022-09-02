@@ -32,7 +32,7 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow
+import pyarrow  # type: ignore
 from legate.core import Array
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
@@ -4121,4 +4121,17 @@ class ndarray:
             dtype=dtype,
             nan_to_identity=nan_to_identity,
         )
+        return out
+
+    def _wrap(self, new_len: int) -> ndarray:
+        if new_len == 1:
+            idxs = tuple(0 for i in range(self.ndim))
+            return self[idxs]
+
+        out = ndarray(
+            shape=(new_len,),
+            dtype=self.dtype,
+            inputs=(self,),
+        )
+        out._thunk._wrap(src=self._thunk, new_len=new_len)
         return out
