@@ -189,6 +189,9 @@ def test_empty_bool():
 
     assert np.array_equal(arr_np[idx_np, 0:0], arr_num[idx_num, 0:0])
     assert np.array_equal(arr_np[idx_np, 2:1], arr_num[idx_num, 2:1])
+    arr_np[idx_np, 0:0] = 5
+    arr_num[idx_num, 0:0] = 5
+    assert np.array_equal(arr_np, arr_num)
 
 
 def test_future_stores():
