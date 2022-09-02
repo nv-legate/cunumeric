@@ -23,7 +23,6 @@
 #include "cunumeric/unary/unary_red_util.h"
 #include "cunumeric/pitches.h"
 #include "cunumeric/execution_policy/reduction/scalar_reduction.h"
-#include "cunumeric/execution_policy/execution_policy_helpers.h"
 
 namespace cunumeric {
 
@@ -80,7 +79,7 @@ struct ScalarUnaryRed {
 #endif
   }
 
-  CUDA_FUNCTION void operator()(LHS& lhs, size_t idx, DenseReduction) const noexcept {
+  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, DenseReduction) const noexcept {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS){
       if (inptr[idx] == to_find) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN){
@@ -91,7 +90,7 @@ struct ScalarUnaryRed {
     }
   }
 
-  CUDA_FUNCTION void operator()(LHS& lhs, size_t idx, SparseReduction) const noexcept {
+  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, SparseReduction) const noexcept {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS){
       auto point = pitches.unflatten(idx, origin);
       if (in[point] == to_find) { lhs = true; }
