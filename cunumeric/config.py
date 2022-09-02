@@ -282,7 +282,7 @@ class CuNumericLib(Library):
         return self.name
 
     def get_shared_library(self) -> str:
-        from cunumeric.install_info import libpath # type: ignore
+        from cunumeric.install_info import libpath  # type: ignore
 
         return os.path.join(
             libpath, "libcunumeric" + self.get_library_extension()
