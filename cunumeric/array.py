@@ -155,8 +155,10 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
         return obj
     # Ask the runtime to make a numpy thunk for this object
     thunk = runtime.get_numpy_thunk(obj, share=share)
-    flags = flagsobj(
-        writeable=obj.flags.writeable if isinstance(obj, np.ndarray) else None
+    flags = (
+        flagsobj(writeable=obj.flags.writeable)
+        if isinstance(obj, np.ndarray)
+        else None
     )
     return ndarray(shape=None, thunk=thunk, flags=flags)
 
