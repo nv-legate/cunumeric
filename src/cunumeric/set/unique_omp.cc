@@ -68,7 +68,8 @@ struct UniqueImplBody<VariantKind::OMP, CODE, DIM> {
     auto& final_dedup_set = dedup_set[0];
     size_t size           = final_dedup_set.size();
     size_t pos            = 0;
-    auto result           = create_buffer<VAL>(size);
+    auto kind   = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    auto result = create_buffer<VAL>(size, kind);
 
     for (auto e : final_dedup_set) result[pos++] = e;
 

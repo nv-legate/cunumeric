@@ -63,7 +63,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                            const size_t key_dim)
 {
   const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid > volume) return;
+  if (tid >= volume) return;
   auto point = pitches.unflatten(tid, origin);
   if (index[point] == true) {
     Point<DIM> out_p;

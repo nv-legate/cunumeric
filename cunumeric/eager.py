@@ -1638,3 +1638,19 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.unpackbits(
                 src.array, axis=axis, bitorder=bitorder
             )
+
+    def _wrap(self, src: Any, new_len: int) -> None:
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred._wrap(src, new_len)
+        else:
+            src_flat = np.ravel(src.array)
+            if src_flat.size == new_len:
+                self.array[:] = src_flat[:]
+            elif src_flat.size > new_len:
+                self.array[:] = src_flat[:new_len]
+            else:
+                reps = (new_len + src_flat.size - 1) // src_flat.size
+                if reps > 1:
+                    src_flat = np.tile(src_flat, reps)
+                self.array[:] = src_flat[:new_len]
