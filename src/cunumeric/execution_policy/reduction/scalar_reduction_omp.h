@@ -14,7 +14,7 @@
  *
  */
 
- #pragma once
+#pragma once
 
 #include "cunumeric/execution_policy/reduction/scalar_reduction.h"
 #include "cunumeric/omp_help.h"
@@ -41,5 +41,4 @@ struct ScalarReductionPolicy<VariantKind::OMP, LG_OP, Tag> {
   }
 };
 
-}
-
+}  // namespace cunumeric
