@@ -49,12 +49,8 @@ struct ScalarUnaryRed {
   RHS to_find;
   bool dense;
 
-  struct DenseContains {};
-  struct SparseContains {};
   struct DenseReduction {};
   struct SparseReduction {};
-  struct DenseArgReduction {};
-  struct SparseArgReduction {};
 
   ScalarUnaryRed(ScalarUnaryRedArgs& args) : dense(false)
   {
