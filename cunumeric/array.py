@@ -1756,7 +1756,7 @@ class ndarray:
             raise ValueError("axis must be an integer")
         if axis is not None and abs(axis) > self.ndim:
             raise ValueError(
-                "axis must be smaller than array.ndim " "and bigger than 0 "
+                "axis must be smaller than array.ndim and bigger than 0 "
             )
         return self._perform_unary_reduction(
             UnaryRedCode.ARGMAX,
@@ -1795,7 +1795,7 @@ class ndarray:
             raise ValueError("axis must be an integer")
         if axis is not None and abs(axis) > self.ndim:
             raise ValueError(
-                "axis must be smaller than array.ndim " "and bigger than 0 "
+                "axis must be smaller than array.ndim and bigger than 0 "
             )
         return self._perform_unary_reduction(
             UnaryRedCode.ARGMIN,
