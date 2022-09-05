@@ -222,6 +222,14 @@ enum CuNumericScanCode {
   CUNUMERIC_SCAN_SUM,
 };
 
+// Match these to ConvertCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericConvertCode {
+  CUNUMERIC_CONVERT_NAN_NOOP = 1,
+  CUNUMERIC_CONVERT_NAN_PROD,
+  CUNUMERIC_CONVERT_NAN_SUM,
+};
+
 // Match these to BitGeneratorOperation in config.py
 enum CuNumericBitGeneratorOperation {
   CUNUMERIC_BITGENOP_CREATE       = 1,
