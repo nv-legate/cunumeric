@@ -20,26 +20,145 @@ import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
 
-@pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
-@pytest.mark.parametrize("keepdims", [True, False])
-def test_argmax_and_argmin(ndim, keepdims):
-    shape = (5,) * ndim
+class TestArgReduceErrors:
+    """
+    this class is to test negative cases
+    argmax(a, axis=None, out=None, *, keepdims=np._NoValue):
+    argmin(a, axis=None, out=None, *, keepdims=np._NoValue)
+    """
 
-    in_np = np.random.random(shape)
-    in_num = num.array(in_np)
+    def test_empty_ary(self):
+        # empty array should not be accepted
+        msg = r"an empty sequence"
+        for fn in ("argmax", "argmin"):
+            fn_num = getattr(num, fn)
+            with pytest.raises(ValueError, match=msg):
+                fn_num([])
 
-    for fn in ("argmax", "argmin"):
-        fn_np = getattr(np, fn)
-        fn_num = getattr(num, fn)
-        assert np.array_equal(
-            fn_np(in_np, keepdims=keepdims), fn_num(in_num, keepdims=keepdims)
-        )
-        if in_num.ndim == 1:
-            continue
-        for axis in range(in_num.ndim):
-            out_np = fn_np(in_np, axis=axis, keepdims=keepdims)
-            out_num = fn_num(in_num, axis=axis, keepdims=keepdims)
-            assert np.array_equal(out_np, out_num)
+    def test_axis_float(self):
+        ndim = 3
+        shape = (5,) * ndim
+        in_num = np.random.random(shape)
+        msg = r"axis must be an integer"
+        for fn in ("argmax", "argmin"):
+            fn_num = getattr(num, fn)
+            with pytest.raises(ValueError, match=msg):
+                fn_num(in_num, axis=ndim - 0.5)
+
+    def test_axis_outofbound(self):
+        ndim = 4
+        shape = (5,) * ndim
+        in_num = np.random.random(shape)
+        msg = r"axis must be smaller than array.ndim"
+        # numpy raises:
+        # numpy.AxisError: axis -2 is out of bounds for array of dimension 1
+        for fn in ("argmax", "argmin"):
+            fn_num = getattr(num, fn)
+            with pytest.raises(ValueError, match=msg):
+                fn_num(in_num, axis=ndim + 1)
+
+    def test_axis_negative(self):
+        ndim = 2
+        shape = (5,) * ndim
+        in_num = np.random.random(shape)
+        msg = r"axis must be smaller than array.ndim and cannot be negative"
+        for fn in ("argmax", "argmin"):
+            fn_num = getattr(num, fn)
+            with pytest.raises(ValueError, match=msg):
+                fn_num(in_num, axis=-(ndim + 1))
+
+    def test_out_float(self):
+        shape = (5,) * 3
+        in_num = np.random.random(shape)
+        msg = r"output array must have int64 dtype"
+        for fn in ("argmax", "argmin"):
+            fn_num = getattr(num, fn)
+            res_out = np.random.random(size=(1, 5, 5))
+            with pytest.raises(ValueError, match=msg):
+                fn_num(in_num, out=res_out)
+
+    def test_out_shape_mismatch(self):
+        ndim = 3
+        shape = (5,) * ndim
+        in_num = np.random.random(shape)
+        msg = r"the output shape mismatch"
+        for fn in ("argmax", "argmin"):
+            fn_num = getattr(num, fn)
+            res_out = np.random.randint(1, 10, size=shape)
+            with pytest.raises(ValueError, match=msg):
+                fn_num(in_num, out=res_out)
+
+
+class TestArgMaxAndArgMin:
+    """
+    These are positive cases compared with numpy
+    """
+
+    @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("keepdims", [True, False])
+    def test_argmax_and_argmin_basic(self, ndim, keepdims):
+        shape = (5,) * ndim
+        in_np = np.random.random(shape)
+        in_num = num.array(in_np)
+        for fn in ("argmax", "argmin"):
+            fn_np = getattr(np, fn)
+            fn_num = getattr(num, fn)
+            assert np.array_equal(
+                fn_np(in_np, keepdims=keepdims),
+                fn_num(in_num, keepdims=keepdims),
+            )
+
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("keepdims", [True, False])
+    def test_argmax_and_argmin_axis(self, ndim, keepdims):
+        shape = (5,) * ndim
+        in_np = np.random.random(shape)
+        in_num = num.array(in_np)
+        for fn in ("argmax", "argmin"):
+            fn_np = getattr(np, fn)
+            fn_num = getattr(num, fn)
+            axis_list = list(range(in_num.ndim))
+            axis_list.append(-(ndim - 1))
+            for axis in axis_list:
+                out_np = fn_np(in_np, axis=axis, keepdims=keepdims)
+                out_num = fn_num(in_num, axis=axis, keepdims=keepdims)
+                assert np.array_equal(out_np, out_num)
+
+    @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("keepdims", [True, False])
+    def test_argmax_and_argmin_out(self, ndim, keepdims):
+        shape = (5,) * ndim
+        in_np = np.random.random(shape)
+        in_num = num.array(in_np)
+        for fn in ("argmax", "argmin"):
+            fn_np = getattr(np, fn)
+            fn_num = getattr(num, fn)
+            if ndim == 0:
+                res_np = np.random.randint(1, 10, size=())
+                res_num = num.random.randint(1, 10, size=())
+                fn_np(in_np, out=res_np, keepdims=keepdims)
+                fn_num(in_num, out=res_num, keepdims=keepdims)
+                assert np.array_equal(res_np, res_num)
+
+                continue
+
+            shape_true = (1,)
+            for axis in range(in_num.ndim):
+                if ndim > 1:
+                    shape_list = list(shape)
+                    shape_list[axis] = 1
+                    shape_true = tuple(shape_list)
+                res_np = np.random.randint(
+                    1, 10, size=shape_true if keepdims else (5,) * (ndim - 1)
+                )
+                res_num = num.random.randint(
+                    1, 10, size=shape_true if keepdims else (5,) * (ndim - 1)
+                )
+
+                fn_np(in_np, axis=axis, out=res_np, keepdims=keepdims)
+                fn_num(in_num, axis=axis, out=res_num, keepdims=keepdims)
+
+                assert np.array_equal(res_np, res_num)
 
 
 if __name__ == "__main__":
