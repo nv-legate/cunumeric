@@ -491,25 +491,42 @@ class DeferredArray(NumPyThunk):
         step = k.step
         size = store.shape[dim]
 
+        if start is not None:
+            if start < 0:
+                start += size
+            start = max(0, min(size, start))
+        if end is not None:
+            if end < 0:
+                end += size
+            end = max(0, min(size, end))
         if (
-            (
-                (start is not None)
-                and (start >= size)
-                and (end is None or end >= size)
-            )
-            or ((start is not None) and (end is not None) and (start >= end))
-            or ((start is None) and (end is not None) and (end == 0))
+            (start is not None and start == size)
+            or (end is not None and end == 0)
+            or (start is not None and end is not None and start >= end)
         ):
             start = 0
             end = 0
             step = 1
-        elif (start is None) and (end is not None) and (end < 0):
-            end = size + end
-        elif end is not None and end >= size:
-            end = size
-        elif start is not None and start < 0:
-            start = size + start
         k = slice(start, end, step)
+        # if (
+        #     (
+        #         (start is not None)
+        #         and (start >= size)
+        #         and (end is None or end >= size)
+        #     )
+        #     or ((start is not None) and (end is not None) and (start >= end))
+        #     or ((start is None) and (end is not None) and (end == 0))
+        # ):
+        #     start = 0
+        #     end = 0
+        #     step = 1
+        # elif (start is None) and (end is not None) and (end < 0):
+        #     end = size + end
+        # elif end is not None and end >= size:
+        #     end = size
+        # elif start is not None and start < 0:
+        #     start = size + start
+        # k = slice(start, end, step)
 
         if start == end and start == 0:  # empty slice
             store = store.project(dim, 0)
@@ -717,8 +734,6 @@ class DeferredArray(NumPyThunk):
             # the store with transformation
             rhs = self._copy_store(store)
 
-        if len(tuple_of_arrays) == 0:
-            return False, rhs, rhs, self
         if len(tuple_of_arrays) <= rhs.ndim:
             output_arr = rhs._zip_indices(start_index, tuple_of_arrays)
             return True, rhs, output_arr, self
