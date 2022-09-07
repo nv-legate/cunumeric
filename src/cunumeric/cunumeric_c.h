@@ -29,6 +29,7 @@ enum CuNumericOpCode {
   _CUNUMERIC_OP_CODE_BASE = 0,
   CUNUMERIC_ADVANCED_INDEXING,
   CUNUMERIC_ARANGE,
+  CUNUMERIC_ARGWHERE,
   CUNUMERIC_BINARY_OP,
   CUNUMERIC_BINARY_RED,
   CUNUMERIC_BINCOUNT,
@@ -71,6 +72,7 @@ enum CuNumericOpCode {
   CUNUMERIC_UNPACKBITS,
   CUNUMERIC_WHERE,
   CUNUMERIC_WINDOW,
+  CUNUMERIC_WRAP,
   CUNUMERIC_WRITE,
   CUNUMERIC_ZIP,
 };
@@ -217,6 +219,14 @@ enum CuNumericBounds {
 enum CuNumericScanCode {
   CUNUMERIC_SCAN_PROD = 1,
   CUNUMERIC_SCAN_SUM,
+};
+
+// Match these to ConvertCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericConvertCode {
+  CUNUMERIC_CONVERT_NAN_NOOP = 1,
+  CUNUMERIC_CONVERT_NAN_PROD,
+  CUNUMERIC_CONVERT_NAN_SUM,
 };
 
 // Match these to BitGeneratorOperation in config.py

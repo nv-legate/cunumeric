@@ -31,6 +31,7 @@ from .. import (
     FEATURES,
     config as m,
 )
+from ..args import PIN_OPTIONS, PinOptionsType
 
 
 class TestConfig:
@@ -46,7 +47,7 @@ class TestConfig:
 
         assert c.cpus == DEFAULT_CPUS_PER_NODE
         assert c.gpus == DEFAULT_GPUS_PER_NODE
-        assert c.strict_pin is False
+        assert c.cpu_pin == "partial"
         assert c.gpu_delay == DEFAULT_GPU_DELAY
         assert c.fbmem == DEFAULT_GPU_MEMORY_BUDGET
         assert c.omps == DEFAULT_OMPS_PER_NODE
@@ -111,9 +112,10 @@ class TestConfig:
         c = m.Config(["test.py", f"--{opt}", "1234"])
         assert getattr(c, opt.replace("-", "_")) == 1234
 
-    def test_strict_pin(self) -> None:
-        c = m.Config(["test.py", "--strict-pin"])
-        assert c.strict_pin
+    @pytest.mark.parametrize("value", PIN_OPTIONS)
+    def test_cpu_pin(self, value: PinOptionsType) -> None:
+        c = m.Config(["test.py", "--cpu-pin", value])
+        assert c.cpu_pin == value
 
     def test_workers(self) -> None:
         c = m.Config(["test.py", "-j", "1234"])

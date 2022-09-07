@@ -23,6 +23,7 @@ import os
 import sys
 from dataclasses import dataclass
 from functools import cached_property
+from pathlib import Path
 from subprocess import PIPE, STDOUT, run as stdlib_run
 from typing import Sequence
 
@@ -34,6 +35,9 @@ class ProcessResult:
 
     #: The command invovation, including relevant environment vars
     invocation: str
+
+    #  User-friendly test file path to use in reported output
+    test_file: Path
 
     #: Whether this process was actually invoked
     skipped: bool = False
@@ -67,6 +71,7 @@ class System:
     def run(
         self,
         cmd: Sequence[str],
+        test_file: Path,
         *,
         env: EnvDict | None = None,
         cwd: str | None = None,
@@ -78,6 +83,9 @@ class System:
         cmd : sequence of str
             The command to run, split on whitespace into a sequence
             of strings
+
+        test_file : Path
+            User-friendly test file path to use in reported output
 
         env : dict[str, str] or None, optional, default: None
             Environment variables to apply when running the command
@@ -97,7 +105,7 @@ class System:
         invocation = envstr + " ".join(cmd)
 
         if self.dry_run:
-            return ProcessResult(invocation, skipped=True)
+            return ProcessResult(invocation, test_file, skipped=True)
 
         full_env = dict(os.environ)
         full_env.update(env)
@@ -107,7 +115,10 @@ class System:
         )
 
         return ProcessResult(
-            invocation, returncode=proc.returncode, output=proc.stdout
+            invocation,
+            test_file,
+            returncode=proc.returncode,
+            output=proc.stdout,
         )
 
     @cached_property
@@ -133,13 +144,19 @@ class System:
     def gpus(self) -> tuple[GPUInfo, ...]:
         """A list of GPUs on the system, including total memory information."""
 
-        # This pynvml import is protected inside this method so that in case
-        # pynvml is not installed, tests stages that don't need gpu info (e.g.
-        # cpus, eager) will proceed unaffected. Test stages that do require
-        # gpu info will fail here with an ImportError.
-        import pynvml  # type: ignore[import]
+        try:
+            # This pynvml import is protected inside this method so that in
+            # case pynvml is not installed, tests stages that don't need gpu
+            # info (e.g. cpus, eager) will proceed unaffected. Test stages
+            # that do require gpu info will fail here with an ImportError.
+            import pynvml  # type: ignore[import]
 
-        pynvml.nvmlInit()
+            # Also a pynvml package is available on some platforms that won't
+            # have GPUs for some reason. In which case this init call will
+            # fail.
+            pynvml.nvmlInit()
+        except Exception:
+            return ()
 
         num_gpus = pynvml.nvmlDeviceGetCount()
 

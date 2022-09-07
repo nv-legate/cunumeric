@@ -68,6 +68,18 @@ def test_3d():
     assert np.array_equal(firstslice, firstslicegold)
 
 
+def test_0d():
+    in_np = np.array([1, 2])
+    in_num = num.array([1, 2])
+
+    sl_np = in_np[1:].reshape(())
+    sl_num = in_num[1:].reshape(())
+
+    # Test inline mapping for a 0-d array
+    print(sl_num)
+    assert np.array_equal(sl_np, sl_num)
+
+
 # TODO: Legate needs 4-D arrays for this to work correctly
 @pytest.mark.skip
 def test_4d():

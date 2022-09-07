@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,32 +14,30 @@
  *
  */
 
-#include "cunumeric/search/nonzero.h"
-#include "cunumeric/search/nonzero_template.inl"
+#include "cunumeric/search/argwhere.h"
+#include "cunumeric/search/argwhere_template.inl"
 #include "cunumeric/omp_help.h"
 
 #include <omp.h>
-
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int32_t DIM>
-struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
+template <LegateTypeCode CODE, int DIM>
+struct ArgWhereImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(const AccessorRO<VAL, DIM>& in,
-                    const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect,
-                    const size_t volume,
-                    std::vector<Buffer<int64_t>>& results)
+  void operator()(Array& out_array,
+                  AccessorRO<VAL, DIM> input,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  size_t volume) const
   {
     const auto max_threads = omp_get_max_threads();
 
     int64_t size = 0;
     ThreadLocalStorage<int64_t> offsets(max_threads);
-
     {
       ThreadLocalStorage<int64_t> sizes(max_threads);
       for (auto idx = 0; idx < max_threads; ++idx) sizes[idx] = 0;
@@ -48,19 +46,16 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
         const int tid = omp_get_thread_num();
 #pragma omp for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
-          auto point = pitches.unflatten(idx, rect.lo);
-          sizes[tid] += in[point] != VAL(0);
+          auto in_p = pitches.unflatten(idx, rect.lo);
+          sizes[tid] += input[in_p] != VAL(0);
         }
       }
-
       for (auto idx = 0; idx < max_threads; ++idx) size += sizes[idx];
-
       offsets[0] = 0;
       for (auto idx = 1; idx < max_threads; ++idx) offsets[idx] = offsets[idx - 1] + sizes[idx - 1];
     }
 
-    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    for (auto& result : results) result = create_buffer<int64_t>(size, kind);
+    auto out = out_array.create_output_buffer<int64_t, 2>(Point<2>(size, DIM), true);
 
 #pragma omp parallel
     {
@@ -68,20 +63,21 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
       int64_t out_idx = offsets[tid];
 #pragma omp for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) {
-        auto point = pitches.unflatten(idx, rect.lo);
-        if (in[point] == VAL(0)) continue;
-        for (int32_t dim = 0; dim < DIM; ++dim) results[dim][out_idx] = point[dim];
-        ++out_idx;
-      }
-    }
+        auto in_p = pitches.unflatten(idx, rect.lo);
 
-    return size;
+        if (input[in_p] != VAL(0)) {
+          for (int i = 0; i < DIM; ++i) { out[Point<2>(out_idx, i)] = in_p[i]; }
+          out_idx++;
+        }
+      }
+      assert(out_idx == (tid == max_threads - 1 ? size : offsets[tid + 1]));
+    }
   }
 };
 
-/*static*/ void NonzeroTask::omp_variant(TaskContext& context)
+/*static*/ void ArgWhereTask::omp_variant(TaskContext& context)
 {
-  nonzero_template<VariantKind::OMP>(context);
+  argwhere_template<VariantKind::OMP>(context);
 }
 
 }  // namespace cunumeric

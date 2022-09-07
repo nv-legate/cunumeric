@@ -33,6 +33,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/index/advanced_indexing.cc     \
 							 cunumeric/index/choose.cc                \
 							 cunumeric/index/repeat.cc                \
+                                                         cunumeric/index/wrap.cc                  \
 							 cunumeric/index/zip.cc                   \
 							 cunumeric/item/read.cc                   \
 							 cunumeric/item/write.cc                  \
@@ -50,6 +51,7 @@ GEN_CPU_SRC += cunumeric/ternary/where.cc               \
 							 cunumeric/matrix/trsm.cc                 \
 							 cunumeric/matrix/util.cc                 \
 							 cunumeric/random/rand.cc                 \
+							 cunumeric/search/argwhere.cc             \
 							 cunumeric/search/nonzero.cc              \
 							 cunumeric/set/unique.cc                  \
 							 cunumeric/set/unique_reduce.cc           \
@@ -81,6 +83,7 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/index/advanced_indexing_omp.cc\
 							 cunumeric/index/choose_omp.cc           \
 							 cunumeric/index/repeat_omp.cc           \
+                                                         cunumeric/index/wrap_omp.cc             \
 							 cunumeric/index/zip_omp.cc              \
 							 cunumeric/matrix/contract_omp.cc        \
 							 cunumeric/matrix/diag_omp.cc            \
@@ -96,6 +99,7 @@ GEN_CPU_SRC += cunumeric/ternary/where_omp.cc          \
 							 cunumeric/matrix/trsm_omp.cc            \
 							 cunumeric/matrix/util_omp.cc            \
 							 cunumeric/random/rand_omp.cc            \
+							 cunumeric/search/argwhere_omp.cc        \
 							 cunumeric/search/nonzero_omp.cc         \
 							 cunumeric/set/unique_omp.cc             \
 							 cunumeric/stat/bincount_omp.cc          \
@@ -121,6 +125,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/index/advanced_indexing.cu     \
 							 cunumeric/index/choose.cu                \
 							 cunumeric/index/repeat.cu                \
+                                                         cunumeric/index/wrap.cu                  \
 							 cunumeric/index/zip.cu                   \
 							 cunumeric/item/read.cu                   \
 							 cunumeric/item/write.cu                  \
@@ -137,6 +142,7 @@ GEN_GPU_SRC += cunumeric/ternary/where.cu               \
 							 cunumeric/matrix/trilu.cu                \
 							 cunumeric/matrix/trsm.cu                 \
 							 cunumeric/random/rand.cu                 \
+							 cunumeric/search/argwhere.cu             \
 							 cunumeric/search/nonzero.cu              \
 							 cunumeric/set/unique.cu                  \
 							 cunumeric/stat/bincount.cu               \
