@@ -225,13 +225,16 @@ class flagsobj(object):
         f_contiguous: bool = False,
         owndata: bool = True,
         writeable: bool = True,
-        aligned: bool = True,
+        aligned: bool = False,
         writebackifcopy: bool = False,
     ) -> None:
         self._c_contiguous = c_contiguous
         self._f_contiguous = f_contiguous
         self._owndata = owndata
         self._writeable = writeable
+        # TODO: We should have a way to see if the underlying data is aligned.
+        # Currently, we set `aligned` False,
+        # which is not allowed to change the value.
         self._aligned = aligned
         self._writebackifcopy = writebackifcopy
 
@@ -288,10 +291,6 @@ class flagsobj(object):
                 "cannot set WRITEABLE flag to True for this array"
             )
         self._writeable = value
-
-    @aligned.setter  # type: ignore
-    def aligned(self, value: bool) -> None:
-        self._aligned = value
 
     @writebackifcopy.setter  # type: ignore
     def writebackifcopy(self, value: bool) -> None:

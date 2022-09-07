@@ -41,7 +41,12 @@ from numpy.core.numeric import (  # type: ignore [attr-defined]
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
-from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
+from .array import (
+    add_boilerplate,
+    check_writeable,
+    convert_to_cunumeric_ndarray,
+    ndarray,
+)
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike, OrderType, SortSide
@@ -2702,6 +2707,9 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     """
     if arr.size == 0:
         return
+
+    # check if the current calling array is `writeable`
+    check_writeable(arr)
 
     if mask.size != arr.size:
         raise ValueError("arr array and condition array must be of same size")

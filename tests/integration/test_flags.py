@@ -34,15 +34,13 @@ def _print_result(test_result, print_msg, err_arr):
 
 
 class Test_flags:
-    arr_np = np.zeros(shape=DIM_CASE)
-    arr_num = num.zeros(shape=DIM_CASE)
     attrs = [
         "c_contiguous",
         "f_contiguous",
         "owndata",
         "writeable",
-        "aligned",
         "writebackifcopy",
+        "aligned",
         "behaved",
         "carray",
         "farray",
@@ -52,10 +50,19 @@ class Test_flags:
 
     @pytest.mark.parametrize("view_test", [False, True], ids=bool)
     def test_default_flags_attr(self, view_test):
-        b = self.arr_np.flags if view_test else self.arr_np.view().flags
-        c = self.arr_num.flags if view_test else self.arr_num.view().flags
+        arr_np = np.zeros(shape=DIM_CASE)
+        arr_num = num.zeros(shape=DIM_CASE)
+        if view_test:
+            arr_np = arr_np.view()
+            arr_num = arr_num.view()
+        # set 'false' to `aligned`
+        # because the default value for cunumeric is false
+        arr_np.flags.aligned = False
+        b = arr_np.flags
+        c = arr_num.flags
         is_equal = True
         err_arr = None
+        arr_np.flags.aligned = False
         # test default values in `ndarrray.flags`
         for attr in self.attrs:
             if getattr(b, attr) != getattr(c, attr):
@@ -67,12 +74,19 @@ class Test_flags:
 
     @pytest.mark.parametrize("view_test", [False, True], ids=bool)
     def test_default_flags_element(self, view_test):
-        b = self.arr_np.flags if view_test else self.arr_np.view().flags
-        c = self.arr_num.flags if view_test else self.arr_num.view().flags
+        arr_np = np.zeros(shape=DIM_CASE)
+        arr_num = num.zeros(shape=DIM_CASE)
+        if view_test:
+            arr_np = arr_np.view()
+            arr_num = arr_num.view()
+        # set 'false' to `aligned`
+        # because the default value for cunumeric is false
+        arr_np.flags.aligned = False
+        b = arr_np.flags
+        c = arr_num.flags
         is_equal = True
         err_arr = None
-
-        short = ["C", "F", "O", "W", "A", "X", "B", "CA", "FA"]
+        short = ["C", "F", "O", "W", "X", "B", "FA", "CA"]
         # test default values in `ndarrray.flags`
         for attr in self.attrs:
             attr_upper = attr.upper()
@@ -99,11 +113,19 @@ class Test_flags:
 
     @pytest.mark.parametrize("view_test", [False, True], ids=bool)
     def test_setflags(self, view_test):
-        b = self.arr_np if view_test else self.arr_np.view()
-        c = self.arr_num if view_test else self.arr_num.view()
+        arr_np = np.zeros(shape=DIM_CASE)
+        arr_num = num.zeros(shape=DIM_CASE)
+        if view_test:
+            arr_np = arr_np.view()
+            arr_num = arr_num.view()
+        arr_np.flags.aligned = False
+        b = arr_np
+        c = arr_num
         is_equal = True
         err_arr = None
-        for attr in self.attrs[3:6]:
+        # we don't test `aligned`
+        # because the setter for `aligned` is not implemented
+        for attr in self.attrs[3:5]:
             attr = attr.upper()
             # alter flags
             error_b = False
