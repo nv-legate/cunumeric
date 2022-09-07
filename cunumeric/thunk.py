@@ -17,6 +17,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod, abstractproperty
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
+from .config import ConvertCode
+
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
@@ -151,7 +153,12 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self,
+        rhs: Any,
+        warn: bool = True,
+        nan_op: ConvertCode = ConvertCode.NOOP,
+    ) -> None:
         ...
 
     @abstractmethod
