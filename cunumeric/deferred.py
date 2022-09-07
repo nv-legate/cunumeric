@@ -44,6 +44,7 @@ from .config import (
     BitGeneratorDistribution,
     BitGeneratorOperation,
     Bitorder,
+    ConvertCode,
     CuNumericOpCode,
     CuNumericRedopCode,
     RandGenCode,
@@ -1145,7 +1146,12 @@ class DeferredArray(NumPyThunk):
 
     # Convert the source array to the destination array
     @auto_convert([1])
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self,
+        rhs: Any,
+        warn: bool = True,
+        nan_op: ConvertCode = ConvertCode.NOOP,
+    ) -> None:
         lhs_array = self
         rhs_array = rhs
         assert lhs_array.dtype != rhs_array.dtype
@@ -1165,7 +1171,7 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_auto_task(CuNumericOpCode.CONVERT)
         task.add_output(lhs)
         task.add_input(rhs)
-        task.add_dtype_arg(lhs_array.dtype)  # type: ignore
+        task.add_scalar_arg(nan_op, ty.int32)
 
         task.add_alignment(lhs, rhs)
 
