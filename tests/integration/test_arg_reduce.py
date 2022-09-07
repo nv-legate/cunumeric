@@ -80,7 +80,7 @@ class TestArgReduceErrors:
         ndim = 3
         shape = (5,) * ndim
         in_num = np.random.random(shape)
-        msg = r"the output shape do not match"
+        msg = r"the output shapes do not match"
         func = getattr(num, func_name)
         res_out = np.random.randint(1, 10, size=shape)
         with pytest.raises(ValueError, match=msg):
