@@ -63,7 +63,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                            const size_t key_dim)
 {
   const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
-  if (tid > volume) return;
+  if (tid >= volume) return;
   auto point = pitches.unflatten(tid, origin);
   if (index[point] == true) {
     Point<DIM> out_p;
@@ -131,11 +131,6 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
     }
 
     size = compute_size(index, pitches, rect, volume, stream, offsets, skip_size, key_dim);
-
-    if (0 == size) {
-      out_arr.make_empty();
-      return;
-    }
 
     // calculating the shape of the output region for this sub-task
     Point<DIM> extents;

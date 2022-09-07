@@ -132,6 +132,7 @@ def test_CuNumericOpCode() -> None:
     assert set(m.CuNumericOpCode.__members__) == {
         "ADVANCED_INDEXING",
         "ARANGE",
+        "ARGWHERE",
         "BINARY_OP",
         "BINARY_RED",
         "BINCOUNT",
@@ -174,6 +175,7 @@ def test_CuNumericOpCode() -> None:
         "UNPACKBITS",
         "WHERE",
         "WINDOW",
+        "WRAP",
         "WRITE",
         "ZIP",
     }
