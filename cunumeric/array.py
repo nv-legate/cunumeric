@@ -1757,10 +1757,6 @@ class ndarray:
             raise ValueError("output array must have int64 dtype")
         if axis is not None and not isinstance(axis, int):
             raise ValueError("axis must be an integer")
-        if axis is not None and abs(axis) > self.ndim:
-            raise ValueError(
-                "axis must be smaller than array.ndim and bigger than 0 "
-            )
         return self._perform_unary_reduction(
             UnaryRedCode.ARGMAX,
             self,
@@ -1796,10 +1792,6 @@ class ndarray:
             raise ValueError("output array must have int64 dtype")
         if axis is not None and not isinstance(axis, int):
             raise ValueError("axis must be an integer")
-        if axis is not None and abs(axis) > self.ndim:
-            raise ValueError(
-                "axis must be smaller than array.ndim and bigger than 0 "
-            )
         return self._perform_unary_reduction(
             UnaryRedCode.ARGMIN,
             self,
@@ -3991,7 +3983,7 @@ class ndarray:
             )
         elif out.shape != out_shape:
             errmsg = (
-                f"the output shape mismatch: expected {out_shape} "
+                f"the output shapes do not match: expected {out_shape} "
                 f"but got {out.shape}"
             )
             raise ValueError(errmsg)

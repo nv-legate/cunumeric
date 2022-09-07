@@ -27,66 +27,64 @@ class TestArgReduceErrors:
     argmin(a, axis=None, out=None, *, keepdims=np._NoValue)
     """
 
-    def test_empty_ary(self):
+    @pytest.mark.parametrize("func_name", ("argmax", "argmin"))
+    def test_empty_ary(self, func_name):
         # empty array should not be accepted
         msg = r"an empty sequence"
-        for fn in ("argmax", "argmin"):
-            fn_num = getattr(num, fn)
-            with pytest.raises(ValueError, match=msg):
-                fn_num([])
+        func = getattr(num, func_name)
+        with pytest.raises(ValueError, match=msg):
+            func([])
 
-    def test_axis_float(self):
+    @pytest.mark.parametrize("func_name", ("argmax", "argmin"))
+    def test_axis_float(self, func_name):
         ndim = 3
         shape = (5,) * ndim
         in_num = np.random.random(shape)
         msg = r"axis must be an integer"
-        for fn in ("argmax", "argmin"):
-            fn_num = getattr(num, fn)
-            with pytest.raises(ValueError, match=msg):
-                fn_num(in_num, axis=ndim - 0.5)
+        func = getattr(num, func_name)
+        with pytest.raises(ValueError, match=msg):
+            func(in_num, axis=ndim - 0.5)
 
-    def test_axis_outofbound(self):
+    @pytest.mark.parametrize("func_name", ("argmax", "argmin"))
+    def test_axis_outofbound(self, func_name):
         ndim = 4
         shape = (5,) * ndim
         in_num = np.random.random(shape)
-        msg = r"axis must be smaller than array.ndim"
-        # numpy raises:
-        # numpy.AxisError: axis -2 is out of bounds for array of dimension 1
-        for fn in ("argmax", "argmin"):
-            fn_num = getattr(num, fn)
-            with pytest.raises(ValueError, match=msg):
-                fn_num(in_num, axis=ndim + 1)
+        msg = r"out of bounds"
+        func = getattr(num, func_name)
+        with pytest.raises(np.AxisError, match=msg):
+            func(in_num, axis=ndim + 1)
 
-    def test_axis_negative(self):
+    @pytest.mark.parametrize("func_name", ("argmax", "argmin"))
+    def test_axis_negative(self, func_name):
         ndim = 2
         shape = (5,) * ndim
         in_num = np.random.random(shape)
-        msg = r"axis must be smaller than array.ndim and cannot be negative"
-        for fn in ("argmax", "argmin"):
-            fn_num = getattr(num, fn)
-            with pytest.raises(ValueError, match=msg):
-                fn_num(in_num, axis=-(ndim + 1))
+        msg = r"out of bounds"
+        func = getattr(num, func_name)
+        with pytest.raises(np.AxisError, match=msg):
+            func(in_num, axis=-(ndim + 1))
 
-    def test_out_float(self):
+    @pytest.mark.parametrize("func_name", ("argmax", "argmin"))
+    def test_out_float(self, func_name):
         shape = (5,) * 3
         in_num = np.random.random(shape)
         msg = r"output array must have int64 dtype"
-        for fn in ("argmax", "argmin"):
-            fn_num = getattr(num, fn)
-            res_out = np.random.random(size=(1, 5, 5))
-            with pytest.raises(ValueError, match=msg):
-                fn_num(in_num, out=res_out)
+        func = getattr(num, func_name)
+        res_out = np.random.random(size=(1, 5, 5))
+        with pytest.raises(ValueError, match=msg):
+            func(in_num, out=res_out)
 
-    def test_out_shape_mismatch(self):
+    @pytest.mark.parametrize("func_name", ("argmax", "argmin"))
+    def test_out_shape_mismatch(self, func_name):
         ndim = 3
         shape = (5,) * ndim
         in_num = np.random.random(shape)
-        msg = r"the output shape mismatch"
-        for fn in ("argmax", "argmin"):
-            fn_num = getattr(num, fn)
-            res_out = np.random.randint(1, 10, size=shape)
-            with pytest.raises(ValueError, match=msg):
-                fn_num(in_num, out=res_out)
+        msg = r"the output shape do not match"
+        func = getattr(num, func_name)
+        res_out = np.random.randint(1, 10, size=shape)
+        with pytest.raises(ValueError, match=msg):
+            func(in_num, out=res_out)
 
 
 class TestArgMaxAndArgMin:
@@ -124,7 +122,22 @@ class TestArgMaxAndArgMin:
                 out_num = fn_num(in_num, axis=axis, keepdims=keepdims)
                 assert np.array_equal(out_np, out_num)
 
-    @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("keepdims", [True, False])
+    def test_argmax_and_argmin_out_0dim(self, keepdims):
+        shape = (5,) * 0
+        in_np = np.random.random(shape)
+        in_num = num.array(in_np)
+        for fn in ("argmax", "argmin"):
+            fn_np = getattr(np, fn)
+            fn_num = getattr(num, fn)
+
+            res_np = np.random.randint(1, 10, size=())
+            res_num = num.random.randint(1, 10, size=())
+            fn_np(in_np, out=res_np, keepdims=keepdims)
+            fn_num(in_num, out=res_num, keepdims=keepdims)
+            assert np.array_equal(res_np, res_num)
+
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("keepdims", [True, False])
     def test_argmax_and_argmin_out(self, ndim, keepdims):
         shape = (5,) * ndim
@@ -133,14 +146,6 @@ class TestArgMaxAndArgMin:
         for fn in ("argmax", "argmin"):
             fn_np = getattr(np, fn)
             fn_num = getattr(num, fn)
-            if ndim == 0:
-                res_np = np.random.randint(1, 10, size=())
-                res_num = num.random.randint(1, 10, size=())
-                fn_np(in_np, out=res_np, keepdims=keepdims)
-                fn_num(in_num, out=res_num, keepdims=keepdims)
-                assert np.array_equal(res_np, res_num)
-
-                continue
 
             shape_true = (1,)
             for axis in range(in_num.ndim):
