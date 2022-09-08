@@ -485,7 +485,7 @@ class DeferredArray(NumPyThunk):
         return cast(DeferredArray, store_copy)
 
     @staticmethod
-    def _slice_store(k: slice, store: Store, dim: int) -> tuple(slice, Store):
+    def _slice_store(k: slice, store: Store, dim: int) -> tuple[slice, Store]:
         start = k.start
         end = k.stop
         step = k.step
