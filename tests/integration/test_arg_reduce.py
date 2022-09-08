@@ -92,7 +92,7 @@ class TestArgReduceErrors:
         in_num = np.random.random(shape)
         res_out = np.random.randint(1, 10, size=shape)
 
-        msg = r"the output shape do not match"
+        msg = r"the output shapes do not match"
         with pytest.raises(ValueError, match=msg):
             func(in_num, out=res_out)
 
