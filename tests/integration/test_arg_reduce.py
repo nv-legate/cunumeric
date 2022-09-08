@@ -156,7 +156,6 @@ class TestArgMaxAndArgMin:
         assert np.array_equal(res_np, res_num)
 
     @pytest.mark.parametrize("func_name", ARG_FUNCS)
-    @pytest.mark.parametrize("axis", range(1))
     @pytest.mark.parametrize("keepdims", [True, False])
     def test_argmax_and_argmin_out_1dim(self, func_name, axis, keepdims):
         shape = (5,) * 1
@@ -169,8 +168,8 @@ class TestArgMaxAndArgMin:
         res_np = np.random.randint(1, 10, size=(1,) if keepdims else ())
         res_num = num.random.randint(1, 10, size=(1,) if keepdims else ())
 
-        func_np(in_np, axis=axis, out=res_np, keepdims=keepdims)
-        func_num(in_num, axis=axis, out=res_num, keepdims=keepdims)
+        func_np(in_np, axis=0, out=res_np, keepdims=keepdims)
+        func_num(in_num, axis=0, out=res_num, keepdims=keepdims)
 
         assert np.array_equal(res_np, res_num)
 
