@@ -15,8 +15,6 @@
 import os
 import sys
 
-file_path = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(file_path)
 import numpy as np
 import pytest
 from utils.utils import assert_raises, check_array_method

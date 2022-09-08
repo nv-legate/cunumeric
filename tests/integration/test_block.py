@@ -44,7 +44,8 @@ def test(depth, sizes):
     b = [np.arange(np.prod(size)).reshape(size) for size in sizes]
 
     print_msg = (
-        f"depth={depth}, np.block([{_deepen(depth, a)}, {_deepen(depth, b)}])"
+        f"depth={depth}, np.block([{_deepen(depth, a)}, "
+        f"{_deepen(depth, b)}])"
     )
     arg = [_deepen(depth, a), _deepen(depth, b)]
     check_array_method("block", [arg], {}, print_msg, check_type=False)
@@ -57,7 +58,8 @@ class TestBlock:
         arg = [a_2d, b_2d]
 
         print_msg = (
-            f"np & cunumeric.block([array({a_2d.shape}), array({b_2d.shape})])"
+            f"np & cunumeric.block([array({a_2d.shape}), "
+            f"array({b_2d.shape})])"
         )
         check_array_method("block", [arg], {}, print_msg)
 
@@ -66,7 +68,10 @@ class TestBlock:
         b_2d = 2 * a_2d
         arg = [[a_2d], [b_2d]]
 
-        print_msg = f"np & cunumeric.block([[array({a_2d.shape})], [array({b_2d.shape})]])"
+        print_msg = (
+            f"np & cunumeric.block([[array({a_2d.shape})], "
+            f"[array({b_2d.shape})]])"
+        )
         check_array_method("block", [arg], {}, print_msg)
 
     def test_block_with_1d_arrays_multiple_rows(self):
@@ -85,7 +90,10 @@ class TestBlock:
         b_1d = np.array([2, 2])
         arg = [[a_2d], [b_1d]]
 
-        print_msg = f"np & cunumeric.block([[array({a_2d.shape})], [array({b_1d.shape})]])"
+        print_msg = (
+            f"np & cunumeric.block([[array({a_2d.shape})], "
+            f"[array({b_1d.shape})]])"
+        )
         check_array_method("block", [arg], {}, print_msg)
 
     def test_block_complicated(self):
@@ -104,7 +112,7 @@ class TestBlock:
             [zero_2d],
         ]
 
-        print_msg = f"np & cunumeric.block()"
+        print_msg = "np & cunumeric.block()"
         check_array_method("block", [arg], {}, print_msg)
 
     def test_nested(self):
@@ -156,7 +164,7 @@ class TestBlock:
             ],
         ]
 
-        print_msg = f"np & cunumeric.block()"
+        print_msg = "np & cunumeric.block()"
         check_array_method("block", [arg], {}, print_msg, check_type=False)
 
 
@@ -206,8 +214,9 @@ class TestBlockErrors:
 
     def test_tuple(self):
         # numpy: raises TypeError below:
-        # TypeError: arrays is a tuple. Only lists can be used to arrange blocks,
-        # and np.block does not allow implicit conversion from tuple to ndarray.
+        # TypeError: arrays is a tuple. Only lists can be used
+        # to arrange blocks,and np.block does not allow implicit
+        # conversion from tuple to ndarray.
         # cunumeric: pass
         np.array_equal(num.block(([1, 2], [3, 4])), [1, 2, 3, 4])
         np.array_equal(num.block([(1, 2), (3, 4)]), [1, 2, 3, 4])
