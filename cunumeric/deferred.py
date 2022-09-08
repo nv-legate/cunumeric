@@ -484,9 +484,8 @@ class DeferredArray(NumPyThunk):
         store_copy.copy(store_to_copy, deep=True)
         return cast(DeferredArray, store_copy)
 
-    def _slice_store(
-        self, k: slice, store: Store, dim: int
-    ) -> tuple(slice, Store):
+    @staticmethod
+    def _slice_store(k: slice, store: Store, dim: int) -> tuple(slice, Store):
         start = k.start
         end = k.stop
         step = k.step
@@ -509,25 +508,6 @@ class DeferredArray(NumPyThunk):
             end = 0
             step = 1
         k = slice(start, end, step)
-        # if (
-        #     (
-        #         (start is not None)
-        #         and (start >= size)
-        #         and (end is None or end >= size)
-        #     )
-        #     or ((start is not None) and (end is not None) and (start >= end))
-        #     or ((start is None) and (end is not None) and (end == 0))
-        # ):
-        #     start = 0
-        #     end = 0
-        #     step = 1
-        # elif (start is None) and (end is not None) and (end < 0):
-        #     end = size + end
-        # elif end is not None and end >= size:
-        #     end = size
-        # elif start is not None and start < 0:
-        #     start = size + start
-        # k = slice(start, end, step)
 
         if start == end and start == 0:  # empty slice
             store = store.project(dim, 0)
