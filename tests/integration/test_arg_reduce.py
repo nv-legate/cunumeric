@@ -157,7 +157,7 @@ class TestArgMaxAndArgMin:
 
     @pytest.mark.parametrize("func_name", ARG_FUNCS)
     @pytest.mark.parametrize("keepdims", [True, False])
-    def test_argmax_and_argmin_out_1dim(self, func_name, axis, keepdims):
+    def test_argmax_and_argmin_out_1dim(self, func_name, keepdims):
         shape = (5,) * 1
         in_np = np.random.random(shape)
         in_num = num.array(in_np)
