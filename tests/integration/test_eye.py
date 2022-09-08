@@ -12,41 +12,63 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+import sys
+import os
+file_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(file_path)
 import numpy as np
 import pytest
 
 import cunumeric as num
 
+from utils.utils import check_array_method, assert_raises
+
+N = 5
 KS = [0, -1, 1, -2, 2]
 
 
-def idk(k):
-    return f"k={k}"
+@pytest.mark.parametrize("k", KS + [-N, N, -10*N, 10*N])
+@pytest.mark.parametrize("M", [N, N+1, N-1, N*10, 0])
+def test_eye(M, k):
+    print_msg = f"np & cunumeric.eye({N},{M}, k={k})"
+    check_array_method("eye", [N, M], {"k": k}, print_msg)
 
 
-@pytest.mark.parametrize("k", KS, ids=idk)
-def test_square(k):
-    print(f"np.eye(5, k={k})")
-    e_lg = num.eye(5, k=k)
-    e_np = np.eye(5, k=k)
-    assert np.array_equal(e_lg, e_np)
+@pytest.mark.parametrize("dtype", [np.int32, np.float64, None], ids=str)
+@pytest.mark.parametrize("k", KS, ids=str)
+def test_square(k, dtype):
+    print_msg = f"np & cunumeric.eye({N},k={k},dtype={dtype})"
+    check_array_method("eye", [N], {"k": k, "dtype": dtype}, print_msg)
 
 
-@pytest.mark.parametrize("k", KS, ids=idk)
-def test_wide(k):
-    print(f"np.eye(5, 6, k={k})")
-    e_lg = num.eye(5, 6, k=k)
-    e_np = np.eye(5, 6, k=k)
-    assert np.array_equal(e_lg, e_np)
+def test_N_zero():
+    N = 0
+    print_msg = f"np & cunumeric eye({N})"
+    check_array_method("eye", [N], {}, print_msg)
+
+def test_M_zero():
+    N = 5
+    M = 0
+    print_msg = f"np & cunumeric eye({N},{M})"
+    check_array_method("eye", [N, M], {}, print_msg)
 
 
-@pytest.mark.parametrize("k", KS, ids=idk)
-def test_tall(k):
-    print(f"np.eye(5, 4, k={k})")
-    e_lg = num.eye(5, 4, k=k)
-    e_np = np.eye(5, 4, k=k)
-    assert np.array_equal(e_lg, e_np)
+class TestEyeErrors:
+
+    def testBadN(self):
+        assert_raises(ValueError, num.eye, -1)
+        assert_raises(TypeError, num.eye, 5.0)
+
+    def testBadM(self):
+        assert_raises(ValueError, num.eye, 5, -1)
+        assert_raises(ValueError, num.eye, 0, -1)
+        assert_raises(TypeError, num.eye, 5, 5.0)
+
+    @pytest.mark.xfail
+    def testBadK(self):
+        # numpy: raises TypeError
+        # cunumeric: the error is found by legate.core, raises struct.error
+        assert_raises(TypeError, num.eye, 5, k=0.0)
 
 
 if __name__ == "__main__":
