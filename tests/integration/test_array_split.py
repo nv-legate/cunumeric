@@ -129,6 +129,7 @@ def test_array_split(size):
             print_msg = f"np.array_split({a.shape}, {input_opt}" f", {axis})"
             # Check if both impls produce the error
             # for non-viable options
+
             check_array_method(
                 "array_split", [a, input_opt], {"axis": axis}, print_msg
             )
