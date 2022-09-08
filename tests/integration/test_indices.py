@@ -49,8 +49,11 @@ class TestIndicesErrors:
     def test_negative_tuple_dimensions(self):
         dimensions = (1, -1)
         # numpy raises: "ValueError: negative dimensions are not allowed"
-        msg = r"Invalid shape"
-        with pytest.raises(ValueError, match=msg):
+        # In cunumeric Eager Executions test,
+        # it raises "ValueError: negative dimensions are not allowed"
+        # in other conditions, it raises
+        # "ValueError: Invalid shape: Shape((2, 1, -1))"
+        with pytest.raises(ValueError):
             cn.indices(dimensions)
 
     def test_float_tuple_dimensions(self):
