@@ -4164,6 +4164,7 @@ def _contract(
     casting: CastingKind = "same_kind",
     dtype: Optional[np.dtype[Any]] = None,
 ) -> ndarray:
+
     # Sanity checks
     if len(a_modes) != a.ndim:
         raise ValueError(
@@ -4184,6 +4185,9 @@ def _contract(
         raise ValueError("Duplicate mode labels on output")
     if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
         raise ValueError("Unknown mode labels on output")
+
+    # Check if `out` is writeable
+    check_writeable(out)
 
     # Handle types
     if dtype is not None:

@@ -99,6 +99,18 @@ def _broadcast_view(sizes):
     _print_result(is_equal, f"np.broadcast({sizes})", err_arr)
 
 
+def _broadcast_to_manipulation(arr, args):
+    b = np.broadcast_to(*args).swapaxes(0, 1)
+    c = num.broadcast_to(*args).swapaxes(0, 1)
+    is_equal = True
+    err_arr = [None, b, c]
+
+    if not np.array_equal(b, c):
+        is_equal = False
+
+    _print_result(is_equal, f"np.broadcast_to({args}).swapaxes(0,1)", err_arr)
+
+
 def _check(*args, params: list, routine: str):
     b = getattr(np, routine)(*args)
     c = getattr(num, routine)(*args)
@@ -161,9 +173,8 @@ def test_broadcast_shapes():
     _check(*shape_list, params=shape_list, routine="broadcast_shapes")
 
 
-@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM))
 @pytest.mark.parametrize("dim", DIM_CASES, ids=str)
-def test_broadcast_to(dim, ndim):
+def test_broadcast_to(dim):
     shape = SHAPE_LISTS[dim][-1]
     arr = np.arange(np.prod((dim,))).reshape((dim,))
     _check(arr, shape, params=(arr.shape, shape), routine="broadcast_to")
@@ -174,6 +185,13 @@ def test_broadcast_arrays(dim):
     shapes = SHAPE_LISTS[dim]
     arrays = list(np.arange(np.prod(shape)).reshape(shape) for shape in shapes)
     _check(*arrays, params=shapes, routine="broadcast_arrays")
+
+
+@pytest.mark.parametrize("dim", DIM_CASES, ids=str)
+def test_broadcast_to_mainpulation(dim):
+    shape = SHAPE_LISTS[dim][-1]
+    arr = np.arange(np.prod((dim,))).reshape((dim,))
+    _broadcast_to_manipulation(arr, (arr.shape, shape))
 
 
 if __name__ == "__main__":
