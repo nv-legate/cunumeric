@@ -16,88 +16,14 @@
 
 #include "cunumeric/matrix/solve.h"
 #include "cunumeric/matrix/solve_template.inl"
-
-#include <cblas.h>
-#include <lapack.h>
+#include "cunumeric/matrix/solve_cpu.inl"
 
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
 
-template <>
-struct SolveImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
-  void operator()(int32_t m, int32_t n, int32_t nrhs, float* a, float* b)
-  {
-    const char trans = 'N';
-    int32_t info     = 0;
-
-    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
-
-    LAPACK_sgetrf(&m, &n, a, &m, ipiv.ptr(0), &info);
-    LAPACK_sgetrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
-
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
-
-template <>
-struct SolveImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
-  void operator()(int32_t m, int32_t n, int32_t nrhs, double* a, double* b)
-  {
-    const char trans = 'N';
-    int32_t info     = 0;
-
-    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
-
-    LAPACK_dgetrf(&m, &n, a, &m, ipiv.ptr(0), &info);
-    LAPACK_dgetrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
-
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
-
-template <>
-struct SolveImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
-  void operator()(int32_t m, int32_t n, int32_t nrhs, complex<float>* a_, complex<float>* b_)
-  {
-    const char trans = 'N';
-    int32_t info     = 0;
-
-    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
-
-    auto a = reinterpret_cast<__complex__ float*>(a_);
-    auto b = reinterpret_cast<__complex__ float*>(b_);
-
-    LAPACK_cgetrf(&m, &n, a, &m, ipiv.ptr(0), &info);
-    LAPACK_cgetrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
-
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
-
-template <>
-struct SolveImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
-  void operator()(int32_t m, int32_t n, int32_t nrhs, complex<double>* a_, complex<double>* b_)
-  {
-    const char trans = 'N';
-    int32_t info     = 0;
-
-    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    auto ipiv = create_buffer<int32_t>(std::min(m, n), kind);
-
-    auto a = reinterpret_cast<__complex__ double*>(a_);
-    auto b = reinterpret_cast<__complex__ double*>(b_);
-
-    LAPACK_zgetrf(&m, &n, a, &m, ipiv.ptr(0), &info);
-    LAPACK_zgetrs(&trans, &n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
-
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
+/*static*/ const char* SolveTask::ERROR_MESSAGE = "Singular matrix";
 
 /*static*/ void SolveTask::cpu_variant(TaskContext& context)
 {
