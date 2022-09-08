@@ -654,7 +654,7 @@ def _solve(
             )
         elif out.dtype != b.dtype:
             raise TypeError(
-                "Output type mismatch: expected {b.dtype}, "
+                f"Output type mismatch: expected {b.dtype}, "
                 f"but found {out.dtype}"
             )
     else:
