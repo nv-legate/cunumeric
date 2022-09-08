@@ -15,9 +15,7 @@
 
 import numpy as np
 import pytest
-from utils.utils import check_array_method, \
-    assert_raises, assert_raises_regex
-
+from utils.utils import assert_raises, assert_raises_regex, check_array_method
 
 import cunumeric as num
 
@@ -26,6 +24,7 @@ def _deepen(depth, x):
     for _ in range(depth):
         x = [x]
     return x
+
 
 DIM = 10
 
@@ -44,7 +43,9 @@ def test(depth, sizes):
     a = [np.arange(np.prod(size)).reshape(size) for size in sizes]
     b = [np.arange(np.prod(size)).reshape(size) for size in sizes]
 
-    print_msg = f"depth={depth}, np.block([{_deepen(depth, a)}, {_deepen(depth, b)}])"
+    print_msg = (
+        f"depth={depth}, np.block([{_deepen(depth, a)}, {_deepen(depth, b)}])"
+    )
     arg = [_deepen(depth, a), _deepen(depth, b)]
     check_array_method("block", [arg], {}, print_msg, check_type=False)
 
@@ -55,7 +56,9 @@ class TestBlock:
         b_2d = 2 * a_2d
         arg = [a_2d, b_2d]
 
-        print_msg = f"np & cunumeric.block([array({a_2d.shape}), array({b_2d.shape})])"
+        print_msg = (
+            f"np & cunumeric.block([array({a_2d.shape}), array({b_2d.shape})])"
+        )
         check_array_method("block", [arg], {}, print_msg)
 
     def test_block_simple_column_wise(self):
@@ -71,8 +74,10 @@ class TestBlock:
         b = np.array([2, 3, 4])
         arg = [[a, b], [a, b]]
 
-        print_msg = f"np & cunumeric.block([[array({a.shape}), array({b.shape})], " \
-                    f"[array({a.shape}), array({b.shape})]])"
+        print_msg = (
+            f"np & cunumeric.block([[array({a.shape}), array({b.shape})], "
+            f"[array({a.shape}), array({b.shape})]])"
+        )
         check_array_method("block", [arg], {}, print_msg, check_type=False)
 
     def test_block_mixed_1d_and_2d(self):
@@ -91,11 +96,13 @@ class TestBlock:
         five_1d = np.array([5])
         six_1d = np.array([6, 6, 6, 6, 6])
         zero_2d = np.zeros((2, 6))
-        arg = [[one_2d, two_2d],
-               [three_2d],
-               [four_1d],
-               [five_1d, six_1d],
-               [zero_2d]]
+        arg = [
+            [one_2d, two_2d],
+            [three_2d],
+            [four_1d],
+            [five_1d, six_1d],
+            [zero_2d],
+        ]
 
         print_msg = f"np & cunumeric.block()"
         check_array_method("block", [arg], {}, print_msg)
@@ -109,24 +116,19 @@ class TestBlock:
         six = np.array([6, 6, 6, 6, 6])
         zero = np.zeros((2, 6))
 
-        result = num.block([
+        result = num.block(
+            [[num.block([[one], [three], [four]]), two], [five, six], [zero]]
+        )
+        expected = np.array(
             [
-                num.block([
-                    [one],
-                    [three],
-                    [four]
-                ]),
-                two
-            ],
-            [five, six],
-            [zero]
-        ])
-        expected = np.array([[1, 1, 1, 2, 2, 2],
-                             [3, 3, 3, 2, 2, 2],
-                             [4, 4, 4, 2, 2, 2],
-                             [5, 6, 6, 6, 6, 6],
-                             [0, 0, 0, 0, 0, 0],
-                             [0, 0, 0, 0, 0, 0]])
+                [1, 1, 1, 2, 2, 2],
+                [3, 3, 3, 2, 2, 2],
+                [4, 4, 4, 2, 2, 2],
+                [5, 6, 6, 6, 6, 6],
+                [0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0],
+            ]
+        )
 
         assert np.array_equal(result, expected)
 
@@ -151,7 +153,7 @@ class TestBlock:
             [
                 [a100, a101],
                 [a110, a111],
-            ]
+            ],
         ]
 
         print_msg = f"np & cunumeric.block()"
@@ -159,7 +161,6 @@ class TestBlock:
 
 
 class TestBlockErrors:
-
     @pytest.mark.xfail
     def test_mismatched_shape(self):
         a = np.array([0, 0])
@@ -167,8 +168,10 @@ class TestBlockErrors:
         assert_raises(ValueError, num.block, [a, b])
         assert_raises(ValueError, num.block, [b, a])
 
-        to_block = [[np.ones((2,3)), np.ones((2,2))],
-                    [np.ones((2,2)), np.ones((2,2))]]
+        to_block = [
+            [np.ones((2, 3)), np.ones((2, 2))],
+            [np.ones((2, 2)), np.ones((2, 2))],
+        ]
 
         # numpy: raises ValueError
         # cumunerics: pass, output is [np.ones((2, 5)),
@@ -190,16 +193,16 @@ class TestBlockErrors:
         assert_raises(ValueError, num.block, [1, []])
         assert_raises(ValueError, num.block, [[1], 2])
         assert_raises(ValueError, num.block, [[], 2])
-        assert_raises(ValueError, num.block, [
-            [[1], [2]],
-            [[3, 4]],
-            [5]  # missing brackets
-        ])
+        assert_raises(
+            ValueError,
+            num.block,
+            [[[1], [2]], [[3, 4]], [5]],  # missing brackets
+        )
 
     def test_empty_lists(self):
-        assert_raises_regex(ValueError, 'empty', num.block, [])
-        assert_raises_regex(ValueError, 'empty', num.block, [[]])
-        assert_raises_regex(ValueError, 'empty', num.block, [[1], []])
+        assert_raises_regex(ValueError, "empty", num.block, [])
+        assert_raises_regex(ValueError, "empty", num.block, [[]])
+        assert_raises_regex(ValueError, "empty", num.block, [[1], []])
 
     def test_tuple(self):
         # numpy: raises TypeError below:
@@ -211,7 +214,7 @@ class TestBlockErrors:
 
     def test_different_ndims(self):
         msg = "All arguments to block must have the same number of dimensions"
-        a = 1.
+        a = 1.0
         b = 2 * np.ones((1, 2))
         c = 3 * np.ones((1, 1, 3))
 
@@ -219,10 +222,9 @@ class TestBlockErrors:
         # cunumeric: raises ValueError
         assert_raises_regex(ValueError, msg, num.block, [a, b, c])
 
-
     def test_different_ndims_depths(self):
         msg = "All arguments to block must have the same number of dimensions"
-        a = 1.
+        a = 1.0
         b = 2 * np.ones((1, 2))
         c = 3 * np.ones((1, 2, 3))
 

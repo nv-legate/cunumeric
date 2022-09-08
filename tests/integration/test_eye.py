@@ -12,23 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
 import os
+import sys
+
 file_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(file_path)
 import numpy as np
 import pytest
+from utils.utils import assert_raises, check_array_method
 
 import cunumeric as num
-
-from utils.utils import check_array_method, assert_raises
 
 N = 5
 KS = [0, -1, 1, -2, 2]
 
 
-@pytest.mark.parametrize("k", KS + [-N, N, -10*N, 10*N])
-@pytest.mark.parametrize("M", [N, N+1, N-1, N*10, 0])
+@pytest.mark.parametrize("k", KS + [-N, N, -10 * N, 10 * N])
+@pytest.mark.parametrize("M", [N, N + 1, N - 1, N * 10, 0])
 def test_eye(M, k):
     print_msg = f"np & cunumeric.eye({N},{M}, k={k})"
     check_array_method("eye", [N, M], {"k": k}, print_msg)
@@ -46,6 +46,7 @@ def test_N_zero():
     print_msg = f"np & cunumeric eye({N})"
     check_array_method("eye", [N], {}, print_msg)
 
+
 def test_M_zero():
     N = 5
     M = 0
@@ -54,7 +55,6 @@ def test_M_zero():
 
 
 class TestEyeErrors:
-
     def testBadN(self):
         assert_raises(ValueError, num.eye, -1)
         assert_raises(TypeError, num.eye, 5.0)
