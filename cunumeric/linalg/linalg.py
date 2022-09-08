@@ -85,7 +85,7 @@ def cholesky(a: ndarray) -> ndarray:
 
 
 @add_boilerplate("a", "b")
-def solve(a: ndarray, b: ndarray) -> ndarray:
+def solve(a: ndarray, b: ndarray, out: Optional[ndarray] = None) -> ndarray:
     """
     Solve a linear matrix equation, or system of linear scalar equations.
 
@@ -98,6 +98,8 @@ def solve(a: ndarray, b: ndarray) -> ndarray:
         Coefficient matrix.
     b : {(M,), (M, K)}, array_like
         Ordinate or "dependent variable" values.
+    out : {(M,), (M, K)}, array_like, optional
+        An optional output array for the solution
 
     Returns
     -------
@@ -151,7 +153,7 @@ def solve(a: ndarray, b: ndarray) -> ndarray:
     if a.size == 0 or b.size == 0:
         return empty_like(b)
 
-    return _solve(a, b)
+    return _solve(a, b, out)
 
 
 # This implementation is adapted closely from NumPy
@@ -649,6 +651,11 @@ def _solve(
             raise ValueError(
                 f"Output shape mismatch: expected {b.shape}, "
                 f"but found {out.shape}"
+            )
+        elif out.dtype != b.dtype:
+            raise TypeError(
+                "Output type mismatch: expected {b.dtype}, "
+                f"but found {out.dtype}"
             )
     else:
         out = ndarray(
