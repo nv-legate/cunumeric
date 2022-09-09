@@ -33,6 +33,7 @@ from .config import (
     FFT_R2C,
     FFT_Z2D,
     BinaryOpCode,
+    ConvertCode,
     FFTDirection,
     ScanCode,
     UnaryOpCode,
@@ -485,15 +486,30 @@ class EagerArray(NumPyThunk):
         self.children.append(result)
         return result
 
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self,
+        rhs: Any,
+        warn: bool = True,
+        nan_op: ConvertCode = ConvertCode.NOOP,
+    ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             return self.deferred.convert(rhs, warn=warn)
         else:
             if self.array.size == 1:
-                self.array.fill(rhs.array.item())
+                if nan_op is ConvertCode.SUM and np.isnan(rhs.array.item()):
+                    self.array.fill(0)
+                elif nan_op is ConvertCode.PROD and np.isnan(rhs.array.item()):
+                    self.array.fill(1)
+                else:
+                    self.array.fill(rhs.array.item())
             else:
-                self.array[:] = rhs.array
+                if nan_op is ConvertCode.SUM:
+                    self.array[:] = np.where(np.isnan(rhs.array), 0, rhs.array)
+                elif nan_op is ConvertCode.PROD:
+                    self.array[:] = np.where(np.isnan(rhs.array), 1, rhs.array)
+                else:
+                    self.array[:] = rhs.array
 
     def fill(self, value: Any) -> None:
         if self.deferred is not None:
@@ -1622,3 +1638,19 @@ class EagerArray(NumPyThunk):
             self.array[:] = np.unpackbits(
                 src.array, axis=axis, bitorder=bitorder
             )
+
+    def _wrap(self, src: Any, new_len: int) -> None:
+        self.check_eager_args(src)
+        if self.deferred is not None:
+            self.deferred._wrap(src, new_len)
+        else:
+            src_flat = np.ravel(src.array)
+            if src_flat.size == new_len:
+                self.array[:] = src_flat[:]
+            elif src_flat.size > new_len:
+                self.array[:] = src_flat[:new_len]
+            else:
+                reps = (new_len + src_flat.size - 1) // src_flat.size
+                if reps > 1:
+                    src_flat = np.tile(src_flat, reps)
+                self.array[:] = src_flat[:new_len]

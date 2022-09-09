@@ -32,7 +32,7 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow
+import pyarrow  # type: ignore
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
@@ -41,6 +41,7 @@ from legate.core import Array
 
 from .config import (
     BinaryOpCode,
+    ConvertCode,
     FFTDirection,
     FFTNormalization,
     FFTType,
@@ -3981,10 +3982,11 @@ class ndarray:
                 shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
         elif out.shape != out_shape:
-            raise ValueError(
-                f"the output shape mismatch: expected {out_shape} but got "
-                f"{out.shape}"
+            errmsg = (
+                f"the output shapes do not match: expected {out_shape} "
+                f"but got {out.shape}"
             )
+            raise ValueError(errmsg)
 
         if dtype != src.dtype:
             src = src.astype(dtype)
@@ -4075,6 +4077,8 @@ class ndarray:
         out: Union[ndarray, None] = None,
         nan_to_identity: bool = False,
     ) -> ndarray:
+        if src.dtype.kind != "c" and src.dtype.kind != "f":
+            nan_to_identity = False
         if dtype is None:
             if out is None:
                 if src.dtype.kind == "i":
@@ -4084,12 +4088,6 @@ class ndarray:
                     dtype = src.dtype
             else:
                 dtype = out.dtype
-        if (src.dtype.kind in ("f", "c")) and np.issubdtype(dtype, np.integer):
-            # Needs changes to convert()
-            raise NotImplementedError(
-                "Integer output types currently not supported for "
-                "floating/complex inputs"
-            )
         # flatten input when axis is None
         if axis is None:
             axis = 0
@@ -4110,9 +4108,18 @@ class ndarray:
             out = ndarray(shape=src_arr.shape, dtype=dtype)
 
         if dtype != src_arr.dtype:
+            if nan_to_identity:
+                if op is ScanCode.SUM:
+                    nan_op = ConvertCode.SUM
+                else:
+                    nan_op = ConvertCode.PROD
+                # If convert is called, it will handle NAN conversion
+                nan_to_identity = False
+            else:
+                nan_op = ConvertCode.NOOP
             # convert input to temporary for type conversion
             temp = ndarray(shape=src_arr.shape, dtype=dtype)
-            temp._thunk.convert(src_arr._thunk)
+            temp._thunk.convert(src_arr._thunk, nan_op=nan_op)
             src_arr = temp
 
         out._thunk.scan(
@@ -4122,4 +4129,17 @@ class ndarray:
             dtype=dtype,
             nan_to_identity=nan_to_identity,
         )
+        return out
+
+    def _wrap(self, new_len: int) -> ndarray:
+        if new_len == 1:
+            idxs = tuple(0 for i in range(self.ndim))
+            return self[idxs]
+
+        out = ndarray(
+            shape=(new_len,),
+            dtype=self.dtype,
+            inputs=(self,),
+        )
+        out._thunk._wrap(src=self._thunk, new_len=new_len)
         return out

@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import os
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Union, cast
+from typing import TYPE_CHECKING, Any, List, Union, cast
 
 import numpy as np
 
@@ -139,6 +139,9 @@ class _CunumericSharedLib:
     CUNUMERIC_CHOOSE: int
     CUNUMERIC_CONTRACT: int
     CUNUMERIC_CONVERT: int
+    CUNUMERIC_CONVERT_NAN_NOOP: int
+    CUNUMERIC_CONVERT_NAN_PROD: int
+    CUNUMERIC_CONVERT_NAN_SUM: int
     CUNUMERIC_CONVOLVE: int
     CUNUMERIC_DIAG: int
     CUNUMERIC_DOT: int
@@ -262,6 +265,7 @@ class _CunumericSharedLib:
     CUNUMERIC_WINDOW_HAMMING: int
     CUNUMERIC_WINDOW_HANNING: int
     CUNUMERIC_WINDOW_KAISER: int
+    CUNUMERIC_WRAP: int
     CUNUMERIC_WRITE: int
     CUNUMERIC_ZIP: int
 
@@ -281,7 +285,7 @@ class CuNumericLib(Library):
         return self.name
 
     def get_shared_library(self) -> str:
-        from cunumeric.install_info import libpath
+        from cunumeric.install_info import libpath  # type: ignore
 
         return os.path.join(
             libpath, "libcunumeric" + self.get_library_extension()
@@ -373,6 +377,7 @@ class CuNumericOpCode(IntEnum):
     UNPACKBITS = _cunumeric.CUNUMERIC_UNPACKBITS
     WHERE = _cunumeric.CUNUMERIC_WHERE
     WINDOW = _cunumeric.CUNUMERIC_WINDOW
+    WRAP = _cunumeric.CUNUMERIC_WRAP
     WRITE = _cunumeric.CUNUMERIC_WRITE
     ZIP = _cunumeric.CUNUMERIC_ZIP
 
@@ -522,6 +527,14 @@ class CuNumericTunable(IntEnum):
 class ScanCode(IntEnum):
     PROD = _cunumeric.CUNUMERIC_SCAN_PROD
     SUM = _cunumeric.CUNUMERIC_SCAN_SUM
+
+
+# Match these to CuNumericConvertCode in cunumeric_c.h
+@unique
+class ConvertCode(IntEnum):
+    NOOP = _cunumeric.CUNUMERIC_CONVERT_NAN_NOOP
+    PROD = _cunumeric.CUNUMERIC_CONVERT_NAN_PROD
+    SUM = _cunumeric.CUNUMERIC_CONVERT_NAN_SUM
 
 
 # Match these to BitGeneratorOperation in cunumeric_c.h
@@ -771,14 +784,30 @@ class FFTNormalization(IntEnum):
 
 
 # Match these to CuNumericTypeCodes in cunumeric_c.h
-@unique
-class CuNumericTypeCodes(IntEnum):
-    CUNUMERIC_TYPE_POINT1 = _cunumeric.CUNUMERIC_TYPE_POINT1
-    CUNUMERIC_TYPE_POINT2 = _cunumeric.CUNUMERIC_TYPE_POINT2
-    CUNUMERIC_TYPE_POINT3 = _cunumeric.CUNUMERIC_TYPE_POINT3
-    CUNUMERIC_TYPE_POINT4 = _cunumeric.CUNUMERIC_TYPE_POINT4
-    CUNUMERIC_TYPE_POINT5 = _cunumeric.CUNUMERIC_TYPE_POINT5
-    CUNUMERIC_TYPE_POINT6 = _cunumeric.CUNUMERIC_TYPE_POINT6
-    CUNUMERIC_TYPE_POINT7 = _cunumeric.CUNUMERIC_TYPE_POINT7
-    CUNUMERIC_TYPE_POINT8 = _cunumeric.CUNUMERIC_TYPE_POINT8
-    CUNUMERIC_TYPE_POINT9 = _cunumeric.CUNUMERIC_TYPE_POINT9
+# we start from POINT2 type since POINT1 is int8 type
+_CUNUMERIC_DTYPES: List[tuple[np.dtype[Any], int, int]] = [
+    (np.dtype("i8, i8"), 16, _cunumeric.CUNUMERIC_TYPE_POINT2),
+    (np.dtype("i8, i8, i8"), 24, _cunumeric.CUNUMERIC_TYPE_POINT3),
+    (np.dtype("i8, i8, i8, i8"), 32, _cunumeric.CUNUMERIC_TYPE_POINT4),
+    (np.dtype("i8, i8, i8, i8, i8"), 40, _cunumeric.CUNUMERIC_TYPE_POINT5),
+    (
+        np.dtype("i8, i8, i8, i8, i8, i8"),
+        48,
+        _cunumeric.CUNUMERIC_TYPE_POINT6,
+    ),
+    (
+        np.dtype("i8, i8, i8, i8, i8, i8, i8"),
+        56,
+        _cunumeric.CUNUMERIC_TYPE_POINT7,
+    ),
+    (
+        np.dtype("i8, i8, i8, i8, i8, i8, i8, i8"),
+        64,
+        _cunumeric.CUNUMERIC_TYPE_POINT8,
+    ),
+    (
+        np.dtype("i8, i8, i8, i8, i8, i8, i8, i8, i8"),
+        72,
+        _cunumeric.CUNUMERIC_TYPE_POINT9,
+    ),
+]

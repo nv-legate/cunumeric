@@ -144,13 +144,19 @@ class System:
     def gpus(self) -> tuple[GPUInfo, ...]:
         """A list of GPUs on the system, including total memory information."""
 
-        # This pynvml import is protected inside this method so that in case
-        # pynvml is not installed, tests stages that don't need gpu info (e.g.
-        # cpus, eager) will proceed unaffected. Test stages that do require
-        # gpu info will fail here with an ImportError.
-        import pynvml  # type: ignore[import]
+        try:
+            # This pynvml import is protected inside this method so that in
+            # case pynvml is not installed, tests stages that don't need gpu
+            # info (e.g. cpus, eager) will proceed unaffected. Test stages
+            # that do require gpu info will fail here with an ImportError.
+            import pynvml  # type: ignore[import]
 
-        pynvml.nvmlInit()
+            # Also a pynvml package is available on some platforms that won't
+            # have GPUs for some reason. In which case this init call will
+            # fail.
+            pynvml.nvmlInit()
+        except Exception:
+            return ()
 
         num_gpus = pynvml.nvmlDeviceGetCount()
 

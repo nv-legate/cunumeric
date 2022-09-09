@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,20 @@
 
 #pragma once
 
-#include "cunumeric/unary/convert_util.h"
 #include "cunumeric/cunumeric.h"
 
 namespace cunumeric {
 
-struct ConvertArgs {
-  const Array& out;
-  const Array& in;
-  ConvertCode nan_op;
+struct WrapArgs {
+  const Array& out;                 // Array with Point<N> type that is used to
+                                    // copy information from original array to the
+                                    //  `wrapped` one
+  const Legion::DomainPoint shape;  // shape of the original array
 };
 
-class ConvertTask : public CuNumericTask<ConvertTask> {
+class WrapTask : public CuNumericTask<WrapTask> {
  public:
-  static const int TASK_ID = CUNUMERIC_CONVERT;
+  static const int TASK_ID = CUNUMERIC_WRAP;
 
  public:
   static void cpu_variant(legate::TaskContext& context);
