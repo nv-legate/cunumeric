@@ -3982,10 +3982,11 @@ class ndarray:
                 shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
         elif out.shape != out_shape:
-            raise ValueError(
-                f"the output shape mismatch: expected {out_shape} but got "
-                f"{out.shape}"
+            errmsg = (
+                f"the output shapes do not match: expected {out_shape} "
+                f"but got {out.shape}"
             )
+            raise ValueError(errmsg)
 
         if dtype != src.dtype:
             src = src.astype(dtype)
