@@ -34,7 +34,7 @@ from typing import (
 )
 
 import numpy as np
-from numpy.core.numeric import normalize_axis_tuple
+from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
 
 import legate.core.types as ty
