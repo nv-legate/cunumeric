@@ -485,6 +485,39 @@ class DeferredArray(NumPyThunk):
         store_copy.copy(store_to_copy, deep=True)
         return cast(DeferredArray, store_copy)
 
+    @staticmethod
+    def _slice_store(k: slice, store: Store, dim: int) -> tuple[slice, Store]:
+        start = k.start
+        end = k.stop
+        step = k.step
+        size = store.shape[dim]
+
+        if start is not None:
+            if start < 0:
+                start += size
+            start = max(0, min(size, start))
+        if end is not None:
+            if end < 0:
+                end += size
+            end = max(0, min(size, end))
+        if (
+            (start is not None and start == size)
+            or (end is not None and end == 0)
+            or (start is not None and end is not None and start >= end)
+        ):
+            start = 0
+            end = 0
+            step = 1
+        k = slice(start, end, step)
+
+        if start == end and start == 0:  # empty slice
+            store = store.project(dim, 0)
+            store = store.promote(dim, 0)
+        else:
+            store = store.slice(dim, k)
+
+        return k, store
+
     def _create_indexing_array(
         self, key: Any, is_set: bool = False
     ) -> tuple[bool, Any, Any, Any]:
@@ -649,7 +682,7 @@ class DeferredArray(NumPyThunk):
             elif k is np.newaxis:
                 store = store.promote(dim + shift, 1)
             elif isinstance(k, slice):
-                store = store.slice(dim + shift, k)
+                k, store = self._slice_store(k, store, dim + shift)
             elif isinstance(k, NumPyThunk):
                 if not isinstance(key, DeferredArray):
                     k = self.runtime.to_deferred_array(k)
@@ -717,7 +750,7 @@ class DeferredArray(NumPyThunk):
             if k is np.newaxis:
                 store = store.promote(dim + shift, 1)
             elif isinstance(k, slice):
-                store = store.slice(dim + shift, k)
+                k, store = self._slice_store(k, store, dim + shift)
             elif np.isscalar(k):
                 if k < 0:  # type: ignore
                     k += store.shape[dim + shift]
