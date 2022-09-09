@@ -2465,6 +2465,48 @@ class ndarray:
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
+    @add_boilerplate("indices", "values")
+    def put(
+        self, indices: ndarray, values: ndarray, mode: bool = "raise"
+    ) -> None:
+        """
+        Set storage-indexed locations to corresponding values.
+
+        See Also
+        --------
+         numpy.put
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+
+        if values.size == 0 or indices.size == 0:
+            return
+
+        if mode not in ("raise", "wrap", "clip"):
+            raise ValueError("clipmode not understood")
+        if mode == "wrap":
+            indices = indices % self.size
+        elif mode == "clip":
+            if np.isscalar(indices):
+                if indices >= self.size:
+                    indices = self.size - 1
+                if indices < 0:
+                    indices = 0
+            else:
+                indices = indices.clip(0, self.size - 1)
+
+        # call _wrap on the values if they need to be wrapped
+        if values.ndim > 1 or values.size < indices.size:
+            values = values._wrap(indices.size)
+
+        if indices.ndim == 1 and self.ndim == 1:
+            self._thunk.set_item(indices._thunk, values._thunk)
+        else:
+            self._thunk.set_item(indices._thunk, values._thunk, put=True)
+
     @add_boilerplate()
     def trace(
         self,

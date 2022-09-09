@@ -3446,6 +3446,38 @@ def diagonal(
     )
 
 
+@add_boilerplate("a", "indices", "values")
+def put(
+    a: ndarray, indices: ndarray, values: ndarray, mode: str = "raise"
+) -> ndarray:
+    """
+    Set storage-indexed locations to corresponding values.
+
+    Parameters
+    ----------
+    a : array_like
+        Array to put data into
+    indices : array_like
+        Target indices, interpreted as integers.
+    values : array_like
+        Values to place in `a` at target indices.
+    mode : {'raise', 'wrap', 'clip'}, optional
+        Specifies how out-of-bounds indices will behave.
+        'raise' : raise an error.
+        'wrap' : wrap around.
+        'clip' : clip to the range.
+
+    See Also
+    --------
+    numpy.put
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.put(indices=indices, values=values, mode=mode)
+
+
 @add_boilerplate("a", "val")
 def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:
     """

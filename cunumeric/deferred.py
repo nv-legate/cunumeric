@@ -518,7 +518,7 @@ class DeferredArray(NumPyThunk):
         return k, store
 
     def _create_indexing_array(
-        self, key: Any, is_set: bool = False
+        self, key: Any, is_set: bool = False, is_put: bool = False
     ) -> tuple[bool, Any, Any, Any]:
         store = self.base
         rhs = self
@@ -859,17 +859,17 @@ class DeferredArray(NumPyThunk):
         return result
 
     @auto_convert([2])
-    def set_item(self, key: Any, rhs: Any) -> None:
+    def set_item(self, key: Any, rhs: Any, is_put: bool = False) -> None:
         assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
-        if is_advanced_indexing(key):
+        if is_advanced_indexing(key) or (is_put and key.ndim != self.ndim):
             # Create the indexing array
             (
                 copy_needed,
                 lhs,
                 index_array,
                 self,
-            ) = self._create_indexing_array(key, True)
+            ) = self._create_indexing_array(key, True, is_put)
 
             if rhs.shape != index_array.shape:
                 rhs_tmp = rhs._broadcast(index_array.base.shape)
