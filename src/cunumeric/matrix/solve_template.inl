@@ -70,6 +70,9 @@ struct SolveImpl {
 
     size_t a_strides[2];
     VAL* a = a_array.read_write_accessor<VAL, 2>(a_shape).ptr(a_shape, a_strides);
+#ifdef DEBUG_CUNUMERIC
+    assert(a_strides[0] == 1 && a_strides[1] == m);
+#endif
     VAL* b = nullptr;
 
     int64_t nrhs = 1;
@@ -88,6 +91,9 @@ struct SolveImpl {
       nrhs = b_shape.hi[1] - b_shape.lo[1] + 1;
       size_t b_strides[2];
       b = b_array.read_write_accessor<VAL, 2>(b_shape).ptr(b_shape, b_strides);
+#ifdef DEBUG_CUNUMERIC
+      assert(b_strides[0] == 1 && b_strides[1] == m);
+#endif
     }
 
 #ifdef DEBUG_CUNUMERIC
