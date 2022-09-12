@@ -23,19 +23,22 @@ np.random.seed(12345)
 
 
 def _gen_array(n0, shape, dt, axis, outtype):
-    # range 1-10, avoiding zeros to ensure correct testing for int prod case
+    range_lower = 0
+    # range 1-3 for ints, avoid zeros for correct testing in prod case
+    if np.issubdtype(dt, np.integer):
+        range_lower = 1
     if dt == np.complex64:
         A = (
-            (99 * np.random.random(shape) + 1)
-            + (99 * np.random.random(shape) + 1) * 1j
+            (3 * np.random.random(shape) + range_lower)
+            + (3 * np.random.random(shape) + range_lower) * 1j
         ).astype(np.complex64)
     elif dt == np.complex128:
         A = (
-            (99 * np.random.random(shape) + 1)
-            + (99 * np.random.random(shape) + 1) * 1j
+            (3 * np.random.random(shape) + range_lower)
+            + (3 * np.random.random(shape) + range_lower) * 1j
         ).astype(np.complex128)
     else:
-        A = (99 * np.random.random(shape) + 1).astype(dt)
+        A = (3 * np.random.random(shape) + range_lower).astype(dt)
     if n0 == "first_half":
         # second element along all axes is a NAN
         A[(1,) * len(shape)] = np.nan
@@ -58,6 +61,12 @@ def _gen_array(n0, shape, dt, axis, outtype):
 
 
 def _run_tests(op, n0, shape, dt, axis, out0, outtype):
+    if (np.issubdtype(dt, np.integer) and n0 is not None) or (
+        np.issubdtype(outtype, np.integer)
+        and (op == "cumsum" or op == "cumprod")
+        and n0 is not None
+    ):
+        return
     print(
         f"Running test: {op}, shape: {shape}, nan location: {n0}"
         f", axis: {axis}, in type: {dt}, out type: {outtype}"
@@ -89,74 +98,70 @@ ops = [
     "nancumsum",
     "nancumprod",
 ]
-# keeping array sizes small to avoid accumulation variance
-# between cunumeric and numpy
+ops_nan = [
+    "nancumsum",
+    "nancumprod",
+]
 shapes = [
-    [200],
-    [4, 50],
+    [100],
+    [4, 25],
 ]
 axes = [
     None,
     0,
 ]
-out0s = [
-    True,
-    False,
+dtypes = [
+    np.int16,
+    np.int32,
+    np.int64,
+    np.float32,
+    np.float64,
+    np.complex64,
+    np.complex128,
+]
+dtypes_simplified = [
+    np.int32,
+    np.float32,
+    np.complex64,
+]
+n0s = [
+    None,
+    "first_half",
+    "second_half",
 ]
 
 
-@pytest.mark.parametrize("op", ops)
 @pytest.mark.parametrize("shape", shapes)
 @pytest.mark.parametrize("axis", axes)
-@pytest.mark.parametrize("out0", out0s)
-def test_scan(op, shape, axis, out0):
-    n0s = [
-        None,
-        "first_half",
-        "second_half",
-    ]
-    int_types = [
-        np.int16,
-        np.int32,
-        np.int64,
-    ]
-    float_types = [
-        np.float32,
-        np.float64,
-    ]
-    complex_types = [
-        np.complex64,
-        np.complex128,
-    ]
-    for outtype in int_types:
-        for dt in int_types:
-            _run_tests(op, None, shape, dt, axis, out0, outtype)
-        for dt in float_types:
-            for n0 in n0s:
-                print("Float to int NAN conversion currently not supported!")
-        for dt in complex_types:
-            for n0 in n0s:
-                print("Complex to int NAN conversion currently not supported!")
+@pytest.mark.parametrize("outtype", dtypes_simplified)
+@pytest.mark.parametrize("dt", dtypes_simplified)
+def test_scan_out0_shape(shape, axis, outtype, dt):
+    op = "cumsum"
+    out0 = True
+    n0 = None
+    _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
-    for outtype in float_types:
-        for dt in int_types:
-            _run_tests(op, None, shape, dt, axis, out0, outtype)
-        for dt in float_types:
-            for n0 in n0s:
-                _run_tests(op, n0, shape, dt, axis, out0, outtype)
-        for dt in complex_types:
-            for n0 in n0s:
-                _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
-    for outtype in complex_types:
-        for dt in int_types:
-            _run_tests(op, None, shape, dt, axis, out0, outtype)
-        for dt in float_types:
-            for n0 in n0s:
-                _run_tests(op, n0, shape, dt, axis, out0, outtype)
-        for dt in complex_types:
-            for n0 in n0s:
-                _run_tests(op, n0, shape, dt, axis, out0, outtype)
+@pytest.mark.parametrize("op", ops)
+@pytest.mark.parametrize("outtype", dtypes_simplified)
+@pytest.mark.parametrize("dt", dtypes)
+@pytest.mark.parametrize("n0", n0s)
+def test_scan_nan(op, outtype, dt, n0):
+    shape = [100]
+    axis = None
+    out0 = False
+    _run_tests(op, n0, shape, dt, axis, out0, outtype)
+
+
+@pytest.mark.parametrize("op", ops)
+@pytest.mark.parametrize("outtype", dtypes_simplified)
+@pytest.mark.parametrize("dt", dtypes_simplified)
+def test_scan_op(op, outtype, dt):
+    shape = [100]
+    axis = None
+    out0 = False
+    n0 = None
+    _run_tests(op, n0, shape, dt, axis, out0, outtype)
 
 
 def test_empty_inputs():

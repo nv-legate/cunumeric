@@ -26,15 +26,19 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode DST_TYPE, LegateTypeCode SRC_TYPE, int DIM>
+template <VariantKind KIND,
+          ConvertCode NAN_OP,
+          LegateTypeCode DST_TYPE,
+          LegateTypeCode SRC_TYPE,
+          int DIM>
 struct ConvertImplBody;
 
-template <VariantKind KIND, LegateTypeCode SRC_TYPE>
+template <VariantKind KIND, ConvertCode NAN_OP, LegateTypeCode SRC_TYPE>
 struct ConvertImpl {
   template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE != DST_TYPE>* = nullptr>
   void operator()(ConvertArgs& args) const
   {
-    using OP  = ConvertOp<DST_TYPE, SRC_TYPE>;
+    using OP  = ConvertOp<NAN_OP, DST_TYPE, SRC_TYPE>;
     using SRC = legate_type_of<SRC_TYPE>;
     using DST = legate_type_of<DST_TYPE>;
 
@@ -57,10 +61,32 @@ struct ConvertImpl {
 #endif
 
     OP func{};
-    ConvertImplBody<KIND, DST_TYPE, SRC_TYPE, DIM>()(func, out, in, pitches, rect, dense);
+    ConvertImplBody<KIND, NAN_OP, DST_TYPE, SRC_TYPE, DIM>()(func, out, in, pitches, rect, dense);
   }
 
   template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE == DST_TYPE>* = nullptr>
+  void operator()(ConvertArgs& args) const
+  {
+    assert(false);
+  }
+};
+
+template <VariantKind KIND, LegateTypeCode SRC_TYPE>
+struct ConvertDispatch {
+  template <ConvertCode NAN_OP,
+            std::enable_if_t<(legate::is_floating_point<SRC_TYPE>::value ||
+                              legate::is_complex<legate::legate_type_of<SRC_TYPE>>::value) ||
+                             NAN_OP == ConvertCode::NOOP>* = nullptr>
+  void operator()(ConvertArgs& args) const
+  {
+    auto dim = std::max(1, args.out.dim());
+    double_dispatch(dim, args.out.code(), ConvertImpl<KIND, NAN_OP, SRC_TYPE>{}, args);
+  }
+
+  template <ConvertCode NAN_OP,
+            std::enable_if_t<!((legate::is_floating_point<SRC_TYPE>::value ||
+                                legate::is_complex<legate::legate_type_of<SRC_TYPE>>::value) ||
+                               (NAN_OP == ConvertCode::NOOP))>* = nullptr>
   void operator()(ConvertArgs& args) const
   {
     assert(false);
@@ -72,15 +98,15 @@ struct SourceTypeDispatch {
   template <LegateTypeCode SRC_TYPE>
   void operator()(ConvertArgs& args) const
   {
-    auto dim = std::max(1, args.out.dim());
-    double_dispatch(dim, args.out.code(), ConvertImpl<KIND, SRC_TYPE>{}, args);
+    op_dispatch(args.nan_op, ConvertDispatch<KIND, SRC_TYPE>{}, args);
   }
 };
 
 template <VariantKind KIND>
 static void convert_template(TaskContext& context)
 {
-  ConvertArgs args{context.outputs()[0], context.inputs()[0]};
+  ConvertArgs args{
+    context.outputs()[0], context.inputs()[0], context.scalars()[0].value<ConvertCode>()};
   type_dispatch(args.in.code(), SourceTypeDispatch<KIND>{}, args);
 }
 

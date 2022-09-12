@@ -17,6 +17,7 @@ import math
 
 import numpy as np
 import pytest
+from utils.utils import check_array_method
 
 import cunumeric as num
 
@@ -39,11 +40,43 @@ SIZES = [
 ]
 
 
+class TestArraySplitErrors:
+    """
+    this class is to test negative cases
+    """
+
+    def test_indices_negative(self):
+        # negative indices should be not accepted
+        ary = np.arange(10)
+        msg = r"number sections must be larger than 0"
+        with pytest.raises(ValueError, match=msg):
+            num.array_split(ary, -2)
+
+    def test_indices_0(self):
+        # 0 indices should be not accepted
+        ary = np.arange(10)
+        msg = r"number sections must be larger than 0"
+        with pytest.raises(ValueError, match=msg):
+            num.array_split(ary, 0)
+
+    def test_axis_bigger(self):
+        ary = np.arange(9)
+        with pytest.raises(ValueError):
+            num.array_split(ary, len(ary) // 2, 2)
+
+    def test_axis_negative(self):
+        ary = np.arange(9)
+        with pytest.raises(IndexError):
+            num.array_split(ary, len(ary) // 2, -2)
+
+
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_array_split(size):
 
     a = np.random.randint(low=0, high=100, size=size)
-    for axis in range(a.ndim):
+    axis_list = list(range(a.ndim))
+    axis_list.append(-1)
+    for axis in axis_list:
         input_arr = []
         even_div = None
         uneven_div = None
@@ -96,33 +129,10 @@ def test_array_split(size):
             print_msg = f"np.array_split({a.shape}, {input_opt}" f", {axis})"
             # Check if both impls produce the error
             # for non-viable options
-            b = np.array_split(a, input_opt, axis)
-            c = num.array_split(a, input_opt, axis)
-            is_equal = True
-            err_arr = [b, c]
 
-            if len(b) != len(c):
-                is_equal = False
-                err_arr = [b, c]
-            else:
-                for each in zip(b, c):
-                    if not np.array_equal(each[0], each[1]):
-                        err_arr = each
-                        is_equal = False
-                        break
-
-            assert is_equal, (
-                f"Failed, {print_msg}"
-                f"numpy result: {err_arr[0]}"
-                f"cunumeric_result: {err_arr[1]}"
-                f"cunumeric and numpy shows"
-                f"different result\n"
-                f"array({size}),"
-                f"routine: array_split,"
-                f"indices: {input_opt}, axis: {axis}"
+            check_array_method(
+                "array_split", [a, input_opt], {"axis": axis}, print_msg
             )
-
-            print(f"Passed, {print_msg}")
 
 
 if __name__ == "__main__":
