@@ -72,7 +72,8 @@ struct WrapImpl {
       WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense, in);
 
     } else {
-      WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense);
+      bool tmp = false;
+      WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense, tmp);
     }  // else
   }
 };

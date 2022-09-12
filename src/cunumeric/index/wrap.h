@@ -43,4 +43,10 @@ class WrapTask : public CuNumericTask<WrapTask> {
 #endif
 };
 
+__CUDA_HD__ int64_t compute_idx(int64_t i, int64_t volume, bool&) { return i % volume; }
+
+__CUDA_HD__ int64_t compute_idx(int64_t i, int64_t, const legate::AccessorRO<int64_t, 1>& indices)
+{
+  return indices[i];
+}
 }  // namespace cunumeric

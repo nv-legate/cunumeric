@@ -24,57 +24,28 @@ using namespace legate;
 
 template <int DIM>
 struct WrapImplBody<VariantKind::CPU, DIM> {
-  void operator()(const AccessorWO<Point<DIM>, 1>& out,
-                  const Pitches<0>& pitches_out,
-                  const Rect<1>& out_rect,
-                  const Pitches<DIM - 1>& pitches_in,
-                  const Rect<DIM>& in_rect,
-                  const bool dense) const
-  {
-    const int64_t start  = out_rect.lo[0];
-    const int64_t end    = out_rect.hi[0];
-    const auto in_volume = in_rect.volume();
-    if (dense) {
-      int64_t out_idx = 0;
-      auto outptr     = out.ptr(out_rect);
-      for (int64_t i = start; i <= end; i++) {
-        const int64_t input_idx = i % in_volume;
-        auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
-        outptr[out_idx]         = point;
-        out_idx++;
-      }
-    } else {
-      for (int64_t i = start; i <= end; i++) {
-        const int64_t input_idx = i % in_volume;
-        auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
-        out[i]                  = point;
-      }
-    }  // else
-  }
-
-  // the version when input is specified
+  template <typename IND>
   void operator()(const AccessorWO<Point<DIM>, 1>& out,
                   const Pitches<0>& pitches_out,
                   const Rect<1>& out_rect,
                   const Pitches<DIM - 1>& pitches_in,
                   const Rect<DIM>& in_rect,
                   const bool dense,
-                  const AccessorRO<int64_t, 1>& indices) const
+                  IND& indices) const
   {
-    const int64_t start = out_rect.lo[0];
-    const int64_t end   = out_rect.hi[0];
+    const int64_t start  = out_rect.lo[0];
+    const int64_t end    = out_rect.hi[0];
+    const auto in_volume = in_rect.volume();
     if (dense) {
-      int64_t out_idx = 0;
-      auto outptr     = out.ptr(out_rect);
+      auto outptr = out.ptr(out_rect);
       for (int64_t i = start; i <= end; i++) {
-        const int64_t input_idx = indices[i];
+        const int64_t input_idx = compute_idx(i, in_volume, indices);
         auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
-        outptr[out_idx]         = point;
-        out_idx++;
+        outptr[i - start]       = point;
       }
     } else {
       for (int64_t i = start; i <= end; i++) {
-        const int64_t input_idx = indices[i];
+        const int64_t input_idx = compute_idx(i, in_volume, indices);  // i % in_volume;
         auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
         out[i]                  = point;
       }
