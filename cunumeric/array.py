@@ -2498,14 +2498,31 @@ class ndarray:
             else:
                 indices = indices.clip(0, self.size - 1)
 
+        if indices.dtype != np.int64:
+            runtime.warn(
+                "converting index array to int64 type",
+                category=RuntimeWarning,
+            )
+            indices = indices.astype(np.int64)
+
+        if indices.ndim > 1:
+            indices = indices.ravel()
+
+        # in case size of the indices larger than size of the array
+        # some entries in the array will be updated 2 times.
+        # and Legate doesn't guarantee the order in which values
+        # are updated
+        if indices.size > self.size:
+            runtime.warn(
+                "size of indices is larger than source array which",
+                " might result in undefined behaviour",
+                category=RuntimeWarning,
+            )
         # call _wrap on the values if they need to be wrapped
-        if values.ndim > 1 or values.size < indices.size:
+        if values.ndim != indices.ndim or values.size != indices.size:
             values = values._wrap(indices.size)
 
-        if indices.ndim == 1 and self.ndim == 1:
-            self._thunk.set_item(indices._thunk, values._thunk)
-        else:
-            self._thunk.set_item(indices._thunk, values._thunk, put=True)
+        self._thunk.put(indices._thunk, values._thunk)
 
     @add_boilerplate()
     def trace(

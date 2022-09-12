@@ -25,6 +25,8 @@ struct WrapArgs {
                                     // copy information from original array to the
                                     //  `wrapped` one
   const Legion::DomainPoint shape;  // shape of the original array
+  const bool has_input;
+  const Array& in;
 };
 
 class WrapTask : public CuNumericTask<WrapTask> {

@@ -51,6 +51,34 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
       }
     }  // else
   }
+
+  void operator()(const AccessorWO<Point<DIM>, 1>& out,
+                  const Pitches<0>& pitches_out,
+                  const Rect<1>& out_rect,
+                  const Pitches<DIM - 1>& pitches_in,
+                  const Rect<DIM>& in_rect,
+                  const bool dense,
+                  const AccessorRO<int64_t, 1>& indices) const
+  {
+    const int64_t start = out_rect.lo[0];
+    const int64_t end   = out_rect.hi[0];
+    if (dense) {
+      auto outptr = out.ptr(out_rect);
+#pragma omp parallel for schedule(static)
+      for (int64_t i = start; i <= end; i++) {
+        const int64_t input_idx = indices[i];
+        auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
+        outptr[i - start]       = point;
+      }
+    } else {
+#pragma omp parallel for schedule(static)
+      for (int64_t i = start; i <= end; i++) {
+        const int64_t input_idx = indices[i];
+        auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
+        out[i]                  = point;
+      }
+    }  // else
+  }
 };
 
 /*static*/ void WrapTask::omp_variant(TaskContext& context)

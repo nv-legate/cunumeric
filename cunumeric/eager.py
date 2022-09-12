@@ -620,6 +620,12 @@ class EagerArray(NumPyThunk):
                 axes = tuple(range(ndims - naxes, ndims))
                 self.array = diagonal_reference(rhs.array, axes)
 
+    def put(self, indices: Any, values: Any) -> None:
+        if self.deferred is not None:
+            self.deferred.put(indices, values)
+        else:
+            np.put(self.array, indices.array, values.array)
+
     def eye(self, k: int) -> None:
         if self.deferred is not None:
             self.deferred.eye(k)
