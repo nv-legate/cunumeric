@@ -41,6 +41,9 @@ def transpose_copy_single(
     # to a column major instance
     task.add_scalar_arg(False, ty.int32)
 
+    task.add_broadcast(output)
+    task.add_broadcast(input)
+
     task.execute()
 
 
