@@ -43,9 +43,10 @@ def test_ndim(ndim):
     shape = (5,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
-    np_indices = mk_seq_array(np, (4 * ndim,))
-    num_indices = mk_seq_array(num, (4 * ndim,))
-    shape_val = (3,) * ndim
+    shape_in = (3,) * ndim
+    np_indices = mk_seq_array(np, shape_in)
+    num_indices = mk_seq_array(num, shape_in)
+    shape_val = (2,) * ndim
     np_values = mk_seq_array(np, shape_val) * 10
     num_values = mk_seq_array(num, shape_val) * 10
 
@@ -54,21 +55,22 @@ def test_ndim(ndim):
     assert np.array_equal(np_arr, num_arr)
 
 
+INDICES = ([1, 2, 3, 100], [[2, 1], [3, 100]], [1], [100])
+
+
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
 @pytest.mark.parametrize("mode", ("wrap", "clip"))
-def test_ndim_mode(ndim, mode):
+@pytest.mark.parametrize("indices", INDICES)
+def test_ndim_mode(ndim, mode, indices):
     shape = (5,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
-    shape_in = (3,) * ndim
-    np_indices = mk_seq_array(np, shape_in) * 2
-    num_indices = mk_seq_array(num, shape_in) * 2
     shape_val = (2,) * ndim
     np_values = mk_seq_array(np, shape_val) * 10
     num_values = mk_seq_array(num, shape_val) * 10
 
-    np.put(np_arr, np_indices, np_values, mode=mode)
-    num.put(num_arr, num_indices, num_values, mode=mode)
+    np.put(np_arr, indices, np_values, mode=mode)
+    num.put(num_arr, indices, num_values, mode=mode)
     assert np.array_equal(np_arr, num_arr)
 
 

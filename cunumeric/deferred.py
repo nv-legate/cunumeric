@@ -781,10 +781,16 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    def _convert_future_to_regionfield(self) -> DeferredArray:
+    def _convert_future_to_regionfield(
+        self, future: bool = False
+    ) -> DeferredArray:
+        if future:
+            shape = (1,)
+        else:
+            shape = self.shape
         store = self.context.create_store(
             self.dtype,
-            shape=self.shape,
+            shape=shape,
             optimize_scalar=False,
         )
         thunk_copy = DeferredArray(
@@ -1660,11 +1666,17 @@ class DeferredArray(NumPyThunk):
     @auto_convert([1, 2])
     def put(self, indices: Any, values: Any) -> None:
         if indices.base.kind == Future or indices.base.transformed:
-            indices = indices._convert_future_to_regionfield()
+            indices = indices._convert_future_to_regionfield(
+                indices.base.kind == Future
+            )
         if values.base.kind == Future or values.base.transformed:
-            values = values._convert_future_to_regionfield()
+            values = values._convert_future_to_regionfield(
+                values.base.kind == Future
+            )
         if self.base.kind == Future or self.base.transformed:
-            self = self._convert_future_to_regionfield()
+            self = self._convert_future_to_regionfield(
+                self.base.kind == Future
+            )
 
         assert indices.size == values.size
 

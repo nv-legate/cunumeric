@@ -2490,13 +2490,7 @@ class ndarray:
         if mode == "wrap":
             indices = indices % self.size
         elif mode == "clip":
-            if np.isscalar(indices):
-                if indices >= self.size:
-                    indices = self.size - 1
-                if indices < 0:
-                    indices = 0
-            else:
-                indices = indices.clip(0, self.size - 1)
+            indices = indices.clip(0, self.size - 1)
 
         if indices.dtype != np.int64:
             runtime.warn(
@@ -2514,7 +2508,7 @@ class ndarray:
         # are updated
         if indices.size > self.size:
             runtime.warn(
-                "size of indices is larger than source array which",
+                "size of indices is larger than source array which"
                 " might result in undefined behaviour",
                 category=RuntimeWarning,
             )
