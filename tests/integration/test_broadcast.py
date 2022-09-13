@@ -22,16 +22,22 @@ from legate.core import LEGATE_MAX_DIM
 DIM_CASES = [5, 40]
 
 
-def _print_result(test_result, print_msg, err_arr):
-    assert test_result, (
-        f"Failed, {print_msg}\n"
-        f"Attr, {err_arr[0]}\n"
-        f"numpy result: {err_arr[1]}\n"
-        f"cunumeric_result: {err_arr[2]}\n"
-        f"cunumeric and numpy shows"
-        f" different result\n"
-    )
-    print(f"Passed, {print_msg}")
+def _check_result(print_msg, err_arrs):
+    if len(err_arrs) > 0:
+        print_output = f"Failed, {print_msg}\n"
+        for err_arr in err_arrs:
+            print_output += (
+                f"Attr, {err_arr[0]}\n"
+                f"numpy result: {err_arr[1]}\n"
+                f"cunumeric_result: {err_arr[2]}\n"
+            )
+        assert False, (
+            f"{print_output}"
+            f"cunumeric and numpy shows"
+            f" different result\n"
+        )
+    else:
+        print(f"Passed, {print_msg}")
 
 
 def _broadcast_attrs(sizes):
@@ -41,16 +47,13 @@ def _broadcast_attrs(sizes):
     c = num.broadcast(*arr_num)
 
     attrs = ["index", "nd", "ndim", "numiter", "shape", "size"]
-    is_equal = True
-    err_arr = None
+    err_arrs = []
     # test attributes
     for attr in attrs:
         if getattr(b, attr) != getattr(c, attr):
-            is_equal = False
-            err_arr = [attr, getattr(b, attr), getattr(c, attr)]
-            break
+            err_arrs.append([attr, getattr(b, attr), getattr(c, attr)])
 
-    _print_result(is_equal, f"np.broadcast({sizes})", err_arr)
+    _check_result(f"np.broadcast({sizes})", err_arrs)
 
 
 def _broadcast_value(sizes):
@@ -59,72 +62,63 @@ def _broadcast_value(sizes):
     b = np.broadcast(*arr_np)
     c = num.broadcast(*arr_num)
 
-    is_equal = True
-    err_arr = None
+    err_arrs = []  # None
 
     # test elements in broadcasted array
     for each in zip(b, c):
         if each[0] != each[1]:
-            is_equal = False
-            err_arr = [("iters", b.index), each[0], each[1]]
-            break
+            err_arrs.append([("iters", b.index), each[0], each[1]])
     # test reset method
     b.reset()
     c.reset()
     if b.index != c.index:
-        is_equal = False
-        err_arr = [("reset", b.index), each[0], each[1]]
+        err_arrs.append([("reset", b.index), each[0], each[1]])
 
-    _print_result(is_equal, f"np.broadcast({sizes})", err_arr)
+    _check_result(f"np.broadcast({sizes})", err_arrs)
 
 
 def _broadcast_view(sizes):
     arr_num = list(num.arange(np.prod(size)).reshape(size) for size in sizes)
     c = num.broadcast(*arr_num)
-
-    is_equal = True
-    err_arr = None
+    err_arrs = []  # None
 
     # test whether the broadcast provide views of the original array
     for i in range(len(arr_num)):
         arr_num[i][(0,) * arr_num[i].ndim] = 1
         if c.iters[i][0] != arr_num[i][(0,) * arr_num[i].ndim]:
-            is_equal = False
-            err_arr = [
-                ("view", i),
-                c.iters[i][0],
-                arr_num[i][(0,) * arr_num[i].ndim],
-            ]
+            err_arrs.append(
+                [
+                    ("view", i),
+                    c.iters[i][0],
+                    arr_num[i][(0,) * arr_num[i].ndim],
+                ]
+            )
 
-    _print_result(is_equal, f"np.broadcast({sizes})", err_arr)
+    _check_result(f"np.broadcast({sizes})", err_arrs)
 
 
 def _broadcast_to_manipulation(arr, args):
     b = np.broadcast_to(*args).swapaxes(0, 1)
     c = num.broadcast_to(*args).swapaxes(0, 1)
-    is_equal = True
-    err_arr = [None, b, c]
+    err_arrs = []  # [None, b, c]
 
     if not np.array_equal(b, c):
-        is_equal = False
+        err_arrs.append([None, b, c])
 
-    _print_result(is_equal, f"np.broadcast_to({args}).swapaxes(0,1)", err_arr)
+    _check_result(f"np.broadcast_to({args}).swapaxes(0,1)", err_arrs)
 
 
 def _check(*args, params: list, routine: str):
     b = getattr(np, routine)(*args)
     c = getattr(num, routine)(*args)
-    is_equal = True
-    err_arr = None
+    err_arrs = []  # None
     if isinstance(b, list):
         for each in zip(b, c):
             # Try to modify multiple elements in each broadcasted array
             if not np.array_equal(each[0], each[1]):
-                is_equal = False
-                err_arr = [("iters", b.index), each[0], each[1]]
-                break
-
+                err_arrs.append([("iters", b.index), each[0], each[1]])
     else:
+        is_equal = True
         for each in zip(b, c):
             if isinstance(each[0], np.ndarray) and not np.array_equal(
                 each[0], each[1]
@@ -133,10 +127,9 @@ def _check(*args, params: list, routine: str):
             elif isinstance(each[0], tuple) and each[0] != each[1]:
                 is_equal = False
             if not is_equal:
-                err_arr = [("value", None), each[0], each[1]]
-                break
+                err_arrs.append([("value", None), each[0], each[1]])
 
-    _print_result(is_equal, f"np.{routine}({params})", err_arr)
+    _check_result(f"np.{routine}({params})", err_arrs)
 
 
 def gen_shapes(dim):
