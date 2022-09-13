@@ -24,7 +24,11 @@ from cunumeric._ufunc.math import add, sqrt as _sqrt
 from cunumeric.array import add_boilerplate, convert_to_cunumeric_ndarray
 from cunumeric.module import dot, empty_like, eye, matmul, ndarray
 
+from .exception import LinAlgError
+
 if TYPE_CHECKING:
+    from typing import Optional
+
     import numpy.typing as npt
 
 
@@ -79,6 +83,78 @@ def cholesky(a: ndarray) -> ndarray:
             "cuNumeric needs to support stacked 2d arrays"
         )
     return _cholesky(a)
+
+
+@add_boilerplate("a", "b")
+def solve(a: ndarray, b: ndarray, out: Optional[ndarray] = None) -> ndarray:
+    """
+    Solve a linear matrix equation, or system of linear scalar equations.
+
+    Computes the "exact" solution, `x`, of the well-determined, i.e., full
+    rank, linear matrix equation `ax = b`.
+
+    Parameters
+    ----------
+    a : (M, M) array_like
+        Coefficient matrix.
+    b : {(M,), (M, K)}, array_like
+        Ordinate or "dependent variable" values.
+    out : {(M,), (M, K)}, array_like, optional
+        An optional output array for the solution
+
+    Returns
+    -------
+    x : {(M,), (M, K)} ndarray
+        Solution to the system a x = b.  Returned shape is identical to `b`.
+
+    Raises
+    ------
+    LinAlgError
+        If `a` is singular or not square.
+
+    See Also
+    --------
+    numpy.linalg.solve
+
+    Availability
+    --------
+    Single GPU, Single CPU
+    """
+    if a.ndim < 2:
+        raise LinAlgError(
+            f"{a.ndim}-dimensional array given. "
+            "Array must be at least two-dimensional"
+        )
+    if b.ndim < 1:
+        raise LinAlgError(
+            f"{b.ndim}-dimensional array given. "
+            "Array must be at least one-dimensional"
+        )
+    if np.dtype("e") in (a.dtype, b.dtype):
+        raise TypeError("array type float16 is unsupported in linalg")
+    if a.ndim > 2 or b.ndim > 2:
+        raise NotImplementedError(
+            "cuNumeric does not yet support stacked 2d arrays"
+        )
+    if a.shape[-2] != a.shape[-1]:
+        raise LinAlgError("Last 2 dimensions of the array must be square")
+    if a.shape[-1] != b.shape[0]:
+        if b.ndim == 1:
+            raise ValueError(
+                "Input operand 1 has a mismatch in its dimension 0, "
+                f"with signature (m,m),(m)->(m) (size {b.shape[0]} "
+                f"is different from {a.shape[-1]})"
+            )
+        else:
+            raise ValueError(
+                "Input operand 1 has a mismatch in its dimension 0, "
+                f"with signature (m,m),(m,n)->(m,n) (size {b.shape[0]} "
+                f"is different from {a.shape[-1]})"
+            )
+    if a.size == 0 or b.size == 0:
+        return empty_like(b)
+
+    return _solve(a, b, out)
 
 
 # This implementation is adapted closely from NumPy
@@ -556,3 +632,40 @@ def _cholesky(a: ndarray, no_tril: bool = False) -> ndarray:
     )
     output._thunk.cholesky(input._thunk, no_tril=no_tril)
     return output
+
+
+def _solve(
+    a: ndarray, b: ndarray, output: Optional[ndarray] = None
+) -> ndarray:
+    if a.dtype.kind not in ("f", "c"):
+        a = a.astype("float64")
+    if b.dtype.kind not in ("f", "c"):
+        b = b.astype("float64")
+    if a.dtype != b.dtype:
+        dtype = np.find_common_type([a.dtype, b.dtype], [])
+        a = a.astype(dtype)
+        b = b.astype(dtype)
+
+    if output is not None:
+        out = output
+        if out.shape != b.shape:
+            raise ValueError(
+                f"Output shape mismatch: expected {b.shape}, "
+                f"but found {out.shape}"
+            )
+        elif out.dtype != b.dtype:
+            raise TypeError(
+                f"Output type mismatch: expected {b.dtype}, "
+                f"but found {out.dtype}"
+            )
+    else:
+        out = ndarray(
+            shape=b.shape,
+            dtype=b.dtype,
+            inputs=(
+                a,
+                b,
+            ),
+        )
+    out._thunk.solve(a._thunk, b._thunk)
+    return out

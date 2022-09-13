@@ -160,6 +160,7 @@ def test_CuNumericOpCode() -> None:
         "SCALAR_UNARY_RED",
         "SCAN_GLOBAL",
         "SCAN_LOCAL",
+        "SOLVE",
         "SORT",
         "SEARCHSORTED",
         "SYRK",

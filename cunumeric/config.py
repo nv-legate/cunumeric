@@ -185,6 +185,7 @@ class _CunumericSharedLib:
     CUNUMERIC_SCAN_PROD: int
     CUNUMERIC_SCAN_SUM: int
     CUNUMERIC_SEARCHSORTED: int
+    CUNUMERIC_SOLVE: int
     CUNUMERIC_SORT: int
     CUNUMERIC_SYRK: int
     CUNUMERIC_TILE: int
@@ -362,6 +363,7 @@ class CuNumericOpCode(IntEnum):
     SCAN_GLOBAL = _cunumeric.CUNUMERIC_SCAN_GLOBAL
     SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
     SEARCHSORTED = _cunumeric.CUNUMERIC_SEARCHSORTED
+    SOLVE = _cunumeric.CUNUMERIC_SOLVE
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE

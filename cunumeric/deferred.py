@@ -36,6 +36,7 @@ from typing import (
 import legate.core.types as ty
 import numpy as np
 from legate.core import Future, ReductionOp, Store
+from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
 
 from .config import (
@@ -51,6 +52,7 @@ from .config import (
     UnaryRedCode,
 )
 from .linalg.cholesky import cholesky
+from .linalg.solve import solve
 from .sort import sort
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
@@ -1766,18 +1768,16 @@ class DeferredArray(NumPyThunk):
     def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         input = rhs.base
         output = self.base
-        normalized_axes = (
-            tuple(range(self.ndim))
-            if axes is None
-            else (axes,)
-            if not isinstance(axes, tuple)
-            else axes
-        )
+
+        if axes is None:
+            axes = tuple(range(self.ndim))
+        else:
+            axes = normalize_axis_tuple(axes, self.ndim)
 
         task = self.context.create_auto_task(CuNumericOpCode.FLIP)
         task.add_output(output)
         task.add_input(input)
-        task.add_scalar_arg(normalized_axes, (ty.int32,))
+        task.add_scalar_arg(axes, (ty.int32,))
 
         task.add_broadcast(input)
         task.add_alignment(input, output)
@@ -3125,6 +3125,10 @@ class DeferredArray(NumPyThunk):
     @auto_convert([1])
     def cholesky(self, src: Any, no_tril: bool = False) -> None:
         cholesky(self, src, no_tril)
+
+    @auto_convert([1, 2])
+    def solve(self, a: Any, b: Any) -> None:
+        solve(self, a, b)
 
     @auto_convert([2])
     def scan(
