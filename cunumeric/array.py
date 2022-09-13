@@ -2502,11 +2502,10 @@ class ndarray:
         if indices.ndim > 1:
             indices = indices.ravel()
 
-        # in case size of the indices larger than size of the array
-        # some entries in the array will be updated 2 times.
-        # and Legate doesn't guarantee the order in which values
+        # in case if there are repeated entries in the indices array
+        # Legate doesn't guarantee the order in which values
         # are updated
-        if indices.size > self.size:
+        if indices.size > indices.unique().size:
             runtime.warn(
                 "size of indices is larger than source array which"
                 " might result in undefined behaviour",
