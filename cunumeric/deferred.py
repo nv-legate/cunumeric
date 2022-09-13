@@ -785,7 +785,7 @@ class DeferredArray(NumPyThunk):
         self, future: bool = False
     ) -> DeferredArray:
         if future:
-            shape = (1,)
+            shape: NdShape = (1,)
         else:
             shape = self.shape
         store = self.context.create_store(
