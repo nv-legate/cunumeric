@@ -3449,7 +3449,7 @@ def diagonal(
 @add_boilerplate("a", "indices", "values")
 def put(
     a: ndarray, indices: ndarray, values: ndarray, mode: str = "raise"
-) -> ndarray:
+) -> None:
     """
     Set storage-indexed locations to corresponding values.
 
@@ -3475,7 +3475,7 @@ def put(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.put(indices=indices, values=values, mode=mode)
+    a.put(indices=indices, values=values, mode=mode)
 
 
 @add_boilerplate("a", "val")

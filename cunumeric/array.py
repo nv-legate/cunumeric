@@ -2467,7 +2467,7 @@ class ndarray:
 
     @add_boilerplate("indices", "values")
     def put(
-        self, indices: ndarray, values: ndarray, mode: bool = "raise"
+        self, indices: ndarray, values: ndarray, mode: str = "raise"
     ) -> None:
         """
         Set storage-indexed locations to corresponding values.
