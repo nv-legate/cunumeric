@@ -38,15 +38,15 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
     const auto in_volume = in_rect.volume();
     if (dense) {
       auto outptr = out.ptr(out_rect);
-      //#pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
         const int64_t input_idx = compute_idx(i, in_volume, indices);
         auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
         outptr[i - start]       = point;
       }
     } else {
+#pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
-        //#pragma omp parallel for schedule(static)
         const int64_t input_idx = compute_idx(i, in_volume, indices);
         auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
         out[i]                  = point;
