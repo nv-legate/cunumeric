@@ -256,6 +256,15 @@ __device__ __forceinline__ void reduce_output(DeviceScalarReductionBuffer<REDUCT
   }
 }
 
+template <int N, typename T, typename REDUCTION>
+__device__ __forceinline__ void reduce_output(std::array<DeviceScalarReductionBuffer<REDUCTION>, N> result,
+                                              std::array<T, N> value)
+{
+  for (int i=0; i < N; ++i){
+    reduce_output(result[i], value[i]);
+  }
+}
+
 template <typename T>
 __device__ __forceinline__ T load_streaming(const T* ptr)
 {

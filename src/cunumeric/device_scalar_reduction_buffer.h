@@ -35,6 +35,9 @@ class DeviceScalarReductionBuffer {
     CHECK_CUDA(cudaMemcpyAsync(ptr_, &identity, sizeof(VAL), cudaMemcpyHostToDevice, stream));
   }
 
+  // Default constructor initializing containers that will be filled in.
+  DeviceScalarReductionBuffer() {}
+
   template <bool EXCLUSIVE>
   __device__ void reduce(const VAL& value) const
   {

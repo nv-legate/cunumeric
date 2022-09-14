@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include <utility>
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/arg.h"
 #include "cunumeric/arg.inl"
@@ -33,6 +34,7 @@ enum class UnaryRedCode : int {
   MIN           = CUNUMERIC_RED_MIN,
   PROD          = CUNUMERIC_RED_PROD,
   SUM           = CUNUMERIC_RED_SUM,
+  MOMENTS       = SUM + 1
 };
 
 template <UnaryRedCode OP_CODE>
@@ -69,6 +71,8 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
       return f.template operator()<UnaryRedCode::SUM>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::MOMENTS:
+      return f.template operator()<UnaryRedCode::MOMENTS>(std::forward<Fnargs>(args)...);
     default: break;
   }
   assert(false);

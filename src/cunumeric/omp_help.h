@@ -30,7 +30,9 @@ struct ThreadLocalStorage {
   ThreadLocalStorage(size_t num_threads)
     : storage_(CACHE_LINE_SIZE * num_threads), num_threads_(num_threads)
   {
+    static_assert(sizeof(VAL) <= CACHE_LINE_SIZE, "ThreadLocalStorage element fits in cache line");
   }
+
   ~ThreadLocalStorage() {}
 
  public:

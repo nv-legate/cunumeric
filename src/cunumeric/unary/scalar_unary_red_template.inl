@@ -31,16 +31,29 @@ using namespace legate;
 
 template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRed {
+  static constexpr int NumOutputs()
+  {
+    if constexpr (OP_CODE == UnaryRedCode::MOMENTS) {
+      return 2;
+    } else {
+      return 1;
+    }
+  }
+  static constexpr int N = NumOutputs();
+
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
-  using LHS   = typename OP::VAL;
+  using VAL   = typename OP::VAL;
+  using LHS   = typename std::conditional<N == 1, VAL, std::array<VAL, N>>::type;
   using RHS   = legate_type_of<CODE>;
-  using OUT   = AccessorRD<LG_OP, true, 1>;
+  using RD    = AccessorRD<LG_OP, true, 1>;
   using IN    = AccessorRO<RHS, DIM>;
+  using OUT   = typename std::conditional<N == 1, RD, std::array<RD, N>>::type;
+
 
   IN in;
-  const RHS* inptr;
   OUT out;
+  const RHS* inptr;
   size_t volume;
   Pitches<DIM - 1> pitches;
   Rect<DIM> rect;
@@ -54,13 +67,20 @@ struct ScalarUnaryRed {
 
   ScalarUnaryRed(ScalarUnaryRedArgs& args) : dense(false)
   {
+    if constexpr (N == 1){
+      out = args.outs[0].reduce_accessor<LG_OP, true, 1>();
+    } else {
+      for (int i=0; i < N; ++i){
+        out[i] = args.outs[i].reduce_accessor<LG_OP, true, 1>();
+      }
+    }
+
     rect   = args.in.shape<DIM>();
     origin = rect.lo;
     in     = args.in.read_accessor<RHS, DIM>(rect);
     volume = pitches.flatten(rect);
     shape  = args.shape;
 
-    out = args.out.reduce_accessor<LG_OP, true, 1>();
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
 
 #ifndef LEGION_BOUNDS_CHECKS
@@ -79,6 +99,9 @@ struct ScalarUnaryRed {
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
       auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
+    } else if constexpr (OP_CODE == UnaryRedCode::MOMENTS){
+      lhs[0] += inptr[idx];
+      lhs[1] += inptr[idx] * inptr[idx];
     } else {
       OP::template fold<true>(lhs, OP::convert(inptr[idx]));
     }
@@ -86,14 +109,15 @@ struct ScalarUnaryRed {
 
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, SparseReduction) const noexcept
   {
+    auto p = pitches.unflatten(idx, origin);
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      auto point = pitches.unflatten(idx, origin);
-      if (in[point] == to_find) { lhs = true; }
+      if (in[p] == to_find) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
-      auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
+    } else if constexpr (OP_CODE == UnaryRedCode::MOMENTS){
+      lhs[0] += in[p];
+      lhs[1] += in[p] * in[p];
     } else {
-      auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(in[p]));
     }
   }
@@ -107,11 +131,11 @@ struct ScalarUnaryRed {
     if constexpr (KIND != VariantKind::GPU) {
       // Check to see if this is dense or not
       if (dense) {
-        return ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
+        return ScalarReductionPolicy<N, KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
       }
     }
 #endif
-    return ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
+    return ScalarReductionPolicy<N, KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
   }
 };
 
@@ -155,7 +179,7 @@ static void scalar_unary_red_template(TaskContext& context)
     shape[0]  = 1;
   }
   ScalarUnaryRedArgs args{
-    context.reductions()[0], inputs[0], op_code, shape, std::move(extra_args)};
+    context.reductions(), inputs[0], op_code, shape, std::move(extra_args)};
   op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
 }
 

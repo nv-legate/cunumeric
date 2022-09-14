@@ -22,7 +22,7 @@
 namespace cunumeric {
 
 struct ScalarUnaryRedArgs {
-  const Array& out;
+  const std::vector<Array>& outs;
   const Array& in;
   UnaryRedCode op_code;
   Legion::DomainPoint shape;

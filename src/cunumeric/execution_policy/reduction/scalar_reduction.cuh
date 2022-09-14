@@ -16,6 +16,7 @@
 
 #pragma once
 
+#include "cunumeric/device_scalar_reduction_buffer.h"
 #include "cunumeric/execution_policy/reduction/scalar_reduction.h"
 #include "cunumeric/cuda_help.h"
 
@@ -32,6 +33,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     const size_t offset = (idx * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (offset < volume) { kernel(value, offset, tag); }
   }
+
   // Every thread in the thread block must participate in the exchange to get correct results
   reduce_output(out, value);
 }
@@ -39,25 +41,45 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 template <typename Buffer, typename RedAcc>
 static __global__ void __launch_bounds__(1, 1) copy_kernel(Buffer result, RedAcc out)
 {
-  out.reduce(0, result.read());
+  out.reduce(0, results[0].read();
+}
+
+template <int N, typename Buffer, typename RedAcc>
+static __global__ void __launch_bounds__(1, 1) copy_kernel(std::array<Buffer, N> result, std::array<RedAcc, N> out)
+{
+  for (int i=0; i < N; ++i){
+    out[i].reduce(0, results[i].read());
+  }
+}
+
+template <int N, class LG_OP>
+auto GetResultBuffer(){
+  auto stream = get_cached_stream();
+  if constexpr (N == 1){
+    return DeviceScalarReductionBuffer<LG_OP>(stream);
+  } else {
+    std::array<DeviceScalarReductionBuffer<LG_OP>, N> result;
+    for (int i=0; i < N; ++i){
+      result[i] = DeviceScalarReductionBuffer<LG_OP>(result);
+    }
+  }
 }
 
 }  // namespace scalar_reduction_impl
 
-template <class LG_OP, class Tag>
-struct ScalarReductionPolicy<VariantKind::GPU, LG_OP, Tag> {
+template <int N, class LG_OP, class Tag>
+struct ScalarReductionPolicy<N, VariantKind::GPU, LG_OP, Tag> {
   template <class AccessorRD, class LHS, class Kernel>
   void __attribute__((visibility("hidden"))) operator()(size_t volume,
                                                         AccessorRD& out,
                                                         const LHS& identity,
                                                         Kernel&& kernel)
   {
-    auto stream = get_cached_stream();
+
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    DeviceScalarReductionBuffer<LG_OP> result(stream);
-    size_t shmem_size = THREADS_PER_BLOCK / 32 * sizeof(LHS);
 
+    auto result = GetResultBuffer<N, LG_OP>();
     if (blocks >= MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
       scalar_reduction_impl::
