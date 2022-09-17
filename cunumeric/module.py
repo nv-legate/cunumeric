@@ -791,8 +791,8 @@ def linspace(
 
 # meshgrid is adapted from the numpy implementation.
 def meshgrid(
-    *xi: Any, copy: bool = True, sparse: bool = False, indexing: str = "xy"
-):
+    *xii: Any, copy: bool = True, sparse: bool = False, indexing: str = "xy"
+) -> tuple[ndarray]:
     """
     Return coordinate matrices from coordinate vectors.
 
@@ -866,7 +866,7 @@ def meshgrid(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    xi = [convert_to_cunumeric_ndarray(x) for x in xi]
+    xi = [convert_to_cunumeric_ndarray(x) for x in xii]
     ndim = len(xi)
 
     if indexing not in ["xy", "ij"]:
