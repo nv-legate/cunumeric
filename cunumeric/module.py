@@ -792,7 +792,7 @@ def linspace(
 # meshgrid is adapted from the numpy implementation.
 def meshgrid(
     *xii: Any, copy: bool = True, sparse: bool = False, indexing: str = "xy"
-) -> tuple[ndarray]:
+) -> list[ndarray]:
     """
     Return coordinate matrices from coordinate vectors.
 
