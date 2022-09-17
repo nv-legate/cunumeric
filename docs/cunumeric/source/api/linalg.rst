@@ -38,3 +38,12 @@ Norms and other numbers
 
    linalg.norm
    trace
+
+
+Solving equations and inverting matrices
+----------------------------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   linalg.solve
