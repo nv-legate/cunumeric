@@ -687,6 +687,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def solve(self, a: Any, b: Any) -> None:
+        ...
+
+    @abstractmethod
     def scan(
         self,
         op: int,

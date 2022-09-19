@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,28 @@
  *
  */
 
-#include "cunumeric/unary/scalar_unary_red.h"
-#include "cunumeric/unary/scalar_unary_red_template.inl"
+#include "cunumeric/matrix/solve.h"
+#include "cunumeric/matrix/solve_template.inl"
+#include "cunumeric/matrix/solve_cpu.inl"
 
 namespace cunumeric {
 
-/*static*/ void ScalarUnaryRedTask::cpu_variant(TaskContext& context)
+using namespace Legion;
+using namespace legate;
+
+/*static*/ const char* SolveTask::ERROR_MESSAGE = "Singular matrix";
+
+/*static*/ void SolveTask::cpu_variant(TaskContext& context)
 {
-  scalar_unary_red_template<VariantKind::CPU>(context);
+#ifdef LEGATE_USE_OPENMP
+  openblas_set_num_threads(1);  // make sure this isn't overzealous
+#endif
+  solve_template<VariantKind::CPU>(context);
 }
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  ScalarUnaryRedTask::register_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { SolveTask::register_variants(); }
 }  // namespace
 
 }  // namespace cunumeric

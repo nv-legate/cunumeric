@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,18 @@
  *
  */
 
-#include "cunumeric/unary/scalar_unary_red.h"
-#include "cunumeric/unary/scalar_unary_red_template.inl"
+#include "cunumeric/matrix/solve.h"
+#include "cunumeric/matrix/solve_template.inl"
+#include "cunumeric/matrix/solve_cpu.inl"
+
+#include <omp.h>
 
 namespace cunumeric {
 
-/*static*/ void ScalarUnaryRedTask::cpu_variant(TaskContext& context)
+/*static*/ void SolveTask::omp_variant(TaskContext& context)
 {
-  scalar_unary_red_template<VariantKind::CPU>(context);
+  openblas_set_num_threads(omp_get_max_threads());
+  solve_template<VariantKind::OMP>(context);
 }
-
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void)
-{
-  ScalarUnaryRedTask::register_variants();
-}
-}  // namespace
 
 }  // namespace cunumeric

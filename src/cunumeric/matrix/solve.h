@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,25 @@
  *
  */
 
-#include "cunumeric/unary/scalar_unary_red.h"
-#include "cunumeric/unary/scalar_unary_red_template.inl"
+#pragma once
+
+#include "cunumeric/cunumeric.h"
 
 namespace cunumeric {
 
-/*static*/ void ScalarUnaryRedTask::cpu_variant(TaskContext& context)
-{
-  scalar_unary_red_template<VariantKind::CPU>(context);
-}
+class SolveTask : public CuNumericTask<SolveTask> {
+ public:
+  static const int TASK_ID = CUNUMERIC_SOLVE;
+  static const char* ERROR_MESSAGE;
 
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void)
-{
-  ScalarUnaryRedTask::register_variants();
-}
-}  // namespace
+ public:
+  static void cpu_variant(legate::TaskContext& context);
+#ifdef LEGATE_USE_OPENMP
+  static void omp_variant(legate::TaskContext& context);
+#endif
+#ifdef LEGATE_USE_CUDA
+  static void gpu_variant(legate::TaskContext& context);
+#endif
+};
 
 }  // namespace cunumeric
