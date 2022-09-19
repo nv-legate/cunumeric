@@ -30,9 +30,7 @@ struct ScalarReductionPolicy<VariantKind::OMP, LG_OP, Tag, N> {
   {
     const auto max_threads = omp_get_max_threads();
     ThreadLocalStorage<LHS> locals(max_threads);
-    for (auto idx = 0; idx < max_threads; ++idx) {
-      locals[idx] = identity;
-    }
+    for (auto idx = 0; idx < max_threads; ++idx) { locals[idx] = identity; }
 
 #pragma omp parallel
     {
@@ -40,14 +38,12 @@ struct ScalarReductionPolicy<VariantKind::OMP, LG_OP, Tag, N> {
 #pragma omp for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) { kernel(locals[tid], idx, Tag{}); }
     }
-    for (auto idx = 0; idx < max_threads; ++idx){
-      if constexpr (N == 1){
+    for (auto idx = 0; idx < max_threads; ++idx) {
+      if constexpr (N == 1) {
         out.reduce(0, locals[idx]);
       } else {
         // We have a std::array of reductions.
-        for (int i=0; i < N; ++i){
-          out[i].reduce(0, locals[idx][i]);
-        }
+        for (int i = 0; i < N; ++i) { out[i].reduce(0, locals[idx][i]); }
       }
     }
   }

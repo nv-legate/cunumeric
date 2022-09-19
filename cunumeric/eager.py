@@ -1443,8 +1443,10 @@ class EagerArray(NumPyThunk):
         keepdims: bool,
         args: Any,
         initial: Any,
-        piggybacked_op_thunks: Optional[List[Tuple[UnaryRedCode,NumPyThunk]]] = None,
-        **fn_kwargs
+        piggybacked_op_thunks: Optional[
+            List[Tuple[UnaryRedCode, NumPyThunk]]
+        ] = None,
+        **fn_kwargs,
     ) -> None:
         self.check_eager_args(self, where)
         if self.deferred is not None:
@@ -1480,7 +1482,7 @@ class EagerArray(NumPyThunk):
                 where=where
                 if not isinstance(where, EagerArray)
                 else where.array,
-                **fn_kwargs
+                **fn_kwargs,
             )
         elif op == UnaryRedCode.ARGMAX:
             np.argmax(

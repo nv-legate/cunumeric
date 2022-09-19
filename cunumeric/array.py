@@ -31,7 +31,6 @@ from typing import (
     Union,
     cast,
 )
-from cunumeric.deferred import DeferredArray
 
 import numpy as np
 import pyarrow  # type: ignore
@@ -39,6 +38,8 @@ from legate.core import Array
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
+
+from cunumeric.deferred import DeferredArray
 
 from .config import (
     BinaryOpCode,
@@ -2230,8 +2231,10 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
-    def empty_like(self, dtype=None, order: OrderType = 'K', subok=True, shape=None):
-        assert order == 'C' or order == 'K'
+    def empty_like(
+        self, dtype=None, order: OrderType = "K", subok=True, shape=None
+    ):
+        assert order == "C" or order == "K"
 
         if shape is None:
             shape = self.shape
@@ -2244,7 +2247,9 @@ class ndarray:
         else:
             return np.ndarray(shape, dtype)
 
-    def zeros_like(self, dtype=None, order: OrderType = 'K', subok=True, shape=None):
+    def zeros_like(
+        self, dtype=None, order: OrderType = "K", subok=True, shape=None
+    ):
         empty = self.empty_like(dtype, order, subok, shape)
         empty.fill(0)
         return empty
@@ -2940,7 +2945,7 @@ class ndarray:
         sum_array: ndarray,
         axis: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
-        ddof: int = 0
+        ddof: int = 0,
     ) -> None:
         """a._normalize_summation(axis=None, dtype=None, out=None, keepdims=False)
 
@@ -2968,7 +2973,6 @@ class ndarray:
             )
         else:
             sum_array.__ifloordiv__(np.array(divisor, dtype=sum_array.dtype))
-
 
     @add_boilerplate()
     def mean(
@@ -3504,7 +3508,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         ddof: int = 0,
         keepdims: bool = False,
-        where: bool = True
+        where: bool = True,
     ) -> ndarray:
 
         if self.dtype.type == np.bool_:
@@ -3535,11 +3539,11 @@ class ndarray:
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
-                where=where
+                where=where,
             )
             self._normalize_summation(sum_of_squares, axis, dtype, ddof)
             self._normalize_summation(sum, axis, dtype, ddof)
-            return sum_of_squares - sum*sum
+            return sum_of_squares - sum * sum
         else:
             # this should pass through directly to the underlying implementation
             # this means choosing a different code path here prior to _perform_unary_reduction
@@ -3551,10 +3555,8 @@ class ndarray:
                 out=out,
                 keepdims=keepdims,
                 where=where,
-                ddof=ddof
+                ddof=ddof,
             )
-
-
 
     @add_boilerplate()
     def sum(
@@ -4029,7 +4031,7 @@ class ndarray:
         args: Union[Any, None] = None,
         initial: Union[int, float, None] = None,
         where: Union[bool, ndarray] = True,
-        **fn_kwargs
+        **fn_kwargs,
     ) -> Union[ndarray, List[ndarray]]:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
@@ -4116,21 +4118,21 @@ class ndarray:
         # when fusing multiple ops
         assert len(ops) == 1 or result is out
 
-        results = [ result ]
+        results = [result]
         for i in range(1, len(ops)):
-            results.append( result.empty_like() )
+            results.append(result.empty_like())
 
         if where:
             src._thunk.unary_reduction(
                 ops,
-                [r._thunk for r in results], # operates on thunks, not arrays
+                [r._thunk for r in results],  # operates on thunks, not arrays
                 cls._get_where_thunk(where, result.shape),
                 axis,
                 axes,
                 keepdims,
                 args,
                 initial,
-                **fn_kwargs
+                **fn_kwargs,
             )
 
         if len(results) == 1:

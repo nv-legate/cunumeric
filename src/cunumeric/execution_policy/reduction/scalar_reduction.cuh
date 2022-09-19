@@ -45,23 +45,21 @@ static __global__ void __launch_bounds__(1, 1) copy_kernel(Buffer result, RedAcc
 }
 
 template <int N, typename Buffer, typename RedAcc>
-static __global__ void __launch_bounds__(1, 1) copy_kernel(std::array<Buffer, N> result, std::array<RedAcc, N> out)
+static __global__ void __launch_bounds__(1, 1)
+  copy_kernel(std::array<Buffer, N> result, std::array<RedAcc, N> out)
 {
-  for (int i=0; i < N; ++i){
-    out[i].reduce(0, results[i].read());
-  }
+  for (int i = 0; i < N; ++i) { out[i].reduce(0, results[i].read()); }
 }
 
 template <int N, class LG_OP>
-auto GetResultBuffer(){
+auto GetResultBuffer()
+{
   auto stream = get_cached_stream();
-  if constexpr (N == 1){
+  if constexpr (N == 1) {
     return DeviceScalarReductionBuffer<LG_OP>(stream);
   } else {
     std::array<DeviceScalarReductionBuffer<LG_OP>, N> result;
-    for (int i=0; i < N; ++i){
-      result[i] = DeviceScalarReductionBuffer<LG_OP>(result);
-    }
+    for (int i = 0; i < N; ++i) { result[i] = DeviceScalarReductionBuffer<LG_OP>(result); }
   }
 }
 
@@ -75,8 +73,6 @@ struct ScalarReductionPolicy<N, VariantKind::GPU, LG_OP, Tag, N> {
                                                         const LHS& identity,
                                                         Kernel&& kernel)
   {
-
-
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
     auto result = GetResultBuffer<N, LG_OP>();

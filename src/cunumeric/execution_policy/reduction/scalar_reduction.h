@@ -21,7 +21,7 @@
 namespace cunumeric {
 
 // N gives the number of scalar outputs from the reduction
-template <VariantKind KIND, class LG_OP, class Tag = void, int N =1>
+template <VariantKind KIND, class LG_OP, class Tag = void, int N = 1>
 struct ScalarReductionPolicy {
   // No C++-20 yet. This is just here to illustrate the expected concept
   // that all kernels passed to this execution should have.
@@ -46,7 +46,7 @@ struct ScalarReductionPolicy<VariantKind::CPU, LG_OP, Tag, N> {
   {
     auto result = identity;
     for (size_t idx = 0; idx < volume; ++idx) { kernel(result, idx, Tag{}); }
-    if constexpr (N == 1){
+    if constexpr (N == 1) {
       out.reduce(0, result);
     } else {
       for (int i = 0; i < N; ++i) { out[i].reduce(0, result[i]); }

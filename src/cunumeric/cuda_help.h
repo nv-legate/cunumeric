@@ -257,12 +257,10 @@ __device__ __forceinline__ void reduce_output(DeviceScalarReductionBuffer<REDUCT
 }
 
 template <int N, typename T, typename REDUCTION>
-__device__ __forceinline__ void reduce_output(std::array<DeviceScalarReductionBuffer<REDUCTION>, N> result,
-                                              std::array<T, N> value)
+__device__ __forceinline__ void reduce_output(
+  std::array<DeviceScalarReductionBuffer<REDUCTION>, N> result, std::array<T, N> value)
 {
-  for (int i=0; i < N; ++i){
-    reduce_output(result[i], value[i]);
-  }
+  for (int i = 0; i < N; ++i) { reduce_output(result[i], value[i]); }
 }
 
 template <typename T>

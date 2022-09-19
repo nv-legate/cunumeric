@@ -29,19 +29,16 @@ from typing import (
     List,
     Optional,
     Sequence,
-    TypeVar,
     Tuple,
+    TypeVar,
     Union,
     cast,
 )
 
-import numpy as np
-from numpy.core.numeric import normalize_axis_tuple  # type: ignore
-from typing_extensions import ParamSpec
-
 import legate.core.types as ty
 import numpy as np
 from legate.core import Future, ReductionOp, Store
+from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
 
 from .config import (
@@ -66,6 +63,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
     from legate.core import FieldID, Region
     from legate.core.operation import AutoTask, ManualTask
+
     from .array import ndarray
     from .config import BitGeneratorType, FFTDirection, FFTType, WindowOpCode
     from .runtime import Runtime
@@ -206,7 +204,7 @@ _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
     UnaryRedCode.COUNT_NONZERO: lambda _: 0,
     UnaryRedCode.ALL: lambda _: True,
     UnaryRedCode.ANY: lambda _: False,
-    UnaryRedCode.VARIANCE: lambda _: 0
+    UnaryRedCode.VARIANCE: lambda _: 0,
 }
 
 
@@ -2905,7 +2903,7 @@ class DeferredArray(NumPyThunk):
         keepdims: bool,
         args: Any,
         initial: Any,
-        **numpy_fn_kwargs
+        **numpy_fn_kwargs,
     ):
         rhs_array = self
         assert self.ndim <= rhs_array.ndim
@@ -2938,12 +2936,11 @@ class DeferredArray(NumPyThunk):
             )
             task.add_scalar_arg(rhs_array.shape, (ty.int64,))
         else:
-            task = self.context.create_auto_task(
-                CuNumericOpCode.UNARY_RED
-            )
+            task = self.context.create_auto_task(CuNumericOpCode.UNARY_RED)
             if len(axes) > 1:
                 raise NotImplementedError(
-                    "Need support for reducing multiple dimensions")
+                    "Need support for reducing multiple dimensions"
+                )
             task.add_scalar_arg(axes[0], ty.int32)
 
         task.add_input(rhs_array.base)
