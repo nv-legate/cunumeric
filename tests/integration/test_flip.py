@@ -20,6 +20,8 @@ import pytest
 import cunumeric as num
 
 a = num.random.random((10, 10, 10))
+AXES_1d = [-2, 0, 1, 2]
+AXES_2d = [-1, 0, 1]
 
 
 # product minus the "diagonal"
@@ -30,33 +32,73 @@ def ul_prod(iterable):
         yield (a, b)
 
 
-def test_basic():
-    anp = a.__array__()
-    b = num.flip(a)
-    bnp = np.flip(anp)
+class TestFlipErrors:
+    """
+    this class is to test negative cases
+    flip(m, axis=None)
+    """
 
-    assert num.array_equal(b, bnp)
+    def test_axis_float(self):
+        axis = 2.5
+        msg = r"'float' object is not iterable"
+        with pytest.raises(TypeError, match=msg):
+            num.flip(a, axis=axis)
+
+    def test_axis_outofbound(self):
+        axis = 12
+        msg = r"out of bounds"
+        with pytest.raises(np.AxisError, match=msg):
+            num.flip(a, axis=axis)
+
+    def test_axis_outofbound_negative(self):
+        axis = -12
+        msg = r"out of bounds"
+        with pytest.raises(np.AxisError, match=msg):
+            num.flip(a, axis=axis)
+
+    def test_repeated_axis(self):
+        axis = (2, 2)
+        msg = r"repeated axis"
+        with pytest.raises(ValueError, match=msg):
+            num.flip(a, axis=axis)
+
+    def test_axis_outofbound_tuple(self):
+        axis = (1, 5)
+        msg = r"out of bounds"
+        with pytest.raises(np.AxisError, match=msg):
+            num.flip(a, axis=axis)
 
 
-AXES = [0, 1, 2]
+class TestFlip:
+    """
+    These are positive cases compared with numpy
+    """
 
+    def test_empty_array(self):
+        anp = []
+        b = num.flip(anp)
+        bnp = np.flip(anp)
+        assert num.array_equal(b, bnp)
 
-@pytest.mark.parametrize("axis", AXES)
-def test_axis_1d(axis):
-    anp = a.__array__()
-    b = num.flip(a, axis=axis)
-    bnp = np.flip(anp, axis=axis)
+    def test_basic(self):
+        anp = a.__array__()
+        b = num.flip(a)
+        bnp = np.flip(anp)
+        assert num.array_equal(b, bnp)
 
-    assert num.array_equal(b, bnp)
+    @pytest.mark.parametrize("axis", AXES_1d)
+    def test_axis_1d(self, axis):
+        anp = a.__array__()
+        b = num.flip(a, axis=axis)
+        bnp = np.flip(anp, axis=axis)
+        assert num.array_equal(b, bnp)
 
-
-@pytest.mark.parametrize("axis", ul_prod(AXES), ids=str)
-def test_axis_2d(axis):
-    anp = a.__array__()
-    b = num.flip(a, axis=axis)
-    bnp = np.flip(anp, axis=axis)
-
-    assert num.array_equal(b, bnp)
+    @pytest.mark.parametrize("axis", ul_prod(AXES_2d), ids=str)
+    def test_axis_2d(self, axis):
+        anp = a.__array__()
+        b = num.flip(a, axis=axis)
+        bnp = np.flip(anp, axis=axis)
+        assert num.array_equal(b, bnp)
 
 
 if __name__ == "__main__":
