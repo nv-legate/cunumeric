@@ -35,6 +35,10 @@ from typing import (
     cast,
 )
 
+import numpy as np
+from numpy.core.numeric import normalize_axis_tuple  # type: ignore
+from typing_extensions import ParamSpec
+
 import legate.core.types as ty
 import numpy as np
 from legate.core import Future, ReductionOp, Store
@@ -45,6 +49,7 @@ from .config import (
     BitGeneratorDistribution,
     BitGeneratorOperation,
     Bitorder,
+    ConvertCode,
     CuNumericOpCode,
     CuNumericRedopCode,
     RandGenCode,
@@ -52,6 +57,7 @@ from .config import (
     UnaryRedCode,
 )
 from .linalg.cholesky import cholesky
+from .linalg.solve import solve
 from .sort import sort
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
@@ -488,6 +494,39 @@ class DeferredArray(NumPyThunk):
         store_copy.copy(store_to_copy, deep=True)
         return cast(DeferredArray, store_copy)
 
+    @staticmethod
+    def _slice_store(k: slice, store: Store, dim: int) -> tuple[slice, Store]:
+        start = k.start
+        end = k.stop
+        step = k.step
+        size = store.shape[dim]
+
+        if start is not None:
+            if start < 0:
+                start += size
+            start = max(0, min(size, start))
+        if end is not None:
+            if end < 0:
+                end += size
+            end = max(0, min(size, end))
+        if (
+            (start is not None and start == size)
+            or (end is not None and end == 0)
+            or (start is not None and end is not None and start >= end)
+        ):
+            start = 0
+            end = 0
+            step = 1
+        k = slice(start, end, step)
+
+        if start == end and start == 0:  # empty slice
+            store = store.project(dim, 0)
+            store = store.promote(dim, 0)
+        else:
+            store = store.slice(dim, k)
+
+        return k, store
+
     def _create_indexing_array(
         self, key: Any, is_set: bool = False
     ) -> tuple[bool, Any, Any, Any]:
@@ -652,7 +691,7 @@ class DeferredArray(NumPyThunk):
             elif k is np.newaxis:
                 store = store.promote(dim + shift, 1)
             elif isinstance(k, slice):
-                store = store.slice(dim + shift, k)
+                k, store = self._slice_store(k, store, dim + shift)
             elif isinstance(k, NumPyThunk):
                 if not isinstance(key, DeferredArray):
                     k = self.runtime.to_deferred_array(k)
@@ -720,7 +759,7 @@ class DeferredArray(NumPyThunk):
             if k is np.newaxis:
                 store = store.promote(dim + shift, 1)
             elif isinstance(k, slice):
-                store = store.slice(dim + shift, k)
+                k, store = self._slice_store(k, store, dim + shift)
             elif np.isscalar(k):
                 if k < 0:  # type: ignore
                     k += store.shape[dim + shift]
@@ -1150,7 +1189,12 @@ class DeferredArray(NumPyThunk):
 
     # Convert the source array to the destination array
     @auto_convert([1])
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self,
+        rhs: Any,
+        warn: bool = True,
+        nan_op: ConvertCode = ConvertCode.NOOP,
+    ) -> None:
         lhs_array = self
         rhs_array = rhs
         assert lhs_array.dtype != rhs_array.dtype
@@ -1170,7 +1214,7 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_auto_task(CuNumericOpCode.CONVERT)
         task.add_output(lhs)
         task.add_input(rhs)
-        task.add_dtype_arg(lhs_array.dtype)
+        task.add_scalar_arg(nan_op, ty.int32)
 
         task.add_alignment(lhs, rhs)
 
@@ -1734,18 +1778,16 @@ class DeferredArray(NumPyThunk):
     def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         input = rhs.base
         output = self.base
-        normalized_axes = (
-            tuple(range(self.ndim))
-            if axes is None
-            else (axes,)
-            if not isinstance(axes, tuple)
-            else axes
-        )
+
+        if axes is None:
+            axes = tuple(range(self.ndim))
+        else:
+            axes = normalize_axis_tuple(axes, self.ndim)
 
         task = self.context.create_auto_task(CuNumericOpCode.FLIP)
         task.add_output(output)
         task.add_input(input)
-        task.add_scalar_arg(normalized_axes, (ty.int32,))
+        task.add_scalar_arg(axes, (ty.int32,))
 
         task.add_broadcast(input)
         task.add_alignment(input, output)
@@ -3086,6 +3128,10 @@ class DeferredArray(NumPyThunk):
     @auto_convert([1])
     def cholesky(self, src: Any, no_tril: bool = False) -> None:
         cholesky(self, src, no_tril)
+
+    @auto_convert([1, 2])
+    def solve(self, a: Any, b: Any) -> None:
+        solve(self, a, b)
 
     @auto_convert([2])
     def scan(

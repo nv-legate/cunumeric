@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,31 +14,18 @@
  *
  */
 
-#pragma once
+#include "cunumeric/matrix/solve.h"
+#include "cunumeric/matrix/solve_template.inl"
+#include "cunumeric/matrix/solve_cpu.inl"
 
-#include "cunumeric/unary/convert_util.h"
-#include "cunumeric/cunumeric.h"
+#include <omp.h>
 
 namespace cunumeric {
 
-struct ConvertArgs {
-  const Array& out;
-  const Array& in;
-  ConvertCode nan_op;
-};
-
-class ConvertTask : public CuNumericTask<ConvertTask> {
- public:
-  static const int TASK_ID = CUNUMERIC_CONVERT;
-
- public:
-  static void cpu_variant(legate::TaskContext& context);
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(legate::TaskContext& context);
-#endif
-#ifdef LEGATE_USE_CUDA
-  static void gpu_variant(legate::TaskContext& context);
-#endif
-};
+/*static*/ void SolveTask::omp_variant(TaskContext& context)
+{
+  openblas_set_num_threads(omp_get_max_threads());
+  solve_template<VariantKind::OMP>(context);
+}
 
 }  // namespace cunumeric

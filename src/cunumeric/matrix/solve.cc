@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,31 +14,28 @@
  *
  */
 
-#pragma once
-
-#include "cunumeric/unary/convert_util.h"
-#include "cunumeric/cunumeric.h"
+#include "cunumeric/matrix/solve.h"
+#include "cunumeric/matrix/solve_template.inl"
+#include "cunumeric/matrix/solve_cpu.inl"
 
 namespace cunumeric {
 
-struct ConvertArgs {
-  const Array& out;
-  const Array& in;
-  ConvertCode nan_op;
-};
+using namespace Legion;
+using namespace legate;
 
-class ConvertTask : public CuNumericTask<ConvertTask> {
- public:
-  static const int TASK_ID = CUNUMERIC_CONVERT;
+/*static*/ const char* SolveTask::ERROR_MESSAGE = "Singular matrix";
 
- public:
-  static void cpu_variant(legate::TaskContext& context);
+/*static*/ void SolveTask::cpu_variant(TaskContext& context)
+{
 #ifdef LEGATE_USE_OPENMP
-  static void omp_variant(legate::TaskContext& context);
+  openblas_set_num_threads(1);  // make sure this isn't overzealous
 #endif
-#ifdef LEGATE_USE_CUDA
-  static void gpu_variant(legate::TaskContext& context);
-#endif
-};
+  solve_template<VariantKind::CPU>(context);
+}
+
+namespace  // unnamed
+{
+static void __attribute__((constructor)) register_tasks(void) { SolveTask::register_variants(); }
+}  // namespace
 
 }  // namespace cunumeric

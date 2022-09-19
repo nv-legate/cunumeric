@@ -22,22 +22,91 @@ from legate.core import LEGATE_MAX_DIM
 import cunumeric as cn
 
 
-@pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
-def test_indices(ndim):
-    dimensions = tuple(random.randint(2, 5) for i in range(ndim))
+class TestIndicesErrors:
+    """
+    this class is to test negative cases
+    indices(dimensions, dtype=<class 'int'>, sparse=False)
+    """
 
-    np_res = np.indices(dimensions)
-    cn_res = cn.indices(dimensions)
-    assert np.array_equal(np_res, cn_res)
+    def test_int_dimensions(self):
+        dimensions = 3
+        msg = r"'int' object is not iterable"
+        with pytest.raises(TypeError, match=msg):
+            cn.indices(dimensions)
 
-    np_res = np.indices(dimensions, dtype=float)
-    cn_res = cn.indices(dimensions, dtype=float)
-    assert np.array_equal(np_res, cn_res)
+    def test_negative_dimensions(self):
+        dimensions = -3
+        msg = r"'int' object is not iterable"
+        with pytest.raises(TypeError, match=msg):
+            cn.indices(dimensions)
 
-    np_res = np.indices(dimensions, sparse=True)
-    cn_res = cn.indices(dimensions, sparse=True)
-    for i in range(len(np_res)):
-        assert np.array_equal(np_res[i], cn_res[i])
+    def test_float_dimensions(self):
+        dimensions = 3.2
+        msg = r"'float' object is not iterable"
+        with pytest.raises(TypeError, match=msg):
+            cn.indices(dimensions)
+
+    def test_negative_tuple_dimensions(self):
+        dimensions = (1, -1)
+        # numpy raises: "ValueError: negative dimensions are not allowed"
+        # In cunumeric Eager Executions test,
+        # it raises "ValueError: negative dimensions are not allowed"
+        # in other conditions, it raises
+        # "ValueError: Invalid shape: Shape((2, 1, -1))"
+        with pytest.raises(ValueError):
+            cn.indices(dimensions)
+
+    def test_float_tuple_dimensions(self):
+        dimensions = (3.5, 2.5)
+        # numpy raises:
+        # "TypeError: 'float' object cannot be interpreted as an integer"
+        msg = r"expected a sequence of integers or a single integer"
+        with pytest.raises(TypeError, match=msg):
+            cn.indices(dimensions)
+
+
+class TestIndices:
+    """
+    These are positive cases compared with numpy
+    """
+
+    @pytest.mark.parametrize("dimensions", [(0,), (0, 0), (0, 1), (1, 1)])
+    def test_indices_zero(self, dimensions):
+        np_res = np.indices(dimensions)
+        cn_res = cn.indices(dimensions)
+
+        assert np.array_equal(np_res, cn_res)
+
+    @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
+    def test_indices_basic(self, ndim):
+        dimensions = tuple(random.randint(1, 5) for i in range(ndim))
+
+        np_res = np.indices(dimensions)
+        cn_res = cn.indices(dimensions)
+        assert np.array_equal(np_res, cn_res)
+
+    @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
+    def test_indices_dtype_none(self, ndim):
+        dimensions = tuple(random.randint(1, 5) for i in range(ndim))
+
+        np_res = np.indices(dimensions, dtype=None)
+        cn_res = cn.indices(dimensions, dtype=None)
+        assert np.array_equal(np_res, cn_res)
+
+    @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
+    def test_indices_dtype_float(self, ndim):
+        dimensions = tuple(random.randint(1, 5) for i in range(ndim))
+        np_res = np.indices(dimensions, dtype=float)
+        cn_res = cn.indices(dimensions, dtype=float)
+        assert np.array_equal(np_res, cn_res)
+
+    @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
+    def test_indices_sparse(self, ndim):
+        dimensions = tuple(random.randint(1, 5) for i in range(ndim))
+        np_res = np.indices(dimensions, sparse=True)
+        cn_res = cn.indices(dimensions, sparse=True)
+        for i in range(len(np_res)):
+            assert np.array_equal(np_res[i], cn_res[i])
 
 
 if __name__ == "__main__":
