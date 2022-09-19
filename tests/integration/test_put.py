@@ -38,6 +38,18 @@ def test_scalar(mode):
     assert np.array_equal(x_num, x)
 
 
+def test_indices_type_convert():
+    x = mk_seq_array(np, (3, 4, 5))
+    x_num = mk_seq_array(num, (3, 4, 5))
+    values = mk_seq_array(np, (6,)) * 10
+    values_num = num.array(values)
+    indices = np.array([1, 2], dtype=np.int32)
+    indices_num = num.array(indices)
+    np.put(x, indices, values)
+    num.put(x_num, indices_num, values_num)
+    assert np.array_equal(x_num, x)
+
+
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
 def test_ndim(ndim):
     shape = (5,) * ndim

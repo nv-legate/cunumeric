@@ -920,12 +920,8 @@ class ndarray:
             key = convert_to_cunumeric_ndarray(key)
             if key.dtype != bool and not np.issubdtype(key.dtype, np.integer):
                 raise TypeError("index arrays should be int or bool type")
-            if key.dtype != bool and key.dtype != np.int64:
-                runtime.warn(
-                    "converting index array to int64 type",
-                    category=RuntimeWarning,
-                )
-                key = key.astype(np.int64)
+            if key.dtype != bool:
+                key = key._warn_and_convert(np.int64)
 
             return key._thunk
 
@@ -2093,12 +2089,8 @@ class ndarray:
             raise ValueError(
                 "Dimension mismatch: condition must be a 1D array"
             )
-        if condition.dtype != bool:
-            runtime.warn(
-                "converting condition to bool type",
-                category=RuntimeWarning,
-            )
-            condition = condition.astype(bool)
+
+        condition = condition._warn_and_convert(bool)
 
         if axis is None:
             axis = 0
@@ -2492,12 +2484,7 @@ class ndarray:
         elif mode == "clip":
             indices = indices.clip(0, self.size - 1)
 
-        if indices.dtype != np.int64:
-            runtime.warn(
-                "converting index array to int64 type",
-                category=RuntimeWarning,
-            )
-            indices = indices.astype(np.int64)
+        indices = indices._warn_and_convert(np.int64)
 
         if indices.ndim > 1:
             indices = indices.ravel()
@@ -3862,6 +3849,16 @@ class ndarray:
         copy = ndarray(shape=self.shape, dtype=dtype, inputs=hints)
         copy._thunk.convert(self._thunk)
         return copy
+
+    def _warn_and_convert(self, dtype: np.dtype[Any]) -> ndarray:
+        if self.dtype != dtype:
+            runtime.warn(
+                f"converting array to {dtype} type",
+                category=RuntimeWarning,
+            )
+            return self.astype(dtype)
+        else:
+            return self
 
     # For performing normal/broadcast unary operations
     @classmethod
