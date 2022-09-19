@@ -21,7 +21,7 @@
 namespace cunumeric {
 
 // N gives the number of scalar outputs from the reduction
-template <int N, VariantKind KIND, class LG_OP, class Tag = void>
+template <VariantKind KIND, class LG_OP, class Tag = void, int N =1>
 struct ScalarReductionPolicy {
   // No C++-20 yet. This is just here to illustrate the expected concept
   // that all kernels passed to this execution should have.
@@ -37,8 +37,8 @@ struct ScalarReductionPolicy {
   };
 };
 
-template <int N, class LG_OP, class Tag>
-struct ScalarReductionPolicy<N, VariantKind::CPU, LG_OP, Tag> {
+template <class LG_OP, class Tag, int N>
+struct ScalarReductionPolicy<VariantKind::CPU, LG_OP, Tag, N> {
   // AccessorRD can either be a single accessor or a std::array<AccRD, N> if N > 1
   // LHS can either be a single scalar or a std::array<Scalar, N> if N > 1
   template <class AccessorRD, class LHS, class Kernel>
@@ -47,7 +47,7 @@ struct ScalarReductionPolicy<N, VariantKind::CPU, LG_OP, Tag> {
     auto result = identity;
     for (size_t idx = 0; idx < volume; ++idx) { kernel(result, idx, Tag{}); }
     if constexpr (N == 1){
-      out.reduce(0, result); 
+      out.reduce(0, result);
     } else {
       for (int i = 0; i < N; ++i) { out[i].reduce(0, result[i]); }
     }

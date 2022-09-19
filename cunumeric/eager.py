@@ -19,8 +19,10 @@ from typing import (
     Any,
     Callable,
     Dict,
+    List,
     Optional,
     Sequence,
+    Tuple,
     Union,
     cast,
 )
@@ -112,6 +114,7 @@ _UNARY_RED_OPS: Dict[UnaryRedCode, Any] = {
     UnaryRedCode.MIN: np.min,
     UnaryRedCode.PROD: np.prod,
     UnaryRedCode.SUM: np.sum,
+    UnaryRedCode.VARIANCE: np.var,
 }
 
 _BINARY_OPS: Dict[BinaryOpCode, Any] = {
@@ -1411,22 +1414,27 @@ class EagerArray(NumPyThunk):
         else:
             raise RuntimeError("unsupported unary op " + str(op))
 
+    def dispatches_to_deferred(self) -> bool:
+        return self.deferred is not None
+
     def unary_reduction(
         self,
-        op: UnaryRedCode,
-        rhs: Any,
+        ops: tuple[UnaryRedCode],
+        lhs: List[Any],
         where: Any,
         orig_axis: Union[int, None],
         axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
         initial: Any,
+        piggybacked_op_thunks: Optional[List[Tuple[UnaryRedCode,NumPyThunk]]] = None,
+        **fn_kwargs
     ) -> None:
-        self.check_eager_args(rhs, where)
+        self.check_eager_args(self, where)
         if self.deferred is not None:
             self.deferred.unary_reduction(
-                op,
-                rhs,
+                ops,
+                lhs,
                 where,
                 orig_axis,
                 axes,
@@ -1435,6 +1443,13 @@ class EagerArray(NumPyThunk):
                 initial,
             )
             return
+
+        # multiple ops should only happen on deferred arrays
+        assert len(ops) == 1
+
+        op = ops[0]
+        lhs = lhs[0]
+
         if op in _UNARY_RED_OPS:
             fn = _UNARY_RED_OPS[op]
             if initial is None:
@@ -1442,26 +1457,27 @@ class EagerArray(NumPyThunk):
                 # to mean no value was given by the caller
                 initial = np._NoValue  # type: ignore
             fn(
-                rhs.array,
-                out=self.array,
+                self.array,
+                out=lhs.array,
                 axis=orig_axis,
                 keepdims=keepdims,
                 where=where
                 if not isinstance(where, EagerArray)
                 else where.array,
+                **fn_kwargs
             )
         elif op == UnaryRedCode.ARGMAX:
             np.argmax(
-                rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
+                self.array, out=lhs.array, axis=orig_axis, keepdims=keepdims
             )
         elif op == UnaryRedCode.ARGMIN:
             np.argmin(
-                rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
+                self.array, out=lhs.array, axis=orig_axis, keepdims=keepdims
             )
         elif op == UnaryRedCode.CONTAINS:
-            self.array.fill(args[0] in rhs.array)
+            lhs.array.fill(args[0] in self.array)
         elif op == UnaryRedCode.COUNT_NONZERO:
-            self.array[()] = np.count_nonzero(rhs.array, axis=orig_axis)
+            lhs.array[()] = np.count_nonzero(self.array, axis=orig_axis)
         else:
             raise RuntimeError("unsupported unary reduction op " + str(op))
 

@@ -22,6 +22,7 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
+    List,
     Literal,
     Optional,
     Sequence,
@@ -30,6 +31,7 @@ from typing import (
     Union,
     cast,
 )
+from cunumeric.deferred import DeferredArray
 
 import numpy as np
 import pyarrow  # type: ignore
@@ -2227,6 +2229,25 @@ class ndarray:
         # We don't care about dimension order in cuNumeric
         return self.__copy__()
 
+    def empty_like(self, dtype=None, order: OrderType = 'K', subok=True, shape=None):
+        assert order == 'C' or order == 'K'
+
+        if shape is None:
+            shape = self.shape
+
+        if dtype is None:
+            dtype = self.dtype
+
+        if subok:
+            return ndarray(shape, dtype, inputs=(self,))
+        else:
+            return np.ndarray(shape, dtype)
+
+    def zeros_like(self, dtype=None, order: OrderType = 'K', subok=True, shape=None):
+        empty = self.empty_like(dtype, order, subok, shape)
+        empty.fill(0)
+        return empty
+
     @add_boilerplate()
     def cumsum(
         self,
@@ -2913,6 +2934,41 @@ class ndarray:
             where=where,
         )
 
+    def _normalize_summation(
+        self,
+        sum_array: ndarray,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        ddof: int = 0
+    ) -> None:
+        """a._normalize_summation(axis=None, dtype=None, out=None, keepdims=False)
+
+        Given a summation along certain axes, this normalizes the summation
+        by dividing each element by the number of elements in each reduction.
+        For example, given a 4x5 array and axis=None, this would divide the
+        single scalar summation by 20. Given a a 4x5 array and axis=1, this would
+        divide each element in the shape=(4,) output array by 5. This operates
+        on the sum_array in-place rather than returning a new array.
+        """
+
+        if axis is None:
+            divisor = reduce(lambda x, y: x * y, self.shape, 1)
+        else:
+            divisor = self.shape[axis]
+
+        if ddof != 0:
+            divisor = divisor - ddof
+
+        # Divide by the number of things in the collapsed dimensions
+        # Pick the right kinds of division based on the dtype
+        if dtype.kind == "f":
+            sum_array.__itruediv__(
+                np.array(divisor, dtype=sum_array.dtype),
+            )
+        else:
+            sum_array.__ifloordiv__(np.array(divisor, dtype=sum_array.dtype))
+
+
     @add_boilerplate()
     def mean(
         self,
@@ -2961,18 +3017,9 @@ class ndarray:
                 dtype=dtype,
                 keepdims=keepdims,
             )
-        if axis is None:
-            divisor = reduce(lambda x, y: x * y, self.shape, 1)
-        else:
-            divisor = self.shape[axis]
-        # Divide by the number of things in the collapsed dimensions
-        # Pick the right kinds of division based on the dtype
-        if dtype.kind == "f":
-            sum_array.__itruediv__(
-                np.array(divisor, dtype=sum_array.dtype),
-            )
-        else:
-            sum_array.__ifloordiv__(np.array(divisor, dtype=sum_array.dtype))
+
+        self._normalize_summation(sum_array, axis=axis, dtype=dtype)
+
         # Convert to the output we didn't already put it there
         if out is not None and sum_array is not out:
             assert out.dtype != sum_array.dtype
@@ -3449,6 +3496,66 @@ class ndarray:
         return ndarray(shape=None, thunk=thunk)
 
     @add_boilerplate()
+    def var(
+        self,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+        ddof: int = 0,
+        keepdims: bool = False,
+        where: bool = True
+    ) -> ndarray:
+
+        if self.dtype.type == np.bool_:
+            temp = ndarray(
+                shape=self.shape,
+                dtype=np.dtype(np.int32),
+                inputs=(self,),
+            )
+            temp._thunk.convert(self._thunk)
+            self_array = temp
+        else:
+            self_array = self
+
+        # Pick our dtype if it wasn't picked yet
+        if dtype is None:
+            if self.dtype.kind != "f" and self.dtype.kind != "c":
+                dtype = np.dtype(np.float64)
+            else:
+                dtype = self.dtype
+
+        if self._thunk.dispatches_to_deferred():
+            # we are not eager so we cannot pass through directly
+            # to the numpy implementation of var
+            sum_of_squares, sum = self._perform_unary_reduction(
+                (UnaryRedCode.VARIANCE, UnaryRedCode.SUM),
+                self_array,
+                axis=axis,
+                dtype=dtype,
+                out=out,
+                keepdims=keepdims,
+                where=where
+            )
+            self._normalize_summation(sum_of_squares, axis, dtype, ddof)
+            self._normalize_summation(sum, axis, dtype, ddof)
+            return sum_of_squares - sum*sum
+        else:
+            # this should pass through directly to the underlying implementation
+            # this means choosing a different code path here prior to _perform_unary_reduction
+            return self._perform_unary_reduction(
+                UnaryRedCode.VARIANCE,
+                self_array,
+                axis=axis,
+                dtype=dtype,
+                out=out,
+                keepdims=keepdims,
+                where=where,
+                ddof=ddof
+            )
+
+
+
+    @add_boilerplate()
     def sum(
         self,
         axis: Any = None,
@@ -3911,7 +4018,7 @@ class ndarray:
     @classmethod
     def _perform_unary_reduction(
         cls,
-        op: UnaryRedCode,
+        op: Union[UnaryRedCode, tuple[UnaryRedCode]],
         src: ndarray,
         axis: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
@@ -3921,7 +4028,8 @@ class ndarray:
         args: Union[Any, None] = None,
         initial: Union[int, float, None] = None,
         where: Union[bool, ndarray] = True,
-    ) -> ndarray:
+        **fn_kwargs
+    ) -> Union[ndarray, List[ndarray]]:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
         # the accumulator
@@ -3949,19 +4057,26 @@ class ndarray:
                     '"where" array must broadcast against source array '
                     "for reduction"
                 )
-        if (
-            op
-            in (
-                UnaryRedCode.ARGMAX,
-                UnaryRedCode.ARGMIN,
-                UnaryRedCode.MAX,
-                UnaryRedCode.MIN,
-            )
-            and src.dtype.kind == "c"
-        ):
-            raise NotImplementedError(
-                "(arg)max/min not supported for complex-type arrays"
-            )
+
+        if isinstance(op, UnaryRedCode):
+            ops = [op]
+        else:
+            ops = op
+
+        for _op in ops:
+            if (
+                _op
+                in (
+                    UnaryRedCode.ARGMAX,
+                    UnaryRedCode.ARGMIN,
+                    UnaryRedCode.MAX,
+                    UnaryRedCode.MIN,
+                )
+                and src.dtype.kind == "c"
+            ):
+                raise NotImplementedError(
+                    "(arg)max/min not supported for complex-type arrays"
+                )
 
         if axis is None:
             axes = tuple(range(src.ndim))
@@ -3995,22 +4110,32 @@ class ndarray:
                 shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
 
+        # do not currently support res_dtype != dtype
+        # when fusing multiple ops
+        assert len(ops) == 1 or result is out
+
+        results = [ result ]
+        for i in range(1, len(ops)):
+            results.append( result.empty_like() )
+
         if where:
-            result._thunk.unary_reduction(
-                op,
-                src._thunk,
+            src._thunk.unary_reduction(
+                ops,
+                [r._thunk for r in results], # operates on thunks, not arrays
                 cls._get_where_thunk(where, result.shape),
                 axis,
                 axes,
                 keepdims,
                 args,
                 initial,
+                **fn_kwargs
             )
 
-        if result is not out:
-            out._thunk.convert(result._thunk)
-
-        return out
+        if len(results) == 1:
+            if result is not out:
+                out._thunk.convert(result._thunk)
+            return out
+        return results
 
     @classmethod
     def _perform_binary_reduction(

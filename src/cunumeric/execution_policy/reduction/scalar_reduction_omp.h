@@ -23,8 +23,8 @@
 
 namespace cunumeric {
 
-template <int N, class LG_OP, class Tag>
-struct ScalarReductionPolicy<N, VariantKind::OMP, LG_OP, Tag> {
+template <class LG_OP, class Tag, int N>
+struct ScalarReductionPolicy<VariantKind::OMP, LG_OP, Tag, N> {
   template <class AccessorRD, class LHS, class Kernel>
   void operator()(size_t volume, AccessorRD& out, const LHS& identity, Kernel&& kernel)
   {

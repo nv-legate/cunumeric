@@ -175,6 +175,7 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_MIN: int
     CUNUMERIC_RED_PROD: int
     CUNUMERIC_RED_SUM: int
+    CUNUMERIC_RED_VARIANCE: int
     CUNUMERIC_REPEAT: int
     CUNUMERIC_SCALAR_UNARY_RED: int
     CUNUMERIC_SCAN_GLOBAL: int
@@ -443,6 +444,7 @@ class UnaryRedCode(IntEnum):
     MIN = _cunumeric.CUNUMERIC_RED_MIN
     PROD = _cunumeric.CUNUMERIC_RED_PROD
     SUM = _cunumeric.CUNUMERIC_RED_SUM
+    VARIANCE = _cunumeric.CUNUMERIC_RED_VARIANCE
 
 
 # Match these to CuNumericBinaryOpCode in cunumeric_c.h

@@ -141,6 +141,7 @@ enum CuNumericUnaryRedCode {
   CUNUMERIC_RED_MIN,
   CUNUMERIC_RED_PROD,
   CUNUMERIC_RED_SUM,
+  CUNUMERIC_RED_VARIANCE
 };
 
 // Match these to BinaryOpCode in config.py

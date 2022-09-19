@@ -33,12 +33,13 @@ template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
 struct ScalarUnaryRed {
   static constexpr int NumOutputs()
   {
-    if constexpr (OP_CODE == UnaryRedCode::MOMENTS) {
+    if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
       return 2;
     } else {
       return 1;
     }
   }
+
   static constexpr int N = NumOutputs();
 
   using OP    = UnaryRedOp<OP_CODE, CODE>;
@@ -50,6 +51,14 @@ struct ScalarUnaryRed {
   using IN    = AccessorRO<RHS, DIM>;
   using OUT   = typename std::conditional<N == 1, RD, std::array<RD, N>>::type;
 
+  static constexpr auto LhsIdentity()
+  {
+    if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
+      return std::array<VAL, 2>{ LG_OP::identity, LG_OP::identity };
+    } else {
+      return LG_OP::identity;
+    }
+  }
 
   IN in;
   OUT out;
@@ -99,9 +108,9 @@ struct ScalarUnaryRed {
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
       auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
-    } else if constexpr (OP_CODE == UnaryRedCode::MOMENTS){
-      lhs[0] += inptr[idx];
-      lhs[1] += inptr[idx] * inptr[idx];
+    } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE){
+      lhs[0] += inptr[idx] * inptr[idx];
+      lhs[1] += inptr[idx];
     } else {
       OP::template fold<true>(lhs, OP::convert(inptr[idx]));
     }
@@ -114,7 +123,7 @@ struct ScalarUnaryRed {
       if (in[p] == to_find) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
       OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
-    } else if constexpr (OP_CODE == UnaryRedCode::MOMENTS){
+    } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE){
       lhs[0] += in[p];
       lhs[1] += in[p] * in[p];
     } else {
@@ -125,17 +134,17 @@ struct ScalarUnaryRed {
   void execute() const noexcept
   {
 #ifndef LEGION_BOUNDS_CHECKS
-    auto identity = LG_OP::identity;
+    auto identity = LhsIdentity();
     // The constexpr if here prevents the DenseReduction from being instantiated for GPU kernels
     // which limits compile times and binary sizes.
     if constexpr (KIND != VariantKind::GPU) {
       // Check to see if this is dense or not
       if (dense) {
-        return ScalarReductionPolicy<N, KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
+        return ScalarReductionPolicy<KIND, LG_OP, DenseReduction, N>()(volume, out, identity, *this);
       }
     }
 #endif
-    return ScalarReductionPolicy<N, KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
+    return ScalarReductionPolicy<KIND, LG_OP, SparseReduction, N>()(volume, out, identity, *this);
   }
 };
 
@@ -145,7 +154,8 @@ struct ScalarUnaryRedImpl {
   void operator()(ScalarUnaryRedArgs& args) const
   {
     // The operation is always valid for contains
-    if constexpr (UnaryRedOp<OP_CODE, CODE>::valid || OP_CODE == UnaryRedCode::CONTAINS) {
+    if constexpr (UnaryRedOp<OP_CODE, CODE>::valid || OP_CODE == UnaryRedCode::CONTAINS ||
+          (OP_CODE == UnaryRedCode::VARIANCE && CODE != LegateTypeCode::BOOL_LT)) {
       ScalarUnaryRed<KIND, OP_CODE, CODE, DIM> red(args);
       red.execute();
     }
@@ -171,13 +181,14 @@ static void scalar_unary_red_template(TaskContext& context)
   std::vector<Store> extra_args;
   for (size_t idx = 1; idx < inputs.size(); ++idx) extra_args.push_back(std::move(inputs[idx]));
 
-  auto op_code = scalars[0].value<UnaryRedCode>();
-  auto shape   = scalars[1].value<DomainPoint>();
+  auto shape   = scalars[0].value<DomainPoint>();
   // If the RHS was a scalar, use (1,) as the shape
   if (shape.dim == 0) {
     shape.dim = 1;
     shape[0]  = 1;
   }
+
+  auto op_code = scalars[1].value<UnaryRedCode>();
   ScalarUnaryRedArgs args{
     context.reductions(), inputs[0], op_code, shape, std::move(extra_args)};
   op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);

@@ -67,8 +67,8 @@ auto GetResultBuffer(){
 
 }  // namespace scalar_reduction_impl
 
-template <int N, class LG_OP, class Tag>
-struct ScalarReductionPolicy<N, VariantKind::GPU, LG_OP, Tag> {
+template <class LG_OP, class Tag, int N>
+struct ScalarReductionPolicy<N, VariantKind::GPU, LG_OP, Tag, N> {
   template <class AccessorRD, class LHS, class Kernel>
   void __attribute__((visibility("hidden"))) operator()(size_t volume,
                                                         AccessorRD& out,

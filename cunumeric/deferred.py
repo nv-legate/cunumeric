@@ -26,9 +26,11 @@ from typing import (
     Callable,
     Collection,
     Dict,
+    List,
     Optional,
     Sequence,
     TypeVar,
+    Tuple,
     Union,
     cast,
 )
@@ -58,7 +60,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
     from legate.core import FieldID, Region
     from legate.core.operation import AutoTask, ManualTask
-
+    from .array import ndarray
     from .config import BitGeneratorType, FFTDirection, FFTType, WindowOpCode
     from .runtime import Runtime
     from .types import (
@@ -144,6 +146,7 @@ class _CuNumericNDarray(object):
 
 _UNARY_RED_TO_REDUCTION_OPS: Dict[int, int] = {
     UnaryRedCode.SUM: ReductionOp.ADD,
+    UnaryRedCode.VARIANCE: ReductionOp.ADD,
     UnaryRedCode.PROD: ReductionOp.MUL,
     UnaryRedCode.MAX: ReductionOp.MAX,
     UnaryRedCode.MIN: ReductionOp.MIN,
@@ -197,6 +200,7 @@ _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
     UnaryRedCode.COUNT_NONZERO: lambda _: 0,
     UnaryRedCode.ALL: lambda _: True,
     UnaryRedCode.ANY: lambda _: False,
+    UnaryRedCode.VARIANCE: lambda _: 0
 }
 
 
@@ -232,6 +236,9 @@ class DeferredArray(NumPyThunk):
 
     def __str__(self) -> str:
         return f"DeferredArray(base: {self.base})"
+
+    def dispatches_to_deferred(self) -> bool:
+        return True
 
     @property
     def storage(self) -> Union[Future, tuple[Region, FieldID]]:
@@ -2846,110 +2853,103 @@ class DeferredArray(NumPyThunk):
 
     # Perform a unary reduction operation from one set of dimensions down to
     # fewer
-    @auto_convert([2])
     def unary_reduction(
         self,
-        op: UnaryRedCode,
-        src: Any,
+        ops: tuple[UnaryRedCode],
+        lhs: List[Any],
         where: Any,
         orig_axis: Union[int, None],
         axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
         initial: Any,
-    ) -> None:
-        lhs_array = self
-        rhs_array = src
-        assert lhs_array.ndim <= rhs_array.ndim
+        **numpy_fn_kwargs
+    ):
+        rhs_array = self
+        assert self.ndim <= rhs_array.ndim
 
-        argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
+        lhs = [self.runtime.to_deferred_array(l) for l in lhs]
 
-        if argred:
-            argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
-            lhs_array = self.runtime.create_empty_thunk(  # type: ignore
-                lhs_array.shape,
-                dtype=argred_dtype,
-                inputs=[self],
-            )
+        lhs_arrays = []
+        lhs_size = None
+        for op, lhs_array in zip(ops, lhs):
+            if lhs_size is None:
+                lhs_size = lhs_array.size
+            else:
+                assert lhs_array.size == lhs_size
 
-        # See if we are doing reduction to a point or another region
-        if lhs_array.size == 1:
-            assert axes is None or len(axes) == rhs_array.ndim - (
-                0 if keepdims else lhs_array.ndim
-            )
+            assert lhs_array.ndim <= rhs_array.ndim
+            if op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN):
+                argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
+                argred_array = self.runtime.create_empty_thunk(  # type: ignore
+                    lhs_array.shape,
+                    dtype=argred_dtype,
+                    inputs=[self],
+                )
+                lhs_arrays.append((op, lhs_array, argred_array))
+            else:
+                lhs_arrays.append((op, None, lhs_array))
 
+        if lhs_size == 1:
             task = self.context.create_auto_task(
                 CuNumericOpCode.SCALAR_UNARY_RED
             )
-
-            if initial is not None:
-                assert not argred
-                fill_value = initial
-            else:
-                fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
-
-            lhs_array.fill(np.array(fill_value, dtype=lhs_array.dtype))
-
-            lhs = lhs_array.base
-            while lhs.ndim > 1:
-                lhs = lhs.project(0, 0)
-
-            task.add_reduction(lhs, _UNARY_RED_TO_REDUCTION_OPS[op])
-            task.add_input(rhs_array.base)
-            task.add_scalar_arg(op, ty.int32)
             task.add_scalar_arg(rhs_array.shape, (ty.int64,))
-
-            self.add_arguments(task, args)
-
-            task.execute()
-
         else:
-            # Before we perform region reduction, make sure to have the lhs
-            # initialized. If an initial value is given, we use it, otherwise
-            # we use the identity of the reduction operator
-            if initial is not None:
-                assert not argred
-                fill_value = initial
-            else:
-                fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
-            lhs_array.fill(np.array(fill_value, lhs_array.dtype))
-
-            # If output dims is not 0, then we must have axes
-            assert axes is not None
-            # Reduction to a smaller array
-            result = lhs_array.base
-            if keepdims:
-                for axis in axes:
-                    result = result.project(axis, 0)
-            for axis in axes:
-                result = result.promote(axis, rhs_array.shape[axis])
-            # Iterate over all the dimension(s) being collapsed and build a
-            # temporary field that we will reduce down to the final value
+            task = self.context.create_auto_task(
+                CuNumericOpCode.UNARY_RED
+            )
             if len(axes) > 1:
                 raise NotImplementedError(
-                    "Need support for reducing multiple dimensions"
+                    "Need support for reducing multiple dimensions")
+            task.add_scalar_arg(axes[0], ty.int32)
+
+        task.add_input(rhs_array.base)
+        self.add_arguments(task, args)
+        for op, argred_base, lhs_array in lhs_arrays:
+            if initial is not None:
+                assert argred_base is None
+                fill_value = initial
+            else:
+                fill_value = _UNARY_RED_IDENTITIES[op](rhs_array.dtype)
+            lhs_array.fill(np.array(fill_value, dtype=lhs_array.dtype))
+
+            if lhs_array.size == 1:
+                # Reducing to a scalar so we can simplify/optimize a bit
+                assert axes is None or len(axes) == rhs_array.ndim - (
+                    0 if keepdims else lhs_array.ndim
                 )
+                result = lhs_array.base
+                while result.ndim > 1:
+                    result = result.project(0, 0)
+            else:
+                # If output dims is not 0, then we must have axes
+                assert axes is not None
+                # Reduction to a smaller array
 
-            task = self.context.create_auto_task(CuNumericOpCode.UNARY_RED)
+                result = lhs_array.base
+                if keepdims:
+                    for axis in axes:
+                        result = result.project(axis, 0)
+                # Iterate over all the dimension(s) being collapsed and build a
+                # temporary field that we will reduce down to the final value
+                for axis in axes:
+                    result = result.promote(axis, rhs_array.shape[axis])
 
-            task.add_input(rhs_array.base)
+                task.add_alignment(result, rhs_array.base)
+
             task.add_reduction(result, _UNARY_RED_TO_REDUCTION_OPS[op])
-            task.add_scalar_arg(axis, ty.int32)
             task.add_scalar_arg(op, ty.int32)
+        task.execute()
 
-            self.add_arguments(task, args)
-
-            task.add_alignment(result, rhs_array.base)
-
-            task.execute()
-
-        if argred:
-            self.unary_op(
-                UnaryOpCode.GETARG,
-                lhs_array,
-                True,
-                [],
-            )
+        for op, argred_base, lhs_array in lhs_arrays:
+            if argred_base:
+                argred_base.unary_op(
+                    UnaryOpCode.GETARG,
+                    lhs_array,
+                    True,
+                    [],
+                )
 
     def isclose(
         self, rhs1: Any, rhs2: Any, rtol: float, atol: float, equal_nan: bool

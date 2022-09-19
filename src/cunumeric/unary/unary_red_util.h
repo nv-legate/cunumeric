@@ -34,7 +34,7 @@ enum class UnaryRedCode : int {
   MIN           = CUNUMERIC_RED_MIN,
   PROD          = CUNUMERIC_RED_PROD,
   SUM           = CUNUMERIC_RED_SUM,
-  MOMENTS       = SUM + 1
+  VARIANCE      = CUNUMERIC_RED_VARIANCE
 };
 
 template <UnaryRedCode OP_CODE>
@@ -71,8 +71,8 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
       return f.template operator()<UnaryRedCode::SUM>(std::forward<Fnargs>(args)...);
-    case UnaryRedCode::MOMENTS:
-      return f.template operator()<UnaryRedCode::MOMENTS>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::VARIANCE:
+      return f.template operator()<UnaryRedCode::VARIANCE>(std::forward<Fnargs>(args)...);
     default: break;
   }
   assert(false);
@@ -321,6 +321,17 @@ struct UnaryRedOp<UnaryRedCode::CONTAINS, TYPE_CODE> {
   using VAL     = bool;
   using _RED_OP = UnaryRedOp<UnaryRedCode::SUM, legate::LegateTypeCode::BOOL_LT>;
   using OP      = _RED_OP::OP;
+};
+
+template <legate::LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::VARIANCE, TYPE_CODE> {
+  // Set to false so that this only gets enabled when expliclty declared valid.
+  static constexpr bool valid = false;
+  // This class only provides the typedefs necessary to match the other operators.
+  // It does not provide fold/convert functions.
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
+  using OP  = Legion::SumReduction<VAL>;
 };
 
 }  // namespace cunumeric

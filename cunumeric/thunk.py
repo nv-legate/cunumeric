@@ -115,6 +115,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def dispatches_to_deferred(self) -> bool:
+        ...
+
+    @abstractmethod
     def repeat(
         self, repeats: Any, axis: int, scalar_repeats: bool
     ) -> NumPyThunk:
