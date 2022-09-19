@@ -2510,7 +2510,7 @@ class ndarray:
         if indices.size > indices.unique().size:
             runtime.warn(
                 "size of indices is larger than source array which"
-                " might result in undefined behaviour",
+                " might yield results different from NumPy",
                 category=RuntimeWarning,
             )
         # call _wrap on the values if they need to be wrapped
