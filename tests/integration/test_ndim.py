@@ -34,6 +34,26 @@ def test_python_values(input):
     assert np.ndim(input) == num.ndim(input)
 
 
+def test_ndarray_none():
+    inp = None
+    assert np.ndim(inp) == num.ndim(inp)
+
+
+@pytest.mark.parametrize("input", ([], (), (()), ((), ()), [[]], [[], []]))
+def test_ndarray_empty(input):
+    assert np.ndim(input) == num.ndim(input)
+
+
+@pytest.mark.parametrize("input", ([[0], [1, 2], [3, 4, 5]]))
+def test_python_values_diff_dim(input):
+    assert np.ndim(input) == num.ndim(input)
+
+
+@pytest.mark.parametrize("input", ([[1, 2], [3.3, 4.4]],))
+def test_python_values_dtype(input):
+    assert np.ndim(input) == num.ndim(input)
+
+
 if __name__ == "__main__":
     import sys
 
