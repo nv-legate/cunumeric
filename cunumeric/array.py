@@ -2478,7 +2478,9 @@ class ndarray:
             return
 
         if mode not in ("raise", "wrap", "clip"):
-            raise ValueError("clipmode not understood")
+            raise ValueError(f"clipmode must be one of 'clip', 'raise', or 'wrap' (got {mode})")
+
+")
         if mode == "wrap":
             indices = indices % self.size
         elif mode == "clip":
@@ -2495,7 +2497,7 @@ class ndarray:
         if indices.size > indices.unique().size:
             runtime.warn(
                 "size of indices is larger than source array which"
-                " might result in undefined behaviour",
+                " might yield results different from NumPy",
                 category=RuntimeWarning,
             )
         # call _wrap on the values if they need to be wrapped
