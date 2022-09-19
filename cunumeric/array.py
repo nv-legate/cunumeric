@@ -2486,7 +2486,9 @@ class ndarray:
             return
 
         if mode not in ("raise", "wrap", "clip"):
-            raise ValueError("clipmode not understood")
+            raise ValueError(f"clipmode must be one of 'clip', 'raise', or 'wrap' (got {mode})")
+
+")
         if mode == "wrap":
             indices = indices % self.size
         elif mode == "clip":
