@@ -921,7 +921,7 @@ class ndarray:
             if key.dtype != bool and not np.issubdtype(key.dtype, np.integer):
                 raise TypeError("index arrays should be int or bool type")
             if key.dtype != bool:
-                key = key._warn_and_convert(np.int64)
+                key = key._warn_and_convert(np.dtype(np.int64))
 
             return key._thunk
 
@@ -2090,7 +2090,7 @@ class ndarray:
                 "Dimension mismatch: condition must be a 1D array"
             )
 
-        condition = condition._warn_and_convert(bool)
+        condition = condition._warn_and_convert(np.dtype(bool))
 
         if axis is None:
             axis = 0
@@ -2488,7 +2488,7 @@ class ndarray:
         elif mode == "clip":
             indices = indices.clip(0, self.size - 1)
 
-        indices = indices._warn_and_convert(np.int64)
+        indices = indices._warn_and_convert(np.dtype(np.int64))
 
         if indices.ndim > 1:
             indices = indices.ravel()
