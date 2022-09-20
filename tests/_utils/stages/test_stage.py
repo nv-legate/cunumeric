@@ -169,7 +169,9 @@ class TestStage(Protocol):
             details=(
                 "* Results      : "
                 + yellow(
-                    f"{passed} / {total} files passed ({passed/total*100:0.1f}%)"  # noqa E500
+                    f"{passed} / {total} files passed " # noqa E500
+                    f"({passed/total*100:0.1f}%)" if total > 0 else
+                    f"0 tests are running, Please check "
                 ),
                 "* Elapsed time : " + yellow(f"{self.result.time}"),
             ),
@@ -219,14 +221,12 @@ class TestStage(Protocol):
             Process execution wrapper
 
         """
-        test_path = config.root_dir / test_file
-
         shard = self.shards.get()
 
         stage_args = self.args + self.shard_args(shard, config)
         file_args = self.file_args(test_file, config)
 
-        cmd = [str(config.legate_path), str(test_path)]
+        cmd = [str(config.legate_path), str(test_file)]
         cmd += stage_args + file_args + config.extra_args
 
         self.delay(shard, config, system)
