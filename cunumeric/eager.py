@@ -727,9 +727,9 @@ class EagerArray(NumPyThunk):
             )
         else:
             if self.array.size == 1:
-                self.array.fill(np.random.random_integers(low, high))
+                self.array.fill(np.random.randint(low, high))
             else:
-                a = np.random.random_integers(low, high, size=self.array.shape)
+                a = np.random.randint(low, high, size=self.array.shape)
                 self.array[:] = a
 
     def bitgenerator_lognormal(

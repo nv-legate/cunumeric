@@ -20,6 +20,7 @@ import numpy as np
 from cunumeric.array import ndarray
 from cunumeric.runtime import runtime
 
+import cunumeric.sort
 from cunumeric.random import generator
 
 if TYPE_CHECKING:
@@ -214,6 +215,96 @@ def chisquare(
     Multiple GPUs, Multiple CPUs
     """
     return generator.get_static_generator().chisquare(df, size, dtype)
+
+
+def choice(
+    a: Union[int, ndarray],
+    size: Union[NdShapeLike, None] = None,
+    replace: bool = True,
+    p: Union[None, ndarray] = None,
+) -> Union[int, ndarray, npt.NDArray[Any]]:
+    """
+    Returns an array of random values from a given 1-D array.
+    Each element of the returned array is independently sampled
+    from ``a`` according to ``p`` or uniformly.
+
+    Note
+    ----
+       Currently ``p`` is not supported when ``replace=False``.
+
+    Parameters
+    ----------
+    a : ndarray or int : If an array-like,
+            a random sample is generated from its elements.
+            If an int, the random sample is generated as if ``a`` was
+            ``np.arange(n)``
+    size : int or tuple of ints : The shape of the array.
+    replace (boolean): Whether the sample is with or without replacement.
+    p : 1-D array-like :
+            The probabilities associated with each entry in ``a``.
+            If not given the sample assumes a uniform distribution over all
+            entries in ``a``.
+
+    Returns
+    -------
+    out : ndarray : The generated random samples.
+
+
+    Raises
+    ------
+    ValueError
+        If a is an int and less than zero, if a or p are not 1-dimensional,
+        if a is an array-like of size 0, if p is not a vector of
+        probabilities, if a and p have different lengths, or if
+        replace=False and the sample size is greater than the population
+        size
+
+    See Also
+    --------
+    numpy.random.choice
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    if isinstance(a, int) and a <= 0:
+        raise ValueError
+    if not isinstance(size, int):
+        raise ValueError
+    if p is None:
+        if isinstance(a, int):
+            if replace:
+                return cunumeric.random.randint(0, a, size)
+            else:
+                if a < size:
+                    raise ValueError
+                return cunumeric.random.permutation(a)[:size]
+        else:
+            if replace:
+                indices = cunumeric.random.randint(0, len(a), size)
+                return a[indices]
+            else:
+                if len(a) < size:
+                    raise ValueError
+                return cunumeric.random.permutation(a)[:size]
+    else:
+        if not replace:
+            raise ValueError
+        cump = p.cumsum()
+        # check if p is a probability distribution
+        if abs(cump[-1] - 1.0) > len(p) * np.finfo(p.dtype).eps:
+            # does not sum up to 1
+            raise ValueError
+        cump[-1] = 1.0  # fix rounding issues
+        # draw uniforms
+        uni = cunumeric.random.uniform(0.0, 1.0, size)
+        # inverse distribution
+        idx = cunumeric.searchsorted(cump, uni, "right")
+        # return samples
+        if isinstance(a, int):
+            return cunumeric.arange(a)[idx]
+        return a[idx]
 
 
 def exponential(
@@ -924,6 +1015,36 @@ def pareto(
     return generator.get_static_generator().pareto(a, size, dtype)
 
 
+def permutation(x: Union[int, ndarray]) -> ndarray:
+    """
+    Returns a permuted range or a permutation of an array.
+
+    Parameters
+    ----------
+    a : (int or ndarray): The range or the array to be shuffled.
+
+    Returns
+    -------
+    out: If `a` is an integer, it is permutation range between 0
+        and `a` - 1.
+        Otherwise, it is a permutation of `a`.
+
+    See Also
+    --------
+    numpy.random.permutation
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    count = x if isinstance(x, int) else len(x)
+
+    key = uniform(0.0, 1.0, count)
+    indices = cunumeric.argsort(key)
+
+    return indices if isinstance(x, int) else x[indices]
+
+
 def poisson(
     lam: float = 1.0, size: Union[NdShapeLike, None] = None
 ) -> ndarray:
@@ -1275,6 +1396,26 @@ def rayleigh(
 
 
 sample = random_sample
+
+
+def shuffle(a: ndarray) -> None:
+    """
+    Shuffles an array.
+
+    Parameters
+    ----------
+    a : (ndarray): The array to be shuffled.
+
+    See Also
+    --------
+    numpy.random.shuffle
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    b = cunumeric.random.permutation(a)
+    a[:] = b
 
 
 def standard_cauchy(
