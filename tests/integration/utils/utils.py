@@ -13,31 +13,9 @@
 # limitations under the License.
 #
 
-import unittest
-
 import numpy as np
 
 import cunumeric as num
-
-
-class _Dummy(unittest.TestCase):
-    def nop(self):
-        pass
-
-
-_d = _Dummy("nop")
-
-
-def assert_raises(*args, **kwargs):
-    __tracebackhide__ = True  # Hide traceback for py.test
-    return _d.assertRaises(*args, **kwargs)
-
-
-def assert_raises_regex(exception_class, expected_regexp, *args, **kwargs):
-    __tracebackhide__ = True  # Hide traceback for py.test
-    return _d.assertRaisesRegex(
-        exception_class, expected_regexp, *args, **kwargs
-    )
 
 
 def compare_array(a, b, check_type=True):

@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from utils.utils import assert_raises, check_array_method
+from utils.utils import check_array_method
 
 import cunumeric as num
 
@@ -52,19 +52,33 @@ def test_M_zero():
 
 class TestEyeErrors:
     def testBadN(self):
-        assert_raises(ValueError, num.eye, -1)
-        assert_raises(TypeError, num.eye, 5.0)
+        msg = r"Invalid shape"
+        with pytest.raises(ValueError, match=msg):
+            num.eye(-1)
+
+        msg = r"expected a sequence of integers or a single integer"
+        with pytest.raises(TypeError, match=msg):
+            num.eye(5.0)
 
     def testBadM(self):
-        assert_raises(ValueError, num.eye, 5, -1)
-        assert_raises(ValueError, num.eye, 0, -1)
-        assert_raises(TypeError, num.eye, 5, 5.0)
+        msg = r"Invalid shape"
+        with pytest.raises(ValueError, match=msg):
+            num.eye(5, -1)
+
+        msg = r"negative dimensions"
+        with pytest.raises(ValueError, match=msg):
+            num.eye(0, -1)
+
+        msg = r"expected a sequence of integers or a single integer"
+        with pytest.raises(TypeError, match=msg):
+            num.eye(5, 5.0)
 
     @pytest.mark.xfail
     def testBadK(self):
         # numpy: raises TypeError
         # cunumeric: the error is found by legate.core, raises struct.error
-        assert_raises(TypeError, num.eye, 5, k=0.0)
+        with pytest.raises(TypeError):
+            num.eye(5, k=0.0)
 
 
 if __name__ == "__main__":

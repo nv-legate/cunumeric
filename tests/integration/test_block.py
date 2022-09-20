@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from utils.utils import assert_raises, assert_raises_regex, check_array_method
+from utils.utils import check_array_method
 
 import cunumeric as num
 
@@ -169,22 +169,32 @@ class TestBlock:
 
 
 class TestBlockErrors:
-    @pytest.mark.xfail
-    def test_mismatched_shape(self):
+    def test_mismatched_shape_1(self):
+        msg = "All arguments to block must have the same number of dimensions"
         a = np.array([0, 0])
         b = np.eye(2)
-        assert_raises(ValueError, num.block, [a, b])
-        assert_raises(ValueError, num.block, [b, a])
+        with pytest.raises(ValueError, match=msg):
+            num.block([a, b])
+        with pytest.raises(ValueError, match=msg):
+            num.block([b, a])
 
-        to_block = [
-            [np.ones((2, 3)), np.ones((2, 2))],
-            [np.ones((2, 2)), np.ones((2, 2))],
-        ]
+    def test_mismatched_shape_2(self):
+        msg = "Shape did not match"
+        a = np.array([[0, 0]])
+        b = np.eye(2)
+        with pytest.raises(ValueError, match=msg):
+            num.block([a, b])
+
+    @pytest.mark.xfail
+    def test_mismatched_shape_3(self):
+        a = np.array([[0, 0]])
+        b = np.eye(2)
 
         # numpy: raises ValueError
-        # cumunerics: pass, output is [np.ones((2, 5)),
-        #                              np.ones((2, 4)), np.zeros(2, 1)]
-        assert_raises(ValueError, num.block, to_block)
+        # cumunerics: pass, output is [[1, 0, 0, 0]
+        #                              [0, 1, 0, 0]]
+        with pytest.raises(ValueError):
+            num.block([b, a])
 
     def test_no_lists(self):
         # numpy: pass, output is np.array(1)
@@ -197,20 +207,31 @@ class TestBlockErrors:
         np.array_equal(num.block(num.eye(3)), [1, 0, 0, 0, 1, 0, 0, 0, 1])
 
     def test_invalid_nesting(self):
-        assert_raises(ValueError, num.block, [1, [2]])
-        assert_raises(ValueError, num.block, [1, []])
-        assert_raises(ValueError, num.block, [[1], 2])
-        assert_raises(ValueError, num.block, [[], 2])
-        assert_raises(
-            ValueError,
-            num.block,
-            [[[1], [2]], [[3, 4]], [5]],  # missing brackets
-        )
+        msg = "List depths are mismatched"
+        with pytest.raises(ValueError, match=msg):
+            num.block([1, [2]])
 
-    def test_empty_lists(self):
-        assert_raises_regex(ValueError, "empty", num.block, [])
-        assert_raises_regex(ValueError, "empty", num.block, [[]])
-        assert_raises_regex(ValueError, "empty", num.block, [[1], []])
+        with pytest.raises(ValueError, match=msg):
+            num.block([[1], 2])
+
+        msg = "cannot be empty"
+        with pytest.raises(ValueError, match=msg):
+            num.block([1, []])
+
+        with pytest.raises(ValueError, match=msg):
+            num.block([[], 2])
+
+        msg = "List depths are mismatched"
+        with pytest.raises(ValueError, match=msg):
+            num.block(
+                [[[1], [2]], [[3, 4]], [5]]
+            )
+
+    @pytest.mark.parametrize("input", ([], [[]], [[1], []]))
+    def test_empty_lists(self, input):
+        msg = r"cannot be empty"
+        with pytest.raises(ValueError, match=msg):
+            num.block(input)
 
     def test_tuple(self):
         # numpy: raises TypeError below:
@@ -229,7 +250,8 @@ class TestBlockErrors:
 
         # numpy: pass, output is np.array([[[1., 2., 2., 3., 3., 3.]]])
         # cunumeric: raises ValueError
-        assert_raises_regex(ValueError, msg, num.block, [a, b, c])
+        with pytest.raises(ValueError, match=msg):
+            num.block([a, b, c])
 
     def test_different_ndims_depths(self):
         msg = "All arguments to block must have the same number of dimensions"
@@ -241,7 +263,8 @@ class TestBlockErrors:
         #                       [3., 3., 3.],
         #                       [3., 3., 3.]]])
         # cunumeric: raises ValueError
-        assert_raises_regex(ValueError, msg, num.block, [[a, b], [c]])
+        with pytest.raises(ValueError, match=msg):
+            num.block([[a, b], [c]])
 
 
 if __name__ == "__main__":
