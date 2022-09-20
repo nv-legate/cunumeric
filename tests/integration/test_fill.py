@@ -18,6 +18,10 @@ import pytest
 
 import cunumeric as num
 
+INF_VALUES = [np.NINF, np.inf]
+FLOAT_FILL_VALUES = (-2.4e120, -1.3, 8.9e-130, 0.0, 5.7e-150, 0.6, 3.7e160)
+FLOAT_BIG_VALUES = (-2.4e120, 3.7e160)
+
 
 def test_fill_empty_array():
     a_np = np.array([])
@@ -27,7 +31,7 @@ def test_fill_empty_array():
     assert np.array_equal(a_np, a_num)
 
 
-def test_fill_none():
+def test_fill_float_with_none():
     a_np = np.random.randn(2, 3)
     a_num = num.array(a_np)
     a_np.fill(None)
@@ -35,23 +39,78 @@ def test_fill_none():
     assert np.array_equal(a_np, a_num, equal_nan=True)
 
 
-def test_fill_float_to_int():
+def test_fill_float_with_nan():
+    a_np = np.random.randn(2, 3)
+    a_num = num.array(a_np)
+    a_np.fill(np.nan)
+    a_num.fill(np.nan)
+    assert np.array_equal(a_np, a_num, equal_nan=True)
+
+
+def test_fill_int_with_none():
     a_np = np.full((2, 3), 1)
     a_num = num.array(a_np)
-    a_np.fill(0.6)
-    a_num.fill(0.6)
+    # numpy fill with -9223372036854775808,
+    # while cunumeric raises TypeError
+    msg = (
+        r"argument must be a string, "
+        r"a bytes-like object or a number, not 'NoneType'"
+    )
+    with pytest.raises(TypeError, match=msg):
+        a_num.fill(None)
+
+
+def test_fill_int_with_nan():
+    a_np = np.full((2, 3), 1)
+    a_num = num.array(a_np)
+    # numpy fill with -9223372036854775808,
+    # while cunumeric raises ValueError
+    msg = r"cannot convert float NaN to integer"
+    with pytest.raises(ValueError, match=msg):
+        a_num.fill(np.nan)
+
+
+@pytest.mark.parametrize("value", INF_VALUES)
+def test_fill_inf_to_int(value: float) -> None:
+    a_np = np.full((2, 3), 1)
+    a_num = num.array(a_np)
+    # numpy fill with -9223372036854775808,
+    # while cunumeric raises OverflowError
+    msg = r"cannot convert float infinity to integer"
+    with pytest.raises(OverflowError, match=msg):
+        a_num.fill(value)
+
+
+@pytest.mark.parametrize("value", INF_VALUES)
+def test_fill_inf_to_float(value: float) -> None:
+    a_np = np.random.randn(2, 3)
+    a_num = num.array(a_np)
+    a_np.fill(value)
+    a_num.fill(value)
     assert np.array_equal(a_np, a_num)
 
 
-def test_fill_negative_float_to_int():
-    a_np = np.full((2, 3), 1)
+@pytest.mark.parametrize("value", FLOAT_FILL_VALUES)
+def test_fill_float_to_float(value: float) -> None:
+    a_np = np.random.randn(2, 3)
     a_num = num.array(a_np)
-    a_np.fill(-1.3)
-    a_num.fill(-1.3)
+    a_np.fill(value)
+    a_num.fill(value)
     assert np.array_equal(a_np, a_num)
 
 
-def test_fill_int_to_float():
+@pytest.mark.parametrize("value", FLOAT_BIG_VALUES)
+def test_fill_float_to_int(value: float) -> None:
+    a_np = np.full((2, 3), 1)
+    a_num = num.array(a_np)
+    # numpy fill with -9223372036854775808,
+    # while cunumeric raises OverflowError
+    msg = r"Python int too large to convert to C long"
+    with pytest.raises(OverflowError, match=msg):
+        a_num.fill(value)
+
+
+def test_fill_int_to_float() -> None:
     a_np = np.full((2, 3), 0.5)
     a_num = num.array(a_np)
     a_np.fill(5)
@@ -59,7 +118,7 @@ def test_fill_int_to_float():
     assert np.array_equal(a_np, a_num)
 
 
-def test_fill_string():
+def test_fill_string() -> None:
     a_list = ["hello", "hi"]
     a_np = np.array(a_list)
     a_num = num.array(a_np)
@@ -68,7 +127,7 @@ def test_fill_string():
     assert np.array_equal(a_np, a_num)
 
 
-def test_fill_string_to_int():
+def test_fill_string_to_int() -> None:
     a_np = np.full((2, 3), 3)
     a_num = num.array(a_np)
     msg = r"invalid literal for int()"
@@ -76,7 +135,7 @@ def test_fill_string_to_int():
         a_num.fill("OK")
 
 
-def test_fill_string_to_float():
+def test_fill_string_to_float() -> None:
     a_np = np.random.randn(2, 3)
     a_num = num.array(a_np)
     msg = r"could not convert string to float"
