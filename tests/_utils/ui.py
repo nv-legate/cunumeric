@@ -221,8 +221,9 @@ def summary(
     """
     summary = (
         f"{name}: Passed {passed} of {total} tests ({passed/total*100:0.1f}%) "
-        f"in {time.total_seconds():0.2f}s" if total > 0 else
-        f"{name}: 0 tests are running, Please check"
+        f"in {time.total_seconds():0.2f}s"
+        if total > 0
+        else f"{name}: 0 tests are running, Please check"
     )
     color = green if passed == total and total > 0 else red
     return bright(color(f"{summary: >{UI_WIDTH}}" if justify else summary))
