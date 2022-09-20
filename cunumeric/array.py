@@ -3174,7 +3174,7 @@ class ndarray:
         axis: Any = None,
         dtype: Optional[np.dtype[Any]] = None,
         out: Optional[ndarray] = None,
-        ddof=0,
+        ddof: int = 0,
         keepdims: bool = False,
         *,
         where: Union[bool, ndarray] = True,
