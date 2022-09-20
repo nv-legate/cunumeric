@@ -46,6 +46,7 @@ struct ScalarUnaryRed {
   Point<DIM> origin;
   Point<DIM> shape;
   RHS to_find;
+  RHS mu;
   bool dense;
 
   struct DenseReduction {};
@@ -61,6 +62,7 @@ struct ScalarUnaryRed {
 
     out = args.out.reduce_accessor<LG_OP, true, 1>();
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
+    if constexpr (OP_CODE == UnaryRedCode::VARIANCE) { mu = args.args[0].scalar<RHS>(); }
 
 #ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
@@ -79,6 +81,8 @@ struct ScalarUnaryRed {
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
+    } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
+      OP::template fold<true>(lhs, OP::convert(inptr[idx] - mu, identity));
     } else {
       OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
     }
@@ -86,15 +90,15 @@ struct ScalarUnaryRed {
 
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, SparseReduction) const noexcept
   {
+    auto p = pitches.unflatten(idx, origin);
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      auto point = pitches.unflatten(idx, origin);
-      if (in[point] == to_find) { lhs = true; }
+      if (in[p] == to_find) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
-      auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
+    } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
+      OP::template fold<true>(lhs, in[p] - mu, identity);
     } else {
-      auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(in[p], identity));
     }
   }

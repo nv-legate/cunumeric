@@ -1524,6 +1524,9 @@ class EagerArray(NumPyThunk):
                 else where.array,
                 **kws,
             )
+        elif op == UnaryRedCode.SUM_SQUARES:
+            squared = np.multiply(rhs.array, rhs.array)
+            np.sum(squared, out=self.array, axis=orig_axis, keepdims=keepdims)
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
         elif op == UnaryRedCode.COUNT_NONZERO:

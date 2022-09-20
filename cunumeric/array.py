@@ -3084,12 +3084,40 @@ class ndarray:
             where=where,
         )
 
+    def _summation_dtype(
+        self, dtype: Optional[np.dtype[Any]]
+    ) -> np.dtype[Any]:
+        # Pick our dtype if it wasn't picked yet
+        if dtype is None:
+            if self.dtype.kind != "f" and self.dtype.kind != "c":
+                return np.dtype(np.float64)
+            else:
+                return self.dtype
+        return dtype
+
+    def _normalize_summation(
+        self, sum_array: Any, axis: Any, dtype: np.dtype[Any], ddof: int = 0
+    ) -> None:
+        if axis is None:
+            divisor = reduce(lambda x, y: x * y, self.shape, 1) - ddof
+        else:
+            divisor = self.shape[axis] - ddof
+
+        # Divide by the number of things in the collapsed dimensions
+        # Pick the right kinds of division based on the dtype
+        if dtype.kind == "f":
+            sum_array.__itruediv__(
+                np.array(divisor, dtype=sum_array.dtype),
+            )
+        else:
+            sum_array.__ifloordiv__(np.array(divisor, dtype=sum_array.dtype))
+
     @add_boilerplate()
     def mean(
         self,
         axis: Any = None,
-        dtype: Union[np.dtype[Any], None] = None,
-        out: Union[ndarray, None] = None,
+        dtype: Optional[np.dtype[Any]] = None,
+        out: Optional[ndarray] = None,
         keepdims: bool = False,
     ) -> ndarray:
         """a.mean(axis=None, dtype=None, out=None, keepdims=False)
@@ -3112,12 +3140,9 @@ class ndarray:
                 "cunumeric.mean only supports int types for "
                 "'axis' currently"
             )
-        # Pick our dtype if it wasn't picked yet
-        if dtype is None:
-            if self.dtype.kind != "f" and self.dtype.kind != "c":
-                dtype = np.dtype(np.float64)
-            else:
-                dtype = self.dtype
+
+        dtype = self._summation_dtype(dtype)
+
         # Do the sum
         if out is not None and out.dtype == dtype:
             sum_array = self.sum(
@@ -3132,18 +3157,9 @@ class ndarray:
                 dtype=dtype,
                 keepdims=keepdims,
             )
-        if axis is None:
-            divisor = reduce(lambda x, y: x * y, self.shape, 1)
-        else:
-            divisor = self.shape[axis]
-        # Divide by the number of things in the collapsed dimensions
-        # Pick the right kinds of division based on the dtype
-        if dtype.kind == "f" or dtype.kind == "c":
-            sum_array.__itruediv__(
-                np.array(divisor, dtype=sum_array.dtype),
-            )
-        else:
-            sum_array.__ifloordiv__(np.array(divisor, dtype=sum_array.dtype))
+
+        self._normalize_summation(sum_array, axis, dtype)
+
         # Convert to the output we didn't already put it there
         if out is not None and sum_array is not out:
             assert out.dtype != sum_array.dtype
@@ -3151,6 +3167,66 @@ class ndarray:
             return out
         else:
             return sum_array
+
+    @add_boilerplate()
+    def var(
+        self,
+        axis: Any = None,
+        dtype: Optional[np.dtype[Any]] = None,
+        out: Optional[ndarray] = None,
+        ddof=0,
+        keepdims: bool = False,
+        *,
+        where: Union[bool, ndarray] = True,
+    ) -> ndarray:
+        # this could be computed as a single pass through the array
+        # by computing both <x^2> and <x> and then computing <x^2> - <x>^2.
+        # this would takee the difference of two large numbers and is unstable
+        # the mean needs to be computed first and the variance computed
+        # directly as <(x-mu)^2>, which then requires two passes through the
+        # data to first compute the mean and then compute the variance
+        # see https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+        # TODO(https://github.com/nv-legate/cunumeric/issues/590)
+
+        dtype = self._summation_dtype(dtype)
+        # calculate the mean, but keep the dimensions so that the
+        # mean can be broadcast against the original array
+        mu = self.mean(axis=axis, dtype=dtype, keepdims=True)
+
+        if axis is None:
+            # this is a scalar reduction and we can optimize this as a single
+            # pass through a scalar reduction
+            result = self._perform_unary_reduction(
+                UnaryRedCode.VARIANCE,
+                self,
+                axis=axis,
+                dtype=dtype,
+                out=out,
+                keepdims=keepdims,
+                where=where,
+                args=(mu,),
+            )
+        else:
+            # TODO(https://github.com/nv-legate/cunumeric/issues/591)
+            # there isn't really support for generic binary reductions
+            # right now all of the current binary reductions are boolean
+            # reductions like allclose. To implement this a single pass would
+            # require a variant of einsum/dot that produces
+            # (self-mu)*(self-mu) rather than self*mu. For now, we have to
+            # compute delta = self-mu in a first pass and then compute
+            # delta*delta in second pass
+            delta = self - mu
+            result = self._perform_unary_reduction(
+                UnaryRedCode.SUM_SQUARES,
+                delta,
+                axis=axis,
+                dtype=dtype,
+                out=out,
+                keepdims=keepdims,
+                where=where,
+            )
+        self._normalize_summation(result, axis=axis, dtype=dtype, ddof=ddof)
+        return result
 
     @add_boilerplate()
     def min(

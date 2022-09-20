@@ -158,6 +158,8 @@ class _CuNumericNDarray(object):
 
 _UNARY_RED_TO_REDUCTION_OPS: Dict[int, int] = {
     UnaryRedCode.SUM: ReductionOp.ADD,
+    UnaryRedCode.SUM_SQUARES: ReductionOp.ADD,
+    UnaryRedCode.VARIANCE: ReductionOp.ADD,
     UnaryRedCode.PROD: ReductionOp.MUL,
     UnaryRedCode.MAX: ReductionOp.MAX,
     UnaryRedCode.MIN: ReductionOp.MIN,
@@ -208,6 +210,8 @@ def min_identity(
 
 _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
     UnaryRedCode.SUM: lambda _: 0,
+    UnaryRedCode.SUM_SQUARES: lambda _: 0,
+    UnaryRedCode.VARIANCE: lambda _: 0,
     UnaryRedCode.PROD: lambda _: 1,
     UnaryRedCode.MIN: min_identity,
     UnaryRedCode.MAX: max_identity,

@@ -7061,6 +7061,88 @@ def mean(
     return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
 
+@add_boilerplate("a")
+def var(
+    a: ndarray,
+    axis: Optional[Union[int, tuple[int, ...]]] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+    ddof: int = 0,
+    keepdims: bool = False,
+    *,
+    where: Union[bool, ndarray] = True,
+) -> ndarray:
+    """
+
+    Compute the arithmetic mean along the specified axis.
+
+    Returns the average of the array elements.  The average is taken over
+    the flattened array by default, otherwise over the specified axis.
+    `float64` intermediate and return values are used for integer inputs.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose mean is desired. If `a` is not an
+        array, a conversion is attempted.
+    axis : None or int or tuple[int], optional
+        Axis or axes along which the means are computed. The default is to
+        compute the mean of the flattened array.
+
+        If this is a tuple of ints, a mean is performed over multiple axes,
+        instead of a single axis or all the axes as before.
+    dtype : data-type, optional
+        Type to use in computing the mean.  For integer inputs, the default
+        is `float64`; for floating point inputs, it is the same as the
+        input dtype.
+    out : ndarray, optional
+        Alternate output array in which to place the result.  The default
+        is ``None``; if provided, it must have the same shape as the
+        expected output, but the type will be cast if necessary.
+        See `ufuncs-output-type` for more details.
+    ddof : int, optional
+        “Delta Degrees of Freedom”: the divisor used in the calculation is
+        N - ddof, where N represents the number of elements. By default
+        ddof is zero.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+
+        If the default value is passed, then `keepdims` will not be
+        passed through to the `mean` method of sub-classes of
+        `ndarray`, however any non-default value will be.  If the
+        sub-class' method does not implement `keepdims` any
+        exceptions will be raised.
+    where : array_like of bool, optional
+        A boolean array which is broadcasted to match the dimensions of array,
+        and selects elements to include in the reduction.
+
+    Returns
+    -------
+    m : ndarray
+        If `out=None`, returns a new array of the same dtype a above
+        containing the mean values, otherwise a reference to the output
+        array is returned.
+
+    See Also
+    --------
+    numpy.var
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.var(
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        ddof=ddof,
+        keepdims=keepdims,
+        where=where,
+    )
+
+
 # Histograms
 
 
