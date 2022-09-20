@@ -223,9 +223,7 @@ class TestBlockErrors:
 
         msg = "List depths are mismatched"
         with pytest.raises(ValueError, match=msg):
-            num.block(
-                [[[1], [2]], [[3, 4]], [5]]
-            )
+            num.block([[[1], [2]], [[3, 4]], [5]])
 
     @pytest.mark.parametrize("input", ([], [[]], [[1], []]))
     def test_empty_lists(self, input):
