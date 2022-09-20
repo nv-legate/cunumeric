@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import math
+import operator
 import re
 from collections import Counter
 from itertools import chain
@@ -168,6 +169,7 @@ def eye(
         dtype = np.dtype(dtype)
     if M is None:
         M = N
+    k = operator.index(k)
     result = ndarray((N, M), dtype)
     result._thunk.eye(k)
     return result
