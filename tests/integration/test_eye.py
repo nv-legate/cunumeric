@@ -52,8 +52,7 @@ def test_M_zero():
 
 class TestEyeErrors:
     def testBadN(self):
-        msg = r"Invalid shape"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.eye(-1)
 
         msg = r"expected a sequence of integers or a single integer"
@@ -61,8 +60,7 @@ class TestEyeErrors:
             num.eye(5.0)
 
     def testBadM(self):
-        msg = r"Invalid shape"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.eye(5, -1)
 
         msg = r"negative dimensions"

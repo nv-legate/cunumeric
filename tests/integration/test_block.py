@@ -179,10 +179,9 @@ class TestBlockErrors:
             num.block([b, a])
 
     def test_mismatched_shape_2(self):
-        msg = "Shape did not match"
         a = np.array([[0, 0]])
         b = np.eye(2)
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.block([a, b])
 
     @pytest.mark.xfail
