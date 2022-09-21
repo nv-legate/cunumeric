@@ -101,29 +101,31 @@ class Config:
 
         if self.examples:
             examples = (
-                path
+                path.relative_to(self.root_dir)
                 for path in Path(self.root_dir.joinpath("examples")).glob(
                     "*.py"
                 )
-                if str(path) not in SKIPPED_EXAMPLES
+                if str(path.relative_to(self.root_dir)) not in SKIPPED_EXAMPLES
             )
             files.extend(sorted(examples))
 
         if self.integration:
-            files.extend(
-                sorted(
-                    Path(self.root_dir.joinpath("tests/integration")).glob(
-                        "*.py"
-                    )
+            integration_tests = (
+                path.relative_to(self.root_dir)
+                for path in Path(self.root_dir.joinpath("tests/integration")).glob(
+                    "*.py"
                 )
             )
+            files.extend(sorted(integration_tests))
 
         if self.unit:
-            files.extend(
-                sorted(
-                    Path(self.root_dir.joinpath("tests/unit")).glob("**/*.py")
+            unit_tests = (
+                path.relative_to(self.root_dir)
+                for path in Path(self.root_dir.joinpath("tests/unit")).glob(
+                    "**/*.py"
                 )
             )
+            files.extend(sorted(unit_tests))
 
         return tuple(files)
 
