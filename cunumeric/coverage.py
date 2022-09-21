@@ -23,6 +23,8 @@ from typing import Any, Container, Mapping, Optional, cast
 import numpy as np
 from typing_extensions import Protocol
 
+from legate.core import track_provenance
+
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
 
@@ -92,32 +94,24 @@ def implemented(
     if reporting:
 
         @wraps(func)
+        @track_provenance(runtime.legate_context, nested=True)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(
                 not runtime.args.report_dump_callstack
             )
-            if set_provenance := (runtime.legate_context.provenance is None):
-                runtime.legate_context.set_provenance(find_last_user_frames())
             runtime.record_api_call(
                 name=name,
                 location=location,
                 implemented=True,
             )
-            result = func(*args, **kwargs)
-            if set_provenance:
-                runtime.legate_context.reset_provenance()
-            return result
+            return func(*args, **kwargs)
 
     else:
 
         @wraps(func)
+        @track_provenance(runtime.legate_context, nested=True)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            if set_provenance := (runtime.legate_context.provenance is None):
-                runtime.legate_context.set_provenance(find_last_user_frames())
-            result = func(*args, **kwargs)
-            if set_provenance:
-                runtime.legate_context.reset_provenance()
-            return result
+            return func(*args, **kwargs)
 
     # This is incredibly ugly and unpleasant, but @wraps(func) doesn't handle
     # ufuncs the way we need it to. The alternative would be to vendor and
