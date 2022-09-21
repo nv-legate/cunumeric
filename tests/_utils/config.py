@@ -112,9 +112,9 @@ class Config:
         if self.integration:
             integration_tests = (
                 path.relative_to(self.root_dir)
-                for path in Path(self.root_dir.joinpath("tests/integration")).glob(
-                    "*.py"
-                )
+                for path in Path(
+                    self.root_dir.joinpath("tests/integration")
+                ).glob("*.py")
             )
             files.extend(sorted(integration_tests))
 
