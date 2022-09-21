@@ -345,8 +345,7 @@ def install_cunumeric(
     if cuda and curand_dir is not None:
         cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
     if legate_dir:
-        if exists(join(legate_dir, "legate_core-config.cmake")):
-            cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+        cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
     if legate_url:
         cmake_flags += ["-Dcunumeric_LEGATE_CORE_REPOSITORY=%s" % legate_url]
     if legate_branch:
