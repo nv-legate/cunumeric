@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import math
+import operator
 import re
 from collections import Counter
 from itertools import chain
@@ -22,11 +23,12 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
-from cunumeric.coverage import is_implemented
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
+
+from cunumeric.coverage import is_implemented
 
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
@@ -168,6 +170,7 @@ def eye(
         dtype = np.dtype(dtype)
     if M is None:
         M = N
+    k = operator.index(k)
     result = ndarray((N, M), dtype)
     result._thunk.eye(k)
     return result

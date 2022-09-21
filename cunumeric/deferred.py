@@ -33,12 +33,11 @@ from typing import (
     cast,
 )
 
+import legate.core.types as ty
 import numpy as np
+from legate.core import Future, ReductionOp, Store
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
-
-import legate.core.types as ty
-from legate.core import Future, ReductionOp, Store
 
 from .config import (
     BinaryOpCode,
@@ -60,7 +59,6 @@ from .utils import is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-
     from legate.core import FieldID, Region
     from legate.core.operation import AutoTask, ManualTask
 

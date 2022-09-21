@@ -68,21 +68,38 @@ build:
   string: "cuda{{ cuda_major }}_py{{ py_version }}_{{ PKG_BUILDNUM }}"
 {% endif %}
 {% endif %}
+  script_env:
+    - SCCACHE_BUCKET
+    - SCCACHE_REGION
+    - SCCACHE_IDLE_TIMEOUT
+    - SCCACHE_S3_KEY_PREFIX
+    - SCCACHE_S3_KEY_PREFIX
+    - AWS_ACCESS_KEY_ID
+    - AWS_SECRET_ACCESS_KEY
+    - CMAKE_C_COMPILER_LAUNCHER
+    - CMAKE_CXX_COMPILER_LAUNCHER
+    - CMAKE_CUDA_COMPILER_LAUNCHER
 {% if not gpu_enabled_bool %}
+    - CPU_ONLY=1
   track_features:
     - cpu_only
-  script_env:
-    - CPU_ONLY=1
+{% else %}
+# prevent nccl from pulling in cudatoolkit
+# once an nccl package compatible with cuda-* packages is introduced, this can be removed
+#  ignore_run_exports:
+#    - cudatoolkit
+  ignore_run_exports_from:
+    - cuda-nvcc
+    - legate-core
 {% endif %}
 
 requirements:
   build:
+    - make
+    - ninja
+    - cmake {{ cmake_version }}
     - {{ compiler('c') }} =11.2
     - {{ compiler('cxx') }} =11.2
-    - make
-{% if gpu_enabled_bool %}
-    - cuda-nvcc ={{ cuda_version }}
-{% endif %}
   host:
     # the nvcc requirement is necessary because it contains crt/host_config.h used by cuda runtime. This is a packaging bug that has been reported.
     - cuda-nvcc ={{ cuda_version }}
@@ -91,15 +108,21 @@ requirements:
     # cudart needed for CPU and GPU builds because of curand
     - cuda-cudart-dev ={{ cuda_version }}
     - python
+    - scikit-build
     - openblas =* =*openmp*
 {% if not gpu_enabled_bool %}
-    - legate-core >={{ core_version }} =*_cpu
+    - legate-core ={{ core_version }} =*_cpu
 {% else %}
-    - legate-core >={{ core_version }}
+    - legate-core ={{ core_version }}
+    - cudatoolkit ={{ cuda_version }}
+    - cuda-nvcc ={{ cuda_version }}
+    - cuda-cccl ={{ cuda_version }}
+    - cuda-cudart ={{ cuda_version }}
     - cuda-driver-dev ={{ cuda_version }}
+    - cuda-cudart-dev ={{ cuda_version }}
+    - cuda-nvtx ={{ cuda_version }}
     # - libcutensor-dev >=1.3
     - cutensor >=1.3
-    - cuda-nvtx
     - libcublas-dev
     - libcusolver-dev
     - libcufft-dev
@@ -107,7 +130,7 @@ requirements:
 {% endif %}
 
   run:
-    - numpy >=1.22
+    - numpy {{ numpy_version }}
     - libopenblas =* =*openmp*
 {% if gpu_enabled_bool %}
     - cuda-cudart >={{ cuda_version }}
@@ -122,12 +145,12 @@ requirements:
     - opt_einsum >=3.3
     - scipy
     - typing_extensions
-{% if gpu_enabled_bool %}
-    - __cuda >=11.4
-{% endif %}
 
   run_constrained:
     - __glibc >=2.17  # [linux]
+{% if gpu_enabled_bool %}
+    - __cuda >={{ cuda_version }}
+{% endif %}
 
 about:
   home: https://github.com/nv-legate/cunumeric

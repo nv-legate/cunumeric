@@ -17,11 +17,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Sequence, Union
 
 import numpy as np
+from numpy.core.multiarray import normalize_axis_index  # type: ignore
+from numpy.core.numeric import normalize_axis_tuple  # type: ignore
+
 from cunumeric._ufunc.math import add, sqrt as _sqrt
 from cunumeric.array import add_boilerplate, convert_to_cunumeric_ndarray
 from cunumeric.module import dot, empty_like, eye, matmul, ndarray
-from numpy.core.multiarray import normalize_axis_index  # type: ignore
-from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 
 from .exception import LinAlgError
 

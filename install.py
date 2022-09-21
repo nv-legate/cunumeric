@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 # Copyright 2021-2022 NVIDIA Corporation
 #
@@ -16,16 +16,12 @@
 #
 
 import argparse
-import json
 import multiprocessing
 import os
 import platform
 import shutil
 import subprocess
 import sys
-import tempfile
-
-import setuptools
 
 # Flush output on newlines
 sys.stdout.reconfigure(line_buffering=True)
@@ -33,9 +29,9 @@ sys.stdout.reconfigure(line_buffering=True)
 os_name = platform.system()
 
 if os_name == "Linux":
-    dylib_ext = ".so"
+    pass
 elif os_name == "Darwin":
-    dylib_ext = ".dylib"
+    pass
 else:
     raise Exception("install.py script does not work on %s" % os_name)
 
@@ -80,433 +76,302 @@ class BooleanFlag(argparse.Action):
         setattr(namespace, self.dest, not option_string.startswith("--no"))
 
 
-def execute_command(args, verbose, cwd=None, shell=False):
+def execute_command(args, verbose, **kwargs):
     if verbose:
-        print("EXECUTING: ", args)
-    subprocess.check_call(args, cwd=cwd, shell=shell)
+        print('Executing: "', " ".join(args), '" with ', kwargs)
+    subprocess.check_call(args, **kwargs)
 
 
-def git_clone(repo_dir, url, verbose, branch=None, tag=None):
-    assert branch is not None or tag is not None
-    if branch is not None:
-        execute_command(
-            ["git", "clone", "-b", branch, url, repo_dir], verbose=verbose
-        )
-    else:
-        execute_command(
-            ["git", "clone", "--single-branch", "-b", tag, url, repo_dir],
-            verbose=verbose,
-        )
-        execute_command(
-            ["git", "checkout", "-b", "master"], cwd=repo_dir, verbose=verbose
-        )
+def scikit_build_cmake_build_dir(skbuild_dir):
+    if os.path.exists(skbuild_dir):
+        for f in os.listdir(skbuild_dir):
+            if os.path.exists(
+                cmake_build := os.path.join(skbuild_dir, f, "cmake-build")
+            ):
+                return cmake_build
+    return None
 
 
-def git_reset(repo_dir, refspec, verbose):
-    execute_command(
-        ["git", "reset", "--hard", refspec], cwd=repo_dir, verbose=verbose
+def find_cmake_val(pattern, filepath):
+    return (
+        subprocess.check_output(["grep", "--color=never", pattern, filepath])
+        .decode("UTF-8")
+        .strip()
     )
 
 
-def git_update(repo_dir, verbose, branch=None):
-    execute_command(
-        ["git", "pull", "--ff-only"], cwd=repo_dir, verbose=verbose
-    )
-    if branch is not None:
-        execute_command(
-            ["git", "checkout", branch], cwd=repo_dir, verbose=verbose
+def was_previously_built_with_different_build_isolation(
+    isolated, cunumeric_build_dir
+):
+    if (
+        cunumeric_build_dir is not None
+        and os.path.exists(cunumeric_build_dir)
+        and os.path.exists(
+            cmake_cache := os.path.join(cunumeric_build_dir, "CMakeCache.txt")
         )
-
-
-def load_json_config(filename):
-    try:
-        with open(filename, "r") as f:
-            return json.load(f)
-    except IOError:
-        return None
-
-
-def dump_json_config(filename, value):
-    with open(filename, "w") as f:
-        return json.dump(value, f)
-
-
-def symlink(from_path, to_path):
-    if not os.path.lexists(to_path):
-        os.symlink(from_path, to_path)
-
-
-def has_openmp():
-    cxx = os.getenv("CXX", "g++")
-    temp_dir = tempfile.mkdtemp()
-    try:
-        execute_command(
-            'echo "int main(void) { return 0; }" | '
-            f"{cxx} -o test.omp -x c++ -fopenmp -",
-            shell=True,
-            cwd=temp_dir,
-            verbose=False,
-        )
-    except subprocess.CalledProcessError:
-        return False
-    else:
-        return True
-
-
-def install_openblas(openblas_dir, thread_count, verbose):
-    print("Legate is installing OpenBLAS into a local directory...")
-    temp_dir = tempfile.mkdtemp()
-    # Pin OpenBLAS at a recent version
-    git_clone(
-        temp_dir,
-        url="https://github.com/xianyi/OpenBLAS.git",
-        tag="v0.3.15",
-        verbose=verbose,
-    )
-    # We can just build this directly
-    try:
-        execute_command(
-            [
-                "make",
-                "-j",
-                str(thread_count),
-                "CROSS=1",
-                "USE_THREAD=1",
-                "NO_STATIC=1",
-                "USE_CUDA=0",
-                "USE_OPENMP=%s" % (1 if has_openmp() else 0),
-                "NUM_PARALLEL=32",
-                "LIBNAMESUFFIX=legate",
-                "NO_LAPACK=0",
-            ],
-            cwd=temp_dir,
-            verbose=verbose,
-        )
-    except subprocess.CalledProcessError:
-        raise Exception(
-            "\nOpenBLAS compilation failed.  Check the output for details.\n"
-            "Note that OpenBLAS compilation will fail if gfortran is not "
-            "available in your environment."
-        )
-    # Then do the installation to our target directory
-    execute_command(
-        [
-            "make",
-            "-j",
-            str(thread_count),
-            "install",
-            "PREFIX=" + openblas_dir,
-            "LIBNAMESUFFIX=legate",
-        ],
-        cwd=temp_dir,
-        verbose=verbose,
-    )
-    shutil.rmtree(temp_dir)
-
-
-def install_tblis(tblis_dir, thread_count, verbose):
-    print("Legate is installing TBLIS into a local directory...")
-    temp_dir = tempfile.mkdtemp()
-    git_clone(
-        temp_dir,
-        url="https://github.com/devinamatthews/tblis.git",
-        branch="master",
-        verbose=verbose,
-    )
-    execute_command(
-        [
-            "./configure",
-            "--prefix",
-            tblis_dir,
-            "--enable-thread-model=openmp"
-            if has_openmp()
-            else "--disable-thread-model",
-            "--with-length-type=int64_t",
-            "--with-stride-type=int64_t",
-            "--with-label-type=int32_t",
-        ],
-        cwd=temp_dir,
-        verbose=verbose,
-    )
-    execute_command(
-        [
-            "make",
-            "-j",
-            str(thread_count),
-            "install",
-        ],
-        cwd=temp_dir,
-        verbose=verbose,
-    )
-    shutil.rmtree(temp_dir)
-
-
-def find_c_define(define, header):
-    with open(header, "r") as f:
-        line = f.readline()
-        while line:
-            line = line.rstrip()
-            if line.startswith("#define") and define in line.split(" "):
+    ):
+        try:
+            if isolated:
                 return True
-            line = f.readline()
+            if find_cmake_val("pip-build-env", cmake_cache):
+                return True
+        except Exception:
+            pass
     return False
 
 
-def find_compile_flag(flag, makefile):
-    with open(makefile, "r") as f:
-        for line in f:
-            toks = line.split()
-            if len(toks) == 3 and toks[0] == flag:
-                return toks[2] == "1"
-    assert False, f"Compile flag '{flag}' not found"
-
-
-def build_cunumeric(
-    cunumeric_dir,
-    install_dir,
-    openblas_dir,
-    tblis_dir,
-    curand_dir,
-    cutensor_dir,
-    nccl_dir,
-    thrust_dir,
-    cmake,
-    cmake_exe,
-    debug,
-    debug_release,
-    check_bounds,
-    clean_first,
-    python_only,
-    thread_count,
-    verbose,
-    unknown,
-):
-    src_dir = os.path.join(cunumeric_dir, "src")
-    if cmake:
-        print("Warning: CMake is currently not supported for cuNumeric build.")
-        print("Using GNU Make for now.")
-
-    if not python_only:
-        if os.path.basename(openblas_dir) == "OpenBLAS_legate":
-            libname = "openblas_legate"
-        else:
-            libname = "openblas"
-        make_flags = [
-            "LEGATE_DIR=%s" % install_dir,
-            "OPENBLAS_PATH=%s" % openblas_dir,
-            "OPENBLAS_LIBNAME=%s" % libname,
-            "TBLIS_PATH=%s" % tblis_dir,
-            "CUTENSOR_PATH=%s" % cutensor_dir,
-            "NCCL_PATH=%s" % nccl_dir,
-            "THRUST_PATH=%s" % thrust_dir,
-            "DEBUG=%s" % (1 if debug else 0),
-            "DEBUG_RELEASE=%s" % (1 if debug_release else 0),
-            "CHECK_BOUNDS=%s" % (1 if check_bounds else 0),
-            "PREFIX=%s" % install_dir,
-        ]
-        if curand_dir is not None:
-            make_flags += [f"CURAND_PATH={curand_dir}"]
-        if clean_first:
-            execute_command(
-                ["make"] + make_flags + ["clean"],
-                cwd=src_dir,
-                verbose=verbose,
-            )
-        execute_command(
-            ["make"] + make_flags + ["-j", str(thread_count), "install"],
-            cwd=src_dir,
-            verbose=verbose,
-        )
-
-    try:
-        shutil.rmtree(os.path.join(cunumeric_dir, "build"))
-    except FileNotFoundError:
-        pass
-
-    cmd = [
-        sys.executable,
-        "setup.py",
-        "install",
-        "--recurse",
-        "--prefix",
-        install_dir,
-    ]
-    # Work around breaking change in setuptools 60
-    if int(setuptools.__version__.split(".")[0]) >= 60:
-        cmd += ["--single-version-externally-managed", "--root=/"]
-    if unknown is not None:
-        if "--prefix" in unknown:
-            raise Exception(
-                "cuNumeric cannot be installed in a different location than "
-                "Legate Core, please remove the --prefix argument"
-            )
-        cmd += unknown
-    execute_command(cmd, cwd=cunumeric_dir, verbose=verbose)
-
-
 def install_cunumeric(
-    cmake,
-    cmake_exe,
-    legate_dir,
-    openblas_dir,
-    tblis_dir,
-    curand_dir,
-    cutensor_dir,
-    thrust_dir,
-    debug,
-    debug_release,
+    arch,
+    build_isolation,
     check_bounds,
     clean_first,
-    python_only,
+    cmake_exe,
+    cmake_generator,
+    conduit,
+    cuda_dir,
+    cuda,
+    curand_dir,
+    cutensor_dir,
+    debug_release,
+    debug,
+    editable,
+    extra_flags,
+    gasnet_dir,
+    gasnet,
+    hdf,
+    install_dir,
+    legate_branch,
+    legate_dir,
+    legate_url,
+    llvm,
+    march,
+    maxdim,
+    maxfields,
+    nccl_dir,
+    openblas_dir,
+    openmp,
+    spy,
+    tblis_dir,
     thread_count,
-    verbose,
+    thrust_dir,
     unknown,
+    verbose,
 ):
+    if clean_first is None:
+        clean_first = not editable
+
     print("Verbose build is ", "on" if verbose else "off")
     if verbose:
-        print("Options are:\n")
-        print("cmake: ", cmake, "\n")
-        print("cmake_exe: ", cmake_exe, "\n")
-        print("legate_dir: ", legate_dir, "\n")
-        print("openblas_dir: ", openblas_dir, "\n")
-        print("tblis_dir: ", tblis_dir, "\n")
-        print("cutensor_dir: ", cutensor_dir, "\n")
-        print("curand_dir: ", curand_dir, "\n")
-        print("thrust_dir: ", thrust_dir, "\n")
-        print("debug: ", debug, "\n")
-        print("debug_release: ", debug_release, "\n")
-        print("check_bounds: ", check_bounds, "\n")
-        print("clean_first: ", clean_first, "\n")
-        print("python_only: ", python_only, "\n")
-        print("thread_count: ", thread_count, "\n")
-        print("verbose: ", verbose, "\n")
-        print("unknown: ", unknown, "\n")
+        print("Options are:")
+        print("arch: ", arch)
+        print("build_isolation: ", build_isolation)
+        print("check_bounds: ", check_bounds)
+        print("clean_first: ", clean_first)
+        print("cmake_exe: ", cmake_exe)
+        print("cmake_generator: ", cmake_generator)
+        print("conduit: ", conduit)
+        print("cuda_dir: ", cuda_dir)
+        print("cuda: ", cuda)
+        print("curand_dir: ", curand_dir)
+        print("cutensor_dir: ", cutensor_dir)
+        print("debug_release: ", debug_release)
+        print("debug: ", debug)
+        print("editable: ", editable)
+        print("extra_flags: ", extra_flags)
+        print("gasnet_dir: ", gasnet_dir)
+        print("gasnet: ", gasnet)
+        print("hdf: ", hdf)
+        print("install_dir: ", install_dir)
+        print("legate_branch: ", legate_branch)
+        print("legate_dir: ", legate_dir)
+        print("legate_url: ", legate_url)
+        print("llvm: ", llvm)
+        print("march: ", march)
+        print("maxdim: ", maxdim)
+        print("maxfields: ", maxfields)
+        print("nccl_dir: ", nccl_dir)
+        print("openblas_dir: ", openblas_dir)
+        print("openmp: ", openmp)
+        print("spy: ", spy)
+        print("tblis_dir: ", tblis_dir)
+        print("thread_count: ", thread_count)
+        print("thrust_dir: ", thrust_dir)
+        print("unknown: ", unknown)
+        print("verbose: ", verbose)
 
-    cunumeric_dir = os.path.dirname(os.path.realpath(__file__))
+    join = os.path.join
+    exists = os.path.exists
+    dirname = os.path.dirname
+    realpath = os.path.realpath
 
-    cmake_config = os.path.join(cunumeric_dir, ".cmake.json")
-    dump_json_config(cmake_config, cmake)
+    cunumeric_dir = dirname(realpath(__file__))
 
     if thread_count is None:
         thread_count = multiprocessing.cpu_count()
 
-    # Check to see if we installed Legate Core
-    legate_config = os.path.join(cunumeric_dir, ".legate.core.json")
+    def validate_path(path):
+        if path is not None and (path := str(path)) != "":
+            if not os.path.isabs(path):
+                path = join(cunumeric_dir, path)
+            if exists(path := realpath(path)):
+                return path
+        return None
+
+    cuda_dir = validate_path(cuda_dir)
+    nccl_dir = validate_path(nccl_dir)
+    tblis_dir = validate_path(tblis_dir)
+    legate_dir = validate_path(legate_dir)
+    thrust_dir = validate_path(thrust_dir)
+    curand_dir = validate_path(curand_dir)
+    gasnet_dir = validate_path(gasnet_dir)
+    cutensor_dir = validate_path(cutensor_dir)
+    openblas_dir = validate_path(openblas_dir)
+
     if legate_dir is None:
-        legate_dir = load_json_config(legate_config)
-    if legate_dir is None or not os.path.exists(legate_dir):
-        raise Exception(
-            "You need to provide a Legate Core installation using "
-            "the '--with-core' flag"
+        try:
+            import legate.install_info as lg_install_info
+
+            legate_dir = dirname(lg_install_info.libpath)
+        except Exception:
+            pass
+
+    if verbose:
+        print("cuda_dir: ", cuda_dir)
+        print("nccl_dir: ", nccl_dir)
+        print("tblis_dir: ", tblis_dir)
+        print("legate_dir: ", legate_dir)
+        print("thrust_dir: ", thrust_dir)
+        print("curand_dir: ", curand_dir)
+        print("gasnet_dir: ", gasnet_dir)
+        print("cutensor_dir: ", cutensor_dir)
+        print("openblas_dir: ", openblas_dir)
+
+    skbuild_dir = join(cunumeric_dir, "_skbuild")
+    cunumeric_build_dir = scikit_build_cmake_build_dir(skbuild_dir)
+
+    if was_previously_built_with_different_build_isolation(
+        build_isolation and not editable, cunumeric_build_dir
+    ):
+        print("Performing a clean build to accommodate build isolation.")
+        clean_first = True
+
+    if clean_first:
+        shutil.rmtree(skbuild_dir, ignore_errors=True)
+        shutil.rmtree(join(cunumeric_dir, "dist"), ignore_errors=True)
+        shutil.rmtree(join(cunumeric_dir, "build"), ignore_errors=True)
+        shutil.rmtree(
+            join(cunumeric_dir, "cunumeric.egg-info"),
+            ignore_errors=True,
         )
-    legate_dir = os.path.realpath(legate_dir)
-    dump_json_config(legate_config, legate_dir)
 
-    # Find list of already-installed libraries
-    libs_path = os.path.join(legate_dir, "share", ".legate-libs.json")
-    try:
-        with open(libs_path, "r") as f:
-            libs_config = json.load(f)
-    except (FileNotFoundError, IOError, json.JSONDecodeError):
-        libs_config = {}
+    # Configure and build cuNumeric via setup.py
+    pip_install_cmd = [sys.executable, "-m", "pip", "install"]
+    cmd_env = dict(os.environ.items())
 
-    # Install OpenBLAS
-    if openblas_dir is None:
-        openblas_dir = libs_config.get("openblas")
-    if openblas_dir is None:
-        openblas_dir = os.path.join(legate_dir, "OpenBLAS_legate")
-    openblas_dir = os.path.realpath(openblas_dir)
-    if not os.path.exists(openblas_dir):
-        install_openblas(openblas_dir, thread_count, verbose)
-    libs_config["openblas"] = openblas_dir
+    if unknown is not None:
+        try:
+            prefix_loc = unknown.index("--prefix")
+            prefix_dir = validate_path(unknown[prefix_loc + 1])
+            if prefix_dir is not None:
+                install_dir = prefix_dir
+                unknown = unknown[:prefix_loc] + unknown[prefix_loc + 2 :]
+        except Exception:
+            pass
 
-    # Install TBLIS
-    if tblis_dir is None:
-        tblis_dir = libs_config.get("tblis")
-    if tblis_dir is None:
-        tblis_dir = os.path.join(legate_dir, "TBLIS")
-    tblis_dir = os.path.realpath(tblis_dir)
-    if not os.path.exists(tblis_dir):
-        install_tblis(tblis_dir, thread_count, verbose)
-    libs_config["tblis"] = tblis_dir
+    install_dir = validate_path(install_dir)
 
-    # Match the core's setting regarding CUDA support.
-    makefile_path = os.path.join(legate_dir, "share", "legate", "config.mk")
-    nccl_dir = None
-    cuda = find_compile_flag("USE_CUDA", makefile_path)
-    if cuda:
-        # A custom path to cuRAND is ignored when CUDA support is available
-        curand_dir = None
-        # Find cuTensor installation
-        if cutensor_dir is None:
-            cutensor_dir = libs_config.get("cutensor")
-        if cutensor_dir is None:
-            raise Exception(
-                "Could not find cuTensor installation, use '--with-cutensor' "
-                "to specify a location."
-            )
-        cutensor_dir = os.path.realpath(cutensor_dir)
-        libs_config["cutensor"] = cutensor_dir
+    if verbose:
+        print("install_dir: ", install_dir)
 
-        if "nccl" not in libs_config:
-            raise Exception(
-                "Failed to find NCCL path in the Legate installation. "
-                "Make sure you installed Legate core correctly. "
-                "If the problem persists, please open a GitHub issue for it. "
-            )
-        nccl_dir = libs_config["nccl"]
+    if install_dir is not None:
+        pip_install_cmd += ["--root", "/", "--prefix", str(install_dir)]
+
+    if editable:
+        # editable implies build_isolation = False
+        pip_install_cmd += ["--no-deps", "--no-build-isolation", "--editable"]
+        cmd_env.update({"SETUPTOOLS_ENABLE_FEATURES": "legacy-editable"})
     else:
-        if curand_dir is None:
-            curand_dir = libs_config.get("curand")
-        if curand_dir is not None:
-            curand_dir = os.path.realpath(curand_dir)
-            libs_config["curand"] = curand_dir
+        if not build_isolation:
+            pip_install_cmd += ["--no-deps", "--no-build-isolation"]
+        pip_install_cmd += ["--upgrade"]
 
-    # Record all newly installed libraries in the global configuration
-    with open(libs_path, "w") as f:
-        json.dump(libs_config, f)
+    pip_install_cmd += ["."]
+    if verbose:
+        pip_install_cmd += ["-vv"]
 
-    # Find Thrust installation
-    thrust_global_config = os.path.join(
-        legate_dir, "share", "legate", ".thrust.json"
+    cmake_flags = []
+
+    if cmake_generator:
+        cmake_flags += [f"-G{cmake_generator}"]
+
+    if debug or verbose:
+        cmake_flags += ["--log-level=%s" % ("DEBUG" if debug else "VERBOSE")]
+
+    cmake_flags += f"""\
+-DCMAKE_BUILD_TYPE={(
+    "Debug" if debug else "RelWithDebInfo" if debug_release else "Release"
+)}
+-DBUILD_SHARED_LIBS=ON
+-DBUILD_MARCH={str(march)}
+-DCMAKE_CUDA_ARCHITECTURES={str(arch)}
+-DLegion_MAX_DIM={str(maxdim)}
+-DLegion_MAX_FIELDS={str(maxfields)}
+-DLegion_SPY={("ON" if spy else "OFF")}
+-DLegion_BOUNDS_CHECKS={("ON" if check_bounds else "OFF")}
+-DLegion_USE_CUDA={("ON" if cuda else "OFF")}
+-DLegion_USE_OpenMP={("ON" if openmp else "OFF")}
+-DLegion_USE_LLVM={("ON" if llvm else "OFF")}
+-DLegion_USE_GASNet={("ON" if gasnet else "OFF")}
+-DLegion_USE_HDF5={("ON" if hdf else "OFF")}
+""".splitlines()
+
+    if cuda_dir:
+        cmake_flags += ["-DCUDAToolkit_ROOT=%s" % cuda_dir]
+    if nccl_dir:
+        cmake_flags += ["-DNCCL_DIR=%s" % nccl_dir]
+    if gasnet_dir:
+        cmake_flags += ["-DGASNet_ROOT_DIR=%s" % gasnet_dir]
+    if conduit:
+        cmake_flags += ["-DGASNet_CONDUIT=%s" % conduit]
+    if tblis_dir:
+        cmake_flags += ["-Dtblis_ROOT=%s" % tblis_dir]
+    if thrust_dir:
+        cmake_flags += ["-DThrust_ROOT=%s" % thrust_dir]
+    if openblas_dir:
+        cmake_flags += ["-DBLAS_DIR=%s" % openblas_dir]
+    if cutensor_dir:
+        cmake_flags += ["-Dcutensor_DIR=%s" % cutensor_dir]
+    # A custom path to cuRAND is ignored when CUDA support is available
+    if cuda and curand_dir is not None:
+        cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
+    if legate_dir:
+        cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+    if legate_url:
+        cmake_flags += ["-Dcunumeric_LEGATE_CORE_REPOSITORY=%s" % legate_url]
+    if legate_branch:
+        cmake_flags += ["-Dcunumeric_LEGATE_CORE_BRANCH=%s" % legate_branch]
+
+    cmake_flags += extra_flags
+    cmd_env.update(
+        {
+            "SKBUILD_BUILD_OPTIONS": f"-j{str(thread_count)}",
+            "SKBUILD_CONFIGURE_OPTIONS": "\n".join(cmake_flags),
+        }
     )
-    if thrust_dir is None:
-        thrust_dir = load_json_config(thrust_global_config)
-    thrust_local_config = os.path.join(cunumeric_dir, ".thrust.json")
-    if thrust_dir is None:
-        thrust_dir = load_json_config(thrust_local_config)
-    if thrust_dir is None:
-        raise Exception(
-            "Could not find Thrust installation, use '--with-thrust' to "
-            "specify a location."
-        )
-    thrust_dir = os.path.realpath(thrust_dir)
-    dump_json_config(thrust_local_config, thrust_dir)
 
-    build_cunumeric(
-        cunumeric_dir,
-        legate_dir,
-        openblas_dir,
-        tblis_dir,
-        curand_dir,
-        cutensor_dir,
-        nccl_dir,
-        thrust_dir,
-        cmake,
-        cmake_exe,
-        debug,
-        debug_release,
-        check_bounds,
-        clean_first,
-        python_only,
-        thread_count,
-        verbose,
-        unknown,
-    )
+    execute_command(pip_install_cmd, verbose, cwd=cunumeric_dir, env=cmd_env)
 
 
 def driver():
     parser = argparse.ArgumentParser(description="Install cuNumeric.")
+    parser.add_argument(
+        "--install-dir",
+        dest="install_dir",
+        metavar="DIR",
+        required=False,
+        default=None,
+        help="Path to install cuNumeric software",
+    )
     parser.add_argument(
         "--debug",
         dest="debug",
@@ -533,12 +398,56 @@ def driver():
         help="Build cuNumeric with bounds checks.",
     )
     parser.add_argument(
+        "--max-dim",
+        dest="maxdim",
+        type=int,
+        default=int(os.environ.get("LEGION_MAX_DIM", 4)),
+        help="Maximum number of dimensions that cuNumeric will support",
+    )
+    parser.add_argument(
+        "--max-fields",
+        dest="maxfields",
+        type=int,
+        default=int(os.environ.get("LEGION_MAX_FIELDS", 256)),
+        help="Maximum number of fields that cuNumeric will support",
+    )
+    parser.add_argument(
+        "--gasnet",
+        dest="gasnet",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_GASNET", "0") == "1",
+        help="Build cuNumeric with GASNet.",
+    )
+    parser.add_argument(
+        "--with-gasnet",
+        dest="gasnet_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("GASNET"),
+        help="Path to GASNet installation directory.",
+    )
+    parser.add_argument(
         "--with-core",
         dest="legate_dir",
         metavar="DIR",
         required=False,
         default=os.environ.get("LEGATE_DIR"),
         help="Path to Legate Core installation directory.",
+    )
+    parser.add_argument(
+        "--legate-url",
+        dest="legate_url",
+        required=False,
+        default="https://github.com/nv-legate/legate.core.git",
+        help="Legate git URL to build cuNumeric with.",
+    )
+    parser.add_argument(
+        "--legate-branch",
+        dest="legate_branch",
+        required=False,
+        default="branch-22.10",
+        help="Legate branch to build cuNumeric with.",
     )
     parser.add_argument(
         "--with-openblas",
@@ -585,10 +494,12 @@ def driver():
         help="Path to Thrust installation directory.",
     )
     parser.add_argument(
-        "--cmake",
-        action=BooleanFlag,
-        default=os.environ.get("USE_CMAKE", "0") == "1",
-        help="Build cuNumeric with CMake instead of GNU Make.",
+        "--with-nccl",
+        dest="nccl_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("NCCL_PATH"),
+        help="Path to NCCL installation directory.",
     )
     parser.add_argument(
         "--with-cmake",
@@ -599,19 +510,99 @@ def driver():
         help="Path to CMake executable (if not on PATH).",
     )
     parser.add_argument(
+        "--cmake-generator",
+        dest="cmake_generator",
+        required=False,
+        default="Ninja",
+        choices=["Ninja", "Unix Makefiles"],
+        help="The CMake makefiles generator",
+    )
+    parser.add_argument(
+        "--cuda",
+        action=BooleanFlag,
+        default=os.environ.get("USE_CUDA", "0") == "1",
+        help="Build cuNumeric with CUDA support.",
+    )
+    parser.add_argument(
+        "--with-cuda",
+        dest="cuda_dir",
+        metavar="DIR",
+        required=False,
+        default=os.environ.get("CUDA"),
+        help="Path to CUDA installation directory.",
+    )
+    parser.add_argument(
+        "--arch",
+        dest="arch",
+        action="store",
+        required=False,
+        default="NATIVE",
+        help="Specify the target GPU architecture.",
+    )
+    parser.add_argument(
+        "--openmp",
+        action=BooleanFlag,
+        default=os.environ.get("USE_OPENMP", "0") == "1",
+        help="Build cuNumeric with OpenMP support.",
+    )
+    parser.add_argument(
+        "--march",
+        dest="march",
+        required=False,
+        default="native",
+        help="Specify the target CPU architecture.",
+    )
+    parser.add_argument(
+        "--llvm",
+        dest="llvm",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_LLVM", "0") == "1",
+        help="Build cuNumeric with LLVM support.",
+    )
+    parser.add_argument(
+        "--hdf5",
+        "--hdf",
+        dest="hdf",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_HDF", "0") == "1",
+        help="Build cuNumeric with HDF support.",
+    )
+    parser.add_argument(
+        "--spy",
+        dest="spy",
+        action="store_true",
+        required=False,
+        default=os.environ.get("USE_SPY", "0") == "1",
+        help="Build cuNumeric with detailed Legion Spy enabled.",
+    )
+    parser.add_argument(
+        "--conduit",
+        dest="conduit",
+        action="store",
+        required=False,
+        # TODO: To support UDP conduit, we would need to add a special case on
+        # the legate launcher.
+        # See https://github.com/nv-legate/legate.core/issues/294.
+        choices=["ibv", "ucx", "aries", "mpi"],
+        default=os.environ.get("CONDUIT"),
+        help="Build cuNumeric with specified GASNet conduit.",
+    )
+    parser.add_argument(
         "--clean",
         dest="clean_first",
         action=BooleanFlag,
-        default=True,
+        default=None,
         help="Clean before build.",
     )
     parser.add_argument(
-        "--python-only",
-        dest="python_only",
-        action="store_true",
+        "--extra",
+        dest="extra_flags",
+        action="append",
         required=False,
-        default=False,
-        help="Reinstall only the Python package.",
+        default=[],
+        help="Extra CMake flags.",
     )
     parser.add_argument(
         "-j",
@@ -621,6 +612,25 @@ def driver():
         required=False,
         default=os.environ.get("CPU_COUNT"),
         help="Number of threads used to compile.",
+    )
+    parser.add_argument(
+        "--editable",
+        dest="editable",
+        action="store_true",
+        required=False,
+        default=False,
+        help="Perform an editable install. Disables --build-isolation if set "
+        "(passing --no-deps --no-build-isolation to pip).",
+    )
+    parser.add_argument(
+        "--build-isolation",
+        dest="build_isolation",
+        action=BooleanFlag,
+        required=False,
+        default=True,
+        help="Enable isolation when building a modern source distribution. "
+        "Build dependencies specified by PEP 518 must be already "
+        "installed if this option is used.",
     )
     parser.add_argument(
         "-v",
