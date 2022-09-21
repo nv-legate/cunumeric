@@ -45,7 +45,7 @@ def test_ndarray_empty(input):
 
 
 @pytest.mark.parametrize(
-    "input", ([[0], [1, 2], [3, 4, 5]], [[1, 2], [3.3, 4.4]])
+    "input", (([0], [1, 2], [3, 4, 5]), ([1, 2], [3.3, 4.4]))
 )
 def test_python_values_diff_dim(input):
     assert np.ndim(input) == num.ndim(input)
