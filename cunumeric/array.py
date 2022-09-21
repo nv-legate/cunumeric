@@ -2545,7 +2545,7 @@ class ndarray:
             self,
             rhs,
             out=out,
-            casting="no",
+            casting="unsafe",
         )
 
     def dump(self, file: Union[str, Path]) -> None:
