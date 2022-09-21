@@ -21,9 +21,8 @@ from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
 from typing import Any, Container, Mapping, Optional, cast
 
 import numpy as np
-from typing_extensions import Protocol
-
 from legate.core import track_provenance
+from typing_extensions import Protocol
 
 from .runtime import runtime
 from .utils import find_last_user_frames, find_last_user_stacklevel
