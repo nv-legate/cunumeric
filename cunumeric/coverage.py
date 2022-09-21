@@ -96,18 +96,28 @@ def implemented(
             location = find_last_user_frames(
                 not runtime.args.report_dump_callstack
             )
+            if set_provenance := (runtime.legate_context.provenance is None):
+                runtime.legate_context.set_provenance(find_last_user_frames())
             runtime.record_api_call(
                 name=name,
                 location=location,
                 implemented=True,
             )
-            return func(*args, **kwargs)
+            result = func(*args, **kwargs)
+            if set_provenance:
+                runtime.legate_context.reset_provenance()
+            return result
 
     else:
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
-            return func(*args, **kwargs)
+            if set_provenance := (runtime.legate_context.provenance is None):
+                runtime.legate_context.set_provenance(find_last_user_frames())
+            result = func(*args, **kwargs)
+            if set_provenance:
+                runtime.legate_context.reset_provenance()
+            return result
 
     # This is incredibly ugly and unpleasant, but @wraps(func) doesn't handle
     # ufuncs the way we need it to. The alternative would be to vendor and
