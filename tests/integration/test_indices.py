@@ -17,9 +17,9 @@ import random
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as cn
-from legate.core import LEGATE_MAX_DIM
 
 
 class TestIndicesErrors:

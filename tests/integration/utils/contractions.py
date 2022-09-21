@@ -14,9 +14,9 @@
 #
 
 import numpy as np
+from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as cn
-from legate.core import LEGATE_MAX_DIM
 
 from .comparisons import allclose
 from .generators import mk_0to1_array

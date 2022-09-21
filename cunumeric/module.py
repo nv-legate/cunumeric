@@ -23,11 +23,12 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
-from cunumeric.coverage import is_implemented
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
+
+from cunumeric.coverage import is_implemented
 
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
