@@ -1184,6 +1184,7 @@ class DeferredArray(NumPyThunk):
         rhs: Any,
         warn: bool = True,
         nan_op: ConvertCode = ConvertCode.NOOP,
+        temporary: bool = False,
     ) -> None:
         lhs_array = self
         rhs_array = rhs
@@ -1209,6 +1210,9 @@ class DeferredArray(NumPyThunk):
         task.add_alignment(lhs, rhs)
 
         task.execute()
+
+        if temporary:
+            lhs.set_linear()
 
     @auto_convert([1, 2])
     def convolve(self, v: Any, lhs: Any, mode: ConvolveMode) -> None:
