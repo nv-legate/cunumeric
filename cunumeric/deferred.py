@@ -1291,21 +1291,24 @@ class DeferredArray(NumPyThunk):
     # Fill the cuNumeric array with the value in the numpy array
     def _fill(self, value: Any) -> None:
         assert value.scalar
+        assert self.base is not None
 
         if self.scalar:
             # Handle the 0D case special
             self.base.set_storage(value.storage)
+        elif self.dtype.kind != "V" and self.base.kind is not Future:
+            # Emit a Legion fill
+            fill = self.context.create_fill(self.base, value)
+            fill.execute()
         else:
-            assert self.base is not None
+            # Perform the fill using a task
             # If this is a fill for an arg value, make sure to pass
             # the value dtype so that we get it packed correctly
             argval = self.dtype.kind == "V"
-
             task = self.context.create_auto_task(CuNumericOpCode.FILL)
             task.add_output(self.base)
             task.add_input(value)
             task.add_scalar_arg(argval, bool)
-
             task.execute()
 
     def fill(self, numpy_array: Any) -> None:
