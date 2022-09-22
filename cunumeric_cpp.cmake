@@ -140,6 +140,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/matrix/matvecmul.cc
   src/cunumeric/matrix/dot.cc
   src/cunumeric/matrix/potrf.cc
+  src/cunumeric/matrix/solve.cc
   src/cunumeric/matrix/syrk.cc
   src/cunumeric/matrix/tile.cc
   src/cunumeric/matrix/transpose.cc
@@ -189,6 +190,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/matrix/matvecmul_omp.cc
     src/cunumeric/matrix/dot_omp.cc
     src/cunumeric/matrix/potrf_omp.cc
+    src/cunumeric/matrix/solve_omp.cc
     src/cunumeric/matrix/syrk_omp.cc
     src/cunumeric/matrix/tile_omp.cc
     src/cunumeric/matrix/transpose_omp.cc
@@ -236,6 +238,7 @@ if(Legion_USE_CUDA)
     src/cunumeric/matrix/matvecmul.cu
     src/cunumeric/matrix/dot.cu
     src/cunumeric/matrix/potrf.cu
+    src/cunumeric/matrix/solve.cu
     src/cunumeric/matrix/syrk.cu
     src/cunumeric/matrix/tile.cu
     src/cunumeric/matrix/transpose.cu
