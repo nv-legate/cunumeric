@@ -363,6 +363,12 @@ def install_cunumeric(
 
 
 def driver():
+    ninja_path = shutil.which("ninja")
+    if ninja_path is None:
+        cmake_generator_default = None
+    else:
+        cmake_generator_default = "Ninja"
+
     parser = argparse.ArgumentParser(description="Install cuNumeric.")
     parser.add_argument(
         "--install-dir",
@@ -513,8 +519,8 @@ def driver():
         "--cmake-generator",
         dest="cmake_generator",
         required=False,
-        default="Ninja",
-        choices=["Ninja", "Unix Makefiles"],
+        default=cmake_generator_default,
+        choices=["Ninja", "Unix Makefiles", None],
         help="The CMake makefiles generator",
     )
     parser.add_argument(
