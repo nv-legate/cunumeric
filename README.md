@@ -91,12 +91,12 @@ issues on GitHub.
 
 ## Building from Source
 
-Installation of cuNumeric is done with either `setup.py` for simple
-uses cases or `install.py` for more advanced use cases. The most common
-installation command is:
+Installation can be done the `install.py` script.
+For releases >= 22.10, `pip install` is now available.
+The most common installation command is:
 
 ```
-python setup.py --with-core <path-to-legate-core-installation>
+./install.py --with-core <path-to-legate-core-installation>
 ```
 
 This will build cuNumeric against the Legate Core installation and then
@@ -106,7 +106,7 @@ If Legate Core has been installed with CUDA support, a working cuTENSOR
 installation must also be provided to the installation command with the
 `--with-cutensor` option:
 ```
-python setup.py --with-core <path-to-legate-core-installation> --with-cutensor <path-to-cutensor-installation>
+./install.py --with-core <path-to-legate-core-installation> --with-cutensor <path-to-cutensor-installation>
 ```
 
 You can also specify an installation of [OpenBLAS](https://www.openblas.net/)
@@ -115,16 +115,14 @@ machine, you can inform the installation script using the `--with-openblas`
 option:
 
 ```
-python setup.py --with-openblas <path-to-OpenBLAS>
+./install.py --with-openblas <path-to-OpenBLAS>
 ```
 
 Advanced users can also invoke `install.py --help` to see options for
 configuring cuNumeric by invoking the `install.py` script directly.
+More information on building - including development workflows - can be found
+in the [build instructions](BUILD.md)
 
-Note that after the first invocation of `setup.py` or `install.py` this
-repository will remember the paths you provided with the installation options
-and they can be omitted in subsequent invocations unless you want to change
-them.
 
 ## Usage and Execution
 

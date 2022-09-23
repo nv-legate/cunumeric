@@ -19,7 +19,6 @@ from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, List, Union, cast
 
 import numpy as np
-
 from legate.core import Library, ResourceConfig, get_legate_runtime
 
 if TYPE_CHECKING:
@@ -286,7 +285,7 @@ class CuNumericLib(Library):
         return self.name
 
     def get_shared_library(self) -> str:
-        from cunumeric.install_info import libpath  # type: ignore
+        from cunumeric.install_info import libpath
 
         return os.path.join(
             libpath, "libcunumeric" + self.get_library_extension()

@@ -33,11 +33,10 @@ from typing import (
 
 import numpy as np
 import pyarrow  # type: ignore
+from legate.core import Array
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
-
-from legate.core import Array
 
 from .config import (
     BinaryOpCode,
@@ -2545,7 +2544,7 @@ class ndarray:
             self,
             rhs,
             out=out,
-            casting="no",
+            casting="unsafe",
         )
 
     def dump(self, file: Union[str, Path]) -> None:

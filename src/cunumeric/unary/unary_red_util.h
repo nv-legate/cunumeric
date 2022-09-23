@@ -307,4 +307,16 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   }
 };
 
+template <legate::LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::CONTAINS, TYPE_CODE> {
+  // Set to false so that this only gets enabled when expliclty declared valid.
+  static constexpr bool valid = false;
+  // This class only provides the typedefs necessary to match the other operators.
+  // It does not provide fold/convert functions.
+  using RHS     = legate::legate_type_of<TYPE_CODE>;
+  using VAL     = bool;
+  using _RED_OP = UnaryRedOp<UnaryRedCode::SUM, legate::LegateTypeCode::BOOL_LT>;
+  using OP      = _RED_OP::OP;
+};
+
 }  // namespace cunumeric

@@ -16,7 +16,6 @@
 from itertools import permutations, product
 
 import numpy as np
-
 from legate.core import LEGATE_MAX_DIM
 
 
