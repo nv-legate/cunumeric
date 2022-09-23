@@ -79,11 +79,11 @@ class Config:
         return self._extra_args
 
     @property
-    def root_dir(self) -> PurePath:
+    def root_dir(self) -> Path:
         """Path to the directory containing the tests."""
         if self.test_root:
-            return PurePath(self.test_root)
-        return PurePath(__file__).parents[2]
+            return Path(self.test_root)
+        return Path(__file__).parents[2]
 
     @property
     def test_files(self) -> tuple[Path, ...]:
@@ -102,9 +102,7 @@ class Config:
         if self.examples:
             examples = (
                 path.relative_to(self.root_dir)
-                for path in Path(self.root_dir.joinpath("examples")).glob(
-                    "*.py"
-                )
+                for path in self.root_dir.joinpath("examples").glob("*.py")
                 if str(path.relative_to(self.root_dir)) not in SKIPPED_EXAMPLES
             )
             files.extend(sorted(examples))
@@ -112,16 +110,16 @@ class Config:
         if self.integration:
             integration_tests = (
                 path.relative_to(self.root_dir)
-                for path in Path(
-                    self.root_dir.joinpath("tests/integration")
-                ).glob("*.py")
+                for path in self.root_dir.joinpath("tests/integration").glob(
+                    "*.py"
+                )
             )
             files.extend(sorted(integration_tests))
 
         if self.unit:
             unit_tests = (
                 path.relative_to(self.root_dir)
-                for path in Path(self.root_dir.joinpath("tests/unit")).glob(
+                for path in self.root_dir.joinpath("tests/unit").glob(
                     "**/*.py"
                 )
             )
