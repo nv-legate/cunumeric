@@ -994,10 +994,7 @@ def ndim(a: ndarray) -> int:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    try:
-        return a.ndim
-    except AttributeError:
-        return asarray(a).ndim
+    return 0 if a is None else a.ndim
 
 
 @add_boilerplate("a")
