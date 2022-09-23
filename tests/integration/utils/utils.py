@@ -35,13 +35,26 @@ def compare_array(a, b, check_type=True):
     return True, None
 
 
-def check_array_method(fn, args, kwargs, print_msg, check_type=True):
+def check_array_method(
+    fn,
+    args,
+    kwargs,
+    print_msg,
+    check_type=True,
+    ndarray_func=False,
+    ndarray_np=[],
+):
     """
     Run np.func and num.func respectively and compare results
     """
 
-    a = getattr(np, fn)(*args, **kwargs)
-    b = getattr(num, fn)(*args, **kwargs)
+    if not ndarray_func:
+        a = getattr(np, fn)(*args, **kwargs)
+        b = getattr(num, fn)(*args, **kwargs)
+    else:
+        ndarray_num = num.array(ndarray_np)
+        a = getattr(ndarray_np, fn)(*args, **kwargs)
+        b = getattr(ndarray_num, fn)(*args, **kwargs)
 
     if isinstance(a, list):
         is_equal, err_arr = compare_array(a, b, check_type=False)

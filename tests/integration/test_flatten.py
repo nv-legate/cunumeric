@@ -15,41 +15,9 @@
 
 import numpy as np
 import pytest
+from utils.utils import check_array_method
 
-from cunumeric.array import convert_to_cunumeric_ndarray
-
-
-def run_test(np_arr, num_arr):
-    # We don't support 'K' yet, which will be supported later
-    test_orders = ["C", "F", "A"]
-    for order in test_orders:
-        b = np_arr.flatten(order)
-        c = num_arr.flatten(order)
-        is_equal = True
-        err_arr = [b, c]
-
-        if len(b) != len(c):
-            is_equal = False
-            err_arr = [b, c]
-        else:
-            for each in zip(b, c):
-                if not np.array_equal(*each):
-                    err_arr = each
-                    is_equal = False
-                    break
-        print_msg = f"np & cunumeric.ndarray({np_arr.shape}).flatten({order}))"
-        assert is_equal, (
-            f"Failed, {print_msg}\n"
-            f"numpy result: {err_arr[0]}, {b.shape}\n"
-            f"cunumeric_result: {err_arr[1]}, {c.shape}\n"
-            f"cunumeric and numpy shows"
-            f" different result\n"
-        )
-        print(
-            f"Passed, {print_msg}, np: ({b.shape}, {b.dtype})"
-            f", cunumeric: ({c.shape}, {c.dtype}"
-        )
-
+import cunumeric as num
 
 DIM = 10
 
@@ -67,11 +35,33 @@ SIZES = [
 
 
 # test ndarray.flatten w/ 1D, 2D and 3D arrays
+@pytest.mark.parametrize("order", ["C", "F", "A"], ids=str)
 @pytest.mark.parametrize("size", SIZES, ids=str)
-def test_basic(size):
+def test_basic(order, size):
     a = np.random.randint(low=0, high=100, size=size)
-    b = convert_to_cunumeric_ndarray(a)
-    run_test(a, b)
+    print_msg = f"np & cunumeric.ndarray.flatten({order})"
+    check_array_method(
+        "flatten", [order], {}, print_msg, ndarray_func=True, ndarray_np=a
+    )
+
+
+class TestNdarrayFlattenErrors:
+    def setup(self):
+        size_a = (1, DIM)
+        anp = np.random.randint(low=0, high=100, size=size_a)
+        self.anum = num.array(anp)
+
+    def test_non_string_order(self):
+        order = 0
+        msg = "order must be str, not int"
+        with pytest.raises(TypeError, match=msg):
+            self.anum.flatten(order)
+
+    def test_bad_string_order(self):
+        order = "Z"
+        msg = "order must be one of 'C', 'F', 'A', or 'K'"
+        with pytest.raises(ValueError, match=msg):
+            self.anum.flatten(order)
 
 
 if __name__ == "__main__":
