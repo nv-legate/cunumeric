@@ -8,7 +8,7 @@ jobs:
     steps:
       - name: Delay checking labels if PR is just created
         if: ${{ github.event.action == 'opened' }}
-        run: sleep 60s
+        run: sleep 300s
         shell: bash
       - name: Check Labels
         uses: mheap/github-action-required-labels@v2
