@@ -71,7 +71,8 @@ def find_last_user_frames(top_only: bool = True) -> str:
     for (last, _) in traceback.walk_stack(None):
         if "__name__" not in last.f_globals:
             continue
-        if not last.f_globals["__name__"].startswith("cunumeric"):
+        name = last.f_globals["__name__"]
+        if not any(name.startswith(pkg) for pkg in ("cunumeric", "legate")):
             break
 
     if top_only:

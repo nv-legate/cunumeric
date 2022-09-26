@@ -146,7 +146,7 @@ These programs can then be run by the Legate driver script described in the
 legate cunumeric_program.py
 ```
 
-For execution with multiple nodes (assuming Legate Core is installed with GASNet support)
+For execution with multiple nodes (assuming Legate Core is installed with networking support)
 users can supply the `--nodes` option. For execution with GPUs, users can use the
 `--gpus` flags to specify the number of GPUs to use per node. We encourage all users
 to familiarize themselves with these resource flags as described in the Legate Core
