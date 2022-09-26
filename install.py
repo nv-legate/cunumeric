@@ -137,7 +137,7 @@ def install_cunumeric(
     editable,
     extra_flags,
     gasnet_dir,
-    gasnet,
+    networks,
     hdf,
     install_dir,
     legate_branch,
@@ -157,6 +157,12 @@ def install_cunumeric(
     unknown,
     verbose,
 ):
+    if len(networks) > 1:
+        print(
+            "Warning: Building Realm with multiple networking backends is not "
+            "fully supported currently."
+        )
+
     if clean_first is None:
         clean_first = not editable
 
@@ -179,7 +185,7 @@ def install_cunumeric(
         print("editable: ", editable)
         print("extra_flags: ", extra_flags)
         print("gasnet_dir: ", gasnet_dir)
-        print("gasnet: ", gasnet)
+        print("networks: ", networks)
         print("hdf: ", hdf)
         print("install_dir: ", install_dir)
         print("legate_branch: ", legate_branch)
@@ -321,7 +327,7 @@ def install_cunumeric(
 -DLegion_USE_CUDA={("ON" if cuda else "OFF")}
 -DLegion_USE_OpenMP={("ON" if openmp else "OFF")}
 -DLegion_USE_LLVM={("ON" if llvm else "OFF")}
--DLegion_USE_GASNet={("ON" if gasnet else "OFF")}
+-DLegion_NETWORKS={";".join(networks)}
 -DLegion_USE_HDF5={("ON" if hdf else "OFF")}
 """.splitlines()
 
@@ -412,12 +418,13 @@ def driver():
         help="Maximum number of fields that cuNumeric will support",
     )
     parser.add_argument(
-        "--gasnet",
-        dest="gasnet",
-        action="store_true",
+        "--network",
+        dest="networks",
+        action="append",
         required=False,
-        default=os.environ.get("USE_GASNET", "0") == "1",
-        help="Build cuNumeric with GASNet.",
+        choices=["gasnet1", "gasnetex", "mpi"],
+        default=[],
+        help="Realm networking backend to use for multi-node execution.",
     )
     parser.add_argument(
         "--with-gasnet",

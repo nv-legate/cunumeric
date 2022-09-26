@@ -5,6 +5,7 @@ Welcome to cuNumeric's documentation!
   :maxdepth: 2
 
   Overview <README.md>
+  Build instructions <BUILD.md>
   API Reference <api/index.rst>
   API coverage <comparison/comparison.rst>
   Contributing <CONTRIBUTING.md>
