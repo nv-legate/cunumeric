@@ -40,6 +40,32 @@ def test_scalar_ndarray_as_index(arr):
     assert np.array_equal(arr[offset - 2 : offset], [3, 2])
 
 
+def test_empty_slice():
+    a_np = np.array([1, 2, 3])
+    a_num = num.array([1, 2, 3])
+    assert np.array_equal(a_np[1:1], a_num[1:1])
+    assert np.array_equal(a_np[4:5], a_num[4:5])
+    assert np.array_equal(a_np[:0], a_num[:0])
+    assert np.array_equal(a_np[:-1], a_num[:-1])
+    assert np.array_equal(a_np[4:], a_num[4:])
+    assert np.array_equal(a_np[-1:], a_num[-1:])
+    assert np.array_equal(a_np[:-4], a_num[:-4])
+    assert np.array_equal(a_np[:-3], a_num[:-3])
+    assert np.array_equal(a_np[-4:], a_num[-4:])
+    assert np.array_equal(a_np[-3:], a_num[-3:])
+    assert np.array_equal(a_np[-2:10], a_num[-2:10])
+    assert np.array_equal(a_np[-2:-1], a_num[-2:-1])
+    assert np.array_equal(a_np[-2:1], a_num[-2:1])
+
+    a_np = np.arange(20).reshape(5, 2, 2)
+    a_num = num.array(a_np)
+    assert np.array_equal(a_np[:, 1:1, 1], a_num[:, 1:1, 1])
+    assert np.array_equal(a_np[:, 2:1, 1], a_num[:, 2:1, 1])
+    assert np.array_equal(a_np[:, :, -1:], a_num[:, :, -1:])
+    assert np.array_equal(a_np[:, :, 1:-1], a_num[:, :, 1:-1])
+    assert np.array_equal(a_np[:, :, :-1], a_num[:, :, :-1])
+
+
 if __name__ == "__main__":
     import sys
 

@@ -1,0 +1,3 @@
+include versioneer.py
+include cunumeric/_version.py
+include cunumeric/py.typed

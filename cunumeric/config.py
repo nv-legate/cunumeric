@@ -19,7 +19,6 @@ from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, List, Union, cast
 
 import numpy as np
-
 from legate.core import Library, ResourceConfig, get_legate_runtime
 
 if TYPE_CHECKING:
@@ -186,6 +185,7 @@ class _CunumericSharedLib:
     CUNUMERIC_SCAN_PROD: int
     CUNUMERIC_SCAN_SUM: int
     CUNUMERIC_SEARCHSORTED: int
+    CUNUMERIC_SOLVE: int
     CUNUMERIC_SORT: int
     CUNUMERIC_SYRK: int
     CUNUMERIC_TILE: int
@@ -285,7 +285,7 @@ class CuNumericLib(Library):
         return self.name
 
     def get_shared_library(self) -> str:
-        from cunumeric.install_info import libpath  # type: ignore
+        from cunumeric.install_info import libpath
 
         return os.path.join(
             libpath, "libcunumeric" + self.get_library_extension()
@@ -363,6 +363,7 @@ class CuNumericOpCode(IntEnum):
     SCAN_GLOBAL = _cunumeric.CUNUMERIC_SCAN_GLOBAL
     SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
     SEARCHSORTED = _cunumeric.CUNUMERIC_SEARCHSORTED
+    SOLVE = _cunumeric.CUNUMERIC_SOLVE
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
