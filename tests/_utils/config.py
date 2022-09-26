@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import os
 from argparse import Namespace
-from pathlib import Path, PurePath
+from pathlib import Path
 
 from . import DEFAULT_PROCESS_ENV, FEATURES, SKIPPED_EXAMPLES, FeatureType
 from .args import parser
