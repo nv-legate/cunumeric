@@ -1667,6 +1667,7 @@ class DeferredArray(NumPyThunk):
         self.fill(np.array(0, dtype=self.dtype))
 
         task = self.context.create_auto_task(CuNumericOpCode.EYE)
+        task.add_input(self.base)
         task.add_output(self.base)
         task.add_scalar_arg(k, ty.int32)
 
