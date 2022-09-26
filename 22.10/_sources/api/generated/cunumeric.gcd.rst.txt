@@ -1,0 +1,6 @@
+﻿cunumeric.gcd
+=============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: gcd

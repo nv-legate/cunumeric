@@ -1,0 +1,6 @@
+﻿cunumeric.random.bytes
+======================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: bytes

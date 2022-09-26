@@ -1,0 +1,6 @@
+﻿cunumeric.argsort
+=================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: argsort

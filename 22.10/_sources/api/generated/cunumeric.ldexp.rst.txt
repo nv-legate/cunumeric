@@ -1,0 +1,6 @@
+﻿cunumeric.ldexp
+===============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: ldexp

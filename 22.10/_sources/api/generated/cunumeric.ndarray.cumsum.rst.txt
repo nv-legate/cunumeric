@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.cumsum
+========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.cumsum

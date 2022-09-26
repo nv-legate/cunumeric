@@ -1,0 +1,6 @@
+﻿cunumeric.square
+================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: square

@@ -1,0 +1,597 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+    <title>Overview &#8212; cunumeric  documentation</title>
+  <script>
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=9b1a4fa89bdd0e95b23b" rel="stylesheet">
+<link href="_static/styles/pydata-sphinx-theme.css?digest=9b1a4fa89bdd0e95b23b" rel="stylesheet">
+
+  
+  <link rel="stylesheet"
+    href="_static/vendor/fontawesome/6.1.2/css/all.min.css">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2">
+  <link rel="preload" as="font" type="font/woff2" crossorigin
+    href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/params.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=9b1a4fa89bdd0e95b23b">
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'BUILD';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="api/index.html" />
+    <link rel="prev" title="cuNumeric" href="README.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="docsearch:language" content="en">
+  </head>
+  
+  
+  <body data-spy="scroll" data-target="#bd-toc-nav" data-offset="180" data-default-mode="">
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__primary" id="__primary">
+  <label class="overlay overlay-primary" for="__primary"></label>
+
+  
+  <input type="checkbox" class="sidebar-toggle" name="__secondary" id="__secondary">
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+      
+<form class="bd-search d-flex align-items-center" action="search.html" method="get">
+  <i class="icon fas fa-search"></i>
+  <input type="search" class="form-control" name="q" id="search-input" placeholder="Search the docs ..." aria-label="Search the docs ..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form>
+    </div>
+  </div>
+
+  
+  <nav class="bd-header navbar navbar-expand-lg bd-navbar" id="navbar-main"><div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+      <span class="fas fa-bars"></span>
+  </label>
+  <div id="navbar-start">
+    
+    
+  
+
+
+<a class="navbar-brand logo" href="index.html">
+
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+    <p class="title logo__title">cunumeric  documentation</p>
+  
+</a>
+    
+  </div>
+
+  
+  <div class="col-lg-9 navbar-header-items">
+    <div id="navbar-center" class="mr-auto">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                <li class="nav-item">
+                    <a class="nav-link" href="README.html">
+                        cuNumeric
+                    </a>
+                </li>
+                
+
+                <li class="nav-item current active">
+                    <a class="nav-link" href="#">
+                        Overview
+                    </a>
+                </li>
+                
+
+                <li class="nav-item">
+                    <a class="nav-link" href="api/index.html">
+                        API Reference
+                    </a>
+                </li>
+                
+
+                <li class="nav-item">
+                    <a class="nav-link" href="comparison/comparison.html">
+                        Comparison Table
+                    </a>
+                </li>
+                
+
+                <li class="nav-item">
+                    <a class="nav-link" href="CONTRIBUTING.html">
+                        Contributing to cuNumeric
+                    </a>
+                </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                <li class="nav-item">
+                    <a class="nav-link" href="versions.html">
+                        Versions
+                    </a>
+                </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+    </div>
+
+    <div id="navbar-end">
+      <div class="navbar-end-item navbar-end__search-button-container">
+        
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search">
+  <i class="fas fa-search"></i>
+</button>
+      </div>
+      
+      <div class="navbar-end-item">
+        <span class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+  </div>
+
+
+  
+  <div class="search-button-container--mobile">
+<button class="btn btn-sm navbar-btn search-button search-button__button" title="Search">
+  <i class="fas fa-search"></i>
+</button>
+  </div>
+
+  
+  <label class="sidebar-toggle secondary-toggle" for="__secondary">
+      <span class="fas fa-outdent"></span>
+  </label>
+  
+
+</div>
+  </nav>
+  
+
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar hide-on-wide">
+        
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+      
+      <div class="navbar-center-item">
+        <nav class="navbar-nav">
+    <p class="sidebar-header-items__title" role="heading" aria-level="1" aria-label="Site Navigation">
+        Site Navigation
+    </p>
+    <ul id="navbar-main-elements" class="navbar-nav">
+        
+                <li class="nav-item">
+                    <a class="nav-link" href="README.html">
+                        cuNumeric
+                    </a>
+                </li>
+                
+
+                <li class="nav-item current active">
+                    <a class="nav-link" href="#">
+                        Overview
+                    </a>
+                </li>
+                
+
+                <li class="nav-item">
+                    <a class="nav-link" href="api/index.html">
+                        API Reference
+                    </a>
+                </li>
+                
+
+                <li class="nav-item">
+                    <a class="nav-link" href="comparison/comparison.html">
+                        Comparison Table
+                    </a>
+                </li>
+                
+
+                <li class="nav-item">
+                    <a class="nav-link" href="CONTRIBUTING.html">
+                        Contributing to cuNumeric
+                    </a>
+                </li>
+                
+            <div class="nav-item dropdown">
+                <button class="btn dropdown-toggle nav-item" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    More
+                </button>
+                <div class="dropdown-menu">
+                    
+                <li class="nav-item">
+                    <a class="nav-link" href="versions.html">
+                        Versions
+                    </a>
+                </li>
+                
+                </div>
+            </div>
+            
+    </ul>
+</nav>
+      </div>
+      
+      </div>
+    
+
+    
+    
+    <div class="sidebar-header-items__end">
+      
+      <div class="navbar-end-item">
+        <span class="theme-switch-button btn btn-sm btn-outline-primary navbar-btn rounded-circle">
+    <a class="theme-switch" data-mode="light"><i class="fas fa-sun"></i></a>
+    <a class="theme-switch" data-mode="dark"><i class="far fa-moon"></i></a>
+    <a class="theme-switch" data-mode="auto"><i class="fas fa-adjust"></i></a>
+</span>
+      </div>
+      
+      <div class="navbar-end-item">
+        <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+      </ul>
+      </div>
+      
+    </div>
+    
+  </div>
+
+  
+
+  
+  <div class="sidebar-end-items sidebar-primary__section">
+    <div class="sidebar-end-items__item">
+    </div>
+  </div>
+
+      </div>
+      <main class="bd-main">
+        
+        
+        <div class="bd-content">
+          <div class="bd-article-container">
+            
+            <div class="bd-header-article">
+                
+            </div>
+            
+            
+            <article class="bd-article" role="main">
+              
+  <!--
+Copyright 2021-2022 NVIDIA Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+--><section id="overview">
+<h1>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">#</a></h1>
+<p>The build system is designed to enable two different modes of use:</p>
+<ol class="simple">
+<li><p>Simple <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code> for users</p></li>
+<li><p>Highly customizable incremental builds for developers</p></li>
+</ol>
+<p>We review each of these modes with examples.</p>
+</section>
+<section id="building-for-users">
+<h1>Building for Users<a class="headerlink" href="#building-for-users" title="Permalink to this heading">#</a></h1>
+<section id="using-install-py">
+<h2>Using install.py<a class="headerlink" href="#using-install-py" title="Permalink to this heading">#</a></h2>
+<p>For releases &lt;= 22.07, the main method for building cuNumeric was the <code class="docutils literal notranslate"><span class="pre">install.py</span></code> script.
+Although the underlying implementation has significantly changed, <code class="docutils literal notranslate"><span class="pre">install.py</span></code> still supports the
+same usage and same set of flags. For a full list of flags, users can run:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ ./install.py --help
+</pre></div>
+</div>
+</section>
+<section id="using-conda">
+<h2>Using Conda<a class="headerlink" href="#using-conda" title="Permalink to this heading">#</a></h2>
+<p>cuNumeric can be installed using Conda by pointing to the required channels (<code class="docutils literal notranslate"><span class="pre">-c</span></code>):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">conda</span> <span class="n">install</span> <span class="o">-</span><span class="n">c</span> <span class="n">nvidia</span> <span class="o">-</span><span class="n">c</span> <span class="n">conda</span><span class="o">-</span><span class="n">forge</span> <span class="o">-</span><span class="n">c</span> <span class="n">legate</span> <span class="n">legate</span><span class="o">-</span><span class="n">core</span>
+</pre></div>
+</div>
+</section>
+<section id="using-pip">
+<h2>Using pip<a class="headerlink" href="#using-pip" title="Permalink to this heading">#</a></h2>
+<p>cuNumeric is not yet registered in a standard pip repository. However, users can still use the
+pip installer to build and install cuNumeric. After downloading or cloning the cunumeric source,
+users can run the following in the cunumeric folder:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install .
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python3 -m pip install .
+</pre></div>
+</div>
+<p>This will install cuNumeric in the standard packages directory for the environment Python.
+Note: This is currently not sufficient for running cuNumeric programs. cuNumeric relies
+on the <code class="docutils literal notranslate"><span class="pre">legate</span></code> launcher from Legate core, which must be installed separately.
+For details on installing Legate, consult the <a class="reference external" href="https://github.com/nv-legate/legate.core">Legate repository</a>.</p>
+<section id="advanced-customization">
+<h3>Advanced Customization<a class="headerlink" href="#advanced-customization" title="Permalink to this heading">#</a></h3>
+<p>If users need to customize details of the underlying CMake build, they can pass
+CMake flags through the <code class="docutils literal notranslate"><span class="pre">SKBUILD_CONFIGURE_OPTIONS</span></code> environment variable:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ SKBUILD_CONFIGURE_OPTIONS=&quot;-D Legion_USE_CUDA:BOOL=ON&quot; \
+  pip install .
+</pre></div>
+</div>
+<p>An alternative syntax using <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> with <code class="docutils literal notranslate"><span class="pre">scikit-build</span></code> is</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ python setup.py install -- -DLegion_USE_CUDA:BOOL=ON
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+<section id="building-for-developers">
+<h1>Building for Developers<a class="headerlink" href="#building-for-developers" title="Permalink to this heading">#</a></h1>
+<section id="id1">
+<h2>Overview<a class="headerlink" href="#id1" title="Permalink to this heading">#</a></h2>
+<p>pip uses <a class="reference external" href="https://scikit-build.readthedocs.io/en/latest/">scikit-build</a>
+in <code class="docutils literal notranslate"><span class="pre">setup.py</span></code> to drive the build and installation.  A <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code> will trigger three general actions:</p>
+<ol class="simple">
+<li><p>CMake build and installation of C++ libraries</p></li>
+<li><p>CMake generation of configuration files and build-dependent Python files</p></li>
+<li><p>pip installation of Python files</p></li>
+</ol>
+<p>The CMake build can be configured independently of <code class="docutils literal notranslate"><span class="pre">pip</span></code>, allowing incremental C++ builds directly through CMake.
+This simplifies rebuilding <code class="docutils literal notranslate"><span class="pre">libcunumeric.so</span></code> either via command-line or via IDE.
+After building the C++ libraries, the <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code> can be done in “editable” mode using the <code class="docutils literal notranslate"><span class="pre">-e</span></code> flag.
+This configures the Python site packages to import the Python source tree directly.
+The Python source can then be edited and used directly for testing without requiring a <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code>.</p>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this heading">#</a></h2>
+<p>There are several examples in the <code class="docutils literal notranslate"><span class="pre">scripts</span></code> folder. We walk through the steps in the <code class="docutils literal notranslate"><span class="pre">build-with-legate-separately-no-install.sh</span></code> here.
+We assume a pre-existing Legate CUDA build. For details on building Legate, consult the <a class="reference external" href="https://github.com/nv-legate/legate.core">Legate repository</a>.
+First, the CMake build needs to be configured:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cmake -S . -B build -GNinja -D legate_core_ROOT:STRING=path/to/legate/build
+</pre></div>
+</div>
+<p>We point cuNumeric to the Legate <em>build</em> tree, not an installation.
+This generates all build-dependent headers and Python files.
+Once configured, we can build the C++ libraries:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ cmake --build build
+</pre></div>
+</div>
+<p>This will invoke Ninja (or make) to execute the build.
+Once the C++ libraries are available, we can do an editable (development) pip installation.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ SKBUILD_BUILD_OPTIONS=&quot;-D FIND_CUNUMERIC_CPP=ON -D cunumeric_ROOT=$(pwd)/build&quot; \
+  python3 -m pip install \
+  --root / --no-deps --no-build-isolation 
+  --editable .
+</pre></div>
+</div>
+<p>The Python source tree and CMake build tree are now available with the environment Python
+for running cuNumeric programs. The diagram below illustrates the
+complete workflow for building both Legate core and cuNumeric.</p>
+<img src="docs/figures/developer-build.png" alt="drawing" width="600"/></section>
+</section>
+
+
+            </article>
+            
+            
+            
+            <footer class="bd-footer-article">
+                <!-- Previous / next buttons -->
+<div class='prev-next-area'>
+  <a class='left-prev' id="prev-link" href="README.html" title="previous page">
+      <i class="fas fa-angle-left"></i>
+      <div class="prev-next-info">
+          <p class="prev-next-subtitle">previous</p>
+          <p class="prev-next-title">cuNumeric</p>
+      </div>
+  </a>
+  <a class='right-next' id="next-link" href="api/index.html" title="next page">
+  <div class="prev-next-info">
+      <p class="prev-next-subtitle">next</p>
+      <p class="prev-next-title">API Reference</p>
+  </div>
+  <i class="fas fa-angle-right"></i>
+  </a>
+</div>
+            </footer>
+            
+          </div>
+          
+          
+          
+            <div class="bd-sidebar-secondary bd-toc">
+              
+<div class="toc-item">
+  
+<div class="tocsection onthispage">
+    <i class="fas fa-list"></i> On this page
+</div>
+<nav id="bd-toc-nav" class="page-toc">
+    <ul class="visible nav section-nav flex-column">
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#">
+   Overview
+  </a>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#building-for-users">
+   Building for Users
+  </a>
+  <ul class="visible nav section-nav flex-column">
+   <li class="toc-h2 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#using-install-py">
+     Using install.py
+    </a>
+   </li>
+   <li class="toc-h2 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#using-conda">
+     Using Conda
+    </a>
+   </li>
+   <li class="toc-h2 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#using-pip">
+     Using pip
+    </a>
+    <ul class="nav section-nav flex-column">
+     <li class="toc-h3 nav-item toc-entry">
+      <a class="reference internal nav-link" href="#advanced-customization">
+       Advanced Customization
+      </a>
+     </li>
+    </ul>
+   </li>
+  </ul>
+ </li>
+ <li class="toc-h1 nav-item toc-entry">
+  <a class="reference internal nav-link" href="#building-for-developers">
+   Building for Developers
+  </a>
+  <ul class="visible nav section-nav flex-column">
+   <li class="toc-h2 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#id1">
+     Overview
+    </a>
+   </li>
+   <li class="toc-h2 nav-item toc-entry">
+    <a class="reference internal nav-link" href="#example">
+     Example
+    </a>
+   </li>
+  </ul>
+ </li>
+</ul>
+
+</nav>
+</div>
+
+<div class="toc-item">
+  
+</div>
+
+<div class="toc-item">
+  
+<div class="tocsection sourcelink">
+    <a href="_sources/BUILD.md.txt">
+        <i class="fas fa-file-alt"></i> Show Source
+    </a>
+</div>
+
+</div>
+
+            </div>
+          
+          
+        </div>
+        <footer class="bd-footer-content">
+          <div class="bd-footer-content__inner">
+            
+          </div>
+        </footer>
+        
+      </main>
+    </div>
+  </div>
+
+  
+    
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/pydata-sphinx-theme.js?digest=9b1a4fa89bdd0e95b23b"></script>
+
+  <footer class="bd-footer"><div class="bd-footer__inner container">
+  
+  <div class="footer-item">
+    
+<p class="copyright">
+
+    &copy; Copyright 2021-2022, NVIDIA.<br>
+
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+<p class="sphinx-version">
+Created using <a href="http://sphinx-doc.org/">Sphinx</a> 5.2.1.<br>
+</p>
+
+  </div>
+  
+</div>
+  </footer>
+  </body>
+</html>

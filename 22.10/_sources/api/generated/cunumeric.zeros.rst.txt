@@ -1,0 +1,6 @@
+﻿cunumeric.zeros
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: zeros

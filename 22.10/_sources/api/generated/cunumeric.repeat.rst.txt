@@ -1,0 +1,6 @@
+﻿cunumeric.repeat
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: repeat

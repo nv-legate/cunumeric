@@ -1,0 +1,6 @@
+﻿cunumeric.not\_equal
+====================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: not_equal

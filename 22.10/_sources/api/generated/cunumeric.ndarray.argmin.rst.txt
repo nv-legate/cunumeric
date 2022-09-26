@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.argmin
+========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.argmin

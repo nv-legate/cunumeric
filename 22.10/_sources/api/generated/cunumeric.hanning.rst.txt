@@ -1,0 +1,6 @@
+﻿cunumeric.hanning
+=================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: hanning

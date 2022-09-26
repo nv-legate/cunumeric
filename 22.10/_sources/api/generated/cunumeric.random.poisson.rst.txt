@@ -1,0 +1,6 @@
+﻿cunumeric.random.poisson
+========================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: poisson

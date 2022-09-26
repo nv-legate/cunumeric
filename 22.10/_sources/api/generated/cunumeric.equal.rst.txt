@@ -1,0 +1,6 @@
+﻿cunumeric.equal
+===============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: equal
