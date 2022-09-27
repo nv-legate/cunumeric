@@ -1677,14 +1677,18 @@ class DeferredArray(NumPyThunk):
                 values.base.kind == Future
             )
         if self.base.kind == Future or self.base.transformed:
-            self = self.copy(self, deep=True)
+            self_tmp = self._convert_future_to_regionfield(
+                self.base.kind == Future
+            )
+        else:
+            self_tmp = self
 
         assert indices.size == values.size
 
         # first, we create indirect array with PointN type that
         # (indices.size,) shape and is used to copy data from values
         # to the target ND array (self)
-        N = self.ndim
+        N = self_tmp.ndim
         pointN_dtype = self.runtime.get_point_type(N)
         indirect = cast(
             DeferredArray,
@@ -1697,7 +1701,7 @@ class DeferredArray(NumPyThunk):
 
         task = self.context.create_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
-        task.add_scalar_arg(self.shape, (ty.int64,))
+        task.add_scalar_arg(self_tmp.shape, (ty.int64,))
         task.add_scalar_arg(True, bool)  # has_input
         task.add_input(indices.base)
         task.add_alignment(indices.base, indirect.base)
@@ -1709,8 +1713,11 @@ class DeferredArray(NumPyThunk):
         copy.set_target_indirect_out_of_range(False)
         copy.add_input(values.base)
         copy.add_target_indirect(indirect.base)
-        copy.add_output(self.base)
+        copy.add_output(self_tmp.base)
         copy.execute()
+
+        if self_tmp is not self:
+            self.copy(self_tmp, deep=True)
 
     # Create an identity array with the ones offset from the diagonal by k
     def eye(self, k: int) -> None:
