@@ -1670,7 +1670,16 @@ class DeferredArray(NumPyThunk):
         # First issue a fill to zero everything out
         self.fill(np.array(0, dtype=self.dtype))
 
+        # We need to add the store we're filling as an input as well, so we get
+        # read-write privileges rather than write-discard. That's because we
+        # cannot create tight region requirements that include just the
+        # diagonal, so necessarily there will be elements in the region whose
+        # values must be carried over from the previous contents. Write-discard
+        # privilege, then, is not appropriate for this call, as it essentially
+        # tells the runtime that it can throw away the previous contents of the
+        # entire region.
         task = self.context.create_auto_task(CuNumericOpCode.EYE)
+        task.add_input(self.base)
         task.add_output(self.base)
         task.add_scalar_arg(k, ty.int32)
 
