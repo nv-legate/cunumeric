@@ -2005,7 +2005,7 @@ class ndarray:
         if not np.issubdtype(self.dtype, np.integer):
             raise TypeError("a array should be integer type")
         if self.dtype != np.int64:
-            a = a._warn_and_convert(np.int64)
+            a = a.astype(np.int64)
         if mode == "raise":
             if (a < 0).any() | (a >= n).any():
                 raise ValueError("invalid entry in choice array")
@@ -3387,9 +3387,9 @@ class ndarray:
             ch_dtype = np.find_common_type([a.dtype, v_ndarray.dtype], [])
 
             if v_ndarray.dtype != ch_dtype:
-                v_ndarray = v_ndarray._warn_and_convert(ch_dtype)
+                v_ndarray = v_ndarray.astype(ch_dtype)
             if a.dtype != ch_dtype:
-                a = a._warn_and_convert(ch_dtype)
+                a = a.astype(ch_dtype)
 
         if sorter is not None and a.shape[0] > 1:
             if sorter.ndim != 1:

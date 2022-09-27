@@ -2505,7 +2505,7 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     if mask_reshape.dtype == bool:
         arr._thunk.set_item(mask_reshape._thunk, vals_resized._thunk)
     else:
-        bool_mask = mask_reshape._warn_and_convert(bool)
+        bool_mask = mask_reshape.astype(bool)
         arr._thunk.set_item(bool_mask._thunk, vals_resized._thunk)
 
 
@@ -2547,7 +2547,7 @@ def extract(condition: ndarray, arr: ndarray) -> ndarray:
     if condition_reshape.dtype == bool:
         thunk = arr._thunk.get_item(condition_reshape._thunk)
     else:
-        bool_condition = condition_reshape._warn_and_convert(bool)
+        bool_condition = condition_reshape.astype(bool)
         thunk = arr._thunk.get_item(bool_condition._thunk)
 
     return ndarray(shape=thunk.shape, thunk=thunk)
@@ -5444,7 +5444,7 @@ def convolve(a: ndarray, v: ndarray, mode: ConvolveMode = "full") -> ndarray:
         v, a = a, v
 
     if a.dtype != v.dtype:
-        v = v._warn_and_convert(a.dtype)
+        v = v.astype(a.dtype)
     out = ndarray(
         shape=a.shape,
         dtype=a.dtype,
@@ -6168,7 +6168,7 @@ def bincount(
         if weights.dtype.kind == "c":
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
-        weights = weights._warn_and_convert(np.float64)
+        weights = weights.astype(np.float64)
     if x.dtype.kind != "i" and x.dtype.kind != "u":
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:
