@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import os
 from argparse import Namespace
-from pathlib import Path, PurePath
+from pathlib import Path
 
 from . import DEFAULT_PROCESS_ENV, FEATURES, SKIPPED_EXAMPLES, FeatureType
 from .args import parser
@@ -78,11 +78,11 @@ class Config:
         return self._extra_args
 
     @property
-    def root_dir(self) -> PurePath:
+    def root_dir(self) -> Path:
         """Path to the directory containing the tests."""
         if self.test_root:
-            return PurePath(self.test_root)
-        return PurePath(__file__).parents[2]
+            return Path(self.test_root)
+        return Path(__file__).parents[2]
 
     @property
     def test_files(self) -> tuple[Path, ...]:
@@ -100,17 +100,29 @@ class Config:
 
         if self.examples:
             examples = (
-                path
-                for path in Path("examples").glob("*.py")
-                if str(path) not in SKIPPED_EXAMPLES
+                path.relative_to(self.root_dir)
+                for path in self.root_dir.joinpath("examples").glob("*.py")
+                if str(path.relative_to(self.root_dir)) not in SKIPPED_EXAMPLES
             )
             files.extend(sorted(examples))
 
         if self.integration:
-            files.extend(sorted(Path("tests/integration").glob("*.py")))
+            integration_tests = (
+                path.relative_to(self.root_dir)
+                for path in self.root_dir.joinpath("tests/integration").glob(
+                    "*.py"
+                )
+            )
+            files.extend(sorted(integration_tests))
 
         if self.unit:
-            files.extend(sorted(Path("tests/unit/").glob("**/*.py")))
+            unit_tests = (
+                path.relative_to(self.root_dir)
+                for path in self.root_dir.joinpath("tests/unit").glob(
+                    "**/*.py"
+                )
+            )
+            files.extend(sorted(unit_tests))
 
         return tuple(files)
 
