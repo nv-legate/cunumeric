@@ -44,8 +44,7 @@ def test_diag_indices(n, ndim):
 class TestDiagIndicesErrors:
     @pytest.mark.parametrize("n", [-10.5, -1])
     def test_negative_n(self, n):
-        msg = "Invalid shape"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             cn.diag_indices(n)
 
     @pytest.mark.xfail
