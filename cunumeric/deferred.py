@@ -1677,9 +1677,7 @@ class DeferredArray(NumPyThunk):
                 values.base.kind == Future
             )
         if self.base.kind == Future or self.base.transformed:
-            self = self._convert_future_to_regionfield(
-                self.base.kind == Future
-            )
+            self = self.copy(self, deep=True)
 
         assert indices.size == values.size
 

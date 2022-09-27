@@ -15,10 +15,10 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from utils.generators import mk_seq_array
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
 
 
 @pytest.mark.parametrize("mode", ("wrap", "clip"))
@@ -35,6 +35,13 @@ def test_scalar(mode):
 
     np.put(x, 1, -10, mode)
     num.put(x_num, 1, -10, mode)
+    assert np.array_equal(x_num, x)
+
+    # checking transformed array
+    y = x[:1]
+    y_num = x_num[:1]
+    np.put(y, 0, values)
+    num.put(y_num, 0, values_num)
     assert np.array_equal(x_num, x)
 
 

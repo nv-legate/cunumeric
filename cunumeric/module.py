@@ -2387,11 +2387,7 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
     else:
         # repeats should be integer type
         if repeats.dtype != np.int64:
-            runtime.warn(
-                "converting repeats to an integer type",
-                category=RuntimeWarning,
-            )
-        repeats = repeats.astype(np.int64)
+            repeats = repeats._warn_and_convert(np.int64)
         if repeats.shape[0] != array.shape[axis]:
             raise ValueError("incorrect shape of repeats array")
         result = array._thunk.repeat(
@@ -2509,7 +2505,7 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     if mask_reshape.dtype == bool:
         arr._thunk.set_item(mask_reshape._thunk, vals_resized._thunk)
     else:
-        bool_mask = mask_reshape.astype(bool)
+        bool_mask = mask_reshape._warn_and_convert(bool)
         arr._thunk.set_item(bool_mask._thunk, vals_resized._thunk)
 
 
@@ -2551,7 +2547,7 @@ def extract(condition: ndarray, arr: ndarray) -> ndarray:
     if condition_reshape.dtype == bool:
         thunk = arr._thunk.get_item(condition_reshape._thunk)
     else:
-        bool_condition = condition_reshape.astype(bool)
+        bool_condition = condition_reshape._warn_and_convert(bool)
         thunk = arr._thunk.get_item(bool_condition._thunk)
 
     return ndarray(shape=thunk.shape, thunk=thunk)
@@ -3454,7 +3450,8 @@ def put(
     a: ndarray, indices: ndarray, values: ndarray, mode: str = "raise"
 ) -> None:
     """
-    Set storage-indexed locations to corresponding values.
+    Replaces specified elements of an array with given values.
+    The indexing works as if the target array is first flattened.
 
     Parameters
     ----------
@@ -3463,7 +3460,8 @@ def put(
     indices : array_like
         Target indices, interpreted as integers.
     values : array_like
-        Values to place in `a` at target indices.
+        Values to place in `a` at target indices. If values array is shorter
+        than indices, it will be repeated as necessary.
     mode : {'raise', 'wrap', 'clip'}, optional
         Specifies how out-of-bounds indices will behave.
         'raise' : raise an error.
@@ -5446,7 +5444,7 @@ def convolve(a: ndarray, v: ndarray, mode: ConvolveMode = "full") -> ndarray:
         v, a = a, v
 
     if a.dtype != v.dtype:
-        v = v.astype(a.dtype)
+        v = v._warn_and_convert(a.dtype)
     out = ndarray(
         shape=a.shape,
         dtype=a.dtype,
@@ -6170,7 +6168,7 @@ def bincount(
         if weights.dtype.kind == "c":
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
-        weights = weights.astype(np.float64)
+        weights = weights._warn_and_convert(np.float64)
     if x.dtype.kind != "i" and x.dtype.kind != "u":
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:

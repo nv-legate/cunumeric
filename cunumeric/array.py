@@ -2005,7 +2005,7 @@ class ndarray:
         if not np.issubdtype(self.dtype, np.integer):
             raise TypeError("a array should be integer type")
         if self.dtype != np.int64:
-            a = a.astype(np.int64)
+            a = a._warn_and_convert(np.int64)
         if mode == "raise":
             if (a < 0).any() | (a >= n).any():
                 raise ValueError("invalid entry in choice array")
@@ -2461,11 +2461,13 @@ class ndarray:
         self, indices: ndarray, values: ndarray, mode: str = "raise"
     ) -> None:
         """
-        Set storage-indexed locations to corresponding values.
+        Replaces specified elements of the array with given values.
+
+        Refer to :func:`cunumeric.put` for full documentation.
 
         See Also
         --------
-         numpy.put
+        cunumeric.put : equivalent function
 
         Availability
         --------
@@ -2478,8 +2480,8 @@ class ndarray:
 
         if mode not in ("raise", "wrap", "clip"):
             raise ValueError(
-                "clipmode must be one of 'clip', 'raise', or 'wrap' "
-                f"(get  {mode})"
+                "mode must be one of 'clip', 'raise', or 'wrap' "
+                f"(got  {mode})"
             )
 
         if mode == "wrap":
@@ -3385,9 +3387,9 @@ class ndarray:
             ch_dtype = np.find_common_type([a.dtype, v_ndarray.dtype], [])
 
             if v_ndarray.dtype != ch_dtype:
-                v_ndarray = v_ndarray.astype(ch_dtype)
+                v_ndarray = v_ndarray._warn_and_convert(ch_dtype)
             if a.dtype != ch_dtype:
-                a = a.astype(ch_dtype)
+                a = a._warn_and_convert(ch_dtype)
 
         if sorter is not None and a.shape[0] > 1:
             if sorter.ndim != 1:

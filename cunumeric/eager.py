@@ -620,6 +620,7 @@ class EagerArray(NumPyThunk):
                 self.array = diagonal_reference(rhs.array, axes)
 
     def put(self, indices: Any, values: Any) -> None:
+        self.check_eager_args(indices, values)
         if self.deferred is not None:
             self.deferred.put(indices, values)
         else:
