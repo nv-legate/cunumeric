@@ -15,9 +15,9 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
 
 ARG_FUNCS = ("argmax", "argmin")
 

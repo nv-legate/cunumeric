@@ -17,9 +17,12 @@
 #pragma once
 
 // Useful for IDEs
+#include <core/utilities/typedefs.h>
+#include "cunumeric/cunumeric.h"
 #include "cunumeric/unary/scalar_unary_red.h"
 #include "cunumeric/unary/unary_red_util.h"
 #include "cunumeric/pitches.h"
+#include "cunumeric/execution_policy/reduction/scalar_reduction.h"
 
 namespace cunumeric {
 
@@ -27,79 +30,101 @@ using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
-struct ScalarUnaryRedImplBody;
+struct ScalarUnaryRed {
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using LHS   = typename OP::VAL;
+  using RHS   = legate_type_of<CODE>;
+  using OUT   = AccessorRD<LG_OP, true, 1>;
+  using IN    = AccessorRO<RHS, DIM>;
 
-template <VariantKind KIND, UnaryRedCode OP_CODE>
-struct ScalarUnaryRedImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
-  void operator()(ScalarUnaryRedArgs& args) const
+  IN in;
+  const RHS* inptr;
+  OUT out;
+  size_t volume;
+  Pitches<DIM - 1> pitches;
+  Rect<DIM> rect;
+  Point<DIM> origin;
+  Point<DIM> shape;
+  RHS to_find;
+  bool dense;
+
+  struct DenseReduction {};
+  struct SparseReduction {};
+
+  ScalarUnaryRed(ScalarUnaryRedArgs& args) : dense(false)
   {
-    using OP    = UnaryRedOp<OP_CODE, CODE>;
-    using LG_OP = typename OP::OP;
-    using RHS   = legate_type_of<CODE>;
+    rect   = args.in.shape<DIM>();
+    origin = rect.lo;
+    in     = args.in.read_accessor<RHS, DIM>(rect);
+    volume = pitches.flatten(rect);
+    shape  = args.shape;
 
-    auto rect = args.in.shape<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (0 == volume) return;
-
-    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
-    auto in  = args.in.read_accessor<RHS, DIM>(rect);
+    out = args.out.reduce_accessor<LG_OP, true, 1>();
+    if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
 
 #ifndef LEGION_BOUNDS_CHECKS
     // Check to see if this is dense or not
-    bool dense = in.accessor.is_dense_row_major(rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
+    if (in.accessor.is_dense_row_major(rect)) {
+      dense = true;
+      inptr = in.ptr(rect);
+    }
 #endif
-
-    ScalarUnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
-      OP{}, out, in, rect, pitches, dense, args.shape);
   }
 
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
-  void operator()(ScalarUnaryRedArgs& args) const
+  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, DenseReduction) const noexcept
   {
-    assert(false);
+    if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
+      if (inptr[idx] == to_find) { lhs = true; }
+    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
+    } else {
+      OP::template fold<true>(lhs, OP::convert(inptr[idx]));
+    }
+  }
+
+  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, SparseReduction) const noexcept
+  {
+    if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
+      auto point = pitches.unflatten(idx, origin);
+      if (in[point] == to_find) { lhs = true; }
+    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
+    } else {
+      auto p = pitches.unflatten(idx, origin);
+      OP::template fold<true>(lhs, OP::convert(in[p]));
+    }
+  }
+
+  void execute() const noexcept
+  {
+#ifndef LEGION_BOUNDS_CHECKS
+    auto identity = LG_OP::identity;
+    // The constexpr if here prevents the DenseReduction from being instantiated for GPU kernels
+    // which limits compile times and binary sizes.
+    if constexpr (KIND != VariantKind::GPU) {
+      // Check to see if this is dense or not
+      if (dense) {
+        return ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
+      }
+    }
+#endif
+    return ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
   }
 };
 
-template <VariantKind KIND>
-struct ScalarUnaryRedImpl<KIND, UnaryRedCode::CONTAINS> {
+template <VariantKind KIND, UnaryRedCode OP_CODE>
+struct ScalarUnaryRedImpl {
   template <LegateTypeCode CODE, int DIM>
   void operator()(ScalarUnaryRedArgs& args) const
   {
-    using OP    = UnaryRedOp<UnaryRedCode::SUM, LegateTypeCode::BOOL_LT>;
-    using LG_OP = typename OP::OP;
-    using RHS   = legate_type_of<CODE>;
-
-    auto rect = args.in.shape<DIM>();
-
-    Pitches<DIM - 1> pitches;
-    size_t volume = pitches.flatten(rect);
-
-    if (0 == volume) return;
-
-    auto out = args.out.reduce_accessor<LG_OP, true, 1>();
-    auto in  = args.in.read_accessor<RHS, DIM>(rect);
-
-#ifndef LEGION_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    bool dense = in.accessor.is_dense_row_major(rect);
-#else
-    // No dense execution if we're doing bounds checks
-    bool dense = false;
-#endif
-
-    ScalarUnaryRedImplBody<KIND, UnaryRedCode::CONTAINS, CODE, DIM>()(
-      out, in, args.args[0], rect, pitches, dense);
+    // The operation is always valid for contains
+    if constexpr (UnaryRedOp<OP_CODE, CODE>::valid || OP_CODE == UnaryRedCode::CONTAINS) {
+      ScalarUnaryRed<KIND, OP_CODE, CODE, DIM> red(args);
+      red.execute();
+    }
   }
 };
 

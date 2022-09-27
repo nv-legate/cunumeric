@@ -19,13 +19,12 @@ import warnings
 from functools import reduce
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
-import numpy as np
-from legate.rc import ArgSpec, Argument, parse_command_args
-from typing_extensions import TypeGuard
-
 import legate.core.types as ty
+import numpy as np
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 from legate.core.context import Context as LegateContext
+from legate.rc import ArgSpec, Argument, parse_command_args
+from typing_extensions import TypeGuard
 
 from .config import (
     _CUNUMERIC_DTYPES,
@@ -44,7 +43,6 @@ from .utils import calculate_volume, find_last_user_stacklevel, get_arg_dtype
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-
     from legate.core._legion.future import Future
     from legate.core.operation import AutoTask, ManualTask
 

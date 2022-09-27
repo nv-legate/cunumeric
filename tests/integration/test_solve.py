@@ -64,6 +64,18 @@ def test_solve_2d(n, a_dtype, b_dtype):
     assert allclose(b, num.matmul(a, out), rtol=rtol, atol=atol)
 
 
+def test_solve_corner_cases():
+    a = num.random.rand(1, 1)
+    b = num.random.rand(1)
+
+    out = num.linalg.solve(a, b)
+    assert allclose(b, num.matmul(a, out))
+
+    b = num.random.rand(1, 1)
+    out = num.linalg.solve(a, b)
+    assert allclose(b, num.matmul(a, out))
+
+
 if __name__ == "__main__":
     import sys
 

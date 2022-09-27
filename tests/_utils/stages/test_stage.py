@@ -169,7 +169,10 @@ class TestStage(Protocol):
             details=(
                 "* Results      : "
                 + yellow(
-                    f"{passed} / {total} files passed ({passed/total*100:0.1f}%)"  # noqa E500
+                    f"{passed} / {total} files passed "  # noqa E500
+                    f"({passed/total*100:0.1f}%)"
+                    if total > 0
+                    else "0 tests are running, Please check "
                 ),
                 "* Elapsed time : " + yellow(f"{self.result.time}"),
             ),

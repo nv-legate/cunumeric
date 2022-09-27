@@ -17,10 +17,9 @@
 """
 from __future__ import annotations
 
-import json
 import os
 from argparse import Namespace
-from pathlib import Path, PurePath
+from pathlib import Path
 
 from . import DEFAULT_PROCESS_ENV, FEATURES, SKIPPED_EXAMPLES, FeatureType
 from .args import parser
@@ -79,11 +78,11 @@ class Config:
         return self._extra_args
 
     @property
-    def root_dir(self) -> PurePath:
+    def root_dir(self) -> Path:
         """Path to the directory containing the tests."""
         if self.test_root:
-            return PurePath(self.test_root)
-        return PurePath(__file__).parents[2]
+            return Path(self.test_root)
+        return Path(__file__).parents[2]
 
     @property
     def test_files(self) -> tuple[Path, ...]:
@@ -101,24 +100,38 @@ class Config:
 
         if self.examples:
             examples = (
-                path
-                for path in Path("examples").glob("*.py")
-                if str(path) not in SKIPPED_EXAMPLES
+                path.relative_to(self.root_dir)
+                for path in self.root_dir.joinpath("examples").glob("*.py")
+                if str(path.relative_to(self.root_dir)) not in SKIPPED_EXAMPLES
             )
             files.extend(sorted(examples))
 
         if self.integration:
-            files.extend(sorted(Path("tests/integration").glob("*.py")))
+            integration_tests = (
+                path.relative_to(self.root_dir)
+                for path in self.root_dir.joinpath("tests/integration").glob(
+                    "*.py"
+                )
+            )
+            files.extend(sorted(integration_tests))
 
         if self.unit:
-            files.extend(sorted(Path("tests/unit/").glob("**/*.py")))
+            unit_tests = (
+                path.relative_to(self.root_dir)
+                for path in self.root_dir.joinpath("tests/unit").glob(
+                    "**/*.py"
+                )
+            )
+            files.extend(sorted(unit_tests))
 
         return tuple(files)
 
     @property
-    def legate_path(self) -> Path:
+    def legate_path(self) -> str:
         """Computed path to the legate driver script"""
-        return self.legate_dir / "bin" / "legate"
+        if self.legate_dir is None:
+            return "legate"
+        return str(self.legate_dir / "bin" / "legate")
 
     def _compute_features(self, args: Namespace) -> tuple[FeatureType, ...]:
         if args.features is not None:
@@ -137,40 +150,12 @@ class Config:
         return tuple(computed)
 
     def _compute_legate_dir(self, args: Namespace) -> Path:
-        legate_dir: Path | None
-
         # self._legate_source below is purely for testing
-
         if args.legate_dir:
-            legate_dir = Path(args.legate_dir)
             self._legate_source = "cmd"
-
+            return Path(args.legate_dir)
         elif "LEGATE_DIR" in os.environ:
-            legate_dir = Path(os.environ["LEGATE_DIR"])
             self._legate_source = "env"
-
-        # TODO: (bryevdv) This will need to change when cmake work is merged
-        else:
-            try:
-                config_path = (
-                    PurePath(__file__).parents[2] / ".legate.core.json"
-                )
-                with open(config_path, "r") as f:
-                    legate_dir = Path(json.load(f))
-                    self._legate_source = "build"
-            except IOError:
-                legate_dir = None
-
-        if legate_dir is None:
-            raise RuntimeError(
-                "You need to provide a Legate installation directory "
-                "using --legate, LEGATE_DIR or config file"
-            )
-
-        if not legate_dir.exists():
-            raise RuntimeError(
-                f"The specified Legate installation directory {legate_dir} "
-                "does not exist"
-            )
-
-        return legate_dir
+            return Path(os.environ["LEGATE_DIR"])
+        self._legate_source = "install"
+        return None
