@@ -33,11 +33,11 @@ from typing import (
     cast,
 )
 
-import numpy as np
-from typing_extensions import ParamSpec
-
 import legate.core.types as ty
+import numpy as np
 from legate.core import Future, ReductionOp, Store
+from numpy.core.numeric import normalize_axis_tuple  # type: ignore
+from typing_extensions import ParamSpec
 
 from .config import (
     BinaryOpCode,
@@ -52,13 +52,13 @@ from .config import (
     UnaryRedCode,
 )
 from .linalg.cholesky import cholesky
+from .linalg.solve import solve
 from .sort import sort
 from .thunk import NumPyThunk
 from .utils import is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-
     from legate.core import FieldID, Region
     from legate.core.operation import AutoTask, ManualTask
 
@@ -1295,21 +1295,24 @@ class DeferredArray(NumPyThunk):
     # Fill the cuNumeric array with the value in the numpy array
     def _fill(self, value: Any) -> None:
         assert value.scalar
+        assert self.base is not None
 
         if self.scalar:
             # Handle the 0D case special
             self.base.set_storage(value.storage)
+        elif self.dtype.kind != "V" and self.base.kind is not Future:
+            # Emit a Legion fill
+            fill = self.context.create_fill(self.base, value)
+            fill.execute()
         else:
-            assert self.base is not None
+            # Perform the fill using a task
             # If this is a fill for an arg value, make sure to pass
             # the value dtype so that we get it packed correctly
             argval = self.dtype.kind == "V"
-
             task = self.context.create_auto_task(CuNumericOpCode.FILL)
             task.add_output(self.base)
             task.add_input(value)
             task.add_scalar_arg(argval, bool)
-
             task.execute()
 
     def fill(self, numpy_array: Any) -> None:
@@ -1717,7 +1720,16 @@ class DeferredArray(NumPyThunk):
         # First issue a fill to zero everything out
         self.fill(np.array(0, dtype=self.dtype))
 
+        # We need to add the store we're filling as an input as well, so we get
+        # read-write privileges rather than write-discard. That's because we
+        # cannot create tight region requirements that include just the
+        # diagonal, so necessarily there will be elements in the region whose
+        # values must be carried over from the previous contents. Write-discard
+        # privilege, then, is not appropriate for this call, as it essentially
+        # tells the runtime that it can throw away the previous contents of the
+        # entire region.
         task = self.context.create_auto_task(CuNumericOpCode.EYE)
+        task.add_input(self.base)
         task.add_output(self.base)
         task.add_scalar_arg(k, ty.int32)
 
@@ -1822,18 +1834,16 @@ class DeferredArray(NumPyThunk):
     def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         input = rhs.base
         output = self.base
-        normalized_axes = (
-            tuple(range(self.ndim))
-            if axes is None
-            else (axes,)
-            if not isinstance(axes, tuple)
-            else axes
-        )
+
+        if axes is None:
+            axes = tuple(range(self.ndim))
+        else:
+            axes = normalize_axis_tuple(axes, self.ndim)
 
         task = self.context.create_auto_task(CuNumericOpCode.FLIP)
         task.add_output(output)
         task.add_input(input)
-        task.add_scalar_arg(normalized_axes, (ty.int32,))
+        task.add_scalar_arg(axes, (ty.int32,))
 
         task.add_broadcast(input)
         task.add_alignment(input, output)
@@ -3181,6 +3191,10 @@ class DeferredArray(NumPyThunk):
     @auto_convert([1])
     def cholesky(self, src: Any, no_tril: bool = False) -> None:
         cholesky(self, src, no_tril)
+
+    @auto_convert([1, 2])
+    def solve(self, a: Any, b: Any) -> None:
+        solve(self, a, b)
 
     @auto_convert([2])
     def scan(

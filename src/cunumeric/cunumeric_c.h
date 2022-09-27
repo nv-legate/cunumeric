@@ -17,9 +17,8 @@
 #ifndef __CUNUMERIC_C_H__
 #define __CUNUMERIC_C_H__
 
-#include "legate_preamble.h"
-
 #ifndef LEGATE_USE_PYTHON_CFFI
+#include "legate_preamble.h"
 #include "core/legate_c.h"
 #endif
 
@@ -58,6 +57,7 @@ enum CuNumericOpCode {
   CUNUMERIC_REPEAT,
   CUNUMERIC_SCALAR_UNARY_RED,
   CUNUMERIC_SEARCHSORTED,
+  CUNUMERIC_SOLVE,
   CUNUMERIC_SORT,
   CUNUMERIC_SYRK,
   CUNUMERIC_TILE,

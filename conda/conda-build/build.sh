@@ -1,34 +1,56 @@
-install_args=()
+#!/bin/bash
+
+set -x;
+
+# Rewrite conda's -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY to
+#                 -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
+CMAKE_ARGS="$(echo "$CMAKE_ARGS" | sed -r "s@_INCLUDE=ONLY@_INCLUDE=BOTH@g")"
+
+# Add our options to conda's CMAKE_ARGS
+CMAKE_ARGS+="
+--log-level=VERBOSE"
 
 # We rely on an environment variable to determine if we need to build cpu-only bits
 if [ -z "$CPU_ONLY" ]; then
   # cutensor, relying on the conda cutensor package
-  install_args+=("--with-cutensor" "$PREFIX")
+  CMAKE_ARGS+="
+-Dcutensor_DIR=$PREFIX
+-DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;86
+"
 else
   # When we build without cuda, we need to provide the location of curand
-  install_args+=("--with-curand" "$PREFIX")
+  CMAKE_ARGS+="
+-Dcunumeric_cuRAND_INCLUDE_DIR=$PREFIX
+"
 fi
 
-# location of legate-core
-install_args+=("--with-core" "$PREFIX")
+# Do not compile with NDEBUG until Legion handles it without warnings
+export CFLAGS="-UNDEBUG"
+export CXXFLAGS="-UNDEBUG"
+export CPPFLAGS="-UNDEBUG"
+export CUDAFLAGS="-UNDEBUG"
+export CMAKE_GENERATOR=Ninja
+export CUDAHOSTCXX=${CXX}
 
-# location of openblas, relying on the conda openblas package
-install_args+=("--with-openblas" "$PREFIX")
+cmake -S . -B build ${CMAKE_ARGS}
+cmake --build build -j$CPU_COUNT
+cmake --install build
 
-# Verbose mode
-install_args+=("-v")
+CMAKE_ARGS="
+-DFIND_CUNUMERIC_CPP=ON
+-Dcunumeric_ROOT=$PREFIX
+"
 
-# Move the stub library into the lib package to make the install think it's pointing at a live installation
-if [ -z "$CPU_ONLY" ]; then
-  cp $PREFIX/lib/stubs/libcuda.so $PREFIX/lib/libcuda.so
-  ln -s $PREFIX/lib $PREFIX/lib64
-fi
+SKBUILD_BUILD_OPTIONS=-j$CPU_COUNT \
+$PYTHON -m pip install             \
+  --root /                         \
+  --no-deps                        \
+  --prefix "$PREFIX"               \
+  --no-build-isolation             \
+  --cache-dir "$PIP_CACHE_DIR"     \
+  --disable-pip-version-check      \
+  . -vv
 
-echo "Install command: $PYTHON install.py ${install_args[@]}"
-$PYTHON install.py "${install_args[@]}"
-
-# Remove the stub library and linking
-if [ -z "$CPU_ONLY" ]; then
-  rm $PREFIX/lib/libcuda.so
-  rm $PREFIX/lib64
-fi
+# Legion leaves an egg-info file which will confuse conda trying to pick up the information
+# Remove it so the legate-core is the only egg-info file added
+rm -rf $SP_DIR/legion*egg-info

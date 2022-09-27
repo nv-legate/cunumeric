@@ -18,10 +18,13 @@ import numpy as np
 import cunumeric as num
 
 
-def compare_array(a, b):
+def compare_array(a, b, check_type=True):
     """
     Compare two array using zip method.
     """
+    if check_type:
+        if a.dtype != b.dtype:
+            return False, [a, b]
 
     if len(a) != len(b):
         return False, [a, b]
@@ -32,27 +35,34 @@ def compare_array(a, b):
     return True, None
 
 
-def check_array_method(fn, args, kwargs, print_msg):
+def check_array_method(fn, args, kwargs, print_msg, check_type=True):
     """
     Run np.func and num.func respectively and compare results
     """
 
-    a = getattr(num, fn)(*args, **kwargs)
-    b = getattr(np, fn)(*args, **kwargs)
-
-    is_equal, err_arr = compare_array(a, b)
-
-    assert is_equal, (
-        f"Failed, {print_msg}\n"
-        f"numpy result: {err_arr[0]}, {a.shape}\n"
-        f"cunumeric_result: {err_arr[1]}, {b.shape}\n"
-        f"cunumeric and numpy shows"
-        f" different result\n"
-    )
+    a = getattr(np, fn)(*args, **kwargs)
+    b = getattr(num, fn)(*args, **kwargs)
 
     if isinstance(a, list):
+        is_equal, err_arr = compare_array(a, b, check_type=False)
+        assert is_equal, (
+            f"Failed, {print_msg}\n"
+            f"numpy result: {err_arr[0]}\n"
+            f"cunumeric_result: {err_arr[1]}\n"
+            f"cunumeric and numpy shows"
+            f" different result\n"
+        )
         print(f"Passed, {print_msg}")
+
     else:
+        is_equal, err_arr = compare_array(a, b, check_type=check_type)
+        assert is_equal, (
+            f"Failed, {print_msg}\n"
+            f"numpy result: {err_arr[0]}, {a.shape}\n"
+            f"cunumeric_result: {err_arr[1]}, {b.shape}\n"
+            f"cunumeric and numpy shows"
+            f" different result\n"
+        )
         print(
             f"Passed, {print_msg}, np: ({a.shape}, {a.dtype})"
             f", cunumeric: ({b.shape}, {b.dtype})"

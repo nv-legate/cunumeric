@@ -46,7 +46,6 @@ from .utils import is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-
     from legate.core import FieldID, Future, Region
 
     from .config import BitGeneratorType, FFTType
@@ -1583,6 +1582,19 @@ class EagerArray(NumPyThunk):
                 raise LinAlgError(e) from e
             if no_tril:
                 result = np.triu(result.T.conj(), k=1) + result
+            self.array[:] = result
+
+    def solve(self, a: Any, b: Any) -> None:
+        self.check_eager_args(a, b)
+        if self.deferred is not None:
+            self.deferred.solve(a, b)
+        else:
+            try:
+                result = np.linalg.solve(a.array, b.array)
+            except np.linalg.LinAlgError as e:
+                from .linalg import LinAlgError
+
+                raise LinAlgError(e) from e
             self.array[:] = result
 
     def scan(

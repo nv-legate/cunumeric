@@ -15,9 +15,9 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as cn
-from legate.core import LEGATE_MAX_DIM
 
 
 @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM + 1))

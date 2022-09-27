@@ -22,7 +22,6 @@ from .config import ConvertCode
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
-
     from legate.core import FieldID, Future, Region
 
     from .config import (
@@ -688,6 +687,10 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def cholesky(self, src: Any, no_tril: bool) -> None:
+        ...
+
+    @abstractmethod
+    def solve(self, a: Any, b: Any) -> None:
         ...
 
     @abstractmethod

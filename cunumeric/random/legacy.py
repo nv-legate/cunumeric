@@ -18,6 +18,7 @@ from typing import TYPE_CHECKING, Any, Union
 
 import numpy as np
 import numpy.random as nprandom
+
 from cunumeric.array import ndarray
 from cunumeric.runtime import runtime
 
