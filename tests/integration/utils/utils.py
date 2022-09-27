@@ -35,27 +35,10 @@ def compare_array(a, b, check_type=True):
     return True, None
 
 
-def check_array_method(
-    fn,
-    args,
-    kwargs,
-    print_msg,
-    check_type=True,
-    ndarray_func=False,
-    ndarray_np=[],
-):
+def compare_array_and_print_results(a, b, print_msg, check_type=True):
     """
-    Run np.func and num.func respectively and compare results
+    Compare two arrays and print results.
     """
-
-    if not ndarray_func:
-        a = getattr(np, fn)(*args, **kwargs)
-        b = getattr(num, fn)(*args, **kwargs)
-    else:
-        ndarray_num = num.array(ndarray_np)
-        a = getattr(ndarray_np, fn)(*args, **kwargs)
-        b = getattr(ndarray_num, fn)(*args, **kwargs)
-
     if isinstance(a, list):
         is_equal, err_arr = compare_array(a, b, check_type=False)
         assert is_equal, (
@@ -80,3 +63,37 @@ def check_array_method(
             f"Passed, {print_msg}, np: ({a.shape}, {a.dtype})"
             f", cunumeric: ({b.shape}, {b.dtype})"
         )
+
+
+def check_array_method(
+    ndarray_np,
+    fn,
+    args,
+    kwargs,
+    print_msg,
+    check_type=True,
+):
+    """
+    Run np_array.func and num_array.func respectively and compare results
+    """
+
+    ndarray_num = num.array(ndarray_np)
+    a = getattr(ndarray_np, fn)(*args, **kwargs)
+    b = getattr(ndarray_num, fn)(*args, **kwargs)
+    compare_array_and_print_results(a, b, print_msg, check_type=check_type)
+
+
+def check_module_function(
+    fn,
+    args,
+    kwargs,
+    print_msg,
+    check_type=True,
+):
+    """
+    Run np.func and num.func respectively and compare results
+    """
+
+    a = getattr(np, fn)(*args, **kwargs)
+    b = getattr(num, fn)(*args, **kwargs)
+    compare_array_and_print_results(a, b, print_msg, check_type=check_type)

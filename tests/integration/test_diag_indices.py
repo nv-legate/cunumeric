@@ -45,13 +45,12 @@ class TestDiagIndicesErrors:
     @pytest.mark.parametrize("n", [-10.5, -1])
     def test_negative_n(self, n):
         msg = "Invalid shape"
-        print("[robinw]: test-1")
         with pytest.raises(ValueError, match=msg):
             cn.diag_indices(n)
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("n", [-10.5, -1])
-    def test_negative_n_compare_with_numpy(self, n):
+    def test_negative_n_DIVERGENCE(self, n):
         # np.diag_indices(-10.5) returns empty 2-D array, dtype=float64
         # np.diag_indices(-1) returns empty 2-D array, dtype=int32
         # cn.diag_indices(-10.5) raises ValueError

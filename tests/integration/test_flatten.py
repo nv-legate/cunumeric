@@ -35,14 +35,12 @@ SIZES = [
 
 
 # test ndarray.flatten w/ 1D, 2D and 3D arrays
-@pytest.mark.parametrize("order", ["C", "F", "A"], ids=str)
+@pytest.mark.parametrize("order", ("C", "F", "A"))
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_basic(order, size):
     a = np.random.randint(low=0, high=100, size=size)
     print_msg = f"np & cunumeric.ndarray.flatten({order})"
-    check_array_method(
-        "flatten", [order], {}, print_msg, ndarray_func=True, ndarray_np=a
-    )
+    check_array_method(a, "flatten", [order], {}, print_msg)
 
 
 class TestNdarrayFlattenErrors:
@@ -54,6 +52,26 @@ class TestNdarrayFlattenErrors:
     def test_non_string_order(self):
         order = 0
         msg = "order must be str, not int"
+        with pytest.raises(TypeError, match=msg):
+            self.anum.flatten(order)
+
+        order = 1
+        msg = "order must be str, not int"
+        with pytest.raises(TypeError, match=msg):
+            self.anum.flatten(order)
+
+        order = -1
+        msg = "order must be str, not int"
+        with pytest.raises(TypeError, match=msg):
+            self.anum.flatten(order)
+
+        order = 1.0
+        msg = "order must be str, not float"
+        with pytest.raises(TypeError, match=msg):
+            self.anum.flatten(order)
+
+        order = ["C"]
+        msg = "order must be str, not list"
         with pytest.raises(TypeError, match=msg):
             self.anum.flatten(order)
 
