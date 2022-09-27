@@ -52,6 +52,8 @@ struct ScalarReductionPolicy<VariantKind::GPU, LG_OP, Tag> {
                                                         const LHS& identity,
                                                         Kernel&& kernel)
   {
+    if (0 == volume) return;
+
     auto stream = get_cached_stream();
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;

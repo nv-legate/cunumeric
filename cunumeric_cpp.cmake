@@ -456,8 +456,8 @@ if(DEFINED Legion_USE_Python)
   string(APPEND code_string "\nset(Legion_USE_Python ${Legion_USE_Python})")
 endif()
 
-if(DEFINED Legion_USE_GASNet)
-  string(APPEND code_string "\nset(Legion_USE_GASNet ${Legion_USE_GASNet})")
+if(DEFINED Legion_NETWORKS)
+  string(APPEND code_string "\nset(Legion_NETWORKS ${Legion_NETWORKS})")
 endif()
 
 rapids_export(
