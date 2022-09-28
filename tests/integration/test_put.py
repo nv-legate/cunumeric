@@ -44,6 +44,10 @@ def test_scalar(mode):
     num.put(y_num, 0, values_num)
     assert np.array_equal(x_num, x)
 
+    x = num.zeros(1)
+    num.put(x, num.arange(4), num.ones(4), mode="clip")
+    print(x)  # prints [0]
+
 
 def test_indices_type_convert():
     x = mk_seq_array(np, (3, 4, 5))

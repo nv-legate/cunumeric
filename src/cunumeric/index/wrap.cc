@@ -31,7 +31,7 @@ struct WrapImplBody<VariantKind::CPU, DIM> {
                   const Pitches<DIM - 1>& pitches_in,
                   const Rect<DIM>& in_rect,
                   const bool dense,
-                  IND& indices) const
+                  const IND& indices) const
   {
     const int64_t start  = out_rect.lo[0];
     const int64_t end    = out_rect.hi[0];

@@ -33,7 +33,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
               const Pitches<DIM - 1> pitches_in,
               const Point<DIM> in_lo,
               const size_t in_volume,
-              IND indices)
+              const IND indices)
 {
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
@@ -51,7 +51,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                     const Pitches<DIM - 1> pitches_in,
                     const Point<DIM> in_lo,
                     const size_t in_volume,
-                    IND indices)
+                    const IND indices)
 {
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
@@ -69,7 +69,7 @@ struct WrapImplBody<VariantKind::GPU, DIM> {
                   const Pitches<DIM - 1>& pitches_in,
                   const Rect<DIM>& in_rect,
                   const bool dense,
-                  IND& indices) const
+                  const IND& indices) const
   {
     auto stream          = get_cached_stream();
     const int64_t start  = out_rect.lo[0];

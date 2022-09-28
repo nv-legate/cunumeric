@@ -66,9 +66,6 @@ struct WrapImpl {
 #ifdef DEBUG_CUNUMERIC
       assert(in_rect == out_rect);
 #endif
-#ifndef LEGION_BOUNDS_CHECKS
-      dense = dense && in.accessor.is_dense_row_major(out_rect);
-#endif
       WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense, in);
 
     } else {
@@ -81,16 +78,13 @@ struct WrapImpl {
 template <VariantKind KIND>
 static void wrap_template(TaskContext& context)
 {
-  auto shape     = context.scalars()[0].value<DomainPoint>();
-  int dim        = shape.dim;
-  bool has_input = context.scalars()[1].value<bool>();
-  if (has_input) {
-    WrapArgs args1{context.outputs()[0], shape, has_input, context.inputs()[0]};
-    dim_dispatch(dim, WrapImpl<KIND>{}, args1);
-  } else {
-    WrapArgs args2{context.outputs()[0], shape, has_input, Array()};
-    dim_dispatch(dim, WrapImpl<KIND>{}, args2);
-  }
+  auto shape      = context.scalars()[0].value<DomainPoint>();
+  int dim         = shape.dim;
+  bool has_input  = context.scalars()[1].value<bool>();
+  Array tmp_array = Array();
+  WrapArgs args{
+    context.outputs()[0], shape, has_input, has_input ? context.inputs()[0] : tmp_array};
+  dim_dispatch(dim, WrapImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

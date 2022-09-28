@@ -26,7 +26,7 @@ struct WrapArgs {
                                     //  `wrapped` one
   const Legion::DomainPoint shape;  // shape of the original array
   const bool has_input;
-  const Array& in;
+  const Array& in = Array();
 };
 
 class WrapTask : public CuNumericTask<WrapTask> {
@@ -43,10 +43,13 @@ class WrapTask : public CuNumericTask<WrapTask> {
 #endif
 };
 
-__CUDA_HD__ static int64_t compute_idx(int64_t i, int64_t volume, bool&) { return i % volume; }
+__CUDA_HD__ static int64_t compute_idx(const int64_t i, const int64_t volume, const bool&)
+{
+  return i % volume;
+}
 
-__CUDA_HD__ static int64_t compute_idx(int64_t i,
-                                       int64_t,
+__CUDA_HD__ static int64_t compute_idx(const int64_t i,
+                                       const int64_t,
                                        const legate::AccessorRO<int64_t, 1>& indices)
 {
   return indices[i];

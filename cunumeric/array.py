@@ -2494,15 +2494,6 @@ class ndarray:
         if indices.ndim > 1:
             indices = indices.ravel()
 
-        # in case if there are repeated entries in the indices array
-        # Legate doesn't guarantee the order in which values
-        # are updated
-        if indices.size > indices.unique().size:
-            runtime.warn(
-                "size of indices is larger than source array which"
-                " might yield results different from NumPy",
-                category=RuntimeWarning,
-            )
         # call _wrap on the values if they need to be wrapped
         if values.ndim != indices.ndim or values.size != indices.size:
             values = values._wrap(indices.size)
