@@ -2386,8 +2386,7 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
     # repeats is an array
     else:
         # repeats should be integer type
-        if repeats.dtype != np.int64:
-            repeats = repeats._warn_and_convert(np.int64)
+        repeats = repeats._warn_and_convert(np.int64)
         if repeats.shape[0] != array.shape[axis]:
             raise ValueError("incorrect shape of repeats array")
         result = array._thunk.repeat(
