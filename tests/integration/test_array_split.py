@@ -17,7 +17,7 @@ import math
 
 import numpy as np
 import pytest
-from utils.utils import check_array_method
+from utils.utils import check_module_function
 
 import cunumeric as num
 
@@ -130,7 +130,7 @@ def test_array_split(size):
             # Check if both impls produce the error
             # for non-viable options
 
-            check_array_method(
+            check_module_function(
                 "array_split", [a, input_opt], {"axis": axis}, print_msg
             )
 
