@@ -3458,9 +3458,9 @@ def put(
         Array to put data into
     indices : array_like
         Target indices, interpreted as integers.
-        WARNING: in case if there are repeated entries in the
+        WARNING: In case there are repeated entries in the
         indices array, Legate doesn't guarantee the order in
-        which values are updated
+        which values are updated.
 
     values : array_like
         Values to place in `a` at target indices. If values array is shorter
