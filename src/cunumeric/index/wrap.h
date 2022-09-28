@@ -54,4 +54,17 @@ __CUDA_HD__ static int64_t compute_idx(const int64_t i,
 {
   return indices[i];
 }
+
+static void check_idx(const int64_t i,
+                      const int64_t volume,
+                      const legate::AccessorRO<int64_t, 1>& indices)
+{
+  int64_t index = indices[i];
+  if (index < 0 || index >= volume)
+    throw legate::TaskException("index is out of bounds in index array");
+}
+static void check_idx(const int64_t i, const int64_t volume, const bool&)
+{
+  // don't do anything when wrapping indices
+}
 }  // namespace cunumeric

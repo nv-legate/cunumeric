@@ -1705,6 +1705,7 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(True, bool)  # has_input
         task.add_input(indices.base)
         task.add_alignment(indices.base, indirect.base)
+        task.throws_exception(IndexError)
         task.execute()
         if indirect.base.kind == Future or indirect.base.transformed:
             indirect = indirect._convert_future_to_regionfield()
