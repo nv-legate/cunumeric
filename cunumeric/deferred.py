@@ -3394,9 +3394,10 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert([1])
-    def _wrap(self, src: Any, new_len: int) -> None:
+    def _wrap(self, src: DeferredArray, new_len: int) -> None:
+        src = self.runtime.to_deferred_array(src)
         if src.base.kind == Future or src.base.transformed:
-            src = src._convert_future_to_regionfield()
+            src = src._convert_future_to_regionfield(src.base.kind == Future)
 
         # first, we create indirect array with PointN type that
         # (len,) shape and is used to copy data from original array

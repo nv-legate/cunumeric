@@ -44,9 +44,19 @@ def test_scalar(mode):
     num.put(y_num, 0, values_num)
     assert np.array_equal(x_num, x)
 
-    x = num.zeros(1)
-    num.put(x, num.arange(4), num.ones(4), mode="clip")
-    print(x)  # prints [0]
+    x = np.zeros(1)
+    x_num = num.zeros(1)
+    np.put(x, np.arange(4), np.ones(4), mode="clip")
+    num.put(x_num, num.arange(4), num.ones(4), mode="clip")
+    assert np.array_equal(x_num, x)
+
+    x = np.arange(5)
+    x_num = num.array(x)
+    indices = np.array([1, 4])
+    indices_num = num.array(indices)
+    np.put(x, indices, 10)
+    num.put(x_num, indices_num, 10)
+    assert np.array_equal(x_num, x)
 
 
 def test_indices_type_convert():
