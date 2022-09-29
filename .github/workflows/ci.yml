@@ -9,7 +9,7 @@ on:
   on:
     schedule:
       # * is a special character in YAML so you have to quote this string
-      - cron:  '30 5 * * *'
+      - cron:  '30 12 * * *'
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-cunumeric-ci
