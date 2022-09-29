@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from utils.utils import check_array_method
+from utils.utils import check_module_function
 
 import cunumeric as num
 
@@ -48,7 +48,7 @@ def test(depth, sizes):
         f"{_deepen(depth, b)}])"
     )
     arg = [_deepen(depth, a), _deepen(depth, b)]
-    check_array_method("block", [arg], {}, print_msg, check_type=False)
+    check_module_function("block", [arg], {}, print_msg, check_type=False)
 
 
 class TestBlock:
@@ -61,7 +61,7 @@ class TestBlock:
             f"np & cunumeric.block([array({a_2d.shape}), "
             f"array({b_2d.shape})])"
         )
-        check_array_method("block", [arg], {}, print_msg)
+        check_module_function("block", [arg], {}, print_msg)
 
     def test_block_simple_column_wise(self):
         a_2d = np.ones((2, 2))
@@ -72,7 +72,7 @@ class TestBlock:
             f"np & cunumeric.block([[array({a_2d.shape})], "
             f"[array({b_2d.shape})]])"
         )
-        check_array_method("block", [arg], {}, print_msg)
+        check_module_function("block", [arg], {}, print_msg)
 
     def test_block_with_1d_arrays_multiple_rows(self):
         a = np.array([1, 2, 3])
@@ -83,7 +83,7 @@ class TestBlock:
             f"np & cunumeric.block([[array({a.shape}), array({b.shape})], "
             f"[array({a.shape}), array({b.shape})]])"
         )
-        check_array_method("block", [arg], {}, print_msg, check_type=False)
+        check_module_function("block", [arg], {}, print_msg, check_type=False)
 
     def test_block_mixed_1d_and_2d(self):
         a_2d = np.ones((2, 2))
@@ -94,7 +94,7 @@ class TestBlock:
             f"np & cunumeric.block([[array({a_2d.shape})], "
             f"[array({b_1d.shape})]])"
         )
-        check_array_method("block", [arg], {}, print_msg)
+        check_module_function("block", [arg], {}, print_msg)
 
     def test_block_complicated(self):
         one_2d = np.array([[1, 1, 1]])
@@ -113,7 +113,7 @@ class TestBlock:
         ]
 
         print_msg = "np & cunumeric.block()"
-        check_array_method("block", [arg], {}, print_msg)
+        check_module_function("block", [arg], {}, print_msg)
 
     def test_nested(self):
         one = np.array([1, 1, 1])
@@ -165,7 +165,7 @@ class TestBlock:
         ]
 
         print_msg = "np & cunumeric.block()"
-        check_array_method("block", [arg], {}, print_msg, check_type=False)
+        check_module_function("block", [arg], {}, print_msg, check_type=False)
 
 
 class TestBlockErrors:
