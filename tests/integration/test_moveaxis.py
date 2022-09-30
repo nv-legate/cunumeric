@@ -20,14 +20,14 @@ from utils.generators import mk_0to1_array
 
 import cunumeric as cn
 
-AXES = [
+AXES = (
     (0, 0),
     (0, 1),
     (1, 0),
     (0, -1),
     (-1, 0),
     ([0, 1], [1, 0]),
-]
+)
 
 
 @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
@@ -56,11 +56,11 @@ def test_moveaxis_with_empty_axis():
     assert np.array_equal(np_res, cn_res)
 
 
-EMPTY_ARRAYS = [
+EMPTY_ARRAYS = (
     [],
     [[]],
     [[], []],
-]
+)
 
 
 @pytest.mark.parametrize("a", EMPTY_ARRAYS)
@@ -104,7 +104,7 @@ class TestMoveAxisErrors:
         with pytest.raises(ValueError, match=msg):
             cn.moveaxis(self.x, [0], [1, 0])
 
-    def test_axis_with_bad_type(self):
+    def test_axis_float(self):
         msg = "integer argument expected, got float"
         with pytest.raises(TypeError, match=msg):
             cn.moveaxis(self.x, [0.0, 1], [1, 0])
@@ -112,6 +112,7 @@ class TestMoveAxisErrors:
         with pytest.raises(TypeError, match=msg):
             cn.moveaxis(self.x, [0, 1], [1, 0.0])
 
+    def test_axis_none(self):
         msg = "'NoneType' object is not iterable"
         with pytest.raises(TypeError, match=msg):
             cn.moveaxis(self.x, None, 0)

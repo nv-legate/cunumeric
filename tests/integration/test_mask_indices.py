@@ -18,8 +18,8 @@ import pytest
 
 import cunumeric as num
 
-KS = [0, -1, 1, -2, 2]
-FUNCTIONS = ["tril", "triu"]
+KS = (0, -1, 1, -2, 2)
+FUNCTIONS = ("tril", "triu")
 N = 100
 
 
@@ -48,7 +48,7 @@ def test_mask_indices_default_k(n, mask_func):
 
 
 @pytest.mark.parametrize(
-    "k", KS + [-N, N, -10 * N, 10 * N], ids=lambda k: f"(k={k})"
+    "k", KS + (-N, N, -10 * N, 10 * N), ids=lambda k: f"(k={k})"
 )
 @pytest.mark.parametrize("mask_func", FUNCTIONS)
 def test_mask_indices(k, mask_func):
@@ -95,15 +95,17 @@ class TestMaskIndicesErrors:
         with pytest.raises(TypeError):
             num.mask_indices(10, num.tril, None)
 
-    def test_bad_mask_func(self):
+    def test_mask_func_bad_argument(self):
         msg = "takes 1 positional argument but 2 were given"
         with pytest.raises(TypeError, match=msg):
             num.mask_indices(10, num.block)
 
+    def test_mask_func_str(self):
         msg = "'str' object is not callable"
         with pytest.raises(TypeError, match=msg):
             num.mask_indices(10, "abc")
 
+    def test_mask_func_none(self):
         msg = "'NoneType' object is not callable"
         with pytest.raises(TypeError, match=msg):
             num.mask_indices(10, None)
