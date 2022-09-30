@@ -18,8 +18,6 @@
 
 #include <vector>
 
-#include "core/comm/coll.h"
-
 // Useful for IDEs
 #include "cunumeric/matrix/solve.h"
 

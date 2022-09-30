@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from utils.utils import check_array_method
+from utils.utils import check_module_function
 
 import cunumeric as num
 
@@ -27,27 +27,27 @@ KS = [0, -1, 1, -2, 2]
 @pytest.mark.parametrize("M", [N, N + 1, N - 1, N * 10, 0])
 def test_eye(M, k):
     print_msg = f"np & cunumeric.eye({N},{M}, k={k})"
-    check_array_method("eye", [N, M], {"k": k}, print_msg)
+    check_module_function("eye", [N, M], {"k": k}, print_msg)
 
 
 @pytest.mark.parametrize("dtype", [np.int32, np.float64, None], ids=str)
 @pytest.mark.parametrize("k", KS, ids=str)
 def test_square(k, dtype):
     print_msg = f"np & cunumeric.eye({N},k={k},dtype={dtype})"
-    check_array_method("eye", [N], {"k": k, "dtype": dtype}, print_msg)
+    check_module_function("eye", [N], {"k": k, "dtype": dtype}, print_msg)
 
 
 def test_N_zero():
     N = 0
     print_msg = f"np & cunumeric eye({N})"
-    check_array_method("eye", [N], {}, print_msg)
+    check_module_function("eye", [N], {}, print_msg)
 
 
 def test_M_zero():
     N = 5
     M = 0
     print_msg = f"np & cunumeric eye({N},{M})"
-    check_array_method("eye", [N, M], {}, print_msg)
+    check_module_function("eye", [N, M], {}, print_msg)
 
 
 class TestEyeErrors:
