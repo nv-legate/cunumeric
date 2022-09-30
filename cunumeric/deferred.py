@@ -573,7 +573,6 @@ class DeferredArray(NumPyThunk):
 
             has_set_value = set_value is not None and set_value.size == 1
             if not has_set_value:
-                set_value = self.runtime.to_deferred_array(set_value)
                 out_dtype = rhs.dtype
                 # in the case this operation is called for the set_item, we
                 # return Point<N> type field that is later used for
@@ -593,6 +592,7 @@ class DeferredArray(NumPyThunk):
             print("IRINA DEBUG python", has_set_value)
             if set_value is not None:
                 print("IRINA DEBUG", set_value.shape)
+
             task = rhs.context.create_auto_task(
                 CuNumericOpCode.ADVANCED_INDEXING
             )
@@ -602,6 +602,7 @@ class DeferredArray(NumPyThunk):
                 task.add_output(out.base)
 
             else:
+                set_value = self.runtime.to_deferred_array(set_value)
                 task.add_output(rhs.base)
                 task.add_input(set_value.base)
                 task.add_broadcast(set_value.base)
@@ -645,7 +646,7 @@ class DeferredArray(NumPyThunk):
 
                         out = out._copy_store(out_tmp)
 
-                return False, rhs, out, self
+                return is_set, rhs, out, self
 
         if isinstance(key, NumPyThunk):
             key = (key,)
