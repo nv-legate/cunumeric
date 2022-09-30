@@ -153,6 +153,21 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
   }
 };
 
+template <typename VAL, int DIM>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  advanced_indexing_set_kernel(size_t volume,
+                               AccessorRW<VAL, DIM> in,
+                               AccessorRO<bool, DIM> index,
+                               AccessorRO<VAL, 1> value,
+                               Pitches<DIM - 1> pitches,
+                               Point<DIM> origin)
+{
+  const size_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+  if (tid >= volume) return;
+  auto point = pitches.unflatten(tid, origin);
+  if (index[point] == true) { in[point] = value[0]; }
+}
+
 template <int DIM, typename VAL>
 struct AdvancedIndexingSetImplBody<VariantKind::GPU, DIM, VAL> {
   void operator()(AccessorRW<VAL, DIM>& input,
@@ -161,6 +176,12 @@ struct AdvancedIndexingSetImplBody<VariantKind::GPU, DIM, VAL> {
                   const Pitches<DIM - 1>& pitches,
                   const Rect<DIM>& rect) const
   {
+    const size_t volume = rect.volume();
+    auto stream         = get_cached_stream();
+    const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    advanced_indexing_set_kernel<<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+      volume, input, index, value, pitches, rect.lo);
+    CHECK_CUDA_STREAM(stream);
   }
 };
 

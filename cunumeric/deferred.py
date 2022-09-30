@@ -589,10 +589,6 @@ class DeferredArray(NumPyThunk):
                 )
             key_dims = key.ndim  # dimension of the original key
 
-            print("IRINA DEBUG python", has_set_value)
-            if set_value is not None:
-                print("IRINA DEBUG", set_value.shape)
-
             task = rhs.context.create_auto_task(
                 CuNumericOpCode.ADVANCED_INDEXING
             )

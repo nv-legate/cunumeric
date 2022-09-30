@@ -104,7 +104,6 @@ struct AdvancedIndexingSetImplBody<VariantKind::CPU, DIM, VAL> {
     const size_t volume = rect.volume();
     for (size_t idx = 0; idx < volume; ++idx) {
       auto p = pitches.unflatten(idx, rect.lo);
-      std::cout << "IRINA DEBUG " << p << " , " << index[p] << ", " << value[0] << std::endl;
       if (index[p] == true) { input[p] = value[0]; }
     }
   }
