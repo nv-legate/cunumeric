@@ -157,6 +157,7 @@ class NumPyThunk(ABC):
         rhs: Any,
         warn: bool = True,
         nan_op: ConvertCode = ConvertCode.NOOP,
+        temporary: bool = False,
     ) -> None:
         ...
 
