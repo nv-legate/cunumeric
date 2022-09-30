@@ -153,6 +153,17 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
   }
 };
 
+template <int DIM, typename VAL>
+struct AdvancedIndexingSetImplBody<VariantKind::GPU, DIM, VAL> {
+  void operator()(AccessorRW<VAL, DIM>& input,
+                  const AccessorRO<bool, DIM>& index,
+                  const AccessorRO<VAL, 1>& value,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect) const
+  {
+  }
+};
+
 /*static*/ void AdvancedIndexingTask::gpu_variant(TaskContext& context)
 {
   advanced_indexing_template<VariantKind::GPU>(context);

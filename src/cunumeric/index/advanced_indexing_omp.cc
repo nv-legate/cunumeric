@@ -113,6 +113,23 @@ struct AdvancedIndexingImplBody<VariantKind::OMP, CODE, DIM, OUT_TYPE> {
   }
 };
 
+template <int DIM, typename VAL>
+struct AdvancedIndexingSetImplBody<VariantKind::OMP, DIM, VAL> {
+  void operator()(AccessorRW<VAL, DIM>& input,
+                  const AccessorRO<bool, DIM>& index,
+                  const AccessorRO<VAL, 1>& value,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect) const
+  {
+    const size_t volume = rect.volume();
+#pragma omp parallel for schedule(static)
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto p = pitches.unflatten(idx, rect.lo);
+      if (index[p] == true) { input[p] = value[0]; }
+    }
+  }
+};
+
 /*static*/ void AdvancedIndexingTask::omp_variant(TaskContext& context)
 {
   advanced_indexing_template<VariantKind::OMP>(context);

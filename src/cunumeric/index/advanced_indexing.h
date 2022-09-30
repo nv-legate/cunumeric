@@ -26,6 +26,7 @@ struct AdvancedIndexingArgs {
   const Array& indexing_array;
   const bool is_set;
   const int64_t key_dim;
+  const Array& set_value = Array();
 };
 
 class AdvancedIndexingTask : public CuNumericTask<AdvancedIndexingTask> {

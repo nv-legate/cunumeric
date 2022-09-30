@@ -93,6 +93,23 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
   }
 };
 
+template <int DIM, typename VAL>
+struct AdvancedIndexingSetImplBody<VariantKind::CPU, DIM, VAL> {
+  void operator()(AccessorRW<VAL, DIM>& input,
+                  const AccessorRO<bool, DIM>& index,
+                  const AccessorRO<VAL, 1>& value,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect) const
+  {
+    const size_t volume = rect.volume();
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto p = pitches.unflatten(idx, rect.lo);
+      std::cout << "IRINA DEBUG " << p << " , " << index[p] << ", " << value[0] << std::endl;
+      if (index[p] == true) { input[p] = value[0]; }
+    }
+  }
+};
+
 /*static*/ void AdvancedIndexingTask::cpu_variant(TaskContext& context)
 {
   advanced_indexing_template<VariantKind::CPU>(context);

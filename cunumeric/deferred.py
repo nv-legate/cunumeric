@@ -518,7 +518,10 @@ class DeferredArray(NumPyThunk):
         return k, store
 
     def _create_indexing_array(
-        self, key: Any, is_set: bool = False
+        self,
+        key: Any,
+        is_set: bool = False,
+        set_value: Optional[Any] = None,
     ) -> tuple[bool, Any, Any, Any]:
         store = self.base
         rhs = self
@@ -568,61 +571,81 @@ class DeferredArray(NumPyThunk):
             for i in range(key_store.ndim, rhs.ndim):
                 key_store = key_store.promote(i, rhs.shape[i])
 
-            out_dtype = rhs.dtype
-            # in the case this operation is called for the set_item, we
-            # return Point<N> type field that is later used for
-            # indirect copy operation
-            if is_set:
-                N = rhs.ndim
-                out_dtype = rhs.runtime.get_point_type(N)
+            has_set_value = set_value is not None and set_value.size == 1
+            if not has_set_value:
+                set_value = self.runtime.to_deferred_array(set_value)
+                out_dtype = rhs.dtype
+                # in the case this operation is called for the set_item, we
+                # return Point<N> type field that is later used for
+                # indirect copy operation
+                if is_set:
+                    N = rhs.ndim
+                    out_dtype = rhs.runtime.get_point_type(N)
 
-            # TODO : current implementation of the ND output regions
-            # requires out.ndim == rhs.ndim. This will be fixed in the
-            # future
-            out = rhs.runtime.create_unbound_thunk(out_dtype, ndim=rhs.ndim)
+                # TODO : current implementation of the ND output regions
+                # requires out.ndim == rhs.ndim. This will be fixed in the
+                # future
+                out = rhs.runtime.create_unbound_thunk(
+                    out_dtype, ndim=rhs.ndim
+                )
             key_dims = key.ndim  # dimension of the original key
 
+            print("IRINA DEBUG python", has_set_value)
+            if set_value is not None:
+                print("IRINA DEBUG", set_value.shape)
             task = rhs.context.create_auto_task(
                 CuNumericOpCode.ADVANCED_INDEXING
             )
-            task.add_output(out.base)
             task.add_input(rhs.base)
             task.add_input(key_store)
+            if not has_set_value:
+                task.add_output(out.base)
+
+            else:
+                task.add_output(rhs.base)
+                task.add_input(set_value.base)
+                task.add_broadcast(set_value.base)
             task.add_scalar_arg(is_set, bool)
             task.add_scalar_arg(key_dims, ty.int64)
+            task.add_scalar_arg(has_set_value, bool)
             task.add_alignment(rhs.base, key_store)
             task.add_broadcast(
                 rhs.base, axes=tuple(range(1, len(rhs.base.shape)))
             )
             task.execute()
 
-            # TODO : current implementation of the ND output regions
-            # requires out.ndim == rhs.ndim.
-            # The logic below will be removed in the future
-            out_dim = rhs.ndim - key_dims + 1
+            if has_set_value:
+                return False, rhs, rhs, self
+            else:
+                # TODO : current implementation of the ND output regions
+                # requires out.ndim == rhs.ndim.
+                # The logic below will be removed in the future
+                out_dim = rhs.ndim - key_dims + 1
 
-            if out_dim != rhs.ndim:
-                out_tmp = out.base
+                if out_dim != rhs.ndim:
+                    out_tmp = out.base
 
-                if out.size == 0:
-                    out_shape = tuple(out.shape[i] for i in range(0, out_dim))
-                    out = cast(
-                        DeferredArray,
-                        self.runtime.create_empty_thunk(
-                            out_shape,
-                            out_dtype,
-                            inputs=[out],
-                        ),
-                    )
-                    if not is_set:
-                        out.fill(np.array(0, dtype=out_dtype))
-                else:
-                    for dim in range(rhs.ndim - out_dim):
-                        out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
+                    if out.size == 0:
+                        out_shape = tuple(
+                            out.shape[i] for i in range(0, out_dim)
+                        )
+                        out = cast(
+                            DeferredArray,
+                            self.runtime.create_empty_thunk(
+                                out_shape,
+                                out_dtype,
+                                inputs=[out],
+                            ),
+                        )
+                        if not is_set:
+                            out.fill(np.array(0, dtype=out_dtype))
+                    else:
+                        for dim in range(rhs.ndim - out_dim):
+                            out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
 
-                    out = out._copy_store(out_tmp)
+                        out = out._copy_store(out_tmp)
 
-            return False, rhs, out, self
+                return False, rhs, out, self
 
         if isinstance(key, NumPyThunk):
             key = (key,)
@@ -862,6 +885,7 @@ class DeferredArray(NumPyThunk):
     def set_item(self, key: Any, rhs: Any) -> None:
         assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
+
         if is_advanced_indexing(key):
             # Create the indexing array
             (
@@ -869,47 +893,48 @@ class DeferredArray(NumPyThunk):
                 lhs,
                 index_array,
                 self,
-            ) = self._create_indexing_array(key, True)
+            ) = self._create_indexing_array(key, True, rhs)
 
-            if rhs.shape != index_array.shape:
-                rhs_tmp = rhs._broadcast(index_array.base.shape)
-                rhs_tmp = rhs._copy_store(rhs_tmp)
-                rhs_store = rhs_tmp.base
-            else:
-                if rhs.base.transformed:
-                    rhs = rhs._copy_store(rhs.base)
-                rhs_store = rhs.base
+            if copy_needed:
+                if rhs.shape != index_array.shape:
+                    rhs_tmp = rhs._broadcast(index_array.base.shape)
+                    rhs_tmp = rhs._copy_store(rhs_tmp)
+                    rhs_store = rhs_tmp.base
+                else:
+                    if rhs.base.transformed:
+                        rhs = rhs._copy_store(rhs.base)
+                    rhs_store = rhs.base
 
-            # the case when rhs is a scalar and indices array contains
-            # a single value
-            # TODO this logic should be removed when copy accepts Futures
-            if rhs_store.kind == Future:
-                rhs_tmp = DeferredArray(
-                    self.runtime,
-                    base=rhs_store,
-                    dtype=rhs.dtype,
-                )
-                rhs_tmp2 = rhs_tmp._convert_future_to_regionfield()
-                rhs_store = rhs_tmp2.base
+                # the case when rhs is a scalar and indices array contains
+                # a single value
+                # TODO this logic should be removed when copy accepts Futures
+                if rhs_store.kind == Future:
+                    rhs_tmp = DeferredArray(
+                        self.runtime,
+                        base=rhs_store,
+                        dtype=rhs.dtype,
+                    )
+                    rhs_tmp2 = rhs_tmp._convert_future_to_regionfield()
+                    rhs_store = rhs_tmp2.base
 
-            if index_array.base.kind == Future:
-                index_array = index_array._convert_future_to_regionfield()
-            if lhs.base.kind == Future:
-                lhs = lhs._convert_future_to_regionfield()
+                if index_array.base.kind == Future:
+                    index_array = index_array._convert_future_to_regionfield()
+                if lhs.base.kind == Future:
+                    lhs = lhs._convert_future_to_regionfield()
 
-            if index_array.size != 0:
-                copy = self.context.create_copy()
-                copy.set_target_indirect_out_of_range(False)
+                if index_array.size != 0:
+                    copy = self.context.create_copy()
+                    copy.set_target_indirect_out_of_range(False)
 
-                copy.add_input(rhs_store)
-                copy.add_target_indirect(index_array.base)
-                copy.add_output(lhs.base)
-                copy.execute()
+                    copy.add_input(rhs_store)
+                    copy.add_target_indirect(index_array.base)
+                    copy.add_output(lhs.base)
+                    copy.execute()
 
-            # TODO this copy will be removed when affine copies are
-            # supported in Legion/Realm
-            if lhs is not self:
-                self.copy(lhs, deep=True)
+                # TODO this copy will be removed when affine copies are
+                # supported in Legion/Realm
+                if lhs is not self:
+                    self.copy(lhs, deep=True)
 
         else:
             view = self._get_view(key)
