@@ -139,7 +139,6 @@ def install_cunumeric(
     gasnet_dir,
     networks,
     hdf,
-    install_dir,
     legate_branch,
     legate_dir,
     legate_url,
@@ -187,7 +186,6 @@ def install_cunumeric(
         print("gasnet_dir: ", gasnet_dir)
         print("networks: ", networks)
         print("hdf: ", hdf)
-        print("install_dir: ", install_dir)
         print("legate_branch: ", legate_branch)
         print("legate_dir: ", legate_dir)
         print("legate_url: ", legate_url)
@@ -273,6 +271,8 @@ def install_cunumeric(
     # Configure and build cuNumeric via setup.py
     pip_install_cmd = [sys.executable, "-m", "pip", "install"]
     cmd_env = dict(os.environ.items())
+
+    install_dir = None
 
     if unknown is not None:
         try:
@@ -370,14 +370,6 @@ def install_cunumeric(
 
 def driver():
     parser = argparse.ArgumentParser(description="Install cuNumeric.")
-    parser.add_argument(
-        "--install-dir",
-        dest="install_dir",
-        metavar="DIR",
-        required=False,
-        default=None,
-        help="Path to install cuNumeric software",
-    )
     parser.add_argument(
         "--debug",
         dest="debug",
