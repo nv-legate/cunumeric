@@ -8,7 +8,7 @@ on:
       - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
   schedule:
     # * is a special character in YAML so you have to quote this string
-    - cron:  '* */4 * * *'
+    - cron:  '0 */6 * * *'
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-cunumeric-ci
