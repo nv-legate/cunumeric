@@ -28,7 +28,6 @@ from typing import (
     Dict,
     Optional,
     Sequence,
-    Set,
     TypeVar,
     Union,
     cast,
@@ -111,13 +110,10 @@ def auto_convert(
 
         # For each parameter specified by name, also consider the case where
         # it's passed as a positional parameter.
-        indices: Set[int] = set()
-        all_formals: Set[str] = set()
-        for (idx, param) in enumerate(signature(func).parameters):
-            all_formals.add(param)
-            if param in keys:
-                indices.add(idx)
-        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
+        params = signature(func).parameters
+        extra = keys - set(params)
+        assert len(extra) == 0, f"unknown parameter(s): {extra}"
+        indices = {idx for (idx, param) in enumerate(params) if param in keys}
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> R:

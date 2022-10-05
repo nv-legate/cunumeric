@@ -105,18 +105,18 @@ def add_boilerplate(
         # For each parameter specified by name, also consider the case where
         # it's passed as a positional parameter.
         indices: Set[int] = set()
-        all_formals: Set[str] = set()
         where_idx: Optional[int] = None
         out_idx: Optional[int] = None
-        for (idx, param) in enumerate(signature(func).parameters):
-            all_formals.add(param)
+        params = signature(func).parameters
+        extra = keys - set(params)
+        assert len(extra) == 0, f"unknown parameter(s): {extra}"
+        for (idx, param) in enumerate(params):
             if param == "where":
                 where_idx = idx
             elif param == "out":
                 out_idx = idx
             elif param in keys:
                 indices.add(idx)
-        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> R:
