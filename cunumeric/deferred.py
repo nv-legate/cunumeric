@@ -101,7 +101,8 @@ def auto_convert(
     """
     Converts all named parameters to DeferredArrays.
     """
-    keys: Set[str] = set(thunk_params)
+    keys = set(thunk_params)
+    assert len(keys) == len(thunk_params)
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         assert not hasattr(

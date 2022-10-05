@@ -94,7 +94,8 @@ def add_boilerplate(
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
     """
-    keys: Set[str] = set(array_params)
+    keys = set(array_params)
+    assert len(keys) == len(array_params)
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         assert not hasattr(
