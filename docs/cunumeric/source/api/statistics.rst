@@ -19,3 +19,12 @@ Histograms
    :toctree: generated/
 
    bincount
+
+
+Order statistics
+----------
+
+.. autosummary::
+   :toctree: generated/
+
+   quantile
