@@ -782,9 +782,9 @@ class DeferredArray(NumPyThunk):
         return result
 
     def _convert_future_to_regionfield(
-        self, future: bool = False
+        self, change_shape: bool = False
     ) -> DeferredArray:
-        if future:
+        if change_shape:
             shape: NdShape = (1,)
         else:
             shape = self.shape
