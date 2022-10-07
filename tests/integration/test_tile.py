@@ -12,46 +12,62 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import numpy as np
 import pytest
 
 import cunumeric as num
 
 
-def test_1d():
+def test_negative():
     a = num.array([0, 1, 2])
-
-    b = num.tile(a, 4)
-    assert num.array_equal(b, [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2])
-
-    c = num.tile(a, (3, 4))
-    assert num.array_equal(
-        c,
-        [
-            [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
-            [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
-            [0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2],
-        ],
-    )
-
-    d = num.tile(a, (3, 1, 4))
-    assert num.array_equal(
-        d,
-        [
-            [[0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]],
-            [[0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]],
-            [[0, 1, 2, 0, 1, 2, 0, 1, 2, 0, 1, 2]],
-        ],
-    )
+    msg = r"Invalid shape"
+    with pytest.raises(ValueError, match=msg):
+        num.tile(a, -4)
 
 
-def test_2d():
-    e = num.array([[1, 2], [3, 4]])
+def test_float():
+    a = num.array([0, 1, 2])
+    msg = "object of type 'float' has no len()"
+    with pytest.raises(TypeError, match=msg):
+        num.tile(a, 2.2)
 
-    f = num.tile(e, 2)
-    assert num.array_equal(f, [[1, 2, 1, 2], [3, 4, 3, 4]])
 
-    g = num.tile(e, (2, 1))
-    assert num.array_equal(g, [[1, 2], [3, 4], [1, 2], [3, 4]])
+def test_list():
+    a = num.array([0, 1, 2])
+    msg = r"expected a sequence of integers or a single integer"
+    with pytest.raises(TypeError, match=msg):
+        num.tile(a, [[1, 2], [3, 4]])
+
+
+def test_tuple():
+    a = num.array([0, 1, 2])
+    msg = r"expected a sequence of integers or a single integer"
+    with pytest.raises(TypeError, match=msg):
+        num.tile(a, ((1, 2), (3, 4)))
+
+
+DIM = 5
+SIZES = [
+    (0,),
+    (1),
+    (0, 1),
+    (1, 0),
+    (1, 1),
+    (1, DIM),
+    (DIM, 1),
+    (DIM, DIM),
+    (1, 1, 1),
+    (DIM, DIM, DIM),
+]
+
+
+@pytest.mark.parametrize("size", SIZES, ids=str)
+@pytest.mark.parametrize("value", (0, DIM, (DIM, DIM), (DIM, DIM, DIM)))
+def test_basic(size, value):
+    a = np.random.randint(low=-10.0, high=10, size=size)
+    res_np = np.tile(a, value)
+    res_num = num.tile(a, value)
+    assert np.array_equal(res_np, res_num)
 
 
 if __name__ == "__main__":

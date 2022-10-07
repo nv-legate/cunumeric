@@ -2327,17 +2327,45 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
 
+    if repeats is None:
+        raise TypeError(
+            "int() argument must be a string, a bytes-like object or a number,"
+            " not 'NoneType'"
+        )
+
+    if np.ndim(repeats) > 1:
+        raise ValueError("`repeats` should be scalar or 1D array")
+
+    # axes should be integer type
+    if axis is not None and not isinstance(axis, int):
+        raise TypeError("Axis should be integer type")
+
     # when array is a scalar
     if np.ndim(a) == 0:
+        if axis is not None and axis != 0:
+            raise np.AxisError("axis is out of bounds for array of dimension")
+
         if np.ndim(repeats) == 0:
+            if not isinstance(repeats, int):
+                runtime.warn(
+                    "converting repeats to an integer type",
+                    category=UserWarning,
+                )
+            repeats = np.int64(repeats)
             return full((repeats,), cast(Union[int, float], a))
+        elif np.ndim(repeats) == 1 and len(repeats) == 1:
+            if not isinstance(repeats, int):
+                runtime.warn(
+                    "converting repeats to an integer type",
+                    category=UserWarning,
+                )
+            repeats = np.int64(repeats)
+            return full((repeats[0],), cast(Union[int, float], a))
         else:
             raise ValueError(
                 "`repeat` with a scalar parameter `a` is only "
                 "implemented for scalar values of the parameter `repeats`."
             )
-    if np.ndim(repeats) > 1:
-        raise ValueError("`repeats` should be scalar or 1D array")
 
     # array is an array
     array = convert_to_cunumeric_ndarray(a)
@@ -2349,9 +2377,6 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
         array = array.ravel()
         axis = 0
 
-    # axes should be integer type
-    if not isinstance(axis, int):
-        raise TypeError("Axis should be integer type")
     axis_int = np.int32(axis)
 
     if axis_int >= array.ndim:
