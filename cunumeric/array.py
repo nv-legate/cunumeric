@@ -33,11 +33,10 @@ from typing import (
 
 import numpy as np
 import pyarrow  # type: ignore
+from legate.core import Array
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
-
-from legate.core import Array
 
 from .config import (
     BinaryOpCode,
@@ -1861,6 +1860,17 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        return self._astype(dtype, order, casting, subok, copy, False)
+
+    def _astype(
+        self,
+        dtype: npt.DTypeLike,
+        order: OrderType = "C",
+        casting: CastingKind = "unsafe",
+        subok: bool = True,
+        copy: bool = True,
+        temporary: bool = False,
+    ) -> ndarray:
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
@@ -1880,7 +1890,7 @@ class ndarray:
                 f"to the rule '{casting}'"
             )
         result = ndarray(self.shape, dtype=dtype, inputs=(self,))
-        result._thunk.convert(self._thunk, warn=False)
+        result._thunk.convert(self._thunk, warn=False, temporary=temporary)
         return result
 
     @add_boilerplate()
@@ -2545,7 +2555,7 @@ class ndarray:
             self,
             rhs,
             out=out,
-            casting="no",
+            casting="unsafe",
         )
 
     def dump(self, file: Union[str, Path]) -> None:

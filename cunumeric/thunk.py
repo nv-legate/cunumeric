@@ -22,7 +22,6 @@ from .config import ConvertCode
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
-
     from legate.core import FieldID, Future, Region
 
     from .config import (
@@ -158,6 +157,7 @@ class NumPyThunk(ABC):
         rhs: Any,
         warn: bool = True,
         nan_op: ConvertCode = ConvertCode.NOOP,
+        temporary: bool = False,
     ) -> None:
         ...
 
