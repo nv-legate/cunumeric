@@ -2475,7 +2475,7 @@ class ndarray:
 
         """
 
-        if values.size == 0 or indices.size == 0:
+        if values.size == 0 or indices.size == 0 or self.size == 0:
             return
 
         if mode not in ("raise", "wrap", "clip"):
@@ -2490,9 +2490,18 @@ class ndarray:
             indices = indices.clip(0, self.size - 1)
 
         indices = indices._warn_and_convert(np.dtype(np.int64))
+        values = values._warn_and_convert(self.dtype)
 
         if indices.ndim > 1:
             indices = indices.ravel()
+
+        if self.shape == ():
+            if values.shape == ():
+                v = values
+            else:
+                v = values[0]
+            self._thunk.copy(v._thunk, deep=False)
+            return
 
         # call _wrap on the values if they need to be wrapped
         if values.ndim != indices.ndim or values.size != indices.size:

@@ -784,7 +784,7 @@ class DeferredArray(NumPyThunk):
     def _convert_future_to_regionfield(
         self, change_shape: bool = False
     ) -> DeferredArray:
-        if change_shape:
+        if change_shape and self.shape == ():
             shape: NdShape = (1,)
         else:
             shape = self.shape
@@ -1668,18 +1668,17 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert([1, 2])
     def put(self, indices: Any, values: Any) -> None:
+
         if indices.base.kind == Future or indices.base.transformed:
-            indices = indices._convert_future_to_regionfield(
-                indices.base.kind == Future
-            )
+            change_shape = indices.base.kind == Future
+            indices = indices._convert_future_to_regionfield(change_shape)
         if values.base.kind == Future or values.base.transformed:
-            values = values._convert_future_to_regionfield(
-                values.base.kind == Future
-            )
+            change_shape = values.base.kind == Future
+            values = values._convert_future_to_regionfield(change_shape)
+
         if self.base.kind == Future or self.base.transformed:
-            self_tmp = self._convert_future_to_regionfield(
-                self.base.kind == Future
-            )
+            change_shape = self.base.kind == Future
+            self_tmp = self._convert_future_to_regionfield(change_shape)
         else:
             self_tmp = self
 
@@ -1699,15 +1698,16 @@ class DeferredArray(NumPyThunk):
             ),
         )
 
+        shape = self_tmp.shape
         task = self.context.create_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
-        task.add_scalar_arg(self_tmp.shape, (ty.int64,))
+        task.add_scalar_arg(shape, (ty.int64,))
         task.add_scalar_arg(True, bool)  # has_input
         task.add_input(indices.base)
         task.add_alignment(indices.base, indirect.base)
         task.throws_exception(IndexError)
         task.execute()
-        if indirect.base.kind == Future or indirect.base.transformed:
+        if indirect.base.kind == Future:
             indirect = indirect._convert_future_to_regionfield()
 
         copy = self.context.create_copy()
@@ -2937,8 +2937,13 @@ class DeferredArray(NumPyThunk):
         args: Any,
         multiout: Optional[Any] = None,
     ) -> None:
-        lhs = self.base
-        rhs = src._broadcast(lhs.shape)
+
+        if self.shape == () and self.size == src.size:
+            lhs = self._broadcast(src.shape)
+            rhs = src.base
+        else:
+            lhs = self.base
+            rhs = src._broadcast(lhs.shape)
 
         task = self.context.create_auto_task(CuNumericOpCode.UNARY_OP)
         task.add_output(lhs)
@@ -3397,7 +3402,8 @@ class DeferredArray(NumPyThunk):
     def _wrap(self, src: DeferredArray, new_len: int) -> None:
         src = self.runtime.to_deferred_array(src)
         if src.base.kind == Future or src.base.transformed:
-            src = src._convert_future_to_regionfield(src.base.kind == Future)
+            change_shape = src.base.kind == Future
+            src = src._convert_future_to_regionfield(change_shape)
 
         # first, we create indirect array with PointN type that
         # (len,) shape and is used to copy data from original array

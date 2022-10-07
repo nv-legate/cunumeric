@@ -58,6 +58,24 @@ def test_scalar(mode):
     num.put(x_num, indices_num, 10)
     assert np.array_equal(x_num, x)
 
+    x = np.zeros(())
+    x_num = num.zeros(())
+    np.put(x, 0, 1)
+    num.put(x_num, 0, 1)
+    assert np.array_equal(x_num, x)
+
+    x = np.zeros(())
+    x_num = num.zeros(())
+    np.put(x, [0], 1)
+    num.put(x_num, [0], 1)
+    assert np.array_equal(x_num, x)
+
+    x = np.zeros(())
+    x_num = num.zeros(())
+    np.put(x, [0], [1])
+    num.put(x_num, [0], [1])
+    assert np.array_equal(x_num, x)
+
 
 def test_indices_type_convert():
     x = mk_seq_array(np, (3, 4, 5))
