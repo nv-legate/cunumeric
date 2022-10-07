@@ -49,17 +49,20 @@ __CUDA_HD__ static int64_t compute_idx(const int64_t i, const int64_t volume, co
 }
 
 __CUDA_HD__ static int64_t compute_idx(const int64_t i,
-                                       const int64_t,
+                                       const int64_t volume,
                                        const legate::AccessorRO<int64_t, 1>& indices)
 {
-  return indices[i];
+  int64_t idx   = indices[i];
+  int64_t index = idx < 0 ? idx + volume : idx;
+  return index;
 }
 
 static void check_idx(const int64_t i,
                       const int64_t volume,
                       const legate::AccessorRO<int64_t, 1>& indices)
 {
-  int64_t index = indices[i];
+  int64_t idx   = indices[i];
+  int64_t index = idx < 0 ? idx + volume : idx;
   if (index < 0 || index >= volume)
     throw legate::TaskException("index is out of bounds in index array");
 }

@@ -36,8 +36,9 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   for (size_t i = 0; i < iters; i++) {
     const auto idx = (i * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
     if (idx >= volume) break;
-    auto index = indices[idx + start];
-    bool val   = (index < 0 || index >= in_volume);
+    auto index_tmp = indices[idx + start];
+    int64_t index  = index_tmp < 0 ? index_tmp + in_volume : index_tmp;
+    bool val       = (index < 0 || index >= in_volume);
     SumReduction<bool>::fold<true>(value, val);
   }
   reduce_output(out, value);
