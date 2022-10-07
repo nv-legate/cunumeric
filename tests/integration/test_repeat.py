@@ -167,7 +167,7 @@ def test_array_axis_negative_equal():
     anp = np.array([1, 2, 3, 4, 5])
     res_np = np.repeat(anp, 4, -1)  # [1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4 5 5 5 5]
     res_num = num.repeat(anp, 4, -1)  # [1 1 1 1 2]
-    # They have different output.
+    # They have different outputs.
     assert np.array_equal(res_np, res_num)
 
 
