@@ -74,8 +74,7 @@ def test_array_empty_axis_invalid(repeats):
 
 @pytest.mark.parametrize("repeats", (-3, [-3]))
 def test_array_int_repeats_negative(repeats):
-    msg = r"negative"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError):
         num.repeat(3, repeats)
 
 

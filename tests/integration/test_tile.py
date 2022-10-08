@@ -20,8 +20,7 @@ import cunumeric as num
 
 def test_negative():
     a = num.array([0, 1, 2])
-    msg = r"negative:"
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(ValueError):
         num.tile(a, -4)
 
 
