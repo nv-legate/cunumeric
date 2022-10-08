@@ -34,7 +34,7 @@ def test_float():
 
 def test_list():
     a = num.array([0, 1, 2])
-    msg = r"1d dequence"
+    msg = r"1d sequence"
     with pytest.raises(TypeError, match=msg):
         num.tile(a, [[1, 2], [3, 4]])
 
