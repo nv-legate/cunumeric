@@ -27,21 +27,21 @@ def test_negative():
 
 def test_float():
     a = num.array([0, 1, 2])
-    msg = "object of type 'float' has no len()"
+    msg = r"float"
     with pytest.raises(TypeError, match=msg):
         num.tile(a, 2.2)
 
 
 def test_list():
     a = num.array([0, 1, 2])
-    msg = r"expected a sequence of integers or a single integer"
+    msg = r"1d dequence"
     with pytest.raises(TypeError, match=msg):
         num.tile(a, [[1, 2], [3, 4]])
 
 
 def test_tuple():
     a = num.array([0, 1, 2])
-    msg = r"expected a sequence of integers or a single integer"
+    msg = r"1d sequence"
     with pytest.raises(TypeError, match=msg):
         num.tile(a, ((1, 2), (3, 4)))
 
