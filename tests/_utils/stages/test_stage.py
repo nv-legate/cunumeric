@@ -229,7 +229,19 @@ class TestStage(Protocol):
         stage_args = self.args + self.shard_args(shard, config)
         file_args = self.file_args(test_file, config)
 
-        cmd = [str(config.legate_path), str(test_path)]
+        if config.cov_bin:
+            coverage_args = config.cov_args.split()
+            if config.cov_src_path:
+                coverage_args += ["--source=%s" % config.cov_src_path]
+            cmd = (
+                [str(config.legate_path)]
+                + [config.cov_bin]
+                + coverage_args
+                + [str(test_path)]
+            )
+        else:
+            cmd = [str(config.legate_path), str(test_path)]
+
         cmd += stage_args + file_args + config.extra_args
 
         self.delay(shard, config, system)
