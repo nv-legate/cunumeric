@@ -1856,6 +1856,17 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        return self._astype(dtype, order, casting, subok, copy, False)
+
+    def _astype(
+        self,
+        dtype: npt.DTypeLike,
+        order: OrderType = "C",
+        casting: CastingKind = "unsafe",
+        subok: bool = True,
+        copy: bool = True,
+        temporary: bool = False,
+    ) -> ndarray:
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
@@ -1875,7 +1886,7 @@ class ndarray:
                 f"to the rule '{casting}'"
             )
         result = ndarray(self.shape, dtype=dtype, inputs=(self,))
-        result._thunk.convert(self._thunk, warn=False)
+        result._thunk.convert(self._thunk, warn=False, temporary=temporary)
         return result
 
     @add_boilerplate()

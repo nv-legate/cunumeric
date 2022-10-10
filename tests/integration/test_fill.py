@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+import re
+
 import numpy as np
 import pytest
 
@@ -52,10 +54,14 @@ def test_fill_int_with_none():
     a_num = num.array(a_np)
     # numpy fill with -9223372036854775808,
     # while cunumeric raises TypeError
-    msg = (
-        r"argument must be a string, "
-        r"a bytes-like object or a number, not 'NoneType'"
-    )
+    #
+    # Update (wonchan): Numpy 1.23.3 no longer fills
+    # the array with -9223372036854775808 on 'array.fill(None)'
+    # but raises the same exception as cuNumeric
+    try:
+        int(None)
+    except TypeError as e:
+        msg = re.escape(str(e))
     with pytest.raises(TypeError, match=msg):
         a_num.fill(None)
 
