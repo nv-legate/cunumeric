@@ -270,6 +270,12 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
   }
 #endif
 
+#ifdef LEGION_BOUNDS_CHECKS
+  // Bounds checks are not smart enough yet to conclude that the collapsed dimension's
+  // coordinates are ignored, so we fix up the point to make the access look safe to
+  // the checks.
+  point[collapsed_dim] = domain.lo[collapsed_dim];
+#endif
   return point;
 }
 
