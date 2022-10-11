@@ -140,7 +140,6 @@ def install_cunumeric(
     networks,
     hdf,
     legate_branch,
-    legate_dir,
     legate_url,
     llvm,
     march,
@@ -187,7 +186,6 @@ def install_cunumeric(
         print("networks: ", networks)
         print("hdf: ", hdf)
         print("legate_branch: ", legate_branch)
-        print("legate_dir: ", legate_dir)
         print("legate_url: ", legate_url)
         print("llvm: ", llvm)
         print("march: ", march)
@@ -224,20 +222,18 @@ def install_cunumeric(
     cuda_dir = validate_path(cuda_dir)
     nccl_dir = validate_path(nccl_dir)
     tblis_dir = validate_path(tblis_dir)
-    legate_dir = validate_path(legate_dir)
     thrust_dir = validate_path(thrust_dir)
     curand_dir = validate_path(curand_dir)
     gasnet_dir = validate_path(gasnet_dir)
     cutensor_dir = validate_path(cutensor_dir)
     openblas_dir = validate_path(openblas_dir)
 
-    if legate_dir is None:
-        try:
-            import legate.install_info as lg_install_info
+    try:
+        import legate.install_info as lg_install_info
 
-            legate_dir = dirname(lg_install_info.libpath)
-        except Exception:
-            pass
+        legate_dir = dirname(lg_install_info.libpath)
+    except Exception:
+        legate_dir = None
 
     if verbose:
         print("cuda_dir: ", cuda_dir)
@@ -425,14 +421,6 @@ def driver():
         required=False,
         default=os.environ.get("GASNET"),
         help="Path to GASNet installation directory.",
-    )
-    parser.add_argument(
-        "--with-core",
-        dest="legate_dir",
-        metavar="DIR",
-        required=False,
-        default=os.environ.get("LEGATE_DIR"),
-        help="Path to Legate Core installation directory.",
     )
     parser.add_argument(
         "--legate-url",
