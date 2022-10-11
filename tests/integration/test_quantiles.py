@@ -48,3 +48,8 @@ def test_quantiles_1(str_method, axes, qin_arr, keepdims):
     sz = qo_flat.size
     assert cu.all([cu.abs(qo_flat[i] - np_qo_flat[i]) < eps for i in range(0, sz)])
 
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(pytest.main(sys.argv))
