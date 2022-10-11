@@ -1184,6 +1184,7 @@ class DeferredArray(NumPyThunk):
         rhs: Any,
         warn: bool = True,
         nan_op: ConvertCode = ConvertCode.NOOP,
+        temporary: bool = False,
     ) -> None:
         lhs_array = self
         rhs_array = rhs
@@ -1209,6 +1210,9 @@ class DeferredArray(NumPyThunk):
         task.add_alignment(lhs, rhs)
 
         task.execute()
+
+        if temporary:
+            lhs.set_linear()
 
     @auto_convert([1, 2])
     def convolve(self, v: Any, lhs: Any, mode: ConvolveMode) -> None:
@@ -1289,21 +1293,24 @@ class DeferredArray(NumPyThunk):
     # Fill the cuNumeric array with the value in the numpy array
     def _fill(self, value: Any) -> None:
         assert value.scalar
+        assert self.base is not None
 
         if self.scalar:
             # Handle the 0D case special
             self.base.set_storage(value.storage)
+        elif self.dtype.kind != "V" and self.base.kind is not Future:
+            # Emit a Legion fill
+            fill = self.context.create_fill(self.base, value)
+            fill.execute()
         else:
-            assert self.base is not None
+            # Perform the fill using a task
             # If this is a fill for an arg value, make sure to pass
             # the value dtype so that we get it packed correctly
             argval = self.dtype.kind == "V"
-
             task = self.context.create_auto_task(CuNumericOpCode.FILL)
             task.add_output(self.base)
             task.add_input(value)
             task.add_scalar_arg(argval, bool)
-
             task.execute()
 
     def fill(self, numpy_array: Any) -> None:
@@ -1663,7 +1670,16 @@ class DeferredArray(NumPyThunk):
         # First issue a fill to zero everything out
         self.fill(np.array(0, dtype=self.dtype))
 
+        # We need to add the store we're filling as an input as well, so we get
+        # read-write privileges rather than write-discard. That's because we
+        # cannot create tight region requirements that include just the
+        # diagonal, so necessarily there will be elements in the region whose
+        # values must be carried over from the previous contents. Write-discard
+        # privilege, then, is not appropriate for this call, as it essentially
+        # tells the runtime that it can throw away the previous contents of the
+        # entire region.
         task = self.context.create_auto_task(CuNumericOpCode.EYE)
+        task.add_input(self.base)
         task.add_output(self.base)
         task.add_scalar_arg(k, ty.int32)
 

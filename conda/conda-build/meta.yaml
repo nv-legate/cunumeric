@@ -139,8 +139,6 @@ requirements:
     - libcublas
     - libcusolver
     - libcufft
-    # libcurand only enabled for a GPU package, include-only for CPU package
-    - libcurand
 {% endif %}
     - opt_einsum >=3.3
     - scipy
