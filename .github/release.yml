@@ -1,0 +1,17 @@
+changelog:
+  exclude:
+    labels:
+      - category:task
+  categories:
+    - title: 🐛 Bug Fixes
+      labels:
+        - category:bug-fix
+    - title: 🚀 New Features
+      labels:
+        - category:new-feature
+    - title: 🛠️ Improvements
+      labels:
+        - category:improvement
+    - title: 📖 Documentation
+      labels:
+        - category:documentation
