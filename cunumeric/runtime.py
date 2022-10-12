@@ -19,20 +19,19 @@ import warnings
 from functools import reduce
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
+import legate.core.types as ty
 import numpy as np
+from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
+from legate.core.context import Context as LegateContext
 from legate.rc import ArgSpec, Argument, parse_command_args
 from typing_extensions import TypeGuard
 
-import legate.core.types as ty
-from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
-from legate.core.context import Context as LegateContext
-
 from .config import (
+    _CUNUMERIC_DTYPES,
     BitGeneratorOperation,
     CuNumericOpCode,
     CuNumericRedopCode,
     CuNumericTunable,
-    CuNumericTypeCodes,
     cunumeric_context,
     cunumeric_lib,
 )
@@ -44,7 +43,6 @@ from .utils import calculate_volume, find_last_user_stacklevel, get_arg_dtype
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-
     from legate.core._legion.future import Future
     from legate.core.operation import AutoTask, ManualTask
 
@@ -173,24 +171,14 @@ class Runtime(object):
     def _register_dtypes(self) -> None:
         type_system = self.legate_context.type_system
         for numpy_type, core_type in _supported_dtypes.items():
-            type_system.make_alias(
-                np.dtype(numpy_type), core_type  # type: ignore
-            )
+            type_system.make_alias(np.dtype(numpy_type), core_type)
 
-        for n in range(1, LEGATE_MAX_DIM + 1):
-            self._register_point_type(n)
+        for dtype in _CUNUMERIC_DTYPES:
+            type_system.add_type(dtype[0], dtype[1], dtype[2])
 
-    def _register_point_type(self, n: int) -> None:
+    def get_point_type(self, n: int) -> np.dtype[Any]:
         type_system = self.legate_context.type_system
-        point_type = "Point" + str(n)
-        if point_type not in type_system:
-            code = CuNumericTypeCodes.CUNUMERIC_TYPE_POINT1 + n - 1
-            size_in_bytes = 8 * n
-            type_system.add_type(point_type, size_in_bytes, code)
-
-    def get_point_type(self, n: int) -> str:
-        type_system = self.legate_context.type_system
-        point_type = "Point" + str(n)
+        point_type = np.dtype(",".join(("i8",) * n))
         if point_type not in type_system:
             raise ValueError(f"there is no point type registered for {n}")
         return point_type

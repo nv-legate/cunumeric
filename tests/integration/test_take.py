@@ -15,10 +15,10 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from utils.generators import mk_seq_array
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
 
 x = mk_seq_array(np, (3, 4, 5))
 x_num = mk_seq_array(num, (3, 4, 5))

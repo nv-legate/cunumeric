@@ -59,7 +59,8 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
       for (auto idx = 1; idx < max_threads; ++idx) offsets[idx] = offsets[idx - 1] + sizes[idx - 1];
     }
 
-    for (auto& result : results) result = create_buffer<int64_t>(size, Memory::Kind::SYSTEM_MEM);
+    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
+    for (auto& result : results) result = create_buffer<int64_t>(size, kind);
 
 #pragma omp parallel
     {

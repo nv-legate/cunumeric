@@ -17,10 +17,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod, abstractproperty
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
+from .config import ConvertCode
+
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
-
     from legate.core import FieldID, Future, Region
 
     from .config import (
@@ -39,6 +40,7 @@ if TYPE_CHECKING:
         NdShape,
         OrderType,
         SelectKind,
+        SortSide,
         SortType,
     )
 
@@ -150,7 +152,13 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self,
+        rhs: Any,
+        warn: bool = True,
+        nan_op: ConvertCode = ConvertCode.NOOP,
+        temporary: bool = False,
+    ) -> None:
         ...
 
     @abstractmethod
@@ -604,6 +612,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def searchsorted(self, rhs: Any, v: Any, side: SortSide = "left") -> None:
+        ...
+
+    @abstractmethod
     def sort(
         self,
         rhs: Any,
@@ -631,7 +643,7 @@ class NumPyThunk(ABC):
         op: UnaryRedCode,
         rhs: Any,
         where: Any,
-        orig_axis: int,
+        orig_axis: Union[int, None],
         axes: tuple[int, ...],
         keepdims: bool,
         args: Any,
@@ -663,6 +675,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def argwhere(self) -> NumPyThunk:
+        ...
+
+    @abstractmethod
     def where(self, rhs1: Any, rhs2: Any, rhs3: Any) -> None:
         ...
 
@@ -671,12 +687,16 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def solve(self, a: Any, b: Any) -> None:
+        ...
+
+    @abstractmethod
     def scan(
         self,
         op: int,
         rhs: Any,
         axis: int,
-        dtype: Optional[np.dtype[Any]],
+        dtype: Optional[npt.DTypeLike],
         nan_to_identity: bool,
     ) -> None:
         ...
@@ -699,4 +719,8 @@ class NumPyThunk(ABC):
     def unpackbits(
         self, src: Any, axis: Union[int, None], bitorder: BitOrder
     ) -> None:
+        ...
+
+    @abstractmethod
+    def _wrap(self, src: Any, new_len: int) -> None:
         ...

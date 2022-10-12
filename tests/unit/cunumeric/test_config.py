@@ -13,13 +13,13 @@
 # limitations under the License.
 #
 
-import cunumeric.config as m  # module under test
 import pytest
-from mock import patch
-
-from cunumeric import runtime
 from legate.core import Library, ResourceConfig
 from legate.core.context import Context
+from mock import patch
+
+import cunumeric.config as m  # module under test
+from cunumeric import runtime
 
 
 class _FakeSO:
@@ -132,6 +132,7 @@ def test_CuNumericOpCode() -> None:
     assert set(m.CuNumericOpCode.__members__) == {
         "ADVANCED_INDEXING",
         "ARANGE",
+        "ARGWHERE",
         "BINARY_OP",
         "BINARY_RED",
         "BINCOUNT",
@@ -159,6 +160,7 @@ def test_CuNumericOpCode() -> None:
         "SCALAR_UNARY_RED",
         "SCAN_GLOBAL",
         "SCAN_LOCAL",
+        "SOLVE",
         "SORT",
         "SEARCHSORTED",
         "SYRK",
@@ -174,6 +176,7 @@ def test_CuNumericOpCode() -> None:
         "UNPACKBITS",
         "WHERE",
         "WINDOW",
+        "WRAP",
         "WRITE",
         "ZIP",
     }

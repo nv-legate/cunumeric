@@ -48,21 +48,20 @@ class CUDAReductionOpWrapper : public T {
     NULL,                                                                           \
     false);
 
-#define REGISTER_REDOPS(OP)                                                                        \
-  {                                                                                                \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<float>::REDOP_ID), OP<float>)                   \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<double>::REDOP_ID), OP<double>)                 \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<int8_t>::REDOP_ID), OP<int8_t>)                 \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<int16_t>::REDOP_ID), OP<int16_t>)               \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<int32_t>::REDOP_ID), OP<int32_t>)               \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<int64_t>::REDOP_ID), OP<int64_t>)               \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint8_t>::REDOP_ID), OP<uint8_t>)               \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint16_t>::REDOP_ID), OP<uint16_t>)             \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint32_t>::REDOP_ID), OP<uint32_t>)             \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint64_t>::REDOP_ID), OP<uint64_t>)             \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<bool>::REDOP_ID), OP<bool>)                     \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<__half>::REDOP_ID), OP<__half>)                 \
-    _REGISTER_REDOP(context.get_reduction_op_id(OP<complex<float>>::REDOP_ID), OP<complex<float>>) \
+#define REGISTER_REDOPS(OP)                                                            \
+  {                                                                                    \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<float>::REDOP_ID), OP<float>)       \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<double>::REDOP_ID), OP<double>)     \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<int8_t>::REDOP_ID), OP<int8_t>)     \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<int16_t>::REDOP_ID), OP<int16_t>)   \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<int32_t>::REDOP_ID), OP<int32_t>)   \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<int64_t>::REDOP_ID), OP<int64_t>)   \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint8_t>::REDOP_ID), OP<uint8_t>)   \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint16_t>::REDOP_ID), OP<uint16_t>) \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint32_t>::REDOP_ID), OP<uint32_t>) \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<uint64_t>::REDOP_ID), OP<uint64_t>) \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<bool>::REDOP_ID), OP<bool>)         \
+    _REGISTER_REDOP(context.get_reduction_op_id(OP<__half>::REDOP_ID), OP<__half>)     \
   }
 
 void register_gpu_reduction_operators(legate::LibraryContext& context)

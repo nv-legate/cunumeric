@@ -14,7 +14,7 @@
 #
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Dict, Literal, Sequence, Union
+from typing import TYPE_CHECKING, Any, Dict, Sequence, Union
 
 import numpy as np
 
@@ -25,9 +25,8 @@ from ..types import NdShape
 if TYPE_CHECKING:
     import numpy.typing as npt
 
-CastingKind = Union[
-    Literal["no", "equiv", "safe", "same_kind", "unsafe"], None
-]
+    from ..types import CastingKind
+
 
 _UNARY_DOCSTRING_TEMPLATE = """{}
 
@@ -219,7 +218,7 @@ class ufunc:
                 f"{arr.dtype} to {to_dtype} with casting rule '{casting}'"
             )
 
-        return arr.astype(to_dtype)
+        return arr._astype(to_dtype, temporary=True)
 
     def _maybe_create_result(
         self,
@@ -367,7 +366,7 @@ class unary_ufunc(ufunc):
         if not precision_fixed:
             if arr.dtype in self._resolution_cache:
                 to_dtype = self._resolution_cache[arr.dtype]
-                arr = arr.astype(to_dtype)
+                arr = arr._astype(to_dtype, temporary=True)
                 return arr, np.dtype(self._types[to_dtype.char])
 
         chosen = None
@@ -386,7 +385,9 @@ class unary_ufunc(ufunc):
         to_dtype = np.dtype(chosen)
         self._resolution_cache[arr.dtype] = to_dtype
 
-        return arr.astype(to_dtype), np.dtype(self._types[to_dtype.char])
+        return arr._astype(to_dtype, temporary=True), np.dtype(
+            self._types[to_dtype.char]
+        )
 
     def __call__(
         self,
@@ -450,7 +451,7 @@ class multiout_unary_ufunc(ufunc):
         if not precision_fixed:
             if arr.dtype in self._resolution_cache:
                 to_dtype = self._resolution_cache[arr.dtype]
-                arr = arr.astype(to_dtype)
+                arr = arr._astype(to_dtype, temporary=True)
                 return arr, to_dtypes(self._types[to_dtype.char])
 
         chosen = None
@@ -469,7 +470,9 @@ class multiout_unary_ufunc(ufunc):
         to_dtype = np.dtype(chosen)
         self._resolution_cache[arr.dtype] = to_dtype
 
-        return arr.astype(to_dtype), to_dtypes(self._types[to_dtype.char])
+        return arr._astype(to_dtype, temporary=True), to_dtypes(
+            self._types[to_dtype.char]
+        )
 
     def __call__(
         self,
@@ -598,7 +601,8 @@ class binary_ufunc(ufunc):
 
         if key in self._types:
             arrs = [
-                arr.astype(to_dtype) for arr, to_dtype in zip(arrs, to_dtypes)
+                arr._astype(to_dtype, temporary=True)
+                for arr, to_dtype in zip(arrs, to_dtypes)
             ]
             return arrs, np.dtype(self._types[key])
 
@@ -606,7 +610,7 @@ class binary_ufunc(ufunc):
             if key in self._resolution_cache:
                 to_dtypes = self._resolution_cache[key]
                 arrs = [
-                    arr.astype(to_dtype)
+                    arr._astype(to_dtype, temporary=True)
                     for arr, to_dtype in zip(arrs, to_dtypes)
                 ]
                 return arrs, np.dtype(self._types[to_dtypes])
@@ -639,7 +643,10 @@ class binary_ufunc(ufunc):
             )
 
         self._resolution_cache[key] = chosen
-        arrs = [arr.astype(to_dtype) for arr, to_dtype in zip(arrs, chosen)]
+        arrs = [
+            arr._astype(to_dtype, temporary=True)
+            for arr, to_dtype in zip(arrs, chosen)
+        ]
 
         return arrs, np.dtype(self._types[chosen])
 

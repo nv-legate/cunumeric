@@ -15,41 +15,9 @@
 
 import numpy as np
 import pytest
+from utils.utils import check_module_function
 
 import cunumeric as num
-
-
-def _run_test(arr, values, test_args):
-    for axis in test_args:
-        b = np.append(arr, values, axis)
-        c = num.append(arr, values, axis)
-        is_equal = True
-        err_arr = [b, c]
-
-        if len(b) != len(c):
-            is_equal = False
-            err_arr = [b, c]
-        else:
-            for each in zip(b, c):
-                if not np.array_equal(*each):
-                    err_arr = each
-                    is_equal = False
-                    break
-        print_msg = (
-            f"np.append(array({arr.shape}), array({values.shape}), {axis})"
-        )
-        assert is_equal, (
-            f"Failed, {print_msg}\n"
-            f"numpy result: {err_arr[0]}, {b.shape}\n"
-            f"cunumeric_result: {err_arr[1]}, {c.shape}\n"
-            f"cunumeric and numpy shows"
-            f" different result\n"
-        )
-        print(
-            f"Passed, {print_msg}, np: ({b.shape}, {b.dtype})"
-            f", cunumeric: ({c.shape}, {c.dtype}"
-        )
-
 
 DIM = 10
 
@@ -61,6 +29,7 @@ SIZES = [
     (1, 1),
     (1, 1, 1),
     (1, DIM),
+    (1, DIM, 1),
     (DIM, DIM),
     (DIM, DIM, DIM),
 ]
@@ -69,16 +38,51 @@ SIZES = [
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_append(size):
     a = np.random.randint(low=0, high=100, size=size)
+    test_args = [-1] + list(range(a.ndim))
 
-    test_args = list(range(a.ndim)) + [None]
+    for axis in test_args:
+        size_b = list(size)
+        size_b[axis] = size[axis] + 10
+        b = np.random.randint(low=0, high=100, size=size_b)
+        print_msg = f"np.append(array({a.shape}), array({b.shape}), {axis})"
+        check_module_function("append", [a, b], {"axis": axis}, print_msg)
 
-    # test the exception for 1D array on append
-    _run_test(a, a, test_args)
 
-    if a.ndim > 1:
-        # 1D array
-        b = np.random.randint(low=0, high=100, size=(DIM,))
-        _run_test(a, b, [None])
+@pytest.mark.parametrize("size_b", SIZES, ids=str)
+@pytest.mark.parametrize("size_a", SIZES, ids=str)
+def test_append_axis_none(size_a, size_b):
+    axis = None
+    a = np.random.randint(low=0, high=100, size=size_a)
+    b = np.random.randint(low=0, high=100, size=size_b)
+    print_msg = f"np.append(array({a.shape}), array({b.shape}), {axis})"
+    check_module_function("append", [a, b], {"axis": axis}, print_msg)
+
+
+class TestAppendErrors:
+    def setup(self):
+        size_a = (1, DIM)
+        self.a = np.random.randint(low=0, high=100, size=size_a)
+
+    def test_bad_dimension(self):
+        size_b = (1, DIM, 1)
+        b = np.random.randint(low=0, high=100, size=size_b)
+
+        msg = (
+            "All arguments to concatenate must have the "
+            "same number of dimensions"
+        )
+        with pytest.raises(ValueError, match=msg):
+            num.append(self.a, b, axis=1)
+
+    def test_bad_index(self):
+        with pytest.raises(IndexError):
+            num.append(self.a, self.a, axis=5)
+
+    def test_bad_shape(self):
+        size_c = (10, DIM)
+        c = np.random.randint(low=0, high=100, size=size_c)
+        with pytest.raises(ValueError):
+            num.append(self.a, c, axis=1)
 
 
 if __name__ == "__main__":

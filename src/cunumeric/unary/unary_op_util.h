@@ -643,8 +643,9 @@ struct UnaryOp<UnaryOpCode::IMAG, CODE> {
 
 template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::INVERT, CODE> {
-  static constexpr bool valid = legate::is_integral<CODE>::value;
-  using T                     = legate::legate_type_of<CODE>;
+  static constexpr bool valid =
+    legate::is_integral<CODE>::value && CODE != legate::LegateTypeCode::BOOL_LT;
+  using T = legate::legate_type_of<CODE>;
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 

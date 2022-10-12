@@ -23,6 +23,7 @@ import pytest
 
 from .. import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_DELAY,
     DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
@@ -30,6 +31,7 @@ from .. import (
     FEATURES,
     config as m,
 )
+from ..args import PIN_OPTIONS, PinOptionsType
 
 
 class TestConfig:
@@ -45,6 +47,8 @@ class TestConfig:
 
         assert c.cpus == DEFAULT_CPUS_PER_NODE
         assert c.gpus == DEFAULT_GPUS_PER_NODE
+        assert c.cpu_pin == "partial"
+        assert c.gpu_delay == DEFAULT_GPU_DELAY
         assert c.fbmem == DEFAULT_GPU_MEMORY_BUDGET
         assert c.omps == DEFAULT_OMPS_PER_NODE
         assert c.ompthreads == DEFAULT_OMPTHREADS
@@ -54,7 +58,7 @@ class TestConfig:
         assert c.verbose == 0
         assert c.test_root is None
         assert c.requested_workers is None
-        assert isinstance(c.legate_dir, Path)
+        assert c.legate_dir is None
 
         assert c.extra_args == []
         assert c.root_dir == PurePath(m.__file__).parents[2]
@@ -62,8 +66,7 @@ class TestConfig:
         assert any("examples" in str(x) for x in c.test_files)
         assert any("integration" in str(x) for x in c.test_files)
         assert all("unit" not in str(x) for x in c.test_files)
-        assert isinstance(c.legate_path, Path)
-        assert str(c.legate_path).endswith("bin/legate")
+        assert c.legate_path == "legate"
 
     @pytest.mark.parametrize("feature", FEATURES)
     def test_env_features(
@@ -77,7 +80,7 @@ class TestConfig:
 
         # also test with a --use value provided
         c = m.Config(["test.py", "--use", "cuda"])
-        assert set(c.features) == {"cuda", feature}
+        assert set(c.features) == {"cuda"}
 
     @pytest.mark.parametrize("feature", FEATURES)
     def test_cmd_features(self, feature: str) -> None:
@@ -102,15 +105,20 @@ class TestConfig:
         assert c.files == ["a", "b", "c"]
 
     @pytest.mark.parametrize(
-        "opt", ("cpus", "gpus", "fbmem", "omps", "ompthreads")
+        "opt", ("cpus", "gpus", "gpu-delay", "fbmem", "omps", "ompthreads")
     )
     def test_feature_options(self, opt: str) -> None:
-        c = m.Config(["test.py", f"--{opt}", "1000"])
-        assert getattr(c, opt) == 1000
+        c = m.Config(["test.py", f"--{opt}", "1234"])
+        assert getattr(c, opt.replace("-", "_")) == 1234
+
+    @pytest.mark.parametrize("value", PIN_OPTIONS)
+    def test_cpu_pin(self, value: PinOptionsType) -> None:
+        c = m.Config(["test.py", "--cpu-pin", value])
+        assert c.cpu_pin == value
 
     def test_workers(self) -> None:
-        c = m.Config(["test.py", "-j", "1000"])
-        assert c.requested_workers == 1000
+        c = m.Config(["test.py", "-j", "1234"])
+        assert c.requested_workers == 1234
 
     def test_debug(self) -> None:
         c = m.Config(["test.py", "--debug"])
@@ -136,35 +144,26 @@ class TestConfig:
 
     def test_legate_dir(self) -> None:
         c = m.Config([])
-        assert c._legate_source == "build"
+        assert c.legate_dir is None
+        assert c.legate_path == "legate"
+        assert c._legate_source == "install"
 
     def test_cmd_legate_dir_good(self) -> None:
-        # this will be good, assuming legate is built
-        good_legate_dir = m.Config([]).legate_dir
-        c = m.Config(["test.py", "--legate", str(good_legate_dir)])
-        assert c.legate_dir == good_legate_dir
+        legate_dir = Path("/usr/local")
+        c = m.Config(["test.py", "--legate", str(legate_dir)])
+        assert c.legate_dir == legate_dir
+        assert c.legate_path == str(legate_dir / "bin" / "legate")
         assert c._legate_source == "cmd"
-
-    def test_cmd_legate_dir_bad(self) -> None:
-        with pytest.raises(RuntimeError) as e:
-            m.Config(["test.py", "--legate", "some/path"])
-            assert str(e).endswith("does not exist")
 
     def test_env_legate_dir_good(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        # this will be good, assuming legate is built
-        good_legate_dir = m.Config([]).legate_dir
-        monkeypatch.setenv("LEGATE_DIR", f"{good_legate_dir}")
+        legate_dir = Path("/usr/local")
+        monkeypatch.setenv("LEGATE_DIR", str(legate_dir))
         c = m.Config([])
-        assert c.legate_dir == good_legate_dir
+        assert c.legate_dir == legate_dir
+        assert c.legate_path == str(legate_dir / "bin" / "legate")
         assert c._legate_source == "env"
-
-    def test_env_legate_dir_bad(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        monkeypatch.setenv("LEGATE_DIR", "some/path")
-        with pytest.raises(RuntimeError) as e:
-            m.Config(["test.py", "--legate", "some/path"])
-            assert str(e).endswith("does not exist")
 
     def test_extra_args(self) -> None:
         extra = ["-foo", "--bar", "--baz", "10"]

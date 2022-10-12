@@ -39,9 +39,6 @@ struct ThreadLocalStorage {
     return *reinterpret_cast<VAL*>(storage_.data() + CACHE_LINE_SIZE * idx);
   }
 
-  VAL* begin() { return reinterpret_cast<VAL*>(storage_.data()); }
-  VAL* end() { return reinterpret_cast<VAL*>(storage_.data() + CACHE_LINE_SIZE * num_threads_); }
-
  private:
   std::vector<int8_t> storage_;
   size_t num_threads_;

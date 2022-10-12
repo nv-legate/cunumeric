@@ -33,8 +33,8 @@ def test_array_function_implemented():
 
 
 def test_array_function_unimplemented():
-    np_res = np.linalg.solve(np_arr, np_vec)
-    cn_res = np.linalg.solve(cn_arr, cn_vec)
+    np_res = np.linalg.tensorsolve(np_arr, np_vec)
+    cn_res = np.linalg.tensorsolve(cn_arr, cn_vec)
     assert np.array_equal(np_res, cn_res)
     assert isinstance(cn_res, np.ndarray)  # unimplemented
 

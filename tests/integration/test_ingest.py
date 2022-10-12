@@ -15,8 +15,6 @@
 import numpy as np
 import pyarrow as pa
 import pytest
-
-import cunumeric as lg
 from legate.core import (
     CustomSplit,
     Rect,
@@ -26,6 +24,8 @@ from legate.core import (
     ingest,
     legion,
 )
+
+import cunumeric as lg
 
 tile_shape = (4, 7)
 colors = (5, 3)

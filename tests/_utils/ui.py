@@ -22,6 +22,7 @@ text output (i.e. without ANSI color codes) will generated.
 from __future__ import annotations
 
 import sys
+from datetime import timedelta
 from typing import Iterable
 
 from typing_extensions import TypeAlias
@@ -82,7 +83,7 @@ def banner(
     width: int = UI_WIDTH,
     details: Iterable[str] | None = None,
 ) -> str:
-    """Print a title banner, with optional details included.
+    """Generate a title banner, with optional details included.
 
     Parameters
     ----------
@@ -149,7 +150,7 @@ def passed(msg: str, *, details: Details | None = None) -> str:
 
 
 def rule(pad: int = 4, char: str = "~") -> str:
-    """Output a horizontal rule.
+    """Generate a horizontal rule.
 
     Parameters
     ----------
@@ -191,8 +192,15 @@ def skipped(msg: str) -> str:
     return f"{cyan('[SKIP]')} {msg}"
 
 
-def summary(name: str, total: int, passed: int) -> str:
-    """Output a test result summary line.
+def summary(
+    name: str,
+    total: int,
+    passed: int,
+    time: timedelta,
+    *,
+    justify: bool = True,
+) -> str:
+    """Generate a test result summary line.
 
     The output is bright green if all tests passed, otherwise bright red.
 
@@ -207,9 +215,15 @@ def summary(name: str, total: int, passed: int) -> str:
     passed : int
         The number of passed tests to report.
 
+    time : timedelta
+        The time taken to run the tests
+
     """
     summary = (
-        f"{name}: Passed {passed} of {total} tests ({passed/total*100:0.1f}%)"
+        f"{name}: Passed {passed} of {total} tests ({passed/total*100:0.1f}%) "
+        f"in {time.total_seconds():0.2f}s"
+        if total > 0
+        else f"{name}: 0 tests are running, Please check"
     )
-    color = green if passed == total else red
-    return bright(color(f"{summary: >{UI_WIDTH}}"))
+    color = green if passed == total and total > 0 else red
+    return bright(color(f"{summary: >{UI_WIDTH}}" if justify else summary))

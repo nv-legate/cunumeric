@@ -18,10 +18,22 @@
 from __future__ import annotations
 
 from argparse import Action, ArgumentParser, Namespace
-from typing import Any, Generic, Iterable, Iterator, Sequence, TypeVar, Union
+from typing import (
+    Any,
+    Generic,
+    Iterable,
+    Iterator,
+    Literal,
+    Sequence,
+    TypeVar,
+    Union,
+)
+
+from typing_extensions import TypeAlias
 
 from . import (
     DEFAULT_CPUS_PER_NODE,
+    DEFAULT_GPU_DELAY,
     DEFAULT_GPU_MEMORY_BUDGET,
     DEFAULT_GPUS_PER_NODE,
     DEFAULT_OMPS_PER_NODE,
@@ -30,6 +42,18 @@ from . import (
 )
 
 T = TypeVar("T")
+
+PinOptionsType: TypeAlias = Union[
+    Literal["partial"],
+    Literal["none"],
+    Literal["strict"],
+]
+
+PIN_OPTIONS: tuple[PinOptionsType, ...] = (
+    "partial",
+    "none",
+    "strict",
+)
 
 
 class MultipleChoices(Generic[T]):
@@ -147,20 +171,46 @@ feature_opts.add_argument(
 
 
 feature_opts.add_argument(
-    "--fbmem",
-    dest="fbmem",
-    type=int,
-    default=DEFAULT_GPU_MEMORY_BUDGET,
-    help="GPU framebuffer memory",
-)
-
-
-feature_opts.add_argument(
     "--omps",
     dest="omps",
     type=int,
     default=DEFAULT_OMPS_PER_NODE,
     help="Number OpenMP processors per node to use",
+)
+
+
+feature_opts.add_argument(
+    "--utility",
+    dest="utility",
+    type=int,
+    default=1,
+    help="Number of of utility CPUs to reserve for runtime services",
+)
+
+
+feature_opts.add_argument(
+    "--cpu-pin",
+    dest="cpu_pin",
+    choices=PIN_OPTIONS,
+    default="partial",
+    help="CPU pinning behavior on platforms that support CPU pinning",
+)
+
+feature_opts.add_argument(
+    "--gpu-delay",
+    dest="gpu_delay",
+    type=int,
+    default=DEFAULT_GPU_DELAY,
+    help="Delay to introduce between GPU tests (ms)",
+)
+
+
+feature_opts.add_argument(
+    "--fbmem",
+    dest="fbmem",
+    type=int,
+    default=DEFAULT_GPU_MEMORY_BUDGET,
+    help="GPU framebuffer memory (MB)",
 )
 
 
@@ -183,6 +233,7 @@ test_opts.add_argument(
     metavar="LEGATE_DIR",
     action="store",
     default=None,
+    required=False,
     help="Path to Legate installation directory",
 )
 
@@ -201,6 +252,7 @@ test_opts.add_argument(
 
 test_opts.add_argument(
     "-j",
+    "--workers",
     dest="workers",
     type=int,
     default=None,

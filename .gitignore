@@ -34,3 +34,10 @@ cunumeric/install_info.py
 /docs/cunumeric/source/api/generated
 /docs/cunumeric/source/comparison/comparison_table.rst.inc
 *.egg-info
+.cache
+.vscode
+.pytest_cache
+/install*
+/dist
+/_skbuild
+/_cmake_test_compile
