@@ -308,7 +308,7 @@ def install_cunumeric(
     cmake_flags = []
 
     if cmake_generator:
-        cmake_flags += [f"-G{cmake_generator}"]
+        cmake_flags += [f"-G'{cmake_generator}'"]
 
     if debug or verbose:
         cmake_flags += ["--log-level=%s" % ("DEBUG" if debug else "VERBOSE")]
@@ -520,8 +520,8 @@ def driver():
         "--cmake-generator",
         dest="cmake_generator",
         required=False,
-        default="Ninja",
-        choices=["Ninja", "Unix Makefiles"],
+        default=(None if shutil.which("ninja") is None else "Ninja"),
+        choices=["Ninja", "Unix Makefiles", None],
         help="The CMake makefiles generator",
     )
     parser.add_argument(
