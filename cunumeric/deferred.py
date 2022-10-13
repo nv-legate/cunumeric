@@ -1685,7 +1685,7 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @auto_convert([1, 2])
+    @auto_convert("indices", "values")
     def put(self, indices: Any, values: Any) -> None:
 
         if indices.base.kind == Future or indices.base.transformed:
