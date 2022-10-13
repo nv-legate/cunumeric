@@ -6714,6 +6714,8 @@ def quantile(a,
        The American Statistician, 50(4), pp. 361-365, 1996
     """
 
+    from .logic import isscalar
+    
     dict_methods = {'inverted_cdf':inverted_cdf,
                     'averaged_inverted_cdf':averaged_inverted_cdf,
                     'closest_observation':closest_observation,
@@ -6778,7 +6780,7 @@ def quantile(a,
     if method in ['inverted_cdf', 'closest_observation', 'lower', 'higher', 'nearest']:
         to_dtype = arr.dtype
     else:
-        to_dtype = arr.dtype if (arr.dtype == dtype('float128')) else dtype('float64')
+        to_dtype = arr.dtype if (arr.dtype == np.dtype('float128')) else np.dtype('float64')
     
     res = quantile_impl(arr, q_arr, real_axis, dict_methods[method], keepdims, to_dtype)
 
