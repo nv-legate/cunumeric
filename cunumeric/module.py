@@ -6441,7 +6441,7 @@ def reshuffle_reshape(arr, axes_set):
         arr_shuffled = arr
 
     shape_reshuffled = arr_shuffled.shape
-    collapsed_shape = product([arr_shuffled.shape[i] for i in reshuffled_axes]) # WARNING: cuNumeric has not implemented numpy.product and is falling back to canonical numpy.
+    collapsed_shape = np.product([arr_shuffled.shape[i] for i in reshuffled_axes]) # WARNING: cuNumeric has not implemented numpy.product and is falling back to canonical numpy.
 
     redimed = tuple(range(0, min_dim_index+1)) + tuple(range(min_dim_index+num_axes, ndim))
     reshaped = tuple([collapsed_shape if k == min_dim_index else arr_shuffled.shape[k] for k in redimed])
