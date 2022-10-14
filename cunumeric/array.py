@@ -2508,6 +2508,8 @@ class ndarray:
             indices = indices.ravel()
 
         if self.shape == ():
+            if indices.any() is True:
+                raise ValueError("Indices out of bounds")
             if values.shape == ():
                 v = values
             else:

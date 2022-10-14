@@ -105,7 +105,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
     for (size_t n = 0; n < narrays; n++) {
       const int64_t extent = shape[start_index + n];
       coord_t index = index_arrays[n][p] < 0 ? index_arrays[n][p] + extent : index_arrays[n][p];
-      bool val      = (index < 0 || index > extent);
+      bool val      = (index < 0 || index >= extent);
       SumReduction<bool>::fold<true>(value, val);
     }  // for n
   }
@@ -126,7 +126,7 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
                            cudaStream_t stream) const
   {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
+    size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(bool);
     DeviceScalarReductionBuffer<SumReduction<bool>> out_of_bounds(stream);
     if (blocks >= MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
