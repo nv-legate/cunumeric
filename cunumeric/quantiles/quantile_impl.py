@@ -234,7 +234,7 @@ def nearest(q, n):
     pos = q*(n-1)
     k = cu.floor(pos)
 
-    gamma = 1.0 if pos > (cu.ceil(pos) + k)/2.0 else 0.0
+    gamma = 1.0 if pos >= (cu.ceil(pos) + k)/2.0 else 0.0
     
     j = int(k)
     return (gamma, j)

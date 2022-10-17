@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
     # qs_arr = np.ndarray(shape = (2,4), buffer = np.array([0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49]).data) # passed...
 
-    qs_arr = np.array([0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49 , 0.5]) # passes... for method != 2
+    # qs_arr = np.array([0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49 , 0.5]) # passes... for method != 2
     #
     # qs_arr = np.array([0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49]) # passed...
 
@@ -80,6 +80,35 @@ if __name__ == "__main__":
 
     arr234 = np.ndarray(shape = (2,3,4), buffer = np.array([1,2,2,40,1,1,2,1,0,10,3,3,40,15,3,7,5,4,7,3,5,1,0,9]), dtype = int)
 
+    # arr234 reshufled on axes (0,2):
+    # (to which one can take quantiles on axis = 0)
+    #
+    # this reproduces the problem of
+    #
+    # quantile(arr234, q=0.5, axis = (0,2), method = 'nearest')
+    #
+    # by equivalent simplified one (reshufled-reshaped arr234)
+    #
+    # quantile(arr_r234, q=0.5, axis = 0, method = 'nearest')
+    #
+    # numpy obtains the same result on both equivalent problems,
+    # hence the problem is not in reshufle_reshape(...)
+    #
+    arr_r234 = np.array([[ 1,  1,  0], \
+                         [ 2,  1, 10], \
+                         [ 2,  2,  3], \
+                         [40,  1,  3], \
+                         [40,  5,  5], \
+                         [15,  4,  1], \
+                         [ 3,  7,  0], \
+                         [ 7,  3,  9]])
+    #
+    # problem simplified even further,
+    # take first column of arr_r234
+    #
+    arr_r234_c0 = np.take(arr_r234, axis=1, indices=0)
+    # array([ 1,  2,  2,  3,  7, 15, 40, 40])
+    
     # arr = arr1 # passed...
     # qs_arr = np.array([0.001, 0.5]) # passed...
     
@@ -89,18 +118,20 @@ if __name__ == "__main__":
     keepdims = False # passed...
 
     # arr = arr2 # fails with q = 0.5 ...
-    # axes = 0 # passed...
+    axes = 0 # 0 or 1 passed...
     
-    # axes = (0,2) # passed...
-    arr = arr234 # passed... if q != 0.5 or method != 2
+    # axes = (0,2) # passed... fails for q == 0.5, axes == (0,2), method = 'nearest'
+    # arr = arr234
+    arr = arr_r234 # fails w/ q=0.5, method = 'nearest'
+    # arr = arr_r234_c0 # passes w/ 'nearest' logic gamma = 1.0 on pos >= (...), axis=0
+    # arr_r234 fails w/  'nearest' logic gamma = 1.0 on pos >= (...) axis=1
 
     # fails for 2nd method:
     #
     # arr3 = np.array([0.13, 2.11])
     # arr = arr3
-    # qs_arr = 0.5
-
-    axes = 0
+    qs_arr = 0.5
+    # arr = arr1
     
     for i in range(0, len(methods)):
         res = f_test_axis(methods[i], str_methods[i], arr, axes, qs_arr, keepdims = keepdims)
