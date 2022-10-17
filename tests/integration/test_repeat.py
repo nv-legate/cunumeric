@@ -50,13 +50,12 @@ def test_array_empty_repeats_valid(repeats):
     assert np.array_equal(res_np, res_num)
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize("repeats", ([3, 4], [1, 2, 3]))
 def test_array_empty_repeats_invalid(repeats):
-    # numpy raises:
-    # ValueError: operands could not be broadcast together with shape (0,) (2,)
-    # while cunumeric is pass with the result []
+    res_np = np.repeat([], repeats)
     res_num = num.repeat([], repeats)
-    assert np.array_equal(res_num, [])
+    assert np.array_equal(res_num, res_np)
 
 
 @pytest.mark.parametrize("repeats", (-3, 0, 3, 4.7, [], [-3], [0], [3], [4.7]))
