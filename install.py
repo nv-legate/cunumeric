@@ -139,8 +139,6 @@ def install_cunumeric(
     gasnet_dir,
     networks,
     hdf,
-    legate_branch,
-    legate_url,
     llvm,
     march,
     maxdim,
@@ -185,8 +183,6 @@ def install_cunumeric(
         print("gasnet_dir: ", gasnet_dir)
         print("networks: ", networks)
         print("hdf: ", hdf)
-        print("legate_branch: ", legate_branch)
-        print("legate_url: ", legate_url)
         print("llvm: ", llvm)
         print("march: ", march)
         print("maxdim: ", maxdim)
@@ -228,12 +224,9 @@ def install_cunumeric(
     cutensor_dir = validate_path(cutensor_dir)
     openblas_dir = validate_path(openblas_dir)
 
-    try:
-        import legate.install_info as lg_install_info
+    import legate.install_info as lg_install_info
 
-        legate_dir = dirname(lg_install_info.libpath)
-    except Exception:
-        legate_dir = None
+    legate_dir = dirname(lg_install_info.libpath)
 
     if verbose:
         print("cuda_dir: ", cuda_dir)
@@ -348,10 +341,6 @@ def install_cunumeric(
         cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
     if legate_dir:
         cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
-    if legate_url:
-        cmake_flags += ["-Dcunumeric_LEGATE_CORE_REPOSITORY=%s" % legate_url]
-    if legate_branch:
-        cmake_flags += ["-Dcunumeric_LEGATE_CORE_BRANCH=%s" % legate_branch]
 
     cmake_flags += extra_flags
     cmd_env.update(
@@ -421,20 +410,6 @@ def driver():
         required=False,
         default=os.environ.get("GASNET"),
         help="Path to GASNet installation directory.",
-    )
-    parser.add_argument(
-        "--legate-url",
-        dest="legate_url",
-        required=False,
-        default="https://github.com/nv-legate/legate.core.git",
-        help="Legate git URL to build cuNumeric with.",
-    )
-    parser.add_argument(
-        "--legate-branch",
-        dest="legate_branch",
-        required=False,
-        default="branch-22.10",
-        help="Legate branch to build cuNumeric with.",
     )
     parser.add_argument(
         "--with-openblas",
