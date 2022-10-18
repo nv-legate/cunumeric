@@ -2957,12 +2957,8 @@ class DeferredArray(NumPyThunk):
         multiout: Optional[Any] = None,
     ) -> None:
 
-        if self.shape == () and self.size == src.size:
-            lhs = self._broadcast(src.shape)
-            rhs = src.base
-        else:
-            lhs = self.base
-            rhs = src._broadcast(lhs.shape)
+        lhs = self.base
+        rhs = src._broadcast(lhs.shape)
 
         task = self.context.create_auto_task(CuNumericOpCode.UNARY_OP)
         task.add_output(lhs)
