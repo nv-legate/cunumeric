@@ -118,11 +118,11 @@ if __name__ == "__main__":
     keepdims = False # passed...
 
     # arr = arr2 # fails with q = 0.5 ...
-    axes = 0 # 0 or 1 passed...
+    # axes = 0 # 0 or 1 passed...
     
-    # axes = (0,2) # passed... fails for q == 0.5, axes == (0,2), method = 'nearest'
-    # arr = arr234
-    arr = arr_r234 # fails w/ q=0.5, method = 'nearest'
+    axes = (0,2) # passed... fails for q == 0.5, axes == (0,2), method = 'nearest'
+    arr = arr234
+    # arr = arr_r234 # fails w/ q=0.5, method = 'nearest'
     # arr = arr_r234_c0 # passes w/ 'nearest' logic gamma = 1.0 on pos >= (...), axis=0
     # arr_r234 fails w/  'nearest' logic gamma = 1.0 on pos >= (...) axis=1
 

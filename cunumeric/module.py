@@ -6400,9 +6400,12 @@ def midpoint(q, n):
 #
 def nearest(q, n):
     pos = q*(n-1)
-    k = floor(pos)
 
-    gamma = 1.0 if pos > (math.ceil(pos) + k)/2.0 else 0.0
+    # k = floor(pos)
+    # gamma = 1.0 if pos - k >= 0.5 else 0.0
+
+    k = np.round(pos)
+    gamma = 0.0
     
     j = int(k)
     return (gamma, j)
