@@ -224,7 +224,13 @@ def install_cunumeric(
     cutensor_dir = validate_path(cutensor_dir)
     openblas_dir = validate_path(openblas_dir)
 
-    import legate.install_info as lg_install_info
+    try:
+        import legate.install_info as lg_install_info
+    except ImportError:
+        raise RuntimeError(
+            "Cannot determine Legate install directory. Please make sure "
+            "legate.core is installed in the current Python environment."
+        )
 
     legate_dir = dirname(lg_install_info.libpath)
 
@@ -339,8 +345,8 @@ def install_cunumeric(
     # A custom path to cuRAND is ignored when CUDA support is available
     if cuda and curand_dir is not None:
         cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
-    if legate_dir:
-        cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+
+    cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
 
     cmake_flags += extra_flags
     cmd_env.update(
