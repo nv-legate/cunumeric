@@ -2509,7 +2509,7 @@ class ndarray:
 
         if self.shape == ():
             if mode == "raise":
-                if indices.min() < 0 or indices.max() > 0:
+                if indices.min() < -1 or indices.max() > 0:
                     raise ValueError("Indices out of bounds")
             if values.shape == ():
                 v = values

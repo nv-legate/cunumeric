@@ -97,7 +97,7 @@ void check_out_of_bounds(const AccessorRO<int64_t, 1>& indices,
                          cudaStream_t stream)
 {
   const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-  size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
+  size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(bool);
   DeviceScalarReductionBuffer<SumReduction<bool>> out_of_bounds(stream);
 
   if (blocks >= MAX_REDUCTION_CTAS) {
