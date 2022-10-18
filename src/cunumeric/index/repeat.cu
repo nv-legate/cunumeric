@@ -139,7 +139,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
 
     DeviceScalarReductionBuffer<SumReduction<uint64_t>> sum(stream);
     const size_t blocks_count = (extent + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    const size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(int64_t);
+    const size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(uint64_t);
 
     if (blocks_count > MAX_REDUCTION_CTAS) {
       const size_t iters = (blocks_count + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
