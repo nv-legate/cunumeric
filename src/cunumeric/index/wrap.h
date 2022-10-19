@@ -25,6 +25,8 @@ struct WrapArgs {
                                     // copy information from original array to the
                                     //  `wrapped` one
   const Legion::DomainPoint shape;  // shape of the original array
+  const bool has_input;
+  const Array& in = Array();
 };
 
 class WrapTask : public CuNumericTask<WrapTask> {
@@ -41,4 +43,31 @@ class WrapTask : public CuNumericTask<WrapTask> {
 #endif
 };
 
+__CUDA_HD__ static int64_t compute_idx(const int64_t i, const int64_t volume, const bool&)
+{
+  return i % volume;
+}
+
+__CUDA_HD__ static int64_t compute_idx(const int64_t i,
+                                       const int64_t volume,
+                                       const legate::AccessorRO<int64_t, 1>& indices)
+{
+  int64_t idx   = indices[i];
+  int64_t index = idx < 0 ? idx + volume : idx;
+  return index;
+}
+
+static void check_idx(const int64_t i,
+                      const int64_t volume,
+                      const legate::AccessorRO<int64_t, 1>& indices)
+{
+  int64_t idx   = indices[i];
+  int64_t index = idx < 0 ? idx + volume : idx;
+  if (index < 0 || index >= volume)
+    throw legate::TaskException("index is out of bounds in index array");
+}
+static void check_idx(const int64_t i, const int64_t volume, const bool&)
+{
+  // don't do anything when wrapping indices
+}
 }  // namespace cunumeric
