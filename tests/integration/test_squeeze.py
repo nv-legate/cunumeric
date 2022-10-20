@@ -124,29 +124,34 @@ def test_array_basic(size):
     assert np.array_equal(res_num, res_np)
 
 
-@pytest.mark.parametrize("size", SIZES, ids=str)
+@pytest.mark.parametrize(
+    "size", (s for s in SIZES if type(s) == tuple if 1 in s), ids=str
+)
 def test_num_axis(size):
     a = np.random.randint(low=-10, high=10, size=size)
     b = num.array(a)
+    k = 0
     for xis in a.shape:
         if xis == 1:
-            k = a.shape.index(xis)
             res_np = np.squeeze(a, axis=k)
             res_num = num.squeeze(b, axis=k)
             assert np.array_equal(res_num, res_np)
+        k += 1
 
 
-@pytest.mark.parametrize("size", SIZES, ids=str)
+@pytest.mark.parametrize(
+    "size", (s for s in SIZES if type(s) == tuple if 1 in s), ids=str
+)
 def test_array_axis(size):
     a = np.random.randint(low=-10, high=10, size=size)
     b = num.array(a)
-
+    k = 0
     for xis in a.shape:
         if xis == 1:
-            k = a.shape.index(xis)
             res_np = a.squeeze(axis=k)
             res_num = b.squeeze(axis=k)
             assert np.array_equal(res_num, res_np)
+        k += 1
 
 
 if __name__ == "__main__":
