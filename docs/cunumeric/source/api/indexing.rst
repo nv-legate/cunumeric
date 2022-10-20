@@ -43,5 +43,6 @@ Inserting data into arrays
    :toctree: generated/
  
    fill_diagonal
+   put
    put_along_axis
    place

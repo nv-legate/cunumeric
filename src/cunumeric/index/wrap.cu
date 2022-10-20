@@ -23,7 +23,28 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <int DIM>
+template <typename Output>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  check_kernel(Output out,
+               const AccessorRO<int64_t, 1> indices,
+               const int64_t start,
+               const int64_t volume,
+               const int64_t in_volume,
+               const int64_t iters)
+{
+  bool value = false;
+  for (size_t i = 0; i < iters; i++) {
+    const auto idx = (i * gridDim.x + blockIdx.x) * blockDim.x + threadIdx.x;
+    if (idx >= volume) break;
+    auto index_tmp = indices[idx + start];
+    int64_t index  = index_tmp < 0 ? index_tmp + in_volume : index_tmp;
+    bool val       = (index < 0 || index >= in_volume);
+    SumReduction<bool>::fold<true>(value, val);
+  }
+  reduce_output(out, value);
+}
+
+template <int DIM, typename IND>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   wrap_kernel(const AccessorWO<Point<DIM>, 1> out,
               const int64_t start,
@@ -32,53 +53,93 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
               const Point<1> out_lo,
               const Pitches<DIM - 1> pitches_in,
               const Point<DIM> in_lo,
-              const size_t in_volume)
+              const size_t in_volume,
+              const IND indices)
 {
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
-  const int64_t input_idx = (idx + start) % in_volume;
+  const int64_t input_idx = compute_idx((idx + start), in_volume, indices);
   auto out_p              = pitches_out.unflatten(idx, out_lo);
   auto p                  = pitches_in.unflatten(input_idx, in_lo);
   out[out_p]              = p;
 }
 
-template <int DIM>
+template <int DIM, typename IND>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   wrap_kernel_dense(Point<DIM>* out,
                     const int64_t start,
                     const int64_t volume,
                     const Pitches<DIM - 1> pitches_in,
                     const Point<DIM> in_lo,
-                    const size_t in_volume)
+                    const size_t in_volume,
+                    const IND indices)
 {
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
-  const int64_t input_idx = (idx + start) % in_volume;
+  const int64_t input_idx = compute_idx((idx + start), in_volume, indices);
   auto p                  = pitches_in.unflatten(input_idx, in_lo);
   out[idx]                = p;
 }
 
+// don't do anything when indices is a boolean
+void check_out_of_bounds(const bool& indices,
+                         const int64_t start,
+                         const int64_t volume,
+                         const int64_t volume_in,
+                         cudaStream_t stream)
+{
+}
+
+void check_out_of_bounds(const AccessorRO<int64_t, 1>& indices,
+                         const int64_t start,
+                         const int64_t volume,
+                         const int64_t volume_in,
+                         cudaStream_t stream)
+{
+  const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+  size_t shmem_size   = THREADS_PER_BLOCK / 32 * sizeof(bool);
+  DeviceScalarReductionBuffer<SumReduction<bool>> out_of_bounds(stream);
+
+  if (blocks >= MAX_REDUCTION_CTAS) {
+    const size_t iters = (blocks + MAX_REDUCTION_CTAS - 1) / MAX_REDUCTION_CTAS;
+    check_kernel<<<MAX_REDUCTION_CTAS, THREADS_PER_BLOCK, shmem_size, stream>>>(
+      out_of_bounds, indices, start, volume, volume_in, iters);
+  } else {
+    check_kernel<<<blocks, THREADS_PER_BLOCK, shmem_size, stream>>>(
+      out_of_bounds, indices, start, volume, volume_in, 1);
+  }
+  CHECK_CUDA_STREAM(stream);
+
+  bool res = out_of_bounds.read(stream);
+  if (res) throw legate::TaskException("index is out of bounds in index array");
+}
+
 template <int DIM>
 struct WrapImplBody<VariantKind::GPU, DIM> {
+  template <typename IND>
   void operator()(const AccessorWO<Point<DIM>, 1>& out,
                   const Pitches<0>& pitches_out,
                   const Rect<1>& out_rect,
                   const Pitches<DIM - 1>& pitches_in,
                   const Rect<DIM>& in_rect,
-                  const bool dense) const
+                  const bool dense,
+                  const IND& indices) const
   {
     auto stream          = get_cached_stream();
     const int64_t start  = out_rect.lo[0];
     const int64_t volume = out_rect.volume();
     const auto in_volume = in_rect.volume();
     const size_t blocks  = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+
+    check_out_of_bounds(indices, start, volume, in_volume, stream);
+
     if (dense) {
       auto outptr = out.ptr(out_rect);
-      wrap_kernel_dense<DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-        outptr, start, volume, pitches_in, in_rect.lo, in_volume);
+      wrap_kernel_dense<DIM, IND><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        outptr, start, volume, pitches_in, in_rect.lo, in_volume, indices);
     } else {
-      wrap_kernel<DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-        out, start, volume, pitches_out, out_rect.lo, pitches_in, in_rect.lo, in_volume);
+      wrap_kernel<DIM, IND><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        out, start, volume, pitches_out, out_rect.lo, pitches_in, in_rect.lo, in_volume, indices);
     }
     CHECK_CUDA_STREAM(stream);
   }

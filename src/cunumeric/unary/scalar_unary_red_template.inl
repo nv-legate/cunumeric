@@ -100,8 +100,8 @@ struct ScalarUnaryRed {
 
   void execute() const noexcept
   {
-#ifndef LEGION_BOUNDS_CHECKS
     auto identity = LG_OP::identity;
+#ifndef LEGION_BOUNDS_CHECKS
     // The constexpr if here prevents the DenseReduction from being instantiated for GPU kernels
     // which limits compile times and binary sizes.
     if constexpr (KIND != VariantKind::GPU) {

@@ -18,51 +18,73 @@ import pytest
 
 import cunumeric as num
 
-KS = [0, -1, 1, -2, 2]
-
-a = num.array(
-    [
-        [1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 10, 11, 12],
-        [13, 14, 15, 16],
-        [17, 18, 19, 20],
-    ]
-)
-
-anp = np.array(
-    [
-        [1, 2, 3, 4],
-        [5, 6, 7, 8],
-        [9, 10, 11, 12],
-        [13, 14, 15, 16],
-        [17, 18, 19, 20],
-    ]
-)
+KS = (0, -1, 1, -2, 2)
+FUNCTIONS = ("tril", "triu")
 
 
-@pytest.mark.parametrize("k", KS, ids=lambda k: f"(k={k})")
-@pytest.mark.parametrize("func", ("tril", "triu"))
-def test_full(func, k):
+def _test(func, anp, a, k):
     num_f = getattr(num, func)
     np_f = getattr(np, func)
 
     b = num_f(a, k=k)
-    bn = np_f(anp, k=k)
+    bnp = np_f(anp, k=k)
 
-    assert num.array_equal(b, bn)
+    assert num.array_equal(b, bnp)
 
 
-@pytest.mark.parametrize("k", KS, ids=lambda k: f"(k={k})")
-@pytest.mark.parametrize("func", ("tril", "triu"))
-def test_slice(func, k):
-    num_f = getattr(num, func)
-    np_f = getattr(np, func)
+ARRAY_SHAPE = (
+    (0,),
+    (1,),
+    (10,),
+    (1, 10),
+    (10, 10),
+    (1, 1, 10),
+    (1, 10, 10),
+    (10, 10, 10),
+)
 
-    b = num_f(a[0, :], k=k)
-    bn = np_f(anp[0, :], k=k)
 
-    assert num.array_equal(b, bn)
+@pytest.mark.parametrize("k", KS + (-10, 10), ids=lambda k: f"(k={k})")
+@pytest.mark.parametrize("dtype", (int, float), ids=str)
+@pytest.mark.parametrize(
+    "shape", ARRAY_SHAPE, ids=lambda shape: f"(shape={shape})"
+)
+@pytest.mark.parametrize("func", FUNCTIONS)
+def test_trilu(func, shape, dtype, k):
+    anp = np.ones(shape, dtype=dtype)
+    a = num.ones(shape, dtype=dtype)
+
+    _test(func, anp, a, k)
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("k", (-2.5, 0.0, 2.5), ids=lambda k: f"(k={k})")
+@pytest.mark.parametrize("func", FUNCTIONS)
+def test_trilu_float_k(func, k):
+    # cuNumeric: struct.error: required argument is not an integer
+    # Numpy: pass
+    shape = (10, 10)
+    anp = np.ones(shape)
+    a = num.ones(shape)
+
+    _test(func, anp, a, k)
+
+
+class TestTriluErrors:
+    def test_arr_none(self):
+        msg = "'NoneType' object has no attribute 'ndim'"
+        with pytest.raises(AttributeError, match=msg):
+            num.tril(None)
+
+    @pytest.mark.xfail
+    def test_k_none(self):
+        # In cuNumeric, it raises struct.error,
+        # msg is required argument is not an integer
+        # In Numpy, it raises TypeError,
+        # msg is bad operand type for unary -: 'NoneType'
+        a = num.ones((3, 3))
+        with pytest.raises(TypeError):
+            num.tril(a, k=None)
 
 
 if __name__ == "__main__":
