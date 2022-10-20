@@ -123,6 +123,7 @@ struct WrapImplBody<VariantKind::GPU, DIM> {
                   const Pitches<DIM - 1>& pitches_in,
                   const Rect<DIM>& in_rect,
                   const bool dense,
+                  const bool check_bounds,
                   const IND& indices) const
   {
     auto stream          = get_cached_stream();
@@ -131,7 +132,7 @@ struct WrapImplBody<VariantKind::GPU, DIM> {
     const auto in_volume = in_rect.volume();
     const size_t blocks  = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
-    check_out_of_bounds(indices, start, volume, in_volume, stream);
+    if (check_bounds) check_out_of_bounds(indices, start, volume, in_volume, stream);
 
     if (dense) {
       auto outptr = out.ptr(out_rect);

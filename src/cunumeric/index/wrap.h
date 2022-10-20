@@ -26,6 +26,7 @@ struct WrapArgs {
                                     //  `wrapped` one
   const Legion::DomainPoint shape;  // shape of the original array
   const bool has_input;
+  const bool check_bounds;
   const Array& in = Array();
 };
 

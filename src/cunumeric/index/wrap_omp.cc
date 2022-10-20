@@ -31,6 +31,7 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
                   const Pitches<DIM - 1>& pitches_in,
                   const Rect<DIM>& in_rect,
                   const bool dense,
+                  const bool check_bounds,
                   const IND& indices) const
   {
     const int64_t start  = out_rect.lo[0];
@@ -40,7 +41,7 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
       auto outptr = out.ptr(out_rect);
 #pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
-        check_idx(i, in_volume, indices);
+        if (check_bounds) check_idx(i, in_volume, indices);
         const int64_t input_idx = compute_idx(i, in_volume, indices);
         auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
         outptr[i - start]       = point;
@@ -48,7 +49,7 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
     } else {
 #pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
-        check_idx(i, in_volume, indices);
+        if (check_bounds) check_idx(i, in_volume, indices);
         const int64_t input_idx = compute_idx(i, in_volume, indices);
         auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
         out[i]                  = point;
