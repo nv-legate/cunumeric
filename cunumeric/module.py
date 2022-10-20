@@ -6235,8 +6235,9 @@ def bincount(
 # (pos, k) are always positive!
 #
 def floor_i(k):
-    j = k-1 if k>0 else 0
+    j = k - 1 if k > 0 else 0
     return int(j)
+
 
 # Generic rule: if `q` input value falls onto a node, then return that node
 
@@ -6251,9 +6252,9 @@ def floor_i(k):
 # n = sizeof(array)
 #
 def inverted_cdf(q, n):
-    pos = q*n
+    pos = q * n
     k = floor(pos)
-    
+
     g = pos - k
     gamma = 1.0 if g > 0 else 0.0
 
@@ -6263,12 +6264,13 @@ def inverted_cdf(q, n):
     else:
         return (gamma, j)
 
+
 # 'averaged_inverted_cdf'
 #
 def averaged_inverted_cdf(q, n):
-    pos = q*n
+    pos = q * n
     k = floor(pos)
-    
+
     g = pos - k
     gamma = 1.0 if g > 0 else 0.5
 
@@ -6277,6 +6279,7 @@ def averaged_inverted_cdf(q, n):
         return (0.0, 0)
     else:
         return (gamma, j)
+
 
 # 'closest_observation'
 #
@@ -6291,17 +6294,18 @@ def closest_observation(q, n):
     # numpy impl. doesn't account that the original paper used
     # 1-based indexing, 0-based j is still checked for evennes!
     # (see proof in quantile_policies.py)
-    # 
-    p0 = q*n - 0.5
+    #
+    p0 = q * n - 0.5
     p = p0 - 1.0
-    
+
     pos = 0 if p < 0 else p0
     k = floor(pos)
-        
+
     j = floor_i(k)
-    gamma = 1 if k < pos else (0 if j%2 == 0 else 1)
-    
+    gamma = 1 if k < pos else (0 if j % 2 == 0 else 1)
+
     return (gamma, j)
+
 
 # Continuous methods:
 #
@@ -6309,20 +6313,21 @@ def closest_observation(q, n):
 # 'interpolated_inverted_cdf'
 #
 def interpolated_inverted_cdf(q, n):
-    pos = q*n
+    pos = q * n
     k = floor(pos)
     ### gamma = pos-k
     # this fixes it:
     #
-    gamma = 0.0 if k == 0 else pos-k
+    gamma = 0.0 if k == 0 else pos - k
     j = floor_i(k)
     return (gamma, j)
+
 
 # Hazen method:
 # 'hazen'
 #
 def hazen(q, n):
-    pos = q*n + 0.5
+    pos = q * n + 0.5
     k = floor(pos)
     # gamma = pos-k
     #
@@ -6331,8 +6336,8 @@ def hazen(q, n):
     #  which is the correct choice, because right = arr[n]
     #  gets invalidated)
     #
-    gamma = 0.0 if (pos < 1 or pos > n) else pos-k
-    
+    gamma = 0.0 if (pos < 1 or pos > n) else pos - k
+
     j = floor_i(k)
     return (gamma, j)
 
@@ -6341,8 +6346,8 @@ def hazen(q, n):
 # 'weibull'
 #
 def weibull(q, n):
-    pos = q*(n+1)
-    
+    pos = q * (n + 1)
+
     k = floor(pos)
     # gamma = pos-k
     #
@@ -6351,37 +6356,18 @@ def weibull(q, n):
     #  which is the correct choice, because right = arr[n]
     #  gets invalidated)
     #
-    gamma = 0.0 if (pos < 1 or pos > n) else pos-k
-    
+    gamma = 0.0 if (pos < 1 or pos > n) else pos - k
+
     j = floor_i(k)
     return (gamma, j)
+
 
 # Gumbel method:
 # 'linear'
 #
 def linear(q, n):
-    pos = q*(n-1) + 1
+    pos = q * (n - 1) + 1
     k = floor(pos)
-    #gamma = pos-k
-    #
-    # this fixes it:
-    # (when pos > n: this actually selects the right point,
-    #  which is the correct choice, because right = arr[n]
-    #  gets invalidated)
-    #
-    gamma = 0.0 if (pos < 1 or pos > n) else pos-k
-    
-    j = floor_i(k)
-    return (gamma, j)
-
-# Johnson & Kotz method:
-# 'median_unbiased'
-#
-def median_unbiased(q, n):
-    fract = 1.0/3.0
-    pos = q*(n+fract) + fract
-    k = floor(pos)
-    
     # gamma = pos-k
     #
     # this fixes it:
@@ -6389,20 +6375,42 @@ def median_unbiased(q, n):
     #  which is the correct choice, because right = arr[n]
     #  gets invalidated)
     #
-    gamma = 0.0 if (pos < 1 or pos > n) else pos-k
-    
+    gamma = 0.0 if (pos < 1 or pos > n) else pos - k
+
     j = floor_i(k)
     return (gamma, j)
+
+
+# Johnson & Kotz method:
+# 'median_unbiased'
+#
+def median_unbiased(q, n):
+    fract = 1.0 / 3.0
+    pos = q * (n + fract) + fract
+    k = floor(pos)
+
+    # gamma = pos-k
+    #
+    # this fixes it:
+    # (when pos > n: this actually selects the right point,
+    #  which is the correct choice, because right = arr[n]
+    #  gets invalidated)
+    #
+    gamma = 0.0 if (pos < 1 or pos > n) else pos - k
+
+    j = floor_i(k)
+    return (gamma, j)
+
 
 # Blom method:
 # 'normal_unbiased'
 #
 def normal_unbiased(q, n):
     fract1 = 0.25
-    fract2 = 3.0/8.0
-    pos = q*(n+fract1) + fract2
+    fract2 = 3.0 / 8.0
+    pos = q * (n + fract1) + fract2
     k = floor(pos)
-    
+
     # gamma = pos-k
     #
     # this fixes it:
@@ -6410,8 +6418,8 @@ def normal_unbiased(q, n):
     #  which is the correct choice, because right = arr[n]
     #  gets invalidated)
     #
-    gamma = 0.0 if (pos < 1 or pos > n) else pos-k
-    
+    gamma = 0.0 if (pos < 1 or pos > n) else pos - k
+
     j = floor_i(k)
     return (gamma, j)
 
@@ -6420,7 +6428,7 @@ def normal_unbiased(q, n):
 #
 def lower(q, n):
     gamma = 0.0
-    pos = q*(n-1)
+    pos = q * (n - 1)
     k = floor(pos)
 
     j = int(k)
@@ -6430,12 +6438,12 @@ def lower(q, n):
 # `higher`
 #
 def higher(q, n):
-    pos = q*(n-1)
+    pos = q * (n - 1)
     k = floor(pos)
 
     # Generic rule: (k == pos)
     gamma = 0.0 if (pos == 0 or k == pos) else 1.0
-    
+
     j = int(k)
     return (gamma, j)
 
@@ -6443,12 +6451,12 @@ def higher(q, n):
 # `midpoint`
 #
 def midpoint(q, n):
-    pos = q*(n-1)
+    pos = q * (n - 1)
     k = floor(pos)
 
     # Generic rule: (k == pos)
     gamma = 0.0 if (pos == 0 or k == pos) else 0.5
-    
+
     j = int(k)
     return (gamma, j)
 
@@ -6456,16 +6464,17 @@ def midpoint(q, n):
 # `nearest`
 #
 def nearest(q, n):
-    pos = q*(n-1)
+    pos = q * (n - 1)
 
     # k = floor(pos)
     # gamma = 1.0 if pos - k >= 0.5 else 0.0
 
     k = np.round(pos)
     gamma = 0.0
-    
+
     j = int(k)
     return (gamma, j)
+
 
 # for the case when axis = tuple (non-singleton)
 # reshuffling might have to be done (if tuple is non-consecutive)
@@ -6481,10 +6490,12 @@ def nearest(q, n):
 #
 def reshuffle_reshape(arr, axes_set):
     is_sorted = lambda a: all(a[:-1] <= a[1:])
-    is_diff = lambda arr1, arr2 : len(arr1) != len(arr2) or any([arr1[i] != arr2[i] for i in range(0, len(arr1))])
+    is_diff = lambda arr1, arr2: len(arr1) != len(arr2) or any(
+        [arr1[i] != arr2[i] for i in range(0, len(arr1))]
+    )
 
     ndim = len(arr.shape)
-    
+
     if not is_sorted(axes_set):
         sorted_axes = tuple(sort(axes_set))
     else:
@@ -6501,13 +6512,23 @@ def reshuffle_reshape(arr, axes_set):
         arr_shuffled = arr
 
     shape_reshuffled = arr_shuffled.shape
-    collapsed_shape = np.product([arr_shuffled.shape[i] for i in reshuffled_axes]) # WARNING: cuNumeric has not implemented numpy.product and is falling back to canonical numpy.
+    collapsed_shape = np.product(
+        [arr_shuffled.shape[i] for i in reshuffled_axes]
+    )  # WARNING: cuNumeric has not implemented numpy.product and is falling back to canonical numpy.
 
-    redimed = tuple(range(0, min_dim_index+1)) + tuple(range(min_dim_index+num_axes, ndim))
-    reshaped = tuple([collapsed_shape if k == min_dim_index else arr_shuffled.shape[k] for k in redimed])
+    redimed = tuple(range(0, min_dim_index + 1)) + tuple(
+        range(min_dim_index + num_axes, ndim)
+    )
+    reshaped = tuple(
+        [
+            collapsed_shape if k == min_dim_index else arr_shuffled.shape[k]
+            for k in redimed
+        ]
+    )
 
     arr_reshaped = arr_shuffled.reshape(reshaped)
     return (min_dim_index, arr_reshaped)
+
 
 # args:
 #
@@ -6527,55 +6548,72 @@ def reshuffle_reshape(arr, axes_set):
 def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
 
     ndims = len(arr.shape)
-       
+
     if axis == None:
         n = arr.size
-        remaining_shape = [] # only `q_arr` dictates shape;
-                             # quantile applied to `arr` seen as 1D;
+        remaining_shape = []  # only `q_arr` dictates shape;
+        # quantile applied to `arr` seen as 1D;
     else:
         n = arr.shape[axis]
-        
-        # arr.shape -{axis}; if keepdims use 1 for arr.shape[axis]: 
+
+        # arr.shape -{axis}; if keepdims use 1 for arr.shape[axis]:
         # (can be empty [])
         #
         if keepdims:
-            remaining_shape = [1 if k==axis else arr.shape[k] for k in range(0, ndims)]
+            remaining_shape = [
+                1 if k == axis else arr.shape[k] for k in range(0, ndims)
+            ]
         else:
-            remaining_shape = [arr.shape[k] for k in range(0, ndims) if k != axis]
-       
+            remaining_shape = [
+                arr.shape[k] for k in range(0, ndims) if k != axis
+            ]
+
     # quantile interpolation method to act on vectors,
     # like an axpy call:
     # [gamma](vleft, vright) { return (1-gamma)*vleft + gamma*vright;}
     #
-    linear_interp = lambda gamma, arr_lvals, arr_rvals: (1.0 - gamma)*arr_lvals + gamma*arr_rvals
+    linear_interp = (
+        lambda gamma, arr_lvals, arr_rvals: (1.0 - gamma) * arr_lvals
+        + gamma * arr_rvals
+    )
 
     # helper:
     # create list of n repetitions of value `val`
     #
-    repeat = lambda val, n : [val] * n
+    repeat = lambda val, n: [val] * n
 
     # flattening to 1D might be the right way,
     # but may consider profiling other approaches
     # (slice assignment)
     #
     q_flat = q_arr.flatten().tolist()
-       
-    result_1D = [] # TODO: check if a container more efficient than list could be used to append results into
+
+    result_1D = (
+        []
+    )  # TODO: check if a container more efficient than list could be used to append results into
     #       e.g., pre-allocate 1d-array with len(q_flat) * prod(remaining_shape), where prod = foldl (\acc x -> acc*x) 1
     for q in q_flat:
-        (gamma, j) = method(q,n) 
-        (left_pos, right_pos) = (j, j+1) 
+        (gamma, j) = method(q, n)
+        (left_pos, right_pos) = (j, j + 1)
 
         # (N-1) dimensional ndarray of left, right
         # neighbor values:
         #
-        arr_1D_lvals = arr.take([left_pos], axis).flatten()  # singleton list: [left_pos] ; extract values at index=left_pos;
-        num_vals = len(arr_1D_lvals) # ( num_vals == prod(remaining_shape) ), provided prod = foldl (\acc x -> acc*x) 1, otherwise fails when remaining_shape != []
+        arr_1D_lvals = arr.take(
+            [left_pos], axis
+        ).flatten()  # singleton list: [left_pos] ; extract values at index=left_pos;
+        num_vals = len(
+            arr_1D_lvals
+        )  # ( num_vals == prod(remaining_shape) ), provided prod = foldl (\acc x -> acc*x) 1, otherwise fails when remaining_shape != []
 
-        if right_pos>=n:
-            arr_1D_rvals = array(repeat(0, num_vals)) # some quantile methods may result in j==(n-1), hence (j+1) could surpass array boundary;
+        if right_pos >= n:
+            arr_1D_rvals = array(
+                repeat(0, num_vals)
+            )  # some quantile methods may result in j==(n-1), hence (j+1) could surpass array boundary;
         else:
-            arr_1D_rvals = arr.take([right_pos], axis).flatten() # singleton list: [right_pos]; extract values at index=right_pos;
+            arr_1D_rvals = arr.take(
+                [right_pos], axis
+            ).flatten()  # singleton list: [right_pos]; extract values at index=right_pos;
 
         ## gammmas     = repeat(gamma, num_vals) # need it only if `axpy` cannot take scalar `a`
 
@@ -6583,9 +6621,11 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
         # (the other one being on `q` inputs; ignored for now)
         # TODO: figure out what to pass to the `cunumeric` call
         #
-        quantiles_ls = linear_interp(gamma, arr_1D_lvals, arr_1D_rvals) # fails with lists []! because `*` does something else; TODO: need arrays here
+        quantiles_ls = linear_interp(
+            gamma, arr_1D_lvals, arr_1D_rvals
+        )  # fails with lists []! because `*` does something else; TODO: need arrays here
 
-        result_1D = [*result_1D, *quantiles_ls] # append
+        result_1D = [*result_1D, *quantiles_ls]  # append
 
     # compose qarr.shape with arr.shape:
     #
@@ -6596,7 +6636,6 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
     # construct result NdArray:
     #
 
-
     # fails with cunumeric:
     # (numpy works)
     #
@@ -6605,22 +6644,25 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
     # qs_all = ndarray(shape = qresult_shape,
     #                     buffer = array(result_1D),
     #                     dtype = to_dtype)
-       
-    qs_all = asarray(result_1D, dtype = to_dtype).reshape(qresult_shape)
-       
+
+    qs_all = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
+
     return qs_all
+
 
 # TODO: what decorator should be used here, if any?
 #
-def quantile(a,
-             q,
-             axis=None,
-             out=None,
-             overwrite_input=False,
-             method="linear",
-             keepdims=False,
-             *,
-             interpolation=None) -> ndarray:
+def quantile(
+    a,
+    q,
+    axis=None,
+    out=None,
+    overwrite_input=False,
+    method="linear",
+    keepdims=False,
+    *,
+    interpolation=None,
+) -> ndarray:
     """
     Compute the q-th quantile of the data along the specified axis.
     Parameters
@@ -6775,20 +6817,22 @@ def quantile(a,
     """
 
     from .logic import isscalar
-    
-    dict_methods = {'inverted_cdf':inverted_cdf,
-                    'averaged_inverted_cdf':averaged_inverted_cdf,
-                    'closest_observation':closest_observation,
-                    'interpolated_inverted_cdf':interpolated_inverted_cdf,
-                    'hazen':hazen,
-                    'weibull':weibull,
-                    'linear':linear,
-                    'median_unbiased':median_unbiased,
-                    'normal_unbiased':normal_unbiased,
-                    'lower':lower,
-                    'higher':higher,
-                    'midpoint':midpoint,
-                    'nearest':nearest}
+
+    dict_methods = {
+        "inverted_cdf": inverted_cdf,
+        "averaged_inverted_cdf": averaged_inverted_cdf,
+        "closest_observation": closest_observation,
+        "interpolated_inverted_cdf": interpolated_inverted_cdf,
+        "hazen": hazen,
+        "weibull": weibull,
+        "linear": linear,
+        "median_unbiased": median_unbiased,
+        "normal_unbiased": normal_unbiased,
+        "lower": lower,
+        "higher": higher,
+        "midpoint": midpoint,
+        "nearest": nearest,
+    }
 
     if axis != None and (not isscalar(axis)):
         if len(axis) == 1:
@@ -6802,14 +6846,13 @@ def quantile(a,
     else:
         real_axis = axis
         a_rr = a
-    
 
     if isscalar(q):
         q_arr = array([q])
         # TODO: the result must also be reduced in dimension, accordingly;
     else:
         q_arr = q
-    
+
     # in the future k-sort (partition)
     # might be faster, for now it uses sort
     # arr = partition(arr, k = floor(nq), axis = real_axis)
@@ -6818,10 +6861,10 @@ def quantile(a,
     # if no axis given then elements are sorted as a 1D array
     #
     if overwrite_input:
-        a_rr.sort(axis = real_axis)
+        a_rr.sort(axis=real_axis)
         arr = a_rr
     else:
-        arr = sort(a_rr, axis = real_axis)
+        arr = sort(a_rr, axis=real_axis)
 
     # return type dependency on arr.dtype:
     #
@@ -6837,20 +6880,32 @@ def quantile(a,
     #
     # see https://github.com/numpy/numpy/issues/22323
     #
-    if method in ['inverted_cdf', 'closest_observation', 'lower', 'higher', 'nearest']:
+    if method in [
+        "inverted_cdf",
+        "closest_observation",
+        "lower",
+        "higher",
+        "nearest",
+    ]:
         to_dtype = arr.dtype
     else:
-        to_dtype = arr.dtype if (arr.dtype == np.dtype('float128')) else np.dtype('float64')
-    
-    res = quantile_impl(arr, q_arr, real_axis, dict_methods[method], keepdims, to_dtype)
+        to_dtype = (
+            arr.dtype
+            if (arr.dtype == np.dtype("float128"))
+            else np.dtype("float64")
+        )
+
+    res = quantile_impl(
+        arr, q_arr, real_axis, dict_methods[method], keepdims, to_dtype
+    )
 
     if out != None:
-        out = res.astype(out.dtype) # conversion from res.dtype to out.dtype
+        out = res.astype(out.dtype)  # conversion from res.dtype to out.dtype
         return out
     else:
-        if isscalar(q): # q_arr is singleton from scalar; additional dimension 1 must be removed
+        if isscalar(
+            q
+        ):  # q_arr is singleton from scalar; additional dimension 1 must be removed
             return res[0]
         else:
             return res
-
-    
