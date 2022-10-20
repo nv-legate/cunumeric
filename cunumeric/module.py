@@ -2410,12 +2410,7 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
     # repeats is an array
     else:
         # repeats should be integer type
-        if repeats.dtype != np.int64:
-            runtime.warn(
-                "converting repeats to an integer type",
-                category=RuntimeWarning,
-            )
-        repeats = repeats.astype(np.int64)
+        repeats = repeats._warn_and_convert(np.int64)
         if repeats.shape[0] != array.shape[axis]:
             raise ValueError("incorrect shape of repeats array")
         result = array._thunk.repeat(
@@ -3471,6 +3466,44 @@ def diagonal(
     return a.diagonal(
         offset=offset, axis1=axis1, axis2=axis2, extract=extract, axes=axes
     )
+
+
+@add_boilerplate("a", "indices", "values")
+def put(
+    a: ndarray, indices: ndarray, values: ndarray, mode: str = "raise"
+) -> None:
+    """
+    Replaces specified elements of an array with given values.
+    The indexing works as if the target array is first flattened.
+
+    Parameters
+    ----------
+    a : array_like
+        Array to put data into
+    indices : array_like
+        Target indices, interpreted as integers.
+        WARNING: In case there are repeated entries in the
+        indices array, Legate doesn't guarantee the order in
+        which values are updated.
+
+    values : array_like
+        Values to place in `a` at target indices. If values array is shorter
+        than indices, it will be repeated as necessary.
+    mode : {'raise', 'wrap', 'clip'}, optional
+        Specifies how out-of-bounds indices will behave.
+        'raise' : raise an error.
+        'wrap' : wrap around.
+        'clip' : clip to the range.
+
+    See Also
+    --------
+    numpy.put
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    a.put(indices=indices, values=values, mode=mode)
 
 
 @add_boilerplate("a", "val")
