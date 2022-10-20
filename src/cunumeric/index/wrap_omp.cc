@@ -34,14 +34,16 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
                   const bool check_bounds,
                   const IND& indices) const
   {
-    const int64_t start    = rect_out.lo[0];
-    const int64_t end      = rect_out.hi[0];
-    const auto volume_base = rect_base.volume();
+    const int64_t start                = rect_out.lo[0];
+    const int64_t end                  = rect_out.hi[0];
+    const auto volume_base             = rect_base.volume();
+    std::atomic<bool> is_out_of_bounds = false;
     if (dense) {
       auto outptr = out.ptr(rect_out);
 #pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
-        if (check_bounds) check_idx(i, volume_base, indices);
+        if (check_bounds)
+          is_out_of_bounds = is_out_of_bounds || check_idx_omp(i, volume_base, indices);
         const int64_t input_idx = compute_idx(i, volume_base, indices);
         auto point              = pitches_base.unflatten(input_idx, rect_base.lo);
         outptr[i - start]       = point;
@@ -49,12 +51,15 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
     } else {
 #pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
-        if (check_bounds) check_idx(i, volume_base, indices);
+        if (check_bounds)
+          is_out_of_bounds = is_out_of_bounds || check_idx_omp(i, volume_base, indices);
         const int64_t input_idx = compute_idx(i, volume_base, indices);
         auto point              = pitches_base.unflatten(input_idx, rect_base.lo);
         out[i]                  = point;
       }
     }  // else
+
+    if (is_out_of_bounds) throw legate::TaskException("index is out of bounds in index array");
   }
 };
 

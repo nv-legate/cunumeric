@@ -71,4 +71,15 @@ static void check_idx(const int64_t i, const int64_t volume, const bool&)
 {
   // don't do anything when wrapping indices
 }
+
+static bool check_idx_omp(const int64_t i,
+                          const int64_t volume,
+                          const legate::AccessorRO<int64_t, 1>& indices)
+{
+  int64_t idx   = indices[i];
+  int64_t index = idx < 0 ? idx + volume : idx;
+  return (index < 0 || index >= volume);
+}
+static bool check_idx_omp(const int64_t i, const int64_t volume, const bool&) { return false; }
+
 }  // namespace cunumeric
