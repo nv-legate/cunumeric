@@ -130,13 +130,12 @@ def test_array_basic(size):
 def test_num_axis(size):
     a = np.random.randint(low=-10, high=10, size=size)
     b = num.array(a)
-    k = 0
-    for xis in a.shape:
-        if xis == 1:
+
+    for k, axis in enumerate(a.shape):
+        if axis == 1:
             res_np = np.squeeze(a, axis=k)
             res_num = num.squeeze(b, axis=k)
             assert np.array_equal(res_num, res_np)
-        k += 1
 
 
 @pytest.mark.parametrize(
@@ -145,13 +144,12 @@ def test_num_axis(size):
 def test_array_axis(size):
     a = np.random.randint(low=-10, high=10, size=size)
     b = num.array(a)
-    k = 0
-    for xis in a.shape:
-        if xis == 1:
+
+    for k, axis in enumerate(a.shape):
+        if axis == 1:
             res_np = a.squeeze(axis=k)
             res_num = b.squeeze(axis=k)
             assert np.array_equal(res_num, res_np)
-        k += 1
 
 
 if __name__ == "__main__":
