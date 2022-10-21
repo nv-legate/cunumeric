@@ -51,4 +51,10 @@ constexpr coord_t compute_idx(coord_t index, coord_t extent)
   return new_index;
 }
 
+constexpr coord_t compute_idx_cuda(coord_t index, coord_t extent)
+{
+  coord_t new_index = index < 0 ? index + extent : index;
+  return new_index;
+}
+
 }  // namespace cunumeric

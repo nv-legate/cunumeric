@@ -920,12 +920,8 @@ class ndarray:
             key = convert_to_cunumeric_ndarray(key)
             if key.dtype != bool and not np.issubdtype(key.dtype, np.integer):
                 raise TypeError("index arrays should be int or bool type")
-            if key.dtype != bool and key.dtype != np.int64:
-                runtime.warn(
-                    "converting index array to int64 type",
-                    category=RuntimeWarning,
-                )
-                key = key.astype(np.int64)
+            if key.dtype != bool:
+                key = key._warn_and_convert(np.dtype(np.int64))
 
             return key._thunk
 
@@ -2104,12 +2100,8 @@ class ndarray:
             raise ValueError(
                 "Dimension mismatch: condition must be a 1D array"
             )
-        if condition.dtype != bool:
-            runtime.warn(
-                "converting condition to bool type",
-                category=RuntimeWarning,
-            )
-            condition = condition.astype(bool)
+
+        condition = condition._warn_and_convert(np.dtype(bool))
 
         if axis is None:
             axis = 0
@@ -2475,6 +2467,62 @@ class ndarray:
             ):
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
+
+    @add_boilerplate("indices", "values")
+    def put(
+        self, indices: ndarray, values: ndarray, mode: str = "raise"
+    ) -> None:
+        """
+        Replaces specified elements of the array with given values.
+
+        Refer to :func:`cunumeric.put` for full documentation.
+
+        See Also
+        --------
+        cunumeric.put : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+
+        if values.size == 0 or indices.size == 0 or self.size == 0:
+            return
+
+        if mode not in ("raise", "wrap", "clip"):
+            raise ValueError(
+                "mode must be one of 'clip', 'raise', or 'wrap' "
+                f"(got  {mode})"
+            )
+
+        if mode == "wrap":
+            indices = indices % self.size
+        elif mode == "clip":
+            indices = indices.clip(0, self.size - 1)
+
+        indices = indices._warn_and_convert(np.dtype(np.int64))
+        values = values._warn_and_convert(self.dtype)
+
+        if indices.ndim > 1:
+            indices = indices.ravel()
+
+        if self.shape == ():
+            if mode == "raise":
+                if indices.min() < -1 or indices.max() > 0:
+                    raise ValueError("Indices out of bounds")
+            if values.shape == ():
+                v = values
+            else:
+                v = values[0]
+            self._thunk.copy(v._thunk, deep=False)
+            return
+
+        # call _wrap on the values if they need to be wrapped
+        if values.ndim != indices.ndim or values.size != indices.size:
+            values = values._wrap(indices.size)
+
+        self._thunk.put(indices._thunk, values._thunk)
 
     @add_boilerplate()
     def trace(
@@ -3821,6 +3869,16 @@ class ndarray:
         copy = ndarray(shape=self.shape, dtype=dtype, inputs=hints)
         copy._thunk.convert(self._thunk)
         return copy
+
+    def _warn_and_convert(self, dtype: np.dtype[Any]) -> ndarray:
+        if self.dtype != dtype:
+            runtime.warn(
+                f"converting array to {dtype} type",
+                category=RuntimeWarning,
+            )
+            return self.astype(dtype)
+        else:
+            return self
 
     # For performing normal/broadcast unary operations
     @classmethod
