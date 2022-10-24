@@ -1740,7 +1740,7 @@ class DeferredArray(NumPyThunk):
             self.copy(self_tmp, deep=True)
 
     @auto_convert("mask", "values")
-    def putmask(self, mask:Any, values:Any)->None:
+    def putmask(self, mask: Any, values: Any) -> None:
         task = self.context.create_task(CuNumericOpCode.PUTMASK)
         task.add_input(self.base)
         task.add_output(self.base)

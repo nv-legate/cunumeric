@@ -3507,7 +3507,7 @@ def put(
 
 
 @add_boilerplate("a", "mask")
-def putmask(a,mask,values):
+def putmask(a, mask, values):
     """
     putmask(a, mask, values)
     Changes elements of an array based on conditional and input values.
@@ -3534,25 +3534,26 @@ def putmask(a,mask,values):
     Multiple GPUs, Multiple CPUs
     """
     if not a.shape == mask.shape:
-        raise ValueError('mask and data must be the same size')
+        raise ValueError("mask and data must be the same size")
 
     mask = mask._warn_and_convert(bool)
 
     if np.isscalar(values):
-        a[mask]=values
+        a[mask] = values
     else:
         values = convert_to_cunumeric_ndarray(values)
-        if (values.size ==1):
-            a[mask]=values
+        if values.size == 1:
+            a[mask] = values
         else:
             if not a.dtype == values.dtype:
                 values._warn_and_convert(a.dtype)
             if values.shape != a.shape:
                 values = values._wrap(a.size)
                 values = values.reshape(a.shape)
-            #res=where(mask, values, a)
-            #a._thunk.copy(res._thunk, deep=False)
+            # res=where(mask, values, a)
+            # a._thunk.copy(res._thunk, deep=False)
             a._thunk.putmask(mask._thunk, values._thunk)
+
 
 @add_boilerplate("a", "val")
 def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:

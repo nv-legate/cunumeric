@@ -26,10 +26,7 @@ namespace cunumeric {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void)
-{
-  PutmaskTask::register_variants();
-}
+static void __attribute__((constructor)) register_tasks(void) { PutmaskTask::register_variants(); }
 }  // namespace
 
 }  // namespace cunumeric

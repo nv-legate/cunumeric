@@ -202,7 +202,7 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def putmask(self, mask:Any, values:Any)->None:
+    def putmask(self, mask: Any, values: Any) -> None:
         ...
 
     @abstractmethod

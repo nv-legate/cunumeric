@@ -24,35 +24,36 @@ namespace cunumeric {
 
 template <typename Type, class Kernel>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  bool_mask_dense_kernel(size_t volume, Type *maskptr, Kernel kernel){
-      const auto idx = global_tid_1d();
-      if (idx >= volume) return; 
-      if (maskptr[idx])
-        kernel(idx);
-      
-  }
+  bool_mask_dense_kernel(size_t volume, Type* maskptr, Kernel kernel)
+{
+  const auto idx = global_tid_1d();
+  if (idx >= volume) return;
+  if (maskptr[idx]) kernel(idx);
+}
 
-template< class RECT, class PITCHES, class AccessorRD, class Kernel>
+template <class RECT, class PITCHES, class AccessorRD, class Kernel>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  bool_mask_kernel(size_t volume, RECT rect, PITCHES pitches, AccessorRD mask, Kernel kernel){
-      const auto idx = global_tid_1d();
-      if (idx >= volume) return;
-      auto p = pitches.unflatten(idx, rect.lo);
-      if (mask[p]) kernel(p);
-  }  
+  bool_mask_kernel(size_t volume, RECT rect, PITCHES pitches, AccessorRD mask, Kernel kernel)
+{
+  const auto idx = global_tid_1d();
+  if (idx >= volume) return;
+  auto p = pitches.unflatten(idx, rect.lo);
+  if (mask[p]) kernel(p);
+}
 
-template<>
+template <>
 struct BoolMaskPolicy<VariantKind::GPU, true> {
   template <class RECT, class AccessorRD, class Kernel>
-  void operator()(RECT & rect, AccessorRD &mask, Kernel&& kernel)
+  void operator()(RECT& rect, AccessorRD& mask, Kernel&& kernel)
   {
     const size_t volume = rect.volume();
     if (0 == volume) return;
-    auto stream = get_cached_stream();
+    auto stream         = get_cached_stream();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    auto maskptr = mask.ptr(rect);
+    auto maskptr        = mask.ptr(rect);
 
-    bool_mask_dense_kernel<<<blocks, THREADS_PER_BLOCK, 1, stream>>>(volume, maskptr, std::forward<Kernel>(kernel));
+    bool_mask_dense_kernel<<<blocks, THREADS_PER_BLOCK, 1, stream>>>(
+      volume, maskptr, std::forward<Kernel>(kernel));
 
     CHECK_CUDA_STREAM(stream);
   }
@@ -61,15 +62,16 @@ struct BoolMaskPolicy<VariantKind::GPU, true> {
 template <>
 struct BoolMaskPolicy<VariantKind::GPU, false> {
   template <class RECT, class PITCHES, class AccessorRD, class Kernel>
-  void operator()(RECT & rect, PITCHES& pitches, AccessorRD &mask, Kernel&& kernel)
+  void operator()(RECT& rect, PITCHES& pitches, AccessorRD& mask, Kernel&& kernel)
   {
     const size_t volume = rect.volume();
     if (0 == volume) return;
-    auto stream = get_cached_stream();
+    auto stream         = get_cached_stream();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-    bool_mask_kernel<<<blocks, THREADS_PER_BLOCK, 1, stream>>>(volume, rect,pitches,  mask, std::forward<Kernel>(kernel));
+    bool_mask_kernel<<<blocks, THREADS_PER_BLOCK, 1, stream>>>(
+      volume, rect, pitches, mask, std::forward<Kernel>(kernel));
     CHECK_CUDA_STREAM(stream);
   }
 };
 
-}
+}  // namespace cunumeric

@@ -627,7 +627,7 @@ class EagerArray(NumPyThunk):
         else:
             np.put(self.array, indices.array, values.array)
 
-    def putmask(self, mask:Any, values: Any)->None:
+    def putmask(self, mask: Any, values: Any) -> None:
         self.check_eager_args(mask, values)
         if self.deferred is not None:
             self.deferred.putmask(mask, values)
