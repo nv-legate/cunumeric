@@ -3542,20 +3542,17 @@ def putmask(a,mask,values):
         a[mask]=values
     else:
         values = convert_to_cunumeric_ndarray(values)
-        if not a.dtype == values.dtype:
-            values._warn_and_convert(a.dtype)
-        values = values._wrap(a.size)
-        values = values.reshape(a.shape)
-        #if a.shape == values.shape:
-        #    a._thunk.putmask(mask._thunk, values._thunk)
-        #else:
-        res=where(mask, values, a)
-        a._thunk.copy(res._thunk, deep=False)
-
-
-
-
-
+        if (values.size ==1):
+            a[mask]=values
+        else:
+            if not a.dtype == values.dtype:
+                values._warn_and_convert(a.dtype)
+            if values.shape != a.shape:
+                values = values._wrap(a.size)
+                values = values.reshape(a.shape)
+            #res=where(mask, values, a)
+            #a._thunk.copy(res._thunk, deep=False)
+            a._thunk.putmask(mask._thunk, values._thunk)
 
 @add_boilerplate("a", "val")
 def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:

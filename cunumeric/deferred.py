@@ -1739,6 +1739,18 @@ class DeferredArray(NumPyThunk):
         if self_tmp is not self:
             self.copy(self_tmp, deep=True)
 
+    @auto_convert("mask", "values")
+    def putmask(self, mask:Any, values:Any)->None:
+        task = self.context.create_task(CuNumericOpCode.PUTMASK)
+        task.add_input(self.base)
+        task.add_output(self.base)
+        task.add_input(mask.base)
+        task.add_input(values.base)
+        task.add_alignment(self.base, mask.base)
+        task.add_alignment(self.base, values.base)
+        task.add_broadcast(self.base, axes=range(1, self.ndim))
+        task.execute()
+
     # Create an identity array with the ones offset from the diagonal by k
     def eye(self, k: int) -> None:
         assert self.ndim == 2  # Only 2-D arrays should be here
