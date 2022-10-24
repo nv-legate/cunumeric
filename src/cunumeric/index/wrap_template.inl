@@ -60,16 +60,30 @@ struct WrapImpl {
     assert(volume_in != 0);
 #endif
 
-    WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense);
+    if (args.has_input) {
+      auto in_rect = args.in.shape<1>();
+      auto in = args.in.read_accessor<int64_t, 1>(in_rect);  // input should be always integer type
+#ifdef DEBUG_CUNUMERIC
+      assert(in_rect == out_rect);
+#endif
+      WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense, in);
+
+    } else {
+      bool tmp = false;
+      WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense, tmp);
+    }  // else
   }
 };
 
 template <VariantKind KIND>
 static void wrap_template(TaskContext& context)
 {
-  auto shape = context.scalars()[0].value<DomainPoint>();
-  int dim    = shape.dim;
-  WrapArgs args{context.outputs()[0], shape};
+  auto shape      = context.scalars()[0].value<DomainPoint>();
+  int dim         = shape.dim;
+  bool has_input  = context.scalars()[1].value<bool>();
+  Array tmp_array = Array();
+  WrapArgs args{
+    context.outputs()[0], shape, has_input, has_input ? context.inputs()[0] : tmp_array};
   dim_dispatch(dim, WrapImpl<KIND>{}, args);
 }
 

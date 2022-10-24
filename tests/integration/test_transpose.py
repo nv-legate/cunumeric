@@ -17,34 +17,256 @@ import pytest
 
 import cunumeric as num
 
-rect = num.array([[1, 2, 3], [4, 5, 6]])
-square = num.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+DIM = 5
+SIZES = [
+    1,
+    DIM,
+    (0,),
+    (1, 1),
+    (1, DIM),
+    (DIM, 1),
+    (DIM, DIM),
+    (1, 1, 1),
+    (DIM, 1, 1),
+    (1, DIM, 1),
+    (1, DIM - 1, DIM),
+    (2, DIM - 1, DIM),
+    (DIM, DIM, DIM),
+]
 
 
-@pytest.mark.parametrize("x", (rect, square), ids=("rect", "square"))
-class Test_free_function:
-    def test_forward(self, x):
-        y = num.transpose(x)
-        npx = np.array(x)
-        assert num.array_equal(y, np.transpose(npx))
+class TestModule:
+    @pytest.mark.xfail
+    def test_none_array_compare(self):
+        res_num = num.transpose(None)  # AttributeError: 'NoneType'
+        res_np = np.transpose(None)  # return None
+        assert np.array_equal(res_num, res_np, equal_nan=True)
 
-    def test_round_trip(self, x):
-        y = num.transpose(x)
-        z = num.transpose(y)
-        assert num.array_equal(x, z)
+    def test_none_array(self):
+        # numpy returned None
+        msg = r"NoneType"
+        with pytest.raises(AttributeError, match=msg):
+            num.transpose(None)
+
+    @pytest.mark.parametrize(
+        "axes", ((1, 1, 1), (1, 2, 3), (1, 2), (1, 2, 0, 1))
+    )
+    def test_invalid_axis(self, axes):
+        size = (2, 3, 4)
+        a = num.random.randint(low=-10, high=10, size=size)
+        with pytest.raises(ValueError):
+            num.transpose(a, axes=axes)
+
+    def test_int_axis(self):
+        size = (2, 3, 4)
+        a = num.random.randint(low=-10, high=10, size=size)
+        # numpy raises "ValueError: axes don't match array".
+        # cunumeric raises "TypeError".
+        with pytest.raises(TypeError):
+            num.transpose(a, axes=2)
+
+    @pytest.mark.xfail
+    def test_int_axis_compare(self):
+        size = (2, 3, 4)
+        a = num.random.randint(low=-10, high=10, size=size)
+        # numpy raises "ValueError: axes don't match array".
+        # cunumeric raises "TypeError".
+        with pytest.raises(ValueError):
+            num.transpose(a, axes=2)
+
+    @pytest.mark.parametrize("size", SIZES, ids=str)
+    def test_round(self, size):
+        a = num.random.randint(low=-10, high=10, size=size)
+        b = num.transpose(a)
+        c = num.transpose(b)
+        assert num.array_equal(c, a)
+
+    @pytest.mark.parametrize("size", SIZES, ids=str)
+    def test_basic(self, size):
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = np.transpose(a)
+        res_num = num.transpose(b)
+        assert np.array_equal(res_num, res_np)
+
+    @pytest.mark.parametrize("size", (0, 1, DIM))
+    def test_axes_1d(self, size):
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = np.transpose(a, axes=0)
+        res_num = num.transpose(b, axes=0)
+        assert num.array_equal(res_num, res_np)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("size", (0, 1, DIM))
+    @pytest.mark.parametrize("axes", (-3, 3))
+    def test_axes_1d_int(self, size, axes):
+        # For cunumeric, if array.dim==1, it returns the array itself directly,
+        # no matter what the axes value is.
+        # For numpy, it raises
+        # "numpy.AxisError: axis * is out of bounds for array of dimension 1".
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = np.transpose(a, axes=axes)
+        res_num = num.transpose(b, axes=axes)
+        assert num.array_equal(res_num, res_np)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("size", (0, 1, DIM))
+    @pytest.mark.parametrize("axes", ((1,), (3, 1)))
+    def test_axes_1d_tuple(self, size, axes):
+        # For cunumeric, if array.dim==1, it returns the array itself directly,
+        # no matter what the axes value is.
+        # For numpy, it raises "ValueError: axes don't match array".
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = np.transpose(a, axes=axes)
+        res_num = num.transpose(b, axes=axes)
+        assert num.array_equal(res_num, res_np)
+
+    @pytest.mark.parametrize(
+        "size",
+        ((1, 0), (1, 1), (1, DIM), (DIM, 1), (DIM - 1, DIM - 2), (DIM, DIM)),
+    )
+    @pytest.mark.parametrize("axes", ((0, 1), (1, 0)))
+    def test_axes_2d(self, size, axes):
+        a = num.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = np.transpose(a, axes=axes)
+        res_num = num.transpose(b, axes=axes)
+        assert num.array_equal(res_num, res_np)
+
+    @pytest.mark.parametrize(
+        "size",
+        (
+            (1, 0, 1),
+            (1, 1, 1),
+            (DIM, DIM - 1, 1),
+            (1, 1, DIM),
+            (2, 3, 4),
+            (DIM, DIM, DIM),
+        ),
+    )
+    @pytest.mark.parametrize(
+        "axes", ((0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0))
+    )
+    def test_axes_3d(self, size, axes):
+        a = num.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = np.transpose(a, axes=axes)
+        res_num = num.transpose(b, axes=axes)
+        assert num.array_equal(res_num, res_np)
 
 
-@pytest.mark.parametrize("x", (rect, square), ids=("rect", "square"))
-class Test_method:
-    def test_forward(self, x):
-        y = x.transpose()
-        npx = np.array(x)
-        assert num.array_equal(y, npx.transpose())
+class TestArrayMethod:
+    @pytest.mark.parametrize(
+        "axes", ((1, 1, 1), (1, 2, 3), (1, 2), (1, 2, 0, 1))
+    )
+    def test_invalid_axis(self, axes):
+        size = (2, 3, 4)
+        a = num.random.randint(low=-10, high=10, size=size)
+        with pytest.raises(ValueError):
+            a.transpose(axes=axes)
 
-    def test_round_trip(self, x):
-        y = x.transpose()
-        z = y.transpose()
-        assert num.array_equal(x, z)
+    def test_int_axis(self):
+        size = (2, 3, 4)
+        a = num.random.randint(low=-10, high=10, size=size)
+        # numpy raises "ValueError: axes don't match array".
+        # cunumeric raises "TypeError".
+        with pytest.raises(TypeError):
+            a.transpose(axes=2)
+
+    @pytest.mark.xfail
+    def test_int_axis_compare(self):
+        size = (2, 3, 4)
+        a = num.random.randint(low=-10, high=10, size=size)
+        # numpy raises "ValueError: axes don't match array".
+        # cunumeric raises "TypeError".
+        with pytest.raises(ValueError):
+            a.transpose(axes=2)
+
+    @pytest.mark.parametrize("size", SIZES, ids=str)
+    def test_round(self, size):
+        a = num.random.randint(low=-10, high=10, size=size)
+        b = a.transpose()
+        c = b.transpose()
+        assert num.array_equal(c, a)
+
+    @pytest.mark.parametrize("size", SIZES, ids=str)
+    def test_basic(self, size):
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = a.transpose()
+        res_num = b.transpose()
+        assert np.array_equal(res_num, res_np)
+
+    @pytest.mark.parametrize("size", (0, 1, DIM))
+    def test_axes_1d(self, size):
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = a.transpose(0)
+        res_num = b.transpose(0)
+        assert num.array_equal(res_num, res_np)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("size", (0, 1, DIM))
+    @pytest.mark.parametrize("axes", (-3, 3))
+    def test_axes_1d_int(self, size, axes):
+        # For cunumeric, if array.dim==1, it returns the array itself directly,
+        # no matter what the axes value is.
+        # For Numpy, it raises
+        # "numpy.AxisError: axis * is out of bounds for array of dimension 1".
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = a.transpose(axes)
+        res_num = b.transpose(axes)
+        assert num.array_equal(res_num, res_np)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("size", (0, 1, DIM))
+    @pytest.mark.parametrize("axes", ((1,), (3, 1)))
+    def test_axes_1d_tuple(self, size, axes):
+        # For cunumeric, if array.dim==1, it returns the array itself directly,
+        # no matter what the axes value is.
+        # For Numpy, it raises "ValueError: axes don't match array".
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = a.transpose(axes)
+        res_num = b.transpose(axes)
+        assert num.array_equal(res_num, res_np)
+
+    @pytest.mark.parametrize(
+        "size",
+        ((1, 0), (1, 1), (1, DIM), (DIM, 1), (DIM - 1, DIM - 2), (DIM, DIM)),
+    )
+    @pytest.mark.parametrize("axes", ((0, 1), (1, 0)))
+    def test_axes_2d(self, size, axes):
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = a.transpose(axes)
+        res_num = b.transpose(axes)
+        assert num.array_equal(res_num, res_np)
+
+    @pytest.mark.parametrize(
+        "size",
+        (
+            (1, 0, 1),
+            (1, 1, 1),
+            (DIM, DIM - 1, 1),
+            (1, 1, DIM),
+            (2, 3, 4),
+            (DIM, DIM, DIM),
+        ),
+    )
+    @pytest.mark.parametrize(
+        "axes", ((0, 2, 1), (1, 0, 2), (1, 2, 0), (2, 0, 1), (2, 1, 0))
+    )
+    def test_axes_3d(self, size, axes):
+        a = np.random.randint(low=-10, high=10, size=size)
+        b = num.array(a)
+        res_np = a.transpose(axes)
+        res_num = b.transpose(axes)
+        assert num.array_equal(res_num, res_np)
 
 
 if __name__ == "__main__":

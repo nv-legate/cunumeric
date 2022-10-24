@@ -18,13 +18,13 @@ import weakref
 from collections import Counter
 from collections.abc import Iterable
 from enum import IntEnum, unique
-from functools import reduce
+from functools import reduce, wraps
+from inspect import signature
 from itertools import product
 from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Collection,
     Dict,
     Optional,
     Sequence,
@@ -95,24 +95,39 @@ P = ParamSpec("P")
 
 
 def auto_convert(
-    indices: Collection[int], keys: Sequence[str] = []
+    *thunk_params: str,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
-    indices = set(indices)
+    """
+    Converts all named parameters to DeferredArrays.
+    """
+    keys = set(thunk_params)
+    assert len(keys) == len(thunk_params)
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            self = args[0]
+        assert not hasattr(
+            func, "__wrapped__"
+        ), "this decorator must be the innermost"
 
+        # For each parameter specified by name, also consider the case where
+        # it's passed as a positional parameter.
+        params = signature(func).parameters
+        extra = keys - set(params)
+        assert len(extra) == 0, f"unknown parameter(s): {extra}"
+        indices = {idx for (idx, param) in enumerate(params) if param in keys}
+
+        @wraps(func)
+        def wrapper(*args: Any, **kwargs: Any) -> R:
+            # Convert relevant arguments to DeferredArrays
+            self = args[0]
             args = tuple(
-                self.runtime.to_deferred_array(arg) if idx in indices else arg
+                self.runtime.to_deferred_array(arg)
+                if idx in indices and arg is not None
+                else arg
                 for (idx, arg) in enumerate(args)
             )
-            for key in keys:
-                v = kwargs.get(key, None)
-                if v is None:
-                    continue
-                v = self.runtime.to_deferred_array(v)
-                kwargs[key] = v
+            for (k, v) in kwargs.items():
+                if k in keys and v is not None:
+                    kwargs[k] = self.runtime.to_deferred_array(v)
 
             return func(*args, **kwargs)
 
@@ -350,7 +365,7 @@ class DeferredArray(NumPyThunk):
         return result
 
     # Copy source array to the destination array
-    @auto_convert([1])
+    @auto_convert("rhs")
     def copy(self, rhs: Any, deep: bool = False) -> None:
         if self.scalar and rhs.scalar:
             self.base.set_storage(rhs.base.storage)
@@ -781,10 +796,16 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    def _convert_future_to_regionfield(self) -> DeferredArray:
+    def _convert_future_to_regionfield(
+        self, change_shape: bool = False
+    ) -> DeferredArray:
+        if change_shape and self.shape == ():
+            shape: NdShape = (1,)
+        else:
+            shape = self.shape
         store = self.context.create_store(
             self.dtype,
-            shape=self.shape,
+            shape=shape,
             optimize_scalar=False,
         )
         thunk_copy = DeferredArray(
@@ -858,7 +879,7 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    @auto_convert([2])
+    @auto_convert("rhs")
     def set_item(self, key: Any, rhs: Any) -> None:
         assert self.dtype == rhs.dtype
         # Check to see if this is advanced indexing or not
@@ -1178,7 +1199,7 @@ class DeferredArray(NumPyThunk):
         return result
 
     # Convert the source array to the destination array
-    @auto_convert([1])
+    @auto_convert("rhs")
     def convert(
         self,
         rhs: Any,
@@ -1214,7 +1235,7 @@ class DeferredArray(NumPyThunk):
         if temporary:
             lhs.set_linear()
 
-    @auto_convert([1, 2])
+    @auto_convert("v", "lhs")
     def convolve(self, v: Any, lhs: Any, mode: ConvolveMode) -> None:
         input = self.base
         filter = v.base
@@ -1249,7 +1270,7 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @auto_convert([1])
+    @auto_convert("rhs")
     def fft(
         self,
         rhs: Any,
@@ -1327,7 +1348,7 @@ class DeferredArray(NumPyThunk):
         )
         self._fill(store)
 
-    @auto_convert([2, 4])
+    @auto_convert("rhs1_thunk", "rhs2_thunk")
     def contract(
         self,
         lhs_modes: list[str],
@@ -1595,7 +1616,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Create or extract a diagonal from a matrix
-    @auto_convert([1])
+    @auto_convert("rhs")
     def _diag_helper(
         self,
         rhs: Any,
@@ -1664,6 +1685,60 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
+    @auto_convert("indices", "values")
+    def put(self, indices: Any, values: Any) -> None:
+
+        if indices.base.kind == Future or indices.base.transformed:
+            change_shape = indices.base.kind == Future
+            indices = indices._convert_future_to_regionfield(change_shape)
+        if values.base.kind == Future or values.base.transformed:
+            change_shape = values.base.kind == Future
+            values = values._convert_future_to_regionfield(change_shape)
+
+        if self.base.kind == Future or self.base.transformed:
+            change_shape = self.base.kind == Future
+            self_tmp = self._convert_future_to_regionfield(change_shape)
+        else:
+            self_tmp = self
+
+        assert indices.size == values.size
+
+        # first, we create indirect array with PointN type that
+        # (indices.size,) shape and is used to copy data from values
+        # to the target ND array (self)
+        N = self_tmp.ndim
+        pointN_dtype = self.runtime.get_point_type(N)
+        indirect = cast(
+            DeferredArray,
+            self.runtime.create_empty_thunk(
+                shape=indices.shape,
+                dtype=pointN_dtype,
+                inputs=[indices],
+            ),
+        )
+
+        shape = self_tmp.shape
+        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task.add_output(indirect.base)
+        task.add_scalar_arg(shape, (ty.int64,))
+        task.add_scalar_arg(True, bool)  # has_input
+        task.add_input(indices.base)
+        task.add_alignment(indices.base, indirect.base)
+        task.throws_exception(IndexError)
+        task.execute()
+        if indirect.base.kind == Future:
+            indirect = indirect._convert_future_to_regionfield()
+
+        copy = self.context.create_copy()
+        copy.set_target_indirect_out_of_range(False)
+        copy.add_input(values.base)
+        copy.add_target_indirect(indirect.base)
+        copy.add_output(self_tmp.base)
+        copy.execute()
+
+        if self_tmp is not self:
+            self.copy(self_tmp, deep=True)
+
     # Create an identity array with the ones offset from the diagonal by k
     def eye(self, k: int) -> None:
         assert self.ndim == 2  # Only 2-D arrays should be here
@@ -1712,7 +1787,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Tile the src array onto the destination array
-    @auto_convert([1])
+    @auto_convert("rhs")
     def tile(self, rhs: Any, reps: Union[Any, Sequence[int]]) -> None:
         src_array = rhs
         dst_array = self
@@ -1739,7 +1814,7 @@ class DeferredArray(NumPyThunk):
         result = DeferredArray(self.runtime, result, self.dtype)
         return result
 
-    @auto_convert([1])
+    @auto_convert("rhs")
     def trilu(self, rhs: Any, k: int, lower: bool) -> None:
         lhs = self.base
         rhs = rhs._broadcast(lhs.shape)
@@ -1780,7 +1855,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
         return out
 
-    @auto_convert([1])
+    @auto_convert("rhs")
     def flip(self, rhs: Any, axes: Union[None, int, tuple[int, ...]]) -> None:
         input = rhs.base
         output = self.base
@@ -1801,7 +1876,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     # Perform a bin count operation on the array
-    @auto_convert([1], ["weights"])
+    @auto_convert("rhs", "weights")
     def bincount(self, rhs: Any, weights: Optional[NumPyThunk] = None) -> None:
         weight_array = weights
         src_array = rhs
@@ -2872,7 +2947,7 @@ class DeferredArray(NumPyThunk):
         self.random(RandGenCode.INTEGER, [low, high])
 
     # Perform the unary operation and put the result in the array
-    @auto_convert([2])
+    @auto_convert("src")
     def unary_op(
         self,
         op: UnaryOpCode,
@@ -2881,6 +2956,7 @@ class DeferredArray(NumPyThunk):
         args: Any,
         multiout: Optional[Any] = None,
     ) -> None:
+
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
@@ -2901,7 +2977,7 @@ class DeferredArray(NumPyThunk):
 
     # Perform a unary reduction operation from one set of dimensions down to
     # fewer
-    @auto_convert([2])
+    @auto_convert("src")
     def unary_reduction(
         self,
         op: UnaryRedCode,
@@ -3017,7 +3093,7 @@ class DeferredArray(NumPyThunk):
         self.binary_op(BinaryOpCode.ISCLOSE, rhs1, rhs2, True, args)
 
     # Perform the binary operation and put the result in the lhs array
-    @auto_convert([2, 3])
+    @auto_convert("src1", "src2")
     def binary_op(
         self,
         op_code: BinaryOpCode,
@@ -3043,7 +3119,7 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @auto_convert([2, 3])
+    @auto_convert("src1", "src2")
     def binary_reduction(
         self,
         op: BinaryOpCode,
@@ -3079,7 +3155,7 @@ class DeferredArray(NumPyThunk):
 
         task.execute()
 
-    @auto_convert([1, 2, 3])
+    @auto_convert("src1", "src2", "src3")
     def where(self, src1: Any, src2: Any, src3: Any) -> None:
         lhs = self.base
         rhs1 = src1._broadcast(lhs.shape)
@@ -3138,15 +3214,15 @@ class DeferredArray(NumPyThunk):
             stride *= dim
         return result
 
-    @auto_convert([1])
+    @auto_convert("src")
     def cholesky(self, src: Any, no_tril: bool = False) -> None:
         cholesky(self, src, no_tril)
 
-    @auto_convert([1, 2])
+    @auto_convert("a", "b")
     def solve(self, a: Any, b: Any) -> None:
         solve(self, a, b)
 
-    @auto_convert([2])
+    @auto_convert("rhs")
     def scan(
         self,
         op: int,
@@ -3223,7 +3299,7 @@ class DeferredArray(NumPyThunk):
 
         return result
 
-    @auto_convert([1, 2])
+    @auto_convert("rhs", "v")
     def searchsorted(self, rhs: Any, v: Any, side: SortSide = "left") -> None:
 
         task = self.context.create_task(CuNumericOpCode.SEARCHSORTED)
@@ -3249,7 +3325,7 @@ class DeferredArray(NumPyThunk):
         task.add_scalar_arg(rhs.size, ty.int64)
         task.execute()
 
-    @auto_convert([1])
+    @auto_convert("rhs")
     def sort(
         self,
         rhs: Any,
@@ -3274,7 +3350,7 @@ class DeferredArray(NumPyThunk):
 
         sort(self, rhs, argsort, axis, stable)
 
-    @auto_convert([1])
+    @auto_convert("rhs")
     def partition(
         self,
         rhs: Any,
@@ -3305,7 +3381,7 @@ class DeferredArray(NumPyThunk):
             task.add_scalar_arg(arg, ty.float64)
         task.execute()
 
-    @auto_convert([1])
+    @auto_convert("src")
     def packbits(
         self, src: Any, axis: Union[int, None], bitorder: BitOrder
     ) -> None:
@@ -3321,7 +3397,7 @@ class DeferredArray(NumPyThunk):
         task.add_constraint(p_in <= p_out * scale)  # type: ignore
         task.execute()
 
-    @auto_convert([1])
+    @auto_convert("src")
     def unpackbits(
         self, src: Any, axis: Union[int, None], bitorder: BitOrder
     ) -> None:
@@ -3337,10 +3413,11 @@ class DeferredArray(NumPyThunk):
         task.add_constraint(p_out <= p_in * scale)  # type: ignore
         task.execute()
 
-    @auto_convert([1])
+    @auto_convert("src")
     def _wrap(self, src: Any, new_len: int) -> None:
         if src.base.kind == Future or src.base.transformed:
-            src = src._convert_future_to_regionfield()
+            change_shape = src.base.kind == Future
+            src = src._convert_future_to_regionfield(change_shape)
 
         # first, we create indirect array with PointN type that
         # (len,) shape and is used to copy data from original array
@@ -3359,6 +3436,7 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
         task.add_scalar_arg(src.shape, (ty.int64,))
+        task.add_scalar_arg(False, bool)  # has_input
         task.execute()
 
         copy = self.context.create_copy()
