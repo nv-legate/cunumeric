@@ -6284,8 +6284,8 @@ def averaged_inverted_cdf(q, n):
 # 'closest_observation'
 #
 def closest_observation(q, n):
-    ### p = q*n - 0.5
-    ### pos = 0 if p < 0 else p
+    # p = q*n - 0.5
+    # pos = 0 if p < 0 else p
 
     # weird departure from paper
     # (bug?), but this fixes it:
@@ -6315,7 +6315,7 @@ def closest_observation(q, n):
 def interpolated_inverted_cdf(q, n):
     pos = q * n
     k = floor(pos)
-    ### gamma = pos-k
+    # gamma = pos-k
     # this fixes it:
     #
     gamma = 0.0 if k == 0 else pos - k
@@ -6476,6 +6476,19 @@ def nearest(q, n):
     return (gamma, j)
 
 
+# helper: test array if sorted:
+#
+def is_sorted(a):
+    return all(a[:-1] <= a[1:])
+
+
+# helper: test if array inputs are different:
+#
+def is_diff(arr1, arr2):
+    return len(arr1) != len(arr2) or any(
+        [arr1[i] != arr2[i] for i in range(0, len(arr1))])
+
+
 # for the case when axis = tuple (non-singleton)
 # reshuffling might have to be done (if tuple is non-consecutive)
 # and the src array must be collapsed along that set of axes
@@ -6489,11 +6502,6 @@ def nearest(q, n):
 # TODO: check if reshuffling, reshaping is done in-place!
 #
 def reshuffle_reshape(arr, axes_set):
-    is_sorted = lambda a: all(a[:-1] <= a[1:])
-    is_diff = lambda arr1, arr2: len(arr1) != len(arr2) or any(
-        [arr1[i] != arr2[i] for i in range(0, len(arr1))]
-    )
-
     ndim = len(arr.shape)
 
     if not is_sorted(axes_set):
@@ -6511,10 +6519,9 @@ def reshuffle_reshape(arr, axes_set):
     else:
         arr_shuffled = arr
 
-    shape_reshuffled = arr_shuffled.shape
+    # shape_reshuffled = arr_shuffled.shape # debug
     collapsed_shape = np.product(
-        [arr_shuffled.shape[i] for i in reshuffled_axes]
-    )  # WARNING: cuNumeric has not implemented numpy.product and is falling back to canonical numpy.
+        [arr_shuffled.shape[i] for i in reshuffled_axes])
 
     redimed = tuple(range(0, min_dim_index + 1)) + tuple(
         range(min_dim_index + num_axes, ndim)
@@ -6538,7 +6545,8 @@ def reshuffle_reshape(arr, axes_set):
 # axis:     [in] axis along which quantiles are calculated;
 # method:   [in] func(q, n) returning (gamma, j),
 #                where = array1D.size;
-# keepdims: [in] boolean flag specifying whether collapsed axis should be kept as dim=1;
+# keepdims: [in] boolean flag specifying whether collapsed axis
+#                should be kept as dim=1;
 # to_dtype: [in] dtype to convert the result to;
 # return: nd-array of quantile output values
 #         where its shape is obtained as:
@@ -6549,7 +6557,7 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
 
     ndims = len(arr.shape)
 
-    if axis == None:
+    if axis is None:
         n = arr.size
         remaining_shape = []  # only `q_arr` dictates shape;
         # quantile applied to `arr` seen as 1D;
@@ -6577,21 +6585,18 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
         + gamma * arr_rvals
     )
 
-    # helper:
-    # create list of n repetitions of value `val`
-    #
-    repeat = lambda val, n: [val] * n
-
     # flattening to 1D might be the right way,
     # but may consider profiling other approaches
     # (slice assignment)
     #
     q_flat = q_arr.flatten().tolist()
 
-    result_1D = (
-        []
-    )  # TODO: check if a container more efficient than list could be used to append results into
-    #       e.g., pre-allocate 1d-array with len(q_flat) * prod(remaining_shape), where prod = foldl (\acc x -> acc*x) 1
+    # TODO: check if a container more efficient than list
+    # could be used to append results into
+    # e.g., pre-allocate 1d-array with len(q_flat) * prod(remaining_shape),
+    # where prod = foldl (\acc x -> acc*x) 1
+    result_1D = ([])
+
     for q in q_flat:
         (gamma, j) = method(q, n)
         (left_pos, right_pos) = (j, j + 1)
@@ -6599,31 +6604,28 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
         # (N-1) dimensional ndarray of left, right
         # neighbor values:
         #
-        arr_1D_lvals = arr.take(
-            [left_pos], axis
-        ).flatten()  # singleton list: [left_pos] ; extract values at index=left_pos;
-        num_vals = len(
-            arr_1D_lvals
-        )  # ( num_vals == prod(remaining_shape) ), provided prod = foldl (\acc x -> acc*x) 1, otherwise fails when remaining_shape != []
+        # singleton list: [left_pos];
+        # extract values at index=left_pos;
+        arr_1D_lvals = arr.take([left_pos], axis).flatten()
+
+        # ( num_vals == prod(remaining_shape) ),
+        # provided prod = foldl (\acc x -> acc*x) 1,
+        # otherwise fails when remaining_shape != []
+        num_vals = len(arr_1D_lvals)
 
         if right_pos >= n:
-            arr_1D_rvals = array(
-                repeat(0, num_vals)
-            )  # some quantile methods may result in j==(n-1), hence (j+1) could surpass array boundary;
+            # some quantile methods may result in j==(n-1),
+            # hence (j+1) could surpass array boundary;
+            arr_1D_rvals = array([0] * num_vals)
         else:
-            arr_1D_rvals = arr.take(
-                [right_pos], axis
-            ).flatten()  # singleton list: [right_pos]; extract values at index=right_pos;
-
-        ## gammmas     = repeat(gamma, num_vals) # need it only if `axpy` cannot take scalar `a`
+            # singleton list: [right_pos]; extract values at index=right_pos;
+            arr_1D_rvals = arr.take([right_pos], axis).flatten()
 
         # this is the main source of parallelism
         # (the other one being on `q` inputs; ignored for now)
         # TODO: figure out what to pass to the `cunumeric` call
         #
-        quantiles_ls = linear_interp(
-            gamma, arr_1D_lvals, arr_1D_rvals
-        )  # fails with lists []! because `*` does something else; TODO: need arrays here
+        quantiles_ls = linear_interp(gamma, arr_1D_lvals, arr_1D_rvals)
 
         result_1D = [*result_1D, *quantiles_ls]  # append
 
@@ -6639,7 +6641,8 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
     # fails with cunumeric:
     # (numpy works)
     #
-    # cunumeric BUG: TypeError: a bytes-like object is required, not 'ndarray'; TODO: open nvbug
+    # cunumeric BUG: TypeError: a bytes-like object is required, not 'ndarray';
+    # TODO: open nvbug
     #
     # qs_all = ndarray(shape = qresult_shape,
     #                     buffer = array(result_1D),
@@ -6728,7 +6731,7 @@ def quantile(
     See Also
     --------
     numpy.mean
-    numpy.percentile : equivalent to quantile, but with q in the range [0, 100].
+    numpy.percentile : equivalent to quantile, but with q in the range [0, 100]
     numpy.median : equivalent to ``quantile(..., 0.5)``
     numpy.nanquantile
     Notes
@@ -6834,7 +6837,7 @@ def quantile(
         "nearest": nearest,
     }
 
-    if axis != None and (not isscalar(axis)):
+    if (axis is not None) and (not isscalar(axis)):
         if len(axis) == 1:
             real_axis = axis[0]
             a_rr = a
@@ -6899,13 +6902,13 @@ def quantile(
         arr, q_arr, real_axis, dict_methods[method], keepdims, to_dtype
     )
 
-    if out != None:
+    if out is not None:
         out = res.astype(out.dtype)  # conversion from res.dtype to out.dtype
         return out
     else:
-        if isscalar(
-            q
-        ):  # q_arr is singleton from scalar; additional dimension 1 must be removed
+        if isscalar(q):
+            # q_arr is singleton from scalar;
+            # additional dimension 1 must be removed
             return res[0]
         else:
             return res
