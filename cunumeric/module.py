@@ -3550,8 +3550,6 @@ def putmask(a, mask, values):
             if values.shape != a.shape:
                 values = values._wrap(a.size)
                 values = values.reshape(a.shape)
-            # res=where(mask, values, a)
-            # a._thunk.copy(res._thunk, deep=False)
             a._thunk.putmask(mask._thunk, values._thunk)
 
 

@@ -27,7 +27,7 @@ struct BoolMaskPolicy {
 template <>
 struct BoolMaskPolicy<VariantKind::CPU, true> {
   template <class RECT, class AccessorRD, class Kernel>
-  void operator()(RECT& rect, AccessorRD& mask, Kernel&& kernel)
+  void operator()(const RECT& rect, const AccessorRD& mask, Kernel&& kernel)
   {
     const size_t volume = rect.volume();
     auto maskptr        = mask.ptr(rect);
@@ -40,7 +40,7 @@ struct BoolMaskPolicy<VariantKind::CPU, true> {
 template <>
 struct BoolMaskPolicy<VariantKind::CPU, false> {
   template <class RECT, class PITCHES, class AccessorRD, class Kernel>
-  void operator()(RECT& rect, PITCHES& pitches, AccessorRD& mask, Kernel&& kernel)
+  void operator()(const RECT& rect, const PITCHES& pitches, const AccessorRD& mask, Kernel&& kernel)
   {
     const size_t volume = rect.volume();
     for (size_t idx = 0; idx < volume; ++idx) {

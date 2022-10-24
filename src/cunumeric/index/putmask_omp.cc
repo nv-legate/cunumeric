@@ -14,9 +14,9 @@
  *
  */
 
+#include "cunumeric/execution_policy/indexing/bool_mask_omp.h"
 #include "cunumeric/index/putmask.h"
 #include "cunumeric/index/putmask_template.inl"
-#include "cunumeric/execution_policy/indexing/bool_mask_omp.h"
 
 namespace cunumeric {
 

@@ -27,22 +27,21 @@ namespace cunumeric {
 template <>
 struct BoolMaskPolicy<VariantKind::OMP, true> {
   template <class RECT, class AccessorRD, class Kernel>
-  void operator()(RECT & rect,  AccessorRD &mask, Kernel&& kernel)
+  void operator()(const RECT& rect, const AccessorRD& mask, Kernel&& kernel)
   {
     const size_t volume = rect.volume();
-    auto maskptr = mask.ptr(rect);
+    auto maskptr        = mask.ptr(rect);
 #pragma omp for schedule(static)
     for (size_t idx = 0; idx < volume; ++idx) {
-      if (maskptr[idx])
-        kernel(idx);
-      }
+      if (maskptr[idx]) kernel(idx);
+    }
   }
 };
 
 template <>
 struct BoolMaskPolicy<VariantKind::OMP, false> {
   template <class RECT, class PITCHES, class AccessorRD, class Kernel>
-  void operator()(RECT &rect, const PITCHES &pitches,const AccessorRD &mask, Kernel&& kernel)
+  void operator()(const RECT& rect, const PITCHES& pitches, const AccessorRD& mask, Kernel&& kernel)
   {
     const size_t volume = rect.volume();
 #pragma omp for schedule(static)
@@ -53,4 +52,4 @@ struct BoolMaskPolicy<VariantKind::OMP, false> {
   }
 };
 
-}
+}  // namespace cunumeric

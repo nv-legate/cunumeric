@@ -24,7 +24,7 @@ namespace cunumeric {
 
 template <typename Type, class Kernel>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  bool_mask_dense_kernel(size_t volume, Type* maskptr, Kernel kernel)
+  bool_mask_dense_kernel(const size_t volume, Type* maskptr, Kernel kernel)
 {
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
@@ -32,8 +32,8 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 }
 
 template <class RECT, class PITCHES, class AccessorRD, class Kernel>
-static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  bool_mask_kernel(size_t volume, RECT rect, PITCHES pitches, AccessorRD mask, Kernel kernel)
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) bool_mask_kernel(
+  const size_t volume, const RECT rect, const PITCHES pitches, AccessorRD mask, Kernel kernel)
 {
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
@@ -44,7 +44,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 template <>
 struct BoolMaskPolicy<VariantKind::GPU, true> {
   template <class RECT, class AccessorRD, class Kernel>
-  void operator()(RECT& rect, AccessorRD& mask, Kernel&& kernel)
+  void operator()(const RECT& rect, const AccessorRD& mask, Kernel&& kernel)
   {
     const size_t volume = rect.volume();
     if (0 == volume) return;
@@ -62,7 +62,7 @@ struct BoolMaskPolicy<VariantKind::GPU, true> {
 template <>
 struct BoolMaskPolicy<VariantKind::GPU, false> {
   template <class RECT, class PITCHES, class AccessorRD, class Kernel>
-  void operator()(RECT& rect, PITCHES& pitches, AccessorRD& mask, Kernel&& kernel)
+  void operator()(const RECT& rect, const PITCHES& pitches, const AccessorRD& mask, Kernel&& kernel)
   {
     const size_t volume = rect.volume();
     if (0 == volume) return;
