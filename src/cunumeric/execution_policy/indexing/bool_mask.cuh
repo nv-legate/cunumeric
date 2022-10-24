@@ -22,18 +22,18 @@
 
 namespace cunumeric {
 
-template <typename Type, class Kernel>
+template <typename T, class KERNEL>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  bool_mask_dense_kernel(const size_t volume, Type* maskptr, Kernel kernel)
+  bool_mask_dense_kernel(const size_t volume, T* maskptr, KERNEL kernel)
 {
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
   if (maskptr[idx]) kernel(idx);
 }
 
-template <class RECT, class PITCHES, class AccessorRD, class Kernel>
+template <class RECT, class PITCHES, class ACC, class KERNEL>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) bool_mask_kernel(
-  const size_t volume, const RECT rect, const PITCHES pitches, AccessorRD mask, Kernel kernel)
+  const size_t volume, const RECT rect, const PITCHES pitches, ACC mask, KERNEL kernel)
 {
   const auto idx = global_tid_1d();
   if (idx >= volume) return;
@@ -43,8 +43,8 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) boo
 
 template <>
 struct BoolMaskPolicy<VariantKind::GPU, true> {
-  template <class RECT, class AccessorRD, class Kernel>
-  void operator()(const RECT& rect, const AccessorRD& mask, Kernel&& kernel)
+  template <class RECT, class ACC, class KERNEL>
+  void operator()(const RECT& rect, const ACC& mask, KERNEL&& kernel)
   {
     const size_t volume = rect.volume();
     if (0 == volume) return;
@@ -53,7 +53,7 @@ struct BoolMaskPolicy<VariantKind::GPU, true> {
     auto maskptr        = mask.ptr(rect);
 
     bool_mask_dense_kernel<<<blocks, THREADS_PER_BLOCK, 1, stream>>>(
-      volume, maskptr, std::forward<Kernel>(kernel));
+      volume, maskptr, std::forward<KERNEL>(kernel));
 
     CHECK_CUDA_STREAM(stream);
   }
@@ -61,15 +61,15 @@ struct BoolMaskPolicy<VariantKind::GPU, true> {
 
 template <>
 struct BoolMaskPolicy<VariantKind::GPU, false> {
-  template <class RECT, class PITCHES, class AccessorRD, class Kernel>
-  void operator()(const RECT& rect, const PITCHES& pitches, const AccessorRD& mask, Kernel&& kernel)
+  template <class RECT, class PITCHES, class ACC, class KERNEL>
+  void operator()(const RECT& rect, const PITCHES& pitches, const ACC& mask, KERNEL&& kernel)
   {
     const size_t volume = rect.volume();
     if (0 == volume) return;
     auto stream         = get_cached_stream();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     bool_mask_kernel<<<blocks, THREADS_PER_BLOCK, 1, stream>>>(
-      volume, rect, pitches, mask, std::forward<Kernel>(kernel));
+      volume, rect, pitches, mask, std::forward<KERNEL>(kernel));
     CHECK_CUDA_STREAM(stream);
   }
 };
