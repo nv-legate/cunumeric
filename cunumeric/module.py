@@ -6486,7 +6486,8 @@ def is_sorted(a):
 #
 def is_diff(arr1, arr2):
     return len(arr1) != len(arr2) or any(
-        [arr1[i] != arr2[i] for i in range(0, len(arr1))])
+        [arr1[i] != arr2[i] for i in range(0, len(arr1))]
+    )
 
 
 # for the case when axis = tuple (non-singleton)
@@ -6521,7 +6522,8 @@ def reshuffle_reshape(arr, axes_set):
 
     # shape_reshuffled = arr_shuffled.shape # debug
     collapsed_shape = np.product(
-        [arr_shuffled.shape[i] for i in reshuffled_axes])
+        [arr_shuffled.shape[i] for i in reshuffled_axes]
+    )
 
     redimed = tuple(range(0, min_dim_index + 1)) + tuple(
         range(min_dim_index + num_axes, ndim)
@@ -6595,7 +6597,7 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
     # could be used to append results into
     # e.g., pre-allocate 1d-array with len(q_flat) * prod(remaining_shape),
     # where prod = foldl (\acc x -> acc*x) 1
-    result_1D = ([])
+    result_1D = []
 
     for q in q_flat:
         (gamma, j) = method(q, n)
