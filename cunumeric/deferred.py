@@ -1722,7 +1722,7 @@ class DeferredArray(NumPyThunk):
         task.add_output(indirect.base)
         task.add_scalar_arg(shape, (ty.int64,))
         task.add_scalar_arg(True, bool)  # has_input
-        task.add_scalar_arg(check_bounds, bool)  # has_input
+        task.add_scalar_arg(check_bounds, bool)
         task.add_input(indices.base)
         task.add_alignment(indices.base, indirect.base)
         task.throws_exception(IndexError)
