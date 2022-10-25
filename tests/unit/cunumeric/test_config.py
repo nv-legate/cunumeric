@@ -154,6 +154,7 @@ def test_CuNumericOpCode() -> None:
         "NONZERO",
         "PACKBITS",
         "POTRF",
+        "PUTMASK",
         "RAND",
         "READ",
         "REPEAT",
