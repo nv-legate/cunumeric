@@ -1746,7 +1746,7 @@ class DeferredArray(NumPyThunk):
             if values.shape == ():
                 values = values._convert_future_to_regionfield(True)
             is_scalar_value = True
-        print("IRINA DEBUG is_scalar_value", is_scalar_value)
+
         task = self.context.create_task(CuNumericOpCode.PUTMASK)
         task.add_input(self.base)
         task.add_output(self.base)

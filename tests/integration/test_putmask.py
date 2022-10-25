@@ -135,7 +135,6 @@ def test_ndim(ndim):
     shape_val = (2,) * ndim
     np_values = mk_seq_array(np, shape_val) * 10
     num_values = mk_seq_array(num, shape_val) * 10
-
     np.putmask(np_arr, np_mask, np_values)
     num.putmask(num_arr, num_mask, num_values)
     assert np.array_equal(np_arr, num_arr)

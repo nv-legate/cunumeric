@@ -3506,7 +3506,7 @@ def put(
     a.put(indices=indices, values=values, mode=mode)
 
 
-@add_boilerplate("a", "mask")
+@add_boilerplate("a", "mask", "values")
 def putmask(a: ndarray, mask: ndarray, values: Any) -> None:
     """
     putmask(a, mask, values)
@@ -3537,7 +3537,6 @@ def putmask(a: ndarray, mask: ndarray, values: Any) -> None:
         raise ValueError("mask and data must be the same size")
 
     mask = mask._warn_and_convert(np.dtype(bool))
-    values = convert_to_cunumeric_ndarray(values)
 
     if not a.dtype == values.dtype:
         values._warn_and_convert(a.dtype)
