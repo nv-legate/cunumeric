@@ -3537,20 +3537,14 @@ def putmask(a: ndarray, mask: ndarray, values: Any) -> None:
         raise ValueError("mask and data must be the same size")
 
     mask = mask._warn_and_convert(np.dtype(bool))
+    values = convert_to_cunumeric_ndarray(values)
 
-    if np.isscalar(values):
-        a[mask] = values
-    else:
-        values = convert_to_cunumeric_ndarray(values)
-        if values.size == 1:
-            a[mask] = values
-        else:
-            if not a.dtype == values.dtype:
-                values._warn_and_convert(a.dtype)
-            if values.shape != a.shape:
-                values = values._wrap(a.size)
-                values = values.reshape(a.shape)
-            a._thunk.putmask(mask._thunk, values._thunk)
+    if not a.dtype == values.dtype:
+        values._warn_and_convert(a.dtype)
+    if values.shape != a.shape and values.size != 1:
+        values = values._wrap(a.size)
+        values = values.reshape(a.shape)
+    a._thunk.putmask(mask._thunk, values._thunk)
 
 
 @add_boilerplate("a", "val")

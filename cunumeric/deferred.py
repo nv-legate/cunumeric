@@ -1741,13 +1741,23 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert("mask", "values")
     def putmask(self, mask: Any, values: Any) -> None:
+        is_scalar_value = False
+        if values.shape != self.shape and values.size == 1:
+            if values.shape == ():
+                values = values._convert_future_to_regionfield(True)
+            is_scalar_value = True
+        print("IRINA DEBUG is_scalar_value", is_scalar_value)
         task = self.context.create_task(CuNumericOpCode.PUTMASK)
         task.add_input(self.base)
         task.add_output(self.base)
         task.add_input(mask.base)
         task.add_input(values.base)
+        task.add_scalar_arg(is_scalar_value, bool)  # value is scalar
         task.add_alignment(self.base, mask.base)
-        task.add_alignment(self.base, values.base)
+        if is_scalar_value:
+            task.add_broadcast(values.base)
+        else:
+            task.add_alignment(self.base, values.base)
         task.add_broadcast(self.base, axes=range(1, self.ndim))
         task.execute()
 

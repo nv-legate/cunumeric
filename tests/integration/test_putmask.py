@@ -97,6 +97,8 @@ def test_type_convert():
 
     x = mk_seq_array(np, (3, 4, 5))
     x_num = mk_seq_array(num, (3, 4, 5))
+    x = x.astype(np.int32)
+    x_num = x_num.astype(np.int32)
     mask = np.zeros(
         (
             3,
@@ -105,8 +107,8 @@ def test_type_convert():
         )
     )
     mask_num = num.zeros((3, 4, 5))
-    np.putmask(x, mask, 3.25)
-    num.putmask(x_num, mask_num, 3.25)
+    np.putmask(x, mask, 11)
+    num.putmask(x_num, mask_num, 11)
     assert np.array_equal(x_num, x)
 
 
