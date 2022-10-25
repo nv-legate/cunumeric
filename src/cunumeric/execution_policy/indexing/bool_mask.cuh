@@ -68,8 +68,10 @@ struct BoolMaskPolicy<VariantKind::GPU, false> {
     if (0 == volume) return;
     auto stream         = get_cached_stream();
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+
     bool_mask_kernel<<<blocks, THREADS_PER_BLOCK, 1, stream>>>(
       volume, rect, pitches, mask, std::forward<KERNEL>(kernel));
+
     CHECK_CUDA_STREAM(stream);
   }
 };

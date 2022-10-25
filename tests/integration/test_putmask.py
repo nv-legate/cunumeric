@@ -65,8 +65,6 @@ def test_scalar():
     mask_num = num.array(mask)
     np.putmask(x, mask, values[:1])
     num.putmask(x_num, mask_num, values_num[:1])
-    print(x)
-    print(x_num)
     assert np.array_equal(x_num, x)
 
 
