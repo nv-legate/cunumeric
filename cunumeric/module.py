@@ -3507,7 +3507,7 @@ def put(
 
 
 @add_boilerplate("a", "mask")
-def putmask(a, mask, values):
+def putmask(a: ndarray, mask: ndarray, values: Any) -> None:
     """
     putmask(a, mask, values)
     Changes elements of an array based on conditional and input values.
@@ -3536,7 +3536,7 @@ def putmask(a, mask, values):
     if not a.shape == mask.shape:
         raise ValueError("mask and data must be the same size")
 
-    mask = mask._warn_and_convert(bool)
+    mask = mask._warn_and_convert(np.dtype(bool))
 
     if np.isscalar(values):
         a[mask] = values
