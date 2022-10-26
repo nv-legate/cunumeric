@@ -36,8 +36,6 @@ canonical NumPy implementation.
 If you have questions, please contact us at legate(at)nvidia.com.
 
 1. [Installation](#installation)
-1. [Dependencies](#dependencies)
-1. [Building from Source](#building-from-source)
 1. [Usage and Execution](#usage-and-execution)
 1. [Supported and Planned Features](#supported-and-planned-features)
 1. [Supported Types and Dimensions](#supported-types-and-dimensions)
@@ -53,6 +51,7 @@ cuNumeric is available [on conda](https://anaconda.org/legate/cunumeric):
 ```
 conda install -c nvidia -c conda-forge -c legate cunumeric
 ```
+
 The conda package is compatible with CUDA >= 11.4 (CUDA driver version >= r470),
 and Volta or later GPU architectures.
 
@@ -60,69 +59,7 @@ Docker image build scripts, as well as specialized install scripts for
 supported clusters are available on the
 [quickstart](https://github.com/nv-legate/quickstart) repo.
 
-Read on for general instructions on building cuNumeric from source.
-
-## Dependencies
-
-Users must have a working installation of the
-[Legate Core](https://github.com/nv-legate/legate.core)
-library prior to installing cuNumeric.
-
-cuNumeric requires the following:
-
-  - Python >= 3.8
-  - [CUDA](https://developer.nvidia.com/cuda-downloads) >= 10.2
-  - GNU Make
-  - C++17 compatible compiler (g++, clang, or nvc++)
-  - Fortran compiler (for building OpenBLAS; not necessary if you provide a pre-built version of OpenBLAS)
-  - the Python packages listed in any one of the conda environment files:
-    - `conda/environment-test-3.8.yml`
-    - `conda/environment-test-3.9.yml`
-    - `conda/environment-test-3.10.yml`
-
-See the [corresponding section](https://github.com/nv-legate/legate.core#dependencies)
-on the Legate Core instructions for help on installing the required Python packages
-using conda.
-
-cuNumeric is tested and guaranteed to be compatible with Volta and later GPU
-architectures. You can use cuNumeric with Pascal GPUs as well, but there could
-be issues due to lack of independent thread scheduling. Please report any such
-issues on GitHub.
-
-## Building from Source
-
-Installation can be done the `install.py` script.
-For releases >= 22.10, `pip install` is now available.
-The most common installation command is:
-
-```
-./install.py --with-core <path-to-legate-core-installation>
-```
-
-This will build cuNumeric against the Legate Core installation and then
-install cuNumeric into the same location.
-
-If Legate Core has been installed with CUDA support, a working cuTENSOR
-installation must also be provided to the installation command with the
-`--with-cutensor` option:
-```
-./install.py --with-core <path-to-legate-core-installation> --with-cutensor <path-to-cutensor-installation>
-```
-
-You can also specify an installation of [OpenBLAS](https://www.openblas.net/)
-to use for the build. If you already have an installation of OpenBLAS on your
-machine, you can inform the installation script using the `--with-openblas`
-option:
-
-```
-./install.py --with-openblas <path-to-OpenBLAS>
-```
-
-Advanced users can also invoke `install.py --help` to see options for
-configuring cuNumeric by invoking the `install.py` script directly.
-More information on building - including development workflows - can be found
-in the [build instructions](BUILD.md)
-
+See [BUILD.md]() for instructions on building cuNumeric from source.
 
 ## Usage and Execution
 
