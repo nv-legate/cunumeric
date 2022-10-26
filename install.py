@@ -296,6 +296,9 @@ def install_cunumeric(
             pip_install_cmd += ["--no-deps", "--no-build-isolation"]
         pip_install_cmd += ["--upgrade"]
 
+    if unknown is not None:
+        pip_install_cmd += unknown
+
     pip_install_cmd += ["."]
     if verbose:
         pip_install_cmd += ["-vv"]
