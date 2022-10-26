@@ -21,25 +21,93 @@ from utils.generators import mk_seq_array
 import cunumeric as num
 
 
-def test_1d():
-    a = mk_seq_array(np, (10,))
-    a_num = num.array(a)
+@pytest.mark.xfail
+def test_none_array():
+    res_np = np.compress([0], None)  # numpy return []
+    # Cunumeric raises:
+    # AttributeError: 'NoneType' object has no attribute 'compress'
+    res_num = num.compress([0], None)
+    assert np.array_equal(res_np, res_num)
 
-    res = np.compress([True, False, True], a, axis=0)
-    res_num = num.compress([True, False, True], a_num, axis=0)
 
-    assert np.array_equal(res_num, res)
+@pytest.mark.xfail
+def test_empty_array():
+    res_np = np.compress([0], [])  # numpy return []
+    # Cunumeric raises: ValueError:
+    # Shape mismatch: condition contains entries that are out of bounds
+    res_num = num.compress([0], [])
+    assert np.array_equal(res_np, res_num)
 
 
-@pytest.mark.parametrize("axis", (0, 1))
-def test_2d_axis(axis):
-    a = np.array([[1, 2], [3, 4], [5, 6]])
-    num_a = num.array(a)
+@pytest.mark.parametrize("con", (-3, 0, 3, None, False, True))
+def test_negative_condition(con):
+    a = num.array([1, 2, 3, 4])
+    with pytest.raises(ValueError):
+        num.compress(con, a)
 
-    res_np = np.compress([0, 1], a, axis=axis)
-    res_num = num.compress([0, 1], num_a, axis=axis)
 
-    assert np.array_equal(res_num, res_np)
+def test_condition_out_bound():
+    a = num.array([1, 2, 3, 4])
+    msg = r"bounds"
+    with pytest.raises(ValueError, match=msg):
+        num.compress([1, 2, 3, 4, 5], a)
+
+
+def test_axis_out_bound():
+    a = num.array([1, 2, 3, 4])
+    msg = r"bounds"
+    with pytest.raises(ValueError, match=msg):
+        num.compress([1, 2, 3, 4], a, axis=1)
+
+
+@pytest.mark.parametrize(
+    "con", ([True, True], [True, True, True, True, True, True])
+)
+def test_out_bounds(con):
+    a = num.array([1, 2, 3, 4])
+    b = num.array([-1, -2, -3, -4])
+    with pytest.raises(ValueError):
+        num.compress(con, a, out=b)
+
+
+@pytest.mark.xfail
+def test_dtype_out1():
+    a = mk_seq_array(np, (4,))
+    b = mk_seq_array(num, (4,))
+    out_np = np.random.random((4,))
+    out_num = num.random.random((4,))
+    # for Numpy, it will raise TypeError:
+    # "Cannot cast array data from dtype('float64') to dtype('int64')
+    # according to the rule 'safe'".
+    # Cunumeric passed.
+    np.compress([True, True, True, True], a, out=out_np)
+    num.compress([True, True, True, True], b, out=out_num)
+    assert np.array_equal(out_np, out_num)
+
+
+def test_dtype_out2():
+    # both Numpy and Cunumeric turn float into int
+    a = np.random.random((4,)) * 10
+    b = num.array(a)
+    out_np = np.random.randint(1, 10, (4,))
+    out_num = num.random.randint(-10, -1, (4,))
+    np.compress([True, True, True, True], a, out=out_np)
+    num.compress([True, True, True, True], b, out=out_num)
+    assert np.array_equal(out_np, out_num)
+
+
+@pytest.mark.xfail
+def test_out_parameter():
+    a = mk_seq_array(np, (4,))
+    b = mk_seq_array(num, (4,))
+    out_np = np.random.randint(1, 5, (4,))
+    out_num = np.random.randint(1, 5, (4,))
+    np.compress([True, True, True, True], a, 0, out_np)
+    num.compress([True, True, True, True], b, 0, out_num)
+    # for Cunumeric, the last parameter 'out',
+    # it should be written as 'out=out_num'
+    # otherwise it raises error
+    assert np.array_equal(out_num, out_np)
 
 
 def test_bool_condition():
@@ -52,34 +120,8 @@ def test_bool_condition():
     assert np.array_equal(res_num, res_np)
 
 
-def test_out():
-    a = np.array([[1, 2], [3, 4], [5, 6]])
-    num_a = num.array(a)
-    out_np = np.array([[1], [1], [1]])
-    out_num = num.array(out_np)
-
-    res_np = np.compress([0, 1], a, axis=1, out=out_np)
-    res_num = num.compress([0, 1], num_a, axis=1, out=out_num)
-
-    assert np.array_equal(res_num, res_np)
-    assert np.array_equal(out_num, out_np)
-
-
-def test_different_types():
-    a = np.array([[1, 2], [3, 4], [5, 6]], dtype=float)
-    num_a = num.array(a)
-    out_np = np.array([[1], [1], [1]])
-    out_num = num.array(out_np)
-
-    res_np = np.compress([0, 1], a, axis=1, out=out_np)
-    res_num = num.compress([0, 1], num_a, axis=1, out=out_num)
-
-    assert np.array_equal(res_num, res_np)
-    assert np.array_equal(out_num, out_np)
-
-
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
-def test_ndim(ndim):
+def test_ndim_basic(ndim):
     shape = (5,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
@@ -91,10 +133,43 @@ def test_ndim(ndim):
     res_num = num.compress(num_condition, num_arr)
     assert np.array_equal(res_num, res_np)
 
+
+@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+def test_ndim_axis(ndim):
+    shape = (5,) * ndim
+    np_arr = mk_seq_array(np, shape)
+    num_arr = mk_seq_array(num, shape)
+    # make sure condition is between 1 and 2
+    np_condition = mk_seq_array(np, (5,)) % 2
+    num_condition = mk_seq_array(num, (5,)) % 2
+
     for axis in range(ndim):
         res_np = np.compress(np_condition, np_arr, axis)
         res_num = num.compress(num_condition, num_arr, axis)
         assert np.array_equal(res_num, res_np)
+
+
+@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+def test_ndim_out(ndim):
+    shape = (5,) * ndim
+    np_arr = mk_seq_array(np, shape)
+    num_arr = mk_seq_array(num, shape)
+    # make sure condition is between 1 and 2
+    np_condition = mk_seq_array(np, (5,)) % 2
+    num_condition = mk_seq_array(num, (5,)) % 2
+
+    for axis in range(ndim):
+        shape_list = list(shape)
+        shape_list[axis] = 3
+        shape_new = tuple(shape_list)
+
+        out_np = np.random.randint(1, 10, shape_new)
+        out_num = np.random.randint(-10, -1, shape_new)
+
+        np.compress(np_condition, np_arr, axis, out_np)
+        num.compress(num_condition, num_arr, axis, out=out_num)
+
+        assert np.array_equal(out_num, out_np)
 
 
 if __name__ == "__main__":

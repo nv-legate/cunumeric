@@ -2096,7 +2096,7 @@ class ndarray:
 
         """
         a = self
-        if condition.ndim != 1:
+        if condition is None or condition.ndim != 1:
             raise ValueError(
                 "Dimension mismatch: condition must be a 1D array"
             )
