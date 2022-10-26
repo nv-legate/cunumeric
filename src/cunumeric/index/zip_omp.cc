@@ -47,9 +47,9 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
         for (size_t idx = 0; idx < volume; ++idx) {
           Legion::Point<N> new_point;
           for (size_t i = 0; i < N; i++) {
-            auto pair        = compute_idx_omp(indx_ptrs[i][idx], shape[i]);
-            new_point[i]     = pair.first;
-            is_out_of_bounds = is_out_of_bounds || pair.second;
+            auto pair    = compute_idx_omp(indx_ptrs[i][idx], shape[i]);
+            new_point[i] = pair.first;
+            if (pair.second) is_out_of_bounds = true;
           }
           outptr[idx] = new_point;
         }
@@ -59,9 +59,9 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
           auto p = pitches.unflatten(idx, rect.lo);
           Legion::Point<N> new_point;
           for (size_t i = 0; i < N; i++) {
-            auto pair        = compute_idx_omp(index_arrays[i][p], shape[i]);
-            new_point[i]     = pair.first;
-            is_out_of_bounds = is_out_of_bounds || pair.second;
+            auto pair    = compute_idx_omp(index_arrays[i][p], shape[i]);
+            new_point[i] = pair.first;
+            if (pair.second) is_out_of_bounds = true;
           }
           out[p] = new_point;
         }
@@ -78,7 +78,7 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
         for (size_t i = 0; i < index_arrays.size(); i++) {
           auto pair                  = compute_idx_omp(index_arrays[i][p], shape[start_index + i]);
           new_point[start_index + i] = pair.first;
-          is_out_of_bounds           = is_out_of_bounds || pair.second;
+          if (pair.second) is_out_of_bounds = true;
         }
         for (size_t i = (start_index + index_arrays.size()); i < N; i++) {
           int64_t j    = key_dim + i - index_arrays.size();

@@ -43,7 +43,7 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
 #pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
         if (check_bounds)
-          is_out_of_bounds = is_out_of_bounds || check_idx_omp(i, volume_base, indices);
+          if (check_idx_omp(i, volume_base, indices)) is_out_of_bounds = true;
         const int64_t input_idx = compute_idx(i, volume_base, indices);
         auto point              = pitches_base.unflatten(input_idx, rect_base.lo);
         outptr[i - start]       = point;
@@ -52,7 +52,7 @@ struct WrapImplBody<VariantKind::OMP, DIM> {
 #pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
         if (check_bounds)
-          is_out_of_bounds = is_out_of_bounds || check_idx_omp(i, volume_base, indices);
+          if (check_idx_omp(i, volume_base, indices)) is_out_of_bounds = true;
         const int64_t input_idx = compute_idx(i, volume_base, indices);
         auto point              = pitches_base.unflatten(input_idx, rect_base.lo);
         out[i]                  = point;
