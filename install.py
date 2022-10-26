@@ -303,10 +303,14 @@ def install_cunumeric(
     if verbose:
         pip_install_cmd += ["-vv"]
 
-    cmake_flags = []
+    # Also use preexisting CMAKE_ARGS from conda if set
+    cmake_flags = cmd_env.get("CMAKE_ARGS", "").split(" ")
 
     if cmake_generator:
-        cmake_flags += [f"-G'{cmake_generator}'"]
+        if " " not in cmake_generator:
+            cmake_flags += [f"-G{cmake_generator}"]
+        else:
+            cmake_flags += [f"-G'{cmake_generator}'"]
 
     if debug or verbose:
         cmake_flags += ["--log-level=%s" % ("DEBUG" if debug else "VERBOSE")]
@@ -355,7 +359,7 @@ def install_cunumeric(
     cmd_env.update(
         {
             "SKBUILD_BUILD_OPTIONS": f"-j{str(thread_count)}",
-            "SKBUILD_CONFIGURE_OPTIONS": "\n".join(cmake_flags),
+            "CMAKE_ARGS": " ".join(cmake_flags),
         }
     )
 
