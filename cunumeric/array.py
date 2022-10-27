@@ -2522,7 +2522,7 @@ class ndarray:
         if values.ndim != indices.ndim or values.size != indices.size:
             values = values._wrap(indices.size)
 
-        self._thunk.put(indices._thunk, values._thunk)
+        self._thunk.put(indices._thunk, values._thunk, mode == "raise")
 
     @add_boilerplate()
     def trace(
