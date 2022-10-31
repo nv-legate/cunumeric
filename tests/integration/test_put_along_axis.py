@@ -67,24 +67,25 @@ def test_ndim(ndim):
         assert np.array_equal(np_a, num_a)
 
 
-def test_full():
+@pytest.mark.parametrize(
+    "axis", range(-1, 3), ids=lambda axis: f"(axis={axis})"
+)
+def test_full(axis):
     shape = (3, 4, 5)
-    ndim = len(shape)
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
 
-    for axis in range(-1, ndim):
-        size = shape[axis]
-        axis_values = (0, size - 1, size * 2)
+    size = shape[axis]
+    axis_values = (0, size - 1, size * 2)
 
-        for shape_idx in broadcasts_to_along_axis(shape, axis, axis_values):
-            np_indices = mk_seq_array(np, shape_idx) % shape[axis]
-            num_indices = mk_seq_array(num, shape_idx) % shape[axis]
-            np_a = np_arr.copy()
-            num_a = num_arr.copy()
-            np.put_along_axis(np_a, np_indices, 100, axis=axis)
-            num.put_along_axis(num_a, num_indices, 100, axis=axis)
-            assert np.array_equal(np_a, num_a)
+    for shape_idx in broadcasts_to_along_axis(shape, axis, axis_values):
+        np_indices = mk_seq_array(np, shape_idx) % shape[axis]
+        num_indices = mk_seq_array(num, shape_idx) % shape[axis]
+        np_a = np_arr.copy()
+        num_a = num_arr.copy()
+        np.put_along_axis(np_a, np_indices, 100, axis=axis)
+        num.put_along_axis(num_a, num_indices, 100, axis=axis)
+        assert np.array_equal(np_a, num_a)
 
 
 def test_values():

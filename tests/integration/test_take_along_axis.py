@@ -42,22 +42,23 @@ def test_ndim(ndim):
     assert np.array_equal(res_num, res_np)
 
 
-def test_full():
+@pytest.mark.parametrize(
+    "axis", range(-1, 3), ids=lambda axis: f"(axis={axis})"
+)
+def test_full(axis):
     shape = (3, 4, 5)
-    ndim = len(shape)
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
 
-    for axis in range(-1, ndim):
-        size = shape[axis]
-        axis_values = (0, size - 1, size * 2)
+    size = shape[axis]
+    axis_values = (0, size - 1, size * 2)
 
-        for shape_idx in broadcasts_to_along_axis(shape, axis, axis_values):
-            np_indices = mk_seq_array(np, shape_idx) % shape[axis]
-            num_indices = mk_seq_array(num, shape_idx) % shape[axis]
-            res_np = np.take_along_axis(np_arr, np_indices, axis=axis)
-            res_num = num.take_along_axis(num_arr, num_indices, axis=axis)
-            assert np.array_equal(res_num, res_np)
+    for shape_idx in broadcasts_to_along_axis(shape, axis, axis_values):
+        np_indices = mk_seq_array(np, shape_idx) % shape[axis]
+        num_indices = mk_seq_array(num, shape_idx) % shape[axis]
+        res_np = np.take_along_axis(np_arr, np_indices, axis=axis)
+        res_num = num.take_along_axis(num_arr, num_indices, axis=axis)
+        assert np.array_equal(res_num, res_np)
 
 
 def test_empty_indice():
