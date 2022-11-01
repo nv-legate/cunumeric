@@ -911,7 +911,7 @@ class DeferredArray(NumPyThunk):
                 lhs,
                 index_array,
                 self,
-            ) = self._create_indexing_array(key, True)
+            ) = self._create_indexing_array(key, True, rhs)
 
             if not copy_needed:
                 return
