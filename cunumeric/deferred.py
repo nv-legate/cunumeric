@@ -658,7 +658,7 @@ class DeferredArray(NumPyThunk):
 
                         out = out._copy_store(out_tmp)
 
-                return False, rhs, out, self
+                return is_set, rhs, out, self
 
         if isinstance(key, NumPyThunk):
             key = (key,)
@@ -912,6 +912,9 @@ class DeferredArray(NumPyThunk):
                 index_array,
                 self,
             ) = self._create_indexing_array(key, True)
+
+            if not copy_needed:
+                return
 
             if rhs.shape != index_array.shape:
                 rhs_tmp = rhs._broadcast(index_array.base.shape)
@@ -1773,9 +1776,9 @@ class DeferredArray(NumPyThunk):
 
         task = self.context.create_task(CuNumericOpCode.PUTMASK)
         task.add_input(self.base)
-        task.add_output(self.base)
         task.add_input(mask.base)
         task.add_input(values.base)
+        task.add_output(self.base)
         task.add_scalar_arg(is_scalar_value, bool)  # value is scalar
         task.add_alignment(self.base, mask.base)
         if is_scalar_value:

@@ -3507,7 +3507,7 @@ def put(
 
 
 @add_boilerplate("a", "mask", "values")
-def putmask(a: ndarray, mask: ndarray, values: Any) -> None:
+def putmask(a: ndarray, mask: ndarray, values: ndarray) -> None:
     """
     putmask(a, mask, values)
     Changes elements of an array based on conditional and input values.
@@ -3538,8 +3538,8 @@ def putmask(a: ndarray, mask: ndarray, values: Any) -> None:
 
     mask = mask._warn_and_convert(np.dtype(bool))
 
-    if not a.dtype == values.dtype:
-        values._warn_and_convert(a.dtype)
+    if a.dtype != values.dtype:
+        values = values._warn_and_convert(a.dtype)
     if values.shape != a.shape and values.size != 1:
         values = values._wrap(a.size)
         values = values.reshape(a.shape)
