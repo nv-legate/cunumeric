@@ -20,6 +20,16 @@ from legate.core import LEGATE_MAX_DIM
 import cunumeric as num
 
 
+def test_with_nonzero():
+    (a,) = num.nonzero(num.array([1, 1, 0, 0]))
+    a_np = a.__array__()
+
+    b = num.unique(a)
+    b_np = num.unique(a_np)
+
+    assert np.array_equal(b, b_np)
+
+
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
 def test_ndim(ndim):
     shape = (4,) * ndim
