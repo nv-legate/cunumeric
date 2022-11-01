@@ -938,6 +938,8 @@ class DeferredArray(NumPyThunk):
                 index_array = index_array._convert_future_to_regionfield()
             if lhs.base.kind == Future:
                 lhs = lhs._convert_future_to_regionfield()
+            if lhs.base.transformed:
+                lhs = lhs._copy_store(lhs.base)
 
             if index_array.size != 0:
                 copy = self.context.create_copy()
