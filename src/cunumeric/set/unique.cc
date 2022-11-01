@@ -58,7 +58,11 @@ struct UniqueImplBody<VariantKind::CPU, CODE, DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { UniqueTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  UniqueTask::register_variants(
+    {{LEGATE_GPU_VARIANT, legate::VariantOptions{}.with_concurrent(true)}});
+}
 }  // namespace
 
 }  // namespace cunumeric
