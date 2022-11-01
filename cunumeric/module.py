@@ -6910,7 +6910,13 @@ def quantile(
         )
 
     res = quantile_impl(
-        arr, q_arr, real_axis, dict_methods[method], keepdims, to_dtype, out,
+        arr,
+        q_arr,
+        real_axis,
+        dict_methods[method],
+        keepdims,
+        to_dtype,
+        out,
     )
 
     if out is not None:
