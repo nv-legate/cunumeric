@@ -1709,7 +1709,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     @auto_convert("indices", "values")
-    def put(self, indices: Any, values: Any) -> None:
+    def put(self, indices: Any, values: Any, check_bounds: bool) -> None:
 
         if indices.base.kind == Future or indices.base.transformed:
             change_shape = indices.base.kind == Future
@@ -1745,6 +1745,7 @@ class DeferredArray(NumPyThunk):
         task.add_output(indirect.base)
         task.add_scalar_arg(shape, (ty.int64,))
         task.add_scalar_arg(True, bool)  # has_input
+        task.add_scalar_arg(check_bounds, bool)
         task.add_input(indices.base)
         task.add_alignment(indices.base, indirect.base)
         task.throws_exception(IndexError)
@@ -3482,6 +3483,7 @@ class DeferredArray(NumPyThunk):
         task.add_output(indirect.base)
         task.add_scalar_arg(src.shape, (ty.int64,))
         task.add_scalar_arg(False, bool)  # has_input
+        task.add_scalar_arg(False, bool)  # check bounds
         task.execute()
 
         copy = self.context.create_copy()
