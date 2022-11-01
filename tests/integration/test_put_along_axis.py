@@ -210,19 +210,6 @@ class TestPutAlongAxisErrors:
         "shape", ((0,), (5,), (4, 5)), ids=lambda shape: f"(shape={shape})"
     )
     def test_values_axis_none(self, shape):
-        a = mk_seq_array(num, (10,))
-        ai = mk_seq_array(num, (7,))
-        values = mk_seq_array(num, shape)
-        with pytest.raises(ValueError):
-            num.put_along_axis(a, ai, values, None)
-
-    @pytest.mark.xfail
-    @pytest.mark.parametrize(
-        "shape", ((0,), (5,), (4, 5)), ids=lambda shape: f"(shape={shape})"
-    )
-    def test_values_axis_none_DIVERGENC(self, shape):
-        # In Numpy, all 3 cases pass
-        # In cuNumeric, all 3 cases raise ValueError "Shape did not match"
         np_arr = mk_seq_array(np, (10,))
         num_arr = mk_seq_array(num, (10,))
 
