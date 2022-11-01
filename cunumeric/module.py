@@ -6550,12 +6550,13 @@ def reshuffle_reshape(arr, axes_set):
 # keepdims: [in] boolean flag specifying whether collapsed axis
 #                should be kept as dim=1;
 # to_dtype: [in] dtype to convert the result to;
+# qs_all:   [in/out] result pass through or created (returned)
 # return: nd-array of quantile output values
 #         where its shape is obtained as:
 #         concatenating q_arr.shape with arr.shape \ {axis}
 #         (the shape of `arr` obtained by taking the `axis` out)
 #
-def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
+def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype, qs_all):
 
     ndims = len(arr.shape)
 
@@ -6650,7 +6651,15 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype):
     #                     buffer = array(result_1D),
     #                     dtype = to_dtype)
 
-    qs_all = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
+    if qs_all is None:
+        qs_all = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
+    else:
+        if qs_all.shape != qresult_shape:
+            raise ValueError("wrong shape on output array")
+
+        # implicit conversion from to_dtype to qs_all.dtype assumed
+        #
+        qs_all[:] = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
 
     return qs_all
 
@@ -6901,11 +6910,11 @@ def quantile(
         )
 
     res = quantile_impl(
-        arr, q_arr, real_axis, dict_methods[method], keepdims, to_dtype
+        arr, q_arr, real_axis, dict_methods[method], keepdims, to_dtype, out,
     )
 
     if out is not None:
-        out = res.astype(out.dtype)  # conversion from res.dtype to out.dtype
+        # out = res.astype(out.dtype) -- conversion done inside impl
         return out
     else:
         if isscalar(q):
