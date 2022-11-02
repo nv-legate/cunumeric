@@ -6558,14 +6558,8 @@ def reshuffle_reshape(arr, axes_set):
 #         (the shape of `arr` obtained by taking the `axis` out)
 #
 def quantile_impl(
-        arr,
-        q_arr,
-        axis,
-        method,
-        keepdims,
-        to_dtype,
-        qs_all,
-        input_is_scalar):
+    arr, q_arr, axis, method, keepdims, to_dtype, qs_all, input_is_scalar
+):
 
     ndims = len(arr.shape)
 
@@ -6933,7 +6927,7 @@ def quantile(
         keepdims,
         to_dtype,
         out,
-        input_is_scalar
+        input_is_scalar,
     )
 
     if out is not None:
