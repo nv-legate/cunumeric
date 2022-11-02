@@ -75,7 +75,7 @@ template <VariantKind KIND, LegateTypeCode SRC_TYPE>
 struct ConvertDispatch {
   template <ConvertCode NAN_OP,
             std::enable_if_t<(legate::is_floating_point<SRC_TYPE>::value ||
-                              legate::is_complex<legate::legate_type_of<SRC_TYPE>>::value) ||
+                              legate::is_complex<SRC_TYPE>::value) ||
                              NAN_OP == ConvertCode::NOOP>* = nullptr>
   void operator()(ConvertArgs& args) const
   {
@@ -85,7 +85,7 @@ struct ConvertDispatch {
 
   template <ConvertCode NAN_OP,
             std::enable_if_t<!((legate::is_floating_point<SRC_TYPE>::value ||
-                                legate::is_complex<legate::legate_type_of<SRC_TYPE>>::value) ||
+                                legate::is_complex<SRC_TYPE>::value) ||
                                (NAN_OP == ConvertCode::NOOP))>* = nullptr>
   void operator()(ConvertArgs& args) const
   {
