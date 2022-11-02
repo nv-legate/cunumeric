@@ -6551,12 +6551,21 @@ def reshuffle_reshape(arr, axes_set):
 #                should be kept as dim=1;
 # to_dtype: [in] dtype to convert the result to;
 # qs_all:   [in/out] result pass through or created (returned)
+# input_is_scalar: [in] specifies if q input was scalar
 # return: nd-array of quantile output values
 #         where its shape is obtained as:
 #         concatenating q_arr.shape with arr.shape \ {axis}
 #         (the shape of `arr` obtained by taking the `axis` out)
 #
-def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype, qs_all):
+def quantile_impl(
+        arr,
+        q_arr,
+        axis,
+        method,
+        keepdims,
+        to_dtype,
+        qs_all,
+        input_is_scalar):
 
     ndims = len(arr.shape)
 
@@ -6651,15 +6660,20 @@ def quantile_impl(arr, q_arr, axis, method, keepdims, to_dtype, qs_all):
     #                     buffer = array(result_1D),
     #                     dtype = to_dtype)
 
+    res = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
+
     if qs_all is None:
-        qs_all = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
+        qs_all = res
     else:
         if qs_all.shape != qresult_shape:
             raise ValueError("wrong shape on output array")
 
         # implicit conversion from to_dtype to qs_all.dtype assumed
         #
-        qs_all[:] = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
+        if input_is_scalar:
+            qs_all[:] = res[0]  # bc/ q was promoted to [q]
+        else:
+            qs_all[:] = res
 
     return qs_all
 
@@ -6861,7 +6875,9 @@ def quantile(
         real_axis = axis
         a_rr = a
 
-    if isscalar(q):
+    input_is_scalar = isscalar(q)
+
+    if input_is_scalar:
         q_arr = array([q])
         # TODO: the result must also be reduced in dimension, accordingly;
     else:
@@ -6917,13 +6933,14 @@ def quantile(
         keepdims,
         to_dtype,
         out,
+        input_is_scalar
     )
 
     if out is not None:
         # out = res.astype(out.dtype) -- conversion done inside impl
         return out
     else:
-        if isscalar(q):
+        if input_is_scalar:
             # q_arr is singleton from scalar;
             # additional dimension 1 must be removed
             return res[0]
