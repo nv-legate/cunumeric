@@ -132,7 +132,6 @@ class TestPutAlongAxisErrors:
         with pytest.raises(TypeError, match=msg):
             num.put_along_axis(self.a, ai, 100, axis=0)
 
-    @pytest.mark.xfail
     @pytest.mark.parametrize(
         "shape", ((3, 2), (3, 0)), ids=lambda shape: f"(shape={shape})"
     )

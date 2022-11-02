@@ -3240,7 +3240,7 @@ def put_along_axis(
 
     """
 
-    if (indices is not None and indices.size ==0) or (a is not None and a.size ==0) :
+    if a is not None and a.size ==0 :
         return
     if not np.issubdtype(indices.dtype, np.integer):
         raise TypeError("`indices` must be an integer array")
@@ -3252,7 +3252,7 @@ def put_along_axis(
         if a.ndim > 1:
             # TODO call a=a.flat when flat is implemented
             raise ValueError("a.ndim>1 case is not supported when axis=None")
-        if values.size==0:
+        if (indices is not None and indices.size ==0) or ( values is not None and values.size==0):
             return
         if values.shape != indices.shape:
             values = values._wrap(indices.size)

@@ -410,8 +410,11 @@ class DeferredArray(NumPyThunk):
         # find a broadcasted shape for all arrays passed as indices
         shapes = tuple(a.shape for a in arrays)
         if len(arrays) > 1:
-            # TODO: replace with cunumeric.broadcast_shapes, when available
-            b_shape = np.broadcast_shapes(*shapes)
+            try:
+                # TODO: replace with cunumeric.broadcast_shapes, when available
+                b_shape = np.broadcast_shapes(*shapes)
+            except: 
+                raise IndexError ("shape mismatch: indexing arrays could not be broadcast together")
         else:
             b_shape = arrays[0].shape
 
