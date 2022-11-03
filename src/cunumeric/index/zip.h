@@ -51,6 +51,13 @@ constexpr coord_t compute_idx(coord_t index, coord_t extent)
   return new_index;
 }
 
+constexpr std::pair<coord_t, bool> compute_idx_omp(coord_t index, coord_t extent)
+{
+  coord_t new_index  = index < 0 ? index + extent : index;
+  bool out_of_bounds = (new_index < 0 || new_index >= extent);
+  return {new_index, out_of_bounds};
+}
+
 constexpr coord_t compute_idx_cuda(coord_t index, coord_t extent)
 {
   coord_t new_index = index < 0 ? index + extent : index;

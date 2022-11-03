@@ -59,7 +59,7 @@ Docker image build scripts, as well as specialized install scripts for
 supported clusters are available on the
 [quickstart](https://github.com/nv-legate/quickstart) repo.
 
-See [BUILD.md]() for instructions on building cuNumeric from source.
+See [BUILD.md](BUILD.md) for instructions on building cuNumeric from source.
 
 ## Usage and Execution
 
