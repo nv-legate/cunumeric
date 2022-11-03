@@ -25,10 +25,13 @@ template <typename VAL>
 struct ThreadLocalStorage {
  private:
   static constexpr size_t CACHE_LINE_SIZE = 64;
+  // Round the element size to the nearest multiple of cache line size
+  static constexpr size_t PER_THREAD_SIZE =
+    (sizeof(VAL) + CACHE_LINE_SIZE - 1) / CACHE_LINE_SIZE * CACHE_LINE_SIZE;
 
  public:
   ThreadLocalStorage(size_t num_threads)
-    : storage_(CACHE_LINE_SIZE * num_threads), num_threads_(num_threads)
+    : storage_(PER_THREAD_SIZE * num_threads), num_threads_(num_threads)
   {
   }
   ~ThreadLocalStorage() {}
@@ -36,7 +39,7 @@ struct ThreadLocalStorage {
  public:
   VAL& operator[](size_t idx)
   {
-    return *reinterpret_cast<VAL*>(storage_.data() + CACHE_LINE_SIZE * idx);
+    return *reinterpret_cast<VAL*>(storage_.data() + PER_THREAD_SIZE * idx);
   }
 
  private:
