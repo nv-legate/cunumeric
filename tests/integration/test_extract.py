@@ -167,14 +167,14 @@ def test_place_basic(shape, vals):
     arr_np = mk_seq_array(np, shape)
     arr_num = num.array(mk_seq_array(num, shape))
 
-    condition_np = np.array((mk_seq_array(np, shape) % 2).astype(bool))
-    condition_num = num.array((mk_seq_array(np, shape) % 2).astype(bool))
+    mask_np = np.array((mk_seq_array(np, shape) % 2).astype(bool))
+    mask_num = num.array((mk_seq_array(np, shape) % 2).astype(bool))
 
     vals_np = np.array(vals).astype(arr_np.dtype)
     vals_num = num.array(vals_np)
 
-    np.place(arr_np, condition_np, vals_np)
-    num.place(arr_num, condition_num, vals_num)
+    np.place(arr_np, mask_np, vals_np)
+    num.place(arr_num, mask_num, vals_num)
 
     assert np.array_equal(arr_np, arr_num)
 
