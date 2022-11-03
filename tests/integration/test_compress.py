@@ -24,7 +24,7 @@ import cunumeric as num
 @pytest.mark.xfail
 def test_none_array():
     res_np = np.compress([0], None)  # numpy return []
-    # Cunumeric raises:
+    # cuNumeric raises:
     # AttributeError: 'NoneType' object has no attribute 'compress'
     res_num = num.compress([0], None)
     assert np.array_equal(res_np, res_num)
@@ -33,7 +33,7 @@ def test_none_array():
 @pytest.mark.xfail
 def test_empty_array():
     res_np = np.compress([0], [])  # numpy return []
-    # Cunumeric raises: ValueError:
+    # cuNumeric raises: ValueError:
     # Shape mismatch: condition contains entries that are out of bounds
     res_num = num.compress([0], [])
     assert np.array_equal(res_np, res_num)
@@ -79,14 +79,14 @@ def test_dtype_out1():
     # for Numpy, it will raise TypeError:
     # "Cannot cast array data from dtype('float64') to dtype('int64')
     # according to the rule 'safe'".
-    # Cunumeric passed.
+    # cuNumeric passed.
     np.compress([True, True, True, True], a, out=out_np)
     num.compress([True, True, True, True], b, out=out_num)
     assert np.array_equal(out_np, out_num)
 
 
 def test_dtype_out2():
-    # both Numpy and Cunumeric turn float into int
+    # both Numpy and cuNumeric turn float into int
     a = np.random.random((4,)) * 10
     b = num.array(a)
     out_np = np.random.randint(1, 10, (4,))
@@ -104,7 +104,7 @@ def test_out_parameter():
     out_num = np.random.randint(1, 5, (4,))
     np.compress([True, True, True, True], a, 0, out_np)
     num.compress([True, True, True, True], b, 0, out_num)
-    # for Cunumeric, the last parameter 'out',
+    # for cuNumeric, the last parameter 'out',
     # it should be written as 'out=out_num'
     # otherwise it raises error
     assert np.array_equal(out_num, out_np)
@@ -125,9 +125,9 @@ def test_ndim_basic(ndim):
     shape = (5,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
-    # make sure condition is between 1 and 2
-    np_condition = mk_seq_array(np, (5,)) % 2
-    num_condition = mk_seq_array(num, (5,)) % 2
+    # make sure condition is between 0 and 1
+    np_condition = np.array((mk_seq_array(np, (5,)) % 2).astype(bool))
+    num_condition = num.array((mk_seq_array(num, (5,)) % 2).astype(bool))
 
     res_np = np.compress(np_condition, np_arr)
     res_num = num.compress(num_condition, num_arr)
@@ -139,9 +139,9 @@ def test_ndim_axis(ndim):
     shape = (5,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
-    # make sure condition is between 1 and 2
-    np_condition = mk_seq_array(np, (5,)) % 2
-    num_condition = mk_seq_array(num, (5,)) % 2
+    # make sure condition is between 0 and 1
+    np_condition = np.array((mk_seq_array(np, (5,)) % 2).astype(bool))
+    num_condition = num.array((mk_seq_array(num, (5,)) % 2).astype(bool))
 
     for axis in range(ndim):
         res_np = np.compress(np_condition, np_arr, axis)
@@ -154,9 +154,9 @@ def test_ndim_out(ndim):
     shape = (5,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
-    # make sure condition is between 1 and 2
-    np_condition = mk_seq_array(np, (5,)) % 2
-    num_condition = mk_seq_array(num, (5,)) % 2
+    # make sure condition is between 0 and 1
+    np_condition = np.array((mk_seq_array(np, (5,)) % 2).astype(bool))
+    num_condition = num.array((mk_seq_array(num, (5,)) % 2).astype(bool))
 
     for axis in range(ndim):
         shape_list = list(shape)

@@ -2096,11 +2096,15 @@ class ndarray:
 
         """
         a = self
-        if condition is None or condition.ndim != 1:
+        try:
+            if condition.ndim != 1:
+                raise ValueError(
+                    "Dimension mismatch: condition must be a 1D array"
+                )
+        except AttributeError:
             raise ValueError(
                 "Dimension mismatch: condition must be a 1D array"
             )
-
         condition = condition._warn_and_convert(np.dtype(bool))
 
         if axis is None:
