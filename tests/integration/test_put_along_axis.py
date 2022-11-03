@@ -139,8 +139,7 @@ class TestPutAlongAxisErrors:
         # In Numpy, it raises IndexError.
         # In cuNumeric, it raises ValueError.
         ai = num.ones(shape, dtype=int)
-        msg = "shape mismatch: indexing arrays could not be broadcast"
-        with pytest.raises(IndexError, match=msg):
+        with pytest.raises(ValueError):
             num.put_along_axis(self.a, ai, 100, axis=0)
 
     @pytest.mark.parametrize(
@@ -221,22 +220,6 @@ class TestPutAlongAxisErrors:
         np.put_along_axis(np_arr, indices, values, None)
         num.put_along_axis(num_arr, indices_num, values_num, None)
         assert np.array_equal(np_arr, num_arr)
-
-    def test_a_none(self):
-        ai = num.array([1, 1, 1])
-        msg = "object has no attribute 'ndim'"
-        with pytest.raises(AttributeError, match=msg):
-            num.put_along_axis(None, ai, 100, axis=0)
-
-    def test_indice_none(self):
-        msg = "'NoneType' object has no attribute 'dtype'"
-        with pytest.raises(AttributeError, match=msg):
-            num.put_along_axis(self.a, None, 100, axis=0)
-
-    def test_values_none(self):
-        msg = "'NoneType' object has no attribute 'dtype'"
-        with pytest.raises(AttributeError, match=msg):
-            num.put_along_axis(self.a, self.ai, None, axis=0)
 
 
 if __name__ == "__main__":
