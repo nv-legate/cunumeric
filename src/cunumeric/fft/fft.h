@@ -28,6 +28,12 @@ struct FFTArgs {
   CuNumericFFTDirection direction;
   bool operate_over_axes;
   std::vector<int64_t> axes;
+
+  // We assume that all gpus within a task are on the same node
+  // AND the id corresponds to their natural order
+  // This needs to be ensured by the resource scoping
+  int32_t gpu_id;
+  int32_t num_gpus;
 };
 
 class FFTTask : public CuNumericTask<FFTTask> {

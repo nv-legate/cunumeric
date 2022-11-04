@@ -38,7 +38,7 @@ struct FFTImpl {
   template <LegateTypeCode CODE_IN,
             int32_t DIM,
             std::enable_if_t<((DIM <= 3) && FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
-  void operator()(FFTArgs& args) const
+  void operator()(FFTArgs& args, std::vector<comm::Communicator>& comms) const
   {
     using INPUT_TYPE  = legate_type_of<CODE_IN>;
     using OUTPUT_TYPE = legate_type_of<FFT<FFT_TYPE, CODE_IN>::CODE_OUT>;
@@ -51,14 +51,23 @@ struct FFTImpl {
     auto output = args.output.write_accessor<OUTPUT_TYPE, DIM>(out_rect);
 
     FFTImplBody<KIND, FFT_TYPE, FFT<FFT_TYPE, CODE_IN>::CODE_OUT, CODE_IN, DIM>()(
-      output, input, out_rect, in_rect, args.axes, args.direction, args.operate_over_axes);
+      output,
+      input,
+      out_rect,
+      in_rect,
+      args.axes,
+      args.direction,
+      args.operate_over_axes,
+      args.gpu_id,
+      args.num_gpus,
+      comms);
   }
 
   // We only support up to 3D FFTs for now
   template <LegateTypeCode CODE_IN,
             int32_t DIM,
             std::enable_if_t<((DIM > 3) || !FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
-  void operator()(FFTArgs& args) const
+  void operator()(FFTArgs& args, std::vector<comm::Communicator>& comms) const
   {
     assert(false);
   }
@@ -67,12 +76,12 @@ struct FFTImpl {
 template <VariantKind KIND>
 struct FFTDispatch {
   template <CuNumericFFTType FFT_TYPE>
-  void operator()(FFTArgs& args) const
+  void operator()(FFTArgs& args, std::vector<comm::Communicator>& comms) const
   {
     // Not expecting changing dimensions, at least for now
     assert(args.input.dim() == args.output.dim());
 
-    double_dispatch(args.input.dim(), args.input.code(), FFTImpl<KIND, FFT_TYPE>{}, args);
+    double_dispatch(args.input.dim(), args.input.code(), FFTImpl<KIND, FFT_TYPE>{}, args, comms);
   }
 };
 
@@ -88,12 +97,28 @@ static void fft_template(TaskContext& context)
   args.output = std::move(outputs[0]);
   args.input  = std::move(inputs[0]);
   // Scalar arguments. Pay attention to indexes / ranges when adding or reordering arguments
-  args.type              = scalars[0].value<CuNumericFFTType>();
-  args.direction         = scalars[1].value<CuNumericFFTDirection>();
-  args.operate_over_axes = scalars[2].value<bool>();
+  int arg_idx            = 0;
+  args.type              = scalars[arg_idx++].value<CuNumericFFTType>();
+  args.direction         = scalars[arg_idx++].value<CuNumericFFTDirection>();
+  args.num_gpus          = scalars[arg_idx++].value<int32_t>();
+  args.operate_over_axes = scalars[arg_idx++].value<bool>();
 
-  for (size_t i = 3; i < scalars.size(); ++i) args.axes.push_back(scalars[i].value<int64_t>());
+  while (arg_idx < scalars.size()) args.axes.push_back(scalars[arg_idx++].value<int64_t>());
 
-  fft_dispatch(args.type, FFTDispatch<KIND>{}, args);
+  args.gpu_id = context.get_task_index()[0];
+
+  // some sanity checks
+  // We assume that all gpus within a task are on the same node
+  // AND the id corresponds to their natural order
+  // This needs to be ensured by the resource scoping
+  assert(context.is_single_task() || args.num_gpus > 1);
+  if (args.num_gpus > 1) {
+    auto domain = context.get_launch_domain();
+    assert(args.input.dim() == 1);
+    assert(domain.get_dim() == 1);
+    assert(args.num_gpus == domain.hi()[0] - domain.lo()[0] + 1);
+  }
+
+  fft_dispatch(args.type, FFTDispatch<KIND>{}, args, context.communicators());
 }
 }  // namespace cunumeric

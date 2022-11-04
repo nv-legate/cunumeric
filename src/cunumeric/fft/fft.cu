@@ -14,12 +14,15 @@
  *
  */
 #include <csignal>
+#include <numeric>
+#include <functional>
 
 #include "cunumeric/fft/fft.h"
 #include "cunumeric/fft/fft_template.inl"
 
 #include "cunumeric/cuda_help.h"
 #include "cunumeric/pitches.h"
+#include "core/comm/coll.h"
 
 namespace cunumeric {
 
@@ -51,7 +54,7 @@ __host__ static inline void copy_into_buffer(Buffer<TYPE, DIM>& buffer,
   if (acc.accessor.is_dense_row_major(rect)) {
     auto zero = Point<DIM>::ZEROES();
     CHECK_CUDA(cudaMemcpyAsync(
-      buffer.ptr(zero), acc.ptr(zero), volume * sizeof(TYPE), cudaMemcpyDefault, stream));
+      buffer.ptr(zero), acc.ptr(rect.lo), volume * sizeof(TYPE), cudaMemcpyDefault, stream));
   } else {
     Pitches<DIM - 1> pitches;
     pitches.flatten(rect);
@@ -125,6 +128,249 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
 
   // Clean up our resources, Buffers are cleaned up by Legion
   CHECK_CUFFT(cufftDestroy(plan));
+}
+
+struct PointTaskData {
+  int32_t gpu_id       = -1;
+  int32_t device_id    = -1;
+  int64_t num_elements = -1;
+  void* input_ptr      = nullptr;
+  void* output_ptr     = nullptr;
+  void* temp_ptr       = nullptr;
+};
+
+template <int32_t DIM,
+          typename OUTPUT_TYPE,
+          typename INPUT_TYPE,
+          std::enable_if_t<(DIM == 1)>* = nullptr>
+__host__ static inline void cufft_operation_1D_multigpu(AccessorWO<OUTPUT_TYPE, DIM> out,
+                                                        AccessorRO<INPUT_TYPE, DIM> in,
+                                                        const Rect<DIM>& out_rect,
+                                                        const Rect<DIM>& in_rect,
+                                                        std::vector<int64_t>& axes,
+                                                        CuNumericFFTType type,
+                                                        CuNumericFFTDirection direction,
+                                                        int32_t gpu_id,
+                                                        int32_t num_gpus,
+                                                        comm::coll::CollComm comm)
+{
+  auto stream = get_cached_stream();
+
+  assert(type == CUNUMERIC_FFT_C2C || type == CUNUMERIC_FFT_Z2Z);
+
+  int device_id;
+  CHECK_CUDA(cudaGetDevice(&device_id));
+
+  const Point<1> zero   = Point<1>::ZEROES();
+  const Point<1> one    = Point<1>::ONES();
+  Point<1> fft_size_in  = in_rect.hi - in_rect.lo + one;
+  Point<1> fft_size_out = out_rect.hi - out_rect.lo + one;
+
+  assert(fft_size_in[0] == fft_size_out[0]);
+
+  int64_t num_local_elements = fft_size_in[0];
+  int64_t size_per_gpu       = num_local_elements * sizeof(INPUT_TYPE);
+  int64_t num_elements       = num_local_elements * num_gpus;
+  dim_t n[1]                 = {num_elements};
+  dim_t inembed[1]           = {num_elements};
+  dim_t onembed[1]           = {num_elements};
+
+  // Create the plan
+  cufftHandle plan;
+
+  size_t workarea_size[num_gpus] = {0};
+  if (gpu_id == 0) {
+    CHECK_CUFFT(cufftCreate(&plan));
+
+    CHECK_CUFFT(cufftSetStream(plan, stream));
+
+    // disable auto alloc
+    CHECK_CUFFT(cufftSetAutoAllocation(plan, 0 /*we'll do the allocation*/));
+
+    // set all num_gpus gpus, assuming natural ordering
+    std::vector<int32_t> whichGPUs(num_gpus);
+    std::iota(whichGPUs.begin(), whichGPUs.begin() + num_gpus, 0);
+    CHECK_CUFFT(cufftXtSetGPUs(plan, num_gpus, whichGPUs.data()));
+
+    // Create the plan and allocate a temporary buffer for it if it needs one
+    CHECK_CUFFT(cufftMakePlanMany64(plan,
+                                    1,
+                                    n,
+                                    inembed,
+                                    1,
+                                    1,
+                                    onembed,
+                                    1,
+                                    1,
+                                    static_cast<cufftType>(type),
+                                    1,
+                                    &workarea_size[0]));
+  }
+
+  // broadcast workarea
+  size_t local_tmp_size;
+  {
+    // Mimic broadcast with all2all
+    bool is_sender = (gpu_id == 0);
+    // workaround - using alltoallv to mimic allgather on subset
+    std::vector<int32_t> scomm_size(num_gpus);
+    std::vector<int32_t> rcomm_size(num_gpus);
+    std::vector<int32_t> sdispls(num_gpus);
+    std::vector<int32_t> rdispls(num_gpus);
+
+    std::fill(scomm_size.data(), scomm_size.data() + num_gpus, is_sender ? sizeof(size_t) : 0);
+    std::fill(rcomm_size.data(), rcomm_size.data() + num_gpus, 0);
+    std::fill(sdispls.data(), sdispls.data() + num_gpus, 0);
+    std::fill(rdispls.data(), rdispls.data() + num_gpus, 0);
+    rcomm_size[0] = sizeof(size_t);
+
+    if (is_sender) {
+      std::exclusive_scan(scomm_size.data(), scomm_size.data() + num_gpus, sdispls.data(), 0);
+    }
+
+    comm::coll::collAlltoallv(&workarea_size,
+                              scomm_size.data(),
+                              sdispls.data(),
+                              &local_tmp_size,
+                              rcomm_size.data(),
+                              rdispls.data(),
+                              comm::coll::CollDataType::CollUint8,
+                              comm);
+  }
+
+  // alloc tmp store
+  auto workarea_buffer = create_buffer<uint8_t>(local_tmp_size, Memory::Kind::GPU_FB_MEM);
+
+  // ATM only in-place multiple GPU functionality is supported -- we need a copy
+  auto buffer = create_buffer<INPUT_TYPE>(num_local_elements, Memory::Kind::GPU_FB_MEM);
+  copy_into_buffer(buffer, in, in_rect, in_rect.volume(), stream);
+  void* in_ptr = buffer.ptr(0);
+
+  // collect data pointers at rank/gpu_id 0
+  PointTaskData pointTaskData[num_gpus];
+  {
+    PointTaskData local_data{
+      gpu_id, device_id, num_local_elements, in_ptr, out.ptr(out_rect.lo), workarea_buffer.ptr(0)};
+
+    // Mimic gather with all2all
+    bool is_receiver = (gpu_id == 0);
+    // workaround - using alltoallv to mimic allgather on subset
+    std::vector<int32_t> scomm_size(num_gpus);
+    std::vector<int32_t> rcomm_size(num_gpus);
+    std::vector<int32_t> sdispls(num_gpus);
+    std::vector<int32_t> rdispls(num_gpus);
+
+    std::fill(scomm_size.data(), scomm_size.data() + num_gpus, 0);
+    std::fill(
+      rcomm_size.data(), rcomm_size.data() + num_gpus, is_receiver ? sizeof(PointTaskData) : 0);
+    std::fill(sdispls.data(), sdispls.data() + num_gpus, 0);
+    std::fill(rdispls.data(), rdispls.data() + num_gpus, 0);
+
+    scomm_size[0] = sizeof(PointTaskData);
+
+    if (is_receiver) {
+      std::exclusive_scan(rcomm_size.data(), rcomm_size.data() + num_gpus, rdispls.data(), 0);
+    }
+
+    comm::coll::collAlltoallv(&local_data,
+                              scomm_size.data(),
+                              sdispls.data(),
+                              &pointTaskData,
+                              rcomm_size.data(),
+                              rdispls.data(),
+                              comm::coll::CollDataType::CollUint8,
+                              comm);
+  }
+
+  if (gpu_id == 0) {
+    // check that all local dimensions are the same
+    for (int rank = 0; rank < num_gpus; ++rank) {
+      assert(pointTaskData[rank].num_elements == num_local_elements);
+    }
+
+    // build up desciptors manually
+    /*
+    struct cudaXtDesc_t
+      int version;                             //descriptor version
+      int nGPUs;                               //number of GPUs
+      int GPUs[MAX_CUDA_DESCRIPTOR_GPUS];      //array of device IDs
+      void *data[MAX_CUDA_DESCRIPTOR_GPUS];    //array of pointers to data, one per GPU
+      size_t size[MAX_CUDA_DESCRIPTOR_GPUS];   //array of data sizes, one per GPU
+      void *cudaXtState;                       //opaque CUDA utility structure
+    struct cudaLibXtDesc_t
+      int version;                //descriptor version
+      cudaXtDesc *descriptor;     //multi-GPU memory descriptor
+      libFormat library;          //which library recognizes the format
+      int subFormat;              //library specific enumerator of sub formats
+      void *libDescriptor;        //library specific descriptor e.g. FFT transform plan object
+    */
+    cudaXtDesc input_desc             = {0, num_gpus};
+    cudaXtDesc output_desc            = {0, num_gpus};
+    cudaLibXtDesc input_lib_desc      = {0, &input_desc};
+    cudaLibXtDesc output_lib_desc     = {0, &output_desc};
+    cudaLibXtDesc* device_data_input  = &input_lib_desc;
+    cudaLibXtDesc* device_data_output = &output_lib_desc;
+
+    // initialize some more
+    for (int gpu_id = 0; gpu_id < num_gpus; ++gpu_id) {
+      input_desc.GPUs[gpu_id]  = pointTaskData[gpu_id].device_id;
+      input_desc.data[gpu_id]  = pointTaskData[gpu_id].input_ptr;
+      input_desc.size[gpu_id]  = size_per_gpu;
+      output_desc.GPUs[gpu_id] = pointTaskData[gpu_id].device_id;
+      output_desc.data[gpu_id] = pointTaskData[gpu_id].output_ptr;
+      output_desc.size[gpu_id] = size_per_gpu;
+    }
+    input_lib_desc.subFormat  = CUFFT_XT_FORMAT_INPLACE;
+    output_lib_desc.subFormat = CUFFT_XT_FORMAT_INPLACE;
+
+    // set temp store
+    std::vector<void*> tmp_buffers(num_gpus);
+    for (int id = 0; id < num_gpus; ++id) tmp_buffers[id] = pointTaskData[id].temp_ptr;
+    CHECK_CUFFT(cufftXtSetWorkArea(plan, tmp_buffers.data()));
+
+    // curently only 1D C2C and Z2Z supported
+    if (type == CUNUMERIC_FFT_C2C) {
+      CHECK_CUFFT(cufftXtExecDescriptorC2C(
+        plan, device_data_input, device_data_input, static_cast<int32_t>(direction)));
+    } else {
+      CHECK_CUFFT(cufftXtExecDescriptorZ2Z(
+        plan, device_data_input, device_data_input, static_cast<int32_t>(direction)));
+    }
+
+    // Copy the data to natural order on GPUs -- not sure what for...
+    CHECK_CUFFT(
+      cufftXtMemcpy(plan, device_data_output, device_data_input, CUFFT_COPY_DEVICE_TO_DEVICE));
+
+    // Clean up our resources, Buffers are cleaned up by Legion
+    CHECK_CUFFT(cufftDestroy(plan));
+  }
+
+  // synchronize -- there probably is a better&cheaper way...
+  {
+    char a[num_gpus];
+    char b[num_gpus];
+    comm::coll::collAlltoall(&a, &b, 1, comm::coll::CollDataType::CollUint8, comm);
+  }
+
+  CHECK_CUDA_STREAM(stream);
+}
+
+template <int32_t DIM,
+          typename OUTPUT_TYPE,
+          typename INPUT_TYPE,
+          std::enable_if_t<(DIM > 1)>* = nullptr>
+__host__ static inline void cufft_operation_1D_multigpu(AccessorWO<OUTPUT_TYPE, DIM> out,
+                                                        AccessorRO<INPUT_TYPE, DIM> in,
+                                                        const Rect<DIM>& out_rect,
+                                                        const Rect<DIM>& in_rect,
+                                                        std::vector<int64_t>& axes,
+                                                        CuNumericFFTType type,
+                                                        CuNumericFFTDirection direction,
+                                                        const int32_t gpu_id,
+                                                        const int32_t num_gpus,
+                                                        comm::coll::CollComm comm)
+{
+  assert(false);
 }
 
 template <int32_t DIM, typename OUTPUT, typename INPUT_TYPE>
@@ -375,11 +621,16 @@ struct FFTImplBody<VariantKind::GPU, FFT_TYPE, CODE_OUT, CODE_IN, DIM> {
                            const Rect<DIM>& in_rect,
                            std::vector<int64_t>& axes,
                            CuNumericFFTDirection direction,
-                           bool operate_over_axes) const
+                           bool operate_over_axes,
+                           const int32_t gpu_id,
+                           const int32_t num_gpus,
+                           const std::vector<comm::Communicator>& comms) const
   {
     // FFTs are computed as 1D over different axes. Slower than performing the full FFT in a single
     // step
     if (operate_over_axes) {
+      assert(num_gpus == 1);
+
       // R2C / C2R always only 1D on a single axis (when performed over axes)
       if constexpr (FFT_TYPE != CUNUMERIC_FFT_Z2Z && FFT_TYPE != CUNUMERIC_FFT_C2C) {
         cufft_over_axis_r2c_c2r<DIM, OUTPUT_TYPE, INPUT_TYPE>(
@@ -395,8 +646,22 @@ struct FFTImplBody<VariantKind::GPU, FFT_TYPE, CODE_OUT, CODE_IN, DIM> {
     // performant)
     else {
       // FFTs are computed as a single step of DIM
-      cufft_operation<DIM, OUTPUT_TYPE, INPUT_TYPE>(
-        out, in, out_rect, in_rect, axes, FFT_TYPE, direction);
+      if (num_gpus > 1) {
+        cufft_operation_1D_multigpu<DIM, OUTPUT_TYPE, INPUT_TYPE>(
+          out,
+          in,
+          out_rect,
+          in_rect,
+          axes,
+          FFT_TYPE,
+          direction,
+          gpu_id,
+          num_gpus,
+          comms[0].get<comm::coll::CollComm>());
+      } else {
+        cufft_operation<DIM, OUTPUT_TYPE, INPUT_TYPE>(
+          out, in, out_rect, in_rect, axes, FFT_TYPE, direction);
+      }
     }
   }
 };

@@ -1289,6 +1289,26 @@ class DeferredArray(NumPyThunk):
             input = rhs.base
             output = lhs.base
 
+            # NOTE: This only works single-Node right now
+            multi_gpu = (
+                input.ndim == 1 and output.ndim == 1
+            )  # only activate for 1D
+            multi_gpu = multi_gpu and (
+                (self.runtime.num_gpus == 2 and input.size >= 64)
+                or (self.runtime.num_gpus == 4 and input.size >= 64)
+                or (self.runtime.num_gpus == 8 and input.size >= 128)
+                or (self.runtime.num_gpus == 16 and input.size >= 1024)
+            )
+            multi_gpu = multi_gpu and (
+                kind.type_id == 0x29 or kind.type_id == 0x69
+            )  # restrict to C2C/Z2Z
+            multi_gpu = multi_gpu and (
+                input.size % self.runtime.num_gpus == 0
+            )  # size has to fit
+            multi_gpu = multi_gpu and (
+                self.runtime.num_gpus == self.runtime.num_procs
+            )  # needed for cpu communicator
+
             task = self.context.create_auto_task(CuNumericOpCode.FFT)
             p_output = task.declare_partition(output)
             p_input = task.declare_partition(input)
@@ -1298,6 +1318,9 @@ class DeferredArray(NumPyThunk):
             task.add_scalar_arg(kind.type_id, ty.int32)
             task.add_scalar_arg(direction.value, ty.int32)
             task.add_scalar_arg(
+                self.runtime.num_gpus if multi_gpu else 1, ty.int32
+            )
+            task.add_scalar_arg(
                 len(set(axes)) != len(axes)
                 or len(axes) != input.ndim
                 or tuple(axes) != tuple(sorted(axes)),
@@ -1306,7 +1329,13 @@ class DeferredArray(NumPyThunk):
             for ax in axes:
                 task.add_scalar_arg(ax, ty.int64)
 
-            task.add_broadcast(input)
+            # first point task will utilize self.runtime.num_gpus
+            # other point tasks only contribute data & memory
+            # FIXME: resource scoping to single node
+            if multi_gpu:
+                task.add_cpu_communicator()
+            else:
+                task.add_broadcast(input)
             task.add_constraint(p_output == p_input)
 
             task.execute()
