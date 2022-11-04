@@ -73,7 +73,12 @@ struct SortImplBody<VariantKind::CPU, CODE, DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { SortTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  auto options = legate::VariantOptions{}.with_concurrent(true);
+  SortTask::register_variants(
+    {{LEGATE_CPU_VARIANT, options}, {LEGATE_GPU_VARIANT, options}, {LEGATE_OMP_VARIANT, options}});
+}
 }  // namespace
 
 }  // namespace cunumeric

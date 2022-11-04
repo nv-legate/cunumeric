@@ -311,7 +311,7 @@ template <legate::LegateTypeCode CODE>
 struct BinaryOp<BinaryOpCode::FMOD, CODE> {
   using T = legate::legate_type_of<CODE>;
   static constexpr bool valid =
-    not(CODE == legate::LegateTypeCode::BOOL_LT or legate::is_complex<T>::value);
+    not(CODE == legate::LegateTypeCode::BOOL_LT or legate::is_complex<CODE>::value);
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
@@ -459,7 +459,7 @@ struct BinaryOp<BinaryOpCode::ISCLOSE, CODE> {
     atol_ = args[1].scalar<double>();
   }
 
-  template <typename T = VAL, std::enable_if_t<!legate::is_complex<T>::value>* = nullptr>
+  template <typename T = VAL, std::enable_if_t<!legate::is_complex_type<T>::value>* = nullptr>
   constexpr bool operator()(const T& a, const T& b) const
   {
     using std::fabs;
@@ -469,7 +469,7 @@ struct BinaryOp<BinaryOpCode::ISCLOSE, CODE> {
            atol_ + rtol_ * static_cast<double>(fabs(b));
   }
 
-  template <typename T = VAL, std::enable_if_t<legate::is_complex<T>::value>* = nullptr>
+  template <typename T = VAL, std::enable_if_t<legate::is_complex_type<T>::value>* = nullptr>
   constexpr bool operator()(const T& a, const T& b) const
   {
     return static_cast<double>(abs(a - b)) <= atol_ + rtol_ * static_cast<double>(abs(b));
@@ -606,13 +606,13 @@ struct BinaryOp<BinaryOpCode::LOGICAL_AND, CODE> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr bool operator()(const _T& a, const _T& b) const
   {
     return static_cast<bool>(a.real()) && static_cast<bool>(b.real());
   }
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr bool operator()(const _T& a, const _T& b) const
   {
     return static_cast<bool>(a) && static_cast<bool>(b);
@@ -626,13 +626,13 @@ struct BinaryOp<BinaryOpCode::LOGICAL_OR, CODE> {
 
   BinaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr bool operator()(const _T& a, const _T& b) const
   {
     return static_cast<bool>(a.real()) || static_cast<bool>(b.real());
   }
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr bool operator()(const _T& a, const _T& b) const
   {
     return static_cast<bool>(a) || static_cast<bool>(b);
@@ -645,13 +645,13 @@ struct BinaryOp<BinaryOpCode::LOGICAL_XOR, CODE> {
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr bool operator()(const _T& a, const _T& b) const
   {
     return static_cast<bool>(a.real()) != static_cast<bool>(b.real());
   }
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr bool operator()(const _T& a, const _T& b) const
   {
     return static_cast<bool>(a) != static_cast<bool>(b);
