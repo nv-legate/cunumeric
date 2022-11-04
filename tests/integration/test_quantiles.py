@@ -199,8 +199,13 @@ def test_quantiles_2(str_method, ls_in, axes, keepdims):
 )
 @pytest.mark.parametrize("axes", (0, 1))
 @pytest.mark.parametrize(
-    "qs_arr", (0.5, np.ndarray(shape=(5, 6), buffer=np.array([
-        x / 30.0 for x in range(0, 30)])))
+    "qs_arr",
+    (
+        0.5,
+        np.ndarray(
+            shape=(5, 6), buffer=np.array([x / 30.0 for x in range(0, 30)])
+        ),
+    ),
 )
 def test_quantiles_3(str_method, axes, qs_arr):
     eps = 1.0e-8
@@ -241,11 +246,16 @@ def test_quantiles_3(str_method, axes, qs_arr):
     keepdims = False
 
     if keepdims:
-        remaining_shape = [1 if k == axes else original_shape[k]
-                           for k in range(0, len(original_shape))]
+        remaining_shape = [
+            1 if k == axes else original_shape[k]
+            for k in range(0, len(original_shape))
+        ]
     else:
-        remaining_shape = [original_shape[k] for k
-                           in range(0, len(original_shape)) if k != axes]
+        remaining_shape = [
+            original_shape[k]
+            for k in range(0, len(original_shape))
+            if k != axes
+        ]
 
     if cu.isscalar(qs_arr):
         q_out = cu.zeros(remaining_shape, dtype=float)
@@ -257,15 +267,20 @@ def test_quantiles_3(str_method, axes, qs_arr):
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
     cu.quantile(
-        arr, qs_arr, axis=axes, out=q_out, method=str_method,
-        keepdims=keepdims)
+        arr, qs_arr, axis=axes, out=q_out, method=str_method, keepdims=keepdims
+    )
     # print(q_out)
 
     # np:
     # print("numpy axis = %d:"%(axis))
     np.quantile(
-        arr, qs_arr, axis=axes, out=np_q_out, method=str_method,
-        keepdims=keepdims)
+        arr,
+        qs_arr,
+        axis=axes,
+        out=np_q_out,
+        method=str_method,
+        keepdims=keepdims,
+    )
     # print(np_q_out)
 
     assert cu.all(q_out.shape == np_q_out.shape)
