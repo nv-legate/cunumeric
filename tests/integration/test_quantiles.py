@@ -97,6 +97,9 @@ def test_quantiles_1(str_method, axes, qin_arr, keepdims):
     )
     # print(np_q_out)
 
+    assert cu.all(q_out.shape == np_q_out.shape)
+    assert q_out.dtype == np_q_out.dtype
+    
     qo_flat = q_out.flatten().astype(np.float64)
     np_qo_flat = np_q_out.flatten().astype(np.float64)
     sz = qo_flat.size
@@ -164,6 +167,9 @@ def test_quantiles_2(str_method, ls_in, axes, keepdims):
         arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims
     )
     # print(np_q_out)
+
+    assert cu.all(q_out.shape == np_q_out.shape)
+    assert q_out.dtype == np_q_out.dtype
 
     qo_flat = q_out.flatten().astype(np.float64)
     np_qo_flat = np_q_out.flatten().astype(np.float64)

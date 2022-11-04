@@ -6558,8 +6558,8 @@ def reshuffle_reshape(arr, axes_set):
 #         (the shape of `arr` obtained by taking the `axis` out)
 #
 def quantile_impl(
-    arr, q_arr, axis, method, keepdims, to_dtype, qs_all, input_is_scalar
-):
+    arr, q_arr, axis, axes_set, original_shape, method, keepdims, to_dtype,
+    qs_all, input_is_scalar):
 
     ndims = len(arr.shape)
 
@@ -6574,9 +6574,8 @@ def quantile_impl(
         # (can be empty [])
         #
         if keepdims:
-            remaining_shape = [
-                1 if k == axis else arr.shape[k] for k in range(0, ndims)
-            ]
+            remaining_shape = [1 if k in axes_set else original_shape[k]
+                               for k in range(0, len(original_shape))]
         else:
             remaining_shape = [
                 arr.shape[k] for k in range(0, ndims) if k != axis
@@ -6856,18 +6855,24 @@ def quantile(
         "nearest": nearest,
     }
 
+    axes_set = []
+    original_shape = a.shape
+
     if (axis is not None) and (not isscalar(axis)):
         if len(axis) == 1:
             real_axis = axis[0]
             a_rr = a
+            axes_set = [real_axis]
         else:
             (real_axis, a_rr) = reshuffle_reshape(a, axis)
             # What happens with multiple axes and overwrite_input = True ?
             # It seems overwrite_input is reset to False;
             overwrite_input = False
+            axes_set = axis
     else:
         real_axis = axis
         a_rr = a
+        axes_set = [real_axis]
 
     input_is_scalar = isscalar(q)
 
@@ -6923,6 +6928,8 @@ def quantile(
         arr,
         q_arr,
         real_axis,
+        axes_set,
+        original_shape,
         dict_methods[method],
         keepdims,
         to_dtype,
