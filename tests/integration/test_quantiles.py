@@ -99,7 +99,7 @@ def test_quantiles_1(str_method, axes, qin_arr, keepdims):
 
     assert cu.all(q_out.shape == np_q_out.shape)
     assert q_out.dtype == np_q_out.dtype
-    
+
     qo_flat = q_out.flatten().astype(np.float64)
     np_qo_flat = np_q_out.flatten().astype(np.float64)
     sz = qo_flat.size
