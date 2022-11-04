@@ -14,7 +14,7 @@
  *
  */
 
-#include "cunumeric/execution_policy/indexing/bool_mask_omp.h"
+#include "cunumeric/execution_policy/indexing/parallel_loop_omp.h"
 #include "cunumeric/index/putmask.h"
 #include "cunumeric/index/putmask_template.inl"
 

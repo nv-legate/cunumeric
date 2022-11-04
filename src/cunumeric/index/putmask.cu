@@ -14,7 +14,7 @@
  *
  */
 
-#include "cunumeric/execution_policy/indexing/bool_mask.cuh"
+#include "cunumeric/execution_policy/indexing/parallel_loop.cuh"
 #include "cunumeric/index/putmask.h"
 #include "cunumeric/index/putmask_template.inl"
 

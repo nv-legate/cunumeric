@@ -20,7 +20,7 @@
 #include <core/utilities/typedefs.h>
 #include "cunumeric/index/putmask.h"
 #include "cunumeric/pitches.h"
-#include "cunumeric/execution_policy/indexing/bool_mask.h"
+#include "cunumeric/execution_policy/indexing/parallel_loop.h"
 
 namespace cunumeric {
 
@@ -37,12 +37,16 @@ struct Putmask {
   IN input;
   T* inputptr;
   MASK mask;
+  const bool* maskptr;
   VALUES values;
   const T* valptr;
   Pitches<DIM - 1> pitches;
   Rect<DIM> rect;
   Rect<VDIM> vrect;
   bool dense;
+
+  struct DenseTag {};
+  struct SparseTag {};
 
   // constructor:
   Putmask(PutmaskArgs& args) : dense(false)
@@ -64,34 +68,36 @@ struct Putmask {
     if constexpr (!SCALAR_VALUE) dense = dense && values.accessor.is_dense_row_major(rect);
     if (dense) {
       inputptr = input.ptr(rect);
+      maskptr  = mask.ptr(rect);
       if constexpr (!SCALAR_VALUE) valptr = values.ptr(vrect);
     }
 #endif
   }  // constructor
 
-  __CUDA_HD__ void operator()(size_t idx) const noexcept
+  __CUDA_HD__ void operator()(const size_t idx, DenseTag) const noexcept
   {
     if constexpr (SCALAR_VALUE) {
-      inputptr[idx] = values[0];
+      if (maskptr[idx]) inputptr[idx] = values[0];
     } else {
-      inputptr[idx] = valptr[idx];
+      if (maskptr[idx]) inputptr[idx] = valptr[idx];
     }
   }
 
-  __CUDA_HD__ void operator()(Point<DIM> p) const noexcept
+  __CUDA_HD__ void operator()(const size_t idx, SparseTag) const noexcept
   {
+    auto p = pitches.unflatten(idx, rect.lo);
     if constexpr (SCALAR_VALUE) {
-      input[p] = values[0];
-    } else
+      if (mask[p]) input[p] = values[0];
+    } else if (mask[p])
       input[p] = values[p];
   }
 
   void execute() const noexcept
   {
 #ifndef LEGION_BOUNDS_CHECKS
-    if (dense) { return BoolMaskPolicy<KIND, true>()(rect, mask, *this); }
+    if (dense) { return ParallelLoopPolicy<KIND, DenseTag>()(rect, *this); }
 #endif
-    return BoolMaskPolicy<KIND, false>()(rect, pitches, mask, *this);
+    return ParallelLoopPolicy<KIND, SparseTag>()(rect, *this);
   }
 };
 
