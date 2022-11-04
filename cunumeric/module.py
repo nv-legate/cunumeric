@@ -6669,14 +6669,20 @@ def quantile_impl(
     if qs_all is None:
         qs_all = res
     else:
-        if qs_all.shape != qresult_shape:
-            raise ValueError("wrong shape on output array")
-
         # implicit conversion from to_dtype to qs_all.dtype assumed
         #
         if input_is_scalar:
-            qs_all[:] = res[0]  # bc/ q was promoted to [q]
+            # when input_is_scalar this check must account for
+            # promotion of qresult_shape to (1,qs_all.shape)
+            #
+            if qs_all.shape != qresult_shape[1:]:
+                raise ValueError("wrong shape on output array")
+
+            qs_all[:] = res[0]  # projection bc/ q was promoted to [q]
         else:
+            if qs_all.shape != qresult_shape:
+                raise ValueError("wrong shape on output array")
+
             qs_all[:] = res
 
     return qs_all

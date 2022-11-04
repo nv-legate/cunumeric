@@ -179,6 +179,106 @@ def test_quantiles_2(str_method, ls_in, axes, keepdims):
     )
 
 
+@pytest.mark.parametrize(
+    "str_method",
+    (
+        "inverted_cdf",
+        "averaged_inverted_cdf",
+        "closest_observation",
+        "interpolated_inverted_cdf",
+        "hazen",
+        "weibull",
+        "linear",
+        "median_unbiased",
+        "normal_unbiased",
+        "lower",
+        "higher",
+        "midpoint",
+        "nearest",
+    ),
+)
+@pytest.mark.parametrize("axes", (0, 1))
+@pytest.mark.parametrize(
+    "qs_arr", (0.5, np.ndarray(shape=(5, 6), buffer=np.array([
+        x / 30.0 for x in range(0, 30)])))
+)
+def test_quantiles_3(str_method, axes, qs_arr):
+    eps = 1.0e-8
+    original_shape = (2, 3, 4)
+    arr = np.ndarray(
+        shape=original_shape,
+        buffer=np.array(
+            [
+                1,
+                2,
+                2,
+                40,
+                1,
+                1,
+                2,
+                1,
+                0,
+                10,
+                3,
+                3,
+                40,
+                15,
+                3,
+                7,
+                5,
+                4,
+                7,
+                3,
+                5,
+                1,
+                0,
+                9,
+            ]
+        ),
+        dtype=float,
+    )
+
+    keepdims = False
+
+    if keepdims:
+        remaining_shape = [1 if k == axes else original_shape[k]
+                           for k in range(0, len(original_shape))]
+    else:
+        remaining_shape = [original_shape[k] for k
+                           in range(0, len(original_shape)) if k != axes]
+
+    if cu.isscalar(qs_arr):
+        q_out = cu.zeros(remaining_shape, dtype=float)
+        np_q_out = np.zeros(remaining_shape, dtype=float)
+    else:
+        q_out = cu.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
+        np_q_out = np.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
+
+    # cunumeric:
+    # print("cunumeric axis = %d:"%(axis))
+    cu.quantile(
+        arr, qs_arr, axis=axes, out=q_out, method=str_method,
+        keepdims=keepdims)
+    # print(q_out)
+
+    # np:
+    # print("numpy axis = %d:"%(axis))
+    np.quantile(
+        arr, qs_arr, axis=axes, out=np_q_out, method=str_method,
+        keepdims=keepdims)
+    # print(np_q_out)
+
+    assert cu.all(q_out.shape == np_q_out.shape)
+    assert q_out.dtype == np_q_out.dtype
+
+    qo_flat = q_out.flatten().astype(np.float64)
+    np_qo_flat = np_q_out.flatten().astype(np.float64)
+    sz = qo_flat.size
+    assert cu.all(
+        [cu.abs(qo_flat[i] - np_qo_flat[i]) < eps for i in range(0, sz)]
+    )
+
+
 if __name__ == "__main__":
     import sys
 
