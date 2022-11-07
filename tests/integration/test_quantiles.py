@@ -207,7 +207,8 @@ def test_quantiles_2(str_method, ls_in, axes, keepdims):
         ),
     ),
 )
-def test_quantiles_3(str_method, axes, qs_arr):
+@pytest.mark.parametrize("keepdims", (False, True))
+def test_quantiles_3(str_method, axes, qs_arr, keepdims):
     eps = 1.0e-8
     original_shape = (2, 3, 4)
     arr = np.ndarray(
@@ -243,8 +244,6 @@ def test_quantiles_3(str_method, axes, qs_arr):
         dtype=float,
     )
 
-    keepdims = False
-
     if keepdims:
         remaining_shape = [
             1 if k == axes else original_shape[k]
@@ -259,10 +258,10 @@ def test_quantiles_3(str_method, axes, qs_arr):
 
     if cu.isscalar(qs_arr):
         q_out = cu.zeros(remaining_shape, dtype=float)
-        np_q_out = np.zeros(remaining_shape, dtype=float)
+        # np_q_out = np.zeros(remaining_shape, dtype=float)
     else:
         q_out = cu.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
-        np_q_out = np.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
+        # np_q_out = np.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
 
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
@@ -273,11 +272,14 @@ def test_quantiles_3(str_method, axes, qs_arr):
 
     # np:
     # print("numpy axis = %d:"%(axis))
-    np.quantile(
+    # due to numpy bug https://github.com/numpy/numpy/issues/22544
+    # out = <not-None> fails with keepdims = True
+    #
+    np_q_out = np.quantile(
         arr,
         qs_arr,
         axis=axes,
-        out=np_q_out,
+        # out=np_q_out,
         method=str_method,
         keepdims=keepdims,
     )
