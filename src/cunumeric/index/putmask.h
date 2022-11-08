@@ -24,7 +24,6 @@ struct PutmaskArgs {
   const Array& input;
   const Array& mask;
   const Array& values;
-  const bool is_scalar_value;
 };
 
 class PutmaskTask : public CuNumericTask<PutmaskTask> {

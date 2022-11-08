@@ -27,12 +27,12 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM, int VDIM, bool SCALAR_VALUE = false>
+template <VariantKind KIND, LegateTypeCode CODE, int DIM>
 struct Putmask {
   using T      = legate_type_of<CODE>;
   using IN     = AccessorRW<T, DIM>;
   using MASK   = AccessorRO<bool, DIM>;
-  using VALUES = AccessorRO<T, VDIM>;
+  using VALUES = AccessorRO<T, DIM>;
 
   IN input;
   T* inputptr;
@@ -42,8 +42,8 @@ struct Putmask {
   const T* valptr;
   Pitches<DIM - 1> pitches;
   Rect<DIM> rect;
-  Rect<VDIM> vrect;
   bool dense;
+  size_t volume;
 
   struct DenseTag {};
   struct SparseTag {};
@@ -51,45 +51,36 @@ struct Putmask {
   // constructor:
   Putmask(PutmaskArgs& args) : dense(false)
   {
-    rect  = args.input.shape<DIM>();
-    vrect = args.values.shape<VDIM>();
+    rect = args.input.shape<DIM>();
 #ifdef DEBUG_CUNUMERIC
-    if constexpr (SCALAR_VALUE)
-      assert(rect == args.mask.shape<DIM>());
-    else
-      assert((rect == args.mask.shape<DIM>()) && (rect == vrect));
+    assert(rect == args.mask.shape<DIM>());
 #endif
 
     input  = args.input.read_write_accessor<T, DIM>(rect);
     mask   = args.mask.read_accessor<bool, DIM>(rect);
-    values = args.values.read_accessor<T, VDIM>(vrect);
+    values = args.values.read_accessor<T, DIM>(rect);
+    volume = pitches.flatten(rect);
+    if (volume == 0) return;
 #ifndef LEGION_BOUNDS_CHECKS
     dense = input.accessor.is_dense_row_major(rect) && mask.accessor.is_dense_row_major(rect);
-    if constexpr (!SCALAR_VALUE) dense = dense && values.accessor.is_dense_row_major(rect);
+    dense = dense && values.accessor.is_dense_row_major(rect);
     if (dense) {
       inputptr = input.ptr(rect);
       maskptr  = mask.ptr(rect);
-      if constexpr (!SCALAR_VALUE) valptr = values.ptr(vrect);
+      valptr   = values.ptr(rect);
     }
 #endif
   }  // constructor
 
   __CUDA_HD__ void operator()(const size_t idx, DenseTag) const noexcept
   {
-    if constexpr (SCALAR_VALUE) {
-      if (maskptr[idx]) inputptr[idx] = values[0];
-    } else {
-      if (maskptr[idx]) inputptr[idx] = valptr[idx];
-    }
+    if (maskptr[idx]) inputptr[idx] = valptr[idx];
   }
 
   __CUDA_HD__ void operator()(const size_t idx, SparseTag) const noexcept
   {
     auto p = pitches.unflatten(idx, rect.lo);
-    if constexpr (SCALAR_VALUE) {
-      if (mask[p]) input[p] = values[0];
-    } else if (mask[p])
-      input[p] = values[p];
+    if (mask[p]) input[p] = values[p];
   }
 
   void execute() const noexcept
@@ -109,22 +100,16 @@ struct PutmaskImpl {
   template <LegateTypeCode CODE, int DIM>
   void operator()(PutmaskArgs& args) const
   {
-    if (args.is_scalar_value) {
-      Putmask<KIND, CODE, DIM, 1, true> putmask(args);
-      putmask.execute();
-    } else {
-      Putmask<KIND, CODE, DIM, DIM> putmask(args);
-      putmask.execute();
-    }
+    Putmask<KIND, CODE, DIM> putmask(args);
+    putmask.execute();
   }
 };
 
 template <VariantKind KIND>
 static void putmask_template(TaskContext& context)
 {
-  auto& inputs         = context.inputs();
-  bool is_scalar_value = context.scalars()[0].value<bool>();
-  PutmaskArgs args{inputs[0], inputs[1], inputs[2], is_scalar_value};
+  auto& inputs = context.inputs();
+  PutmaskArgs args{inputs[0], inputs[1], inputs[2]};
   double_dispatch(args.input.dim(), args.input.code(), PutmaskImpl<KIND>{}, args);
 }
 

@@ -1768,24 +1768,17 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert("mask", "values")
     def putmask(self, mask: Any, values: Any) -> None:
-        is_scalar_value = False
-        if values.shape != self.shape and values.size == 1:
-            if values.shape == ():
-                values = values._convert_future_to_regionfield(True)
-            is_scalar_value = True
-
+        if values.shape != self.shape:
+            values_new = values._broadcast(self.shape)
+        else:
+            values_new = values.base
         task = self.context.create_task(CuNumericOpCode.PUTMASK)
         task.add_input(self.base)
         task.add_input(mask.base)
-        task.add_input(values.base)
+        task.add_input(values_new)
         task.add_output(self.base)
-        task.add_scalar_arg(is_scalar_value, bool)  # value is scalar
         task.add_alignment(self.base, mask.base)
-        if is_scalar_value:
-            task.add_broadcast(values.base)
-        else:
-            task.add_alignment(self.base, values.base)
-        task.add_broadcast(self.base, axes=range(1, self.ndim))
+        task.add_alignment(self.base, values_new)
         task.execute()
 
     # Create an identity array with the ones offset from the diagonal by k
