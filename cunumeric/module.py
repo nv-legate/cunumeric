@@ -6679,8 +6679,10 @@ def quantile_impl(
     return qs_all
 
 
-# TODO: what decorator should be used here, if any?
-#
+# Qunatiles
+
+
+@add_boilerplate("a")
 def quantile(
     a,
     q,
