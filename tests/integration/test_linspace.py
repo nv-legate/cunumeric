@@ -21,6 +21,12 @@ import cunumeric as num
 
 
 def equivalent_shapes_gen(shape):
+    """
+    Generate more equivalent shapes by removing
+    leading singleton dimensions from `shape`.
+    e.g., shape=(1, 4, 1), yield (1, 4, 1), (4, 1)
+    shape=(1, 1, 5), yield (1, 1, 5), (1, 5), (5,)
+    """
     yield shape
     for i in range(len(shape) - 1):
         if shape[i] == 1:
@@ -30,9 +36,6 @@ def equivalent_shapes_gen(shape):
             break
 
 
-@pytest.mark.parametrize(
-    "retstep", (True, False), ids=lambda retstep: f"(retstep={retstep})"
-)
 @pytest.mark.parametrize(
     "endpoint", (True, False), ids=lambda endpoint: f"(endpoint={endpoint})"
 )
@@ -44,51 +47,68 @@ def equivalent_shapes_gen(shape):
     ((10, -5.5), (2.0, 3.0), (0, 0), (1 + 2.5j, 10 + 5j), (0j, 10)),
     ids=lambda values: f"(values={values})",
 )
-def test_scalar_basic(values, number, endpoint, retstep):
+def test_scalar_basic(values, number, endpoint):
     start, stop = values
-    x = np.linspace(
-        start, stop, num=number, endpoint=endpoint, retstep=retstep
-    )
-    y = num.linspace(
-        start, stop, num=number, endpoint=endpoint, retstep=retstep
-    )
-
-    if retstep:
-        assert np.array_equal(x[0], y[0])
-        if np.isnan(x[1]) and np.isnan(y[1]):
-            pass
-        else:
-            assert x[1] == y[1]
-    else:
-        assert np.array_equal(x, y)
+    x = np.linspace(start, stop, num=number, endpoint=endpoint)
+    y = num.linspace(start, stop, num=number, endpoint=endpoint)
+    assert np.array_equal(x, y)
 
 
-@pytest.mark.parametrize(
-    "retstep", (True, False), ids=lambda retstep: f"(retstep={retstep})"
-)
 @pytest.mark.parametrize(
     "endpoint", (True, False), ids=lambda endpoint: f"(endpoint={endpoint})"
 )
-def test_arrays_basic(endpoint, retstep):
+@pytest.mark.parametrize(
+    "number", (0, 1, 10), ids=lambda number: f"(num={number})"
+)
+@pytest.mark.parametrize(
+    "values",
+    ((10, -5.5), (2.0, 3.0), (0, 0), (1 + 2.5j, 10 + 5j), (0j, 10)),
+    ids=lambda values: f"(values={values})",
+)
+def test_scalar_basic_retstep(values, number, endpoint):
+    start, stop = values
+    x = np.linspace(start, stop, num=number, endpoint=endpoint, retstep=True)
+    y = num.linspace(start, stop, num=number, endpoint=endpoint, retstep=True)
+
+    assert np.array_equal(x[0], y[0])
+    if np.isnan(x[1]) and np.isnan(y[1]):
+        pass
+    else:
+        assert x[1] == y[1]
+
+
+@pytest.mark.parametrize(
+    "endpoint", (True, False), ids=lambda endpoint: f"(endpoint={endpoint})"
+)
+def test_arrays_basic(endpoint):
     shape = (2, 2, 3)
     np_start = mk_seq_array(np, shape)
     num_start = mk_seq_array(num, shape)
     np_stop = mk_seq_array(np, shape) + 10
     num_stop = mk_seq_array(num, shape) + 10
-    x = np.linspace(
-        np_start, np_stop, num=5, endpoint=endpoint, retstep=retstep
-    )
+    x = np.linspace(np_start, np_stop, num=5, endpoint=endpoint)
+    y = np.linspace(num_start, num_stop, num=5, endpoint=endpoint)
+    assert np.array_equal(x, y)
+
+
+@pytest.mark.parametrize(
+    "endpoint", (True, False), ids=lambda endpoint: f"(endpoint={endpoint})"
+)
+def test_arrays_basic_retstep(endpoint):
+    shape = (2, 2, 3)
+    np_start = mk_seq_array(np, shape)
+    num_start = mk_seq_array(num, shape)
+    np_stop = mk_seq_array(np, shape) + 10
+    num_stop = mk_seq_array(num, shape) + 10
+    x = np.linspace(np_start, np_stop, num=5, endpoint=endpoint, retstep=True)
     y = np.linspace(
-        num_start, num_stop, num=5, endpoint=endpoint, retstep=retstep
+        num_start, num_stop, num=5, endpoint=endpoint, retstep=True
     )
-    if retstep:
-        assert np.array_equal(x[0], y[0])
-        assert np.array_equal(x[1], y[1])
-    else:
-        assert np.array_equal(x, y)
+    assert np.array_equal(x[0], y[0])
+    assert np.array_equal(x[1], y[1])
 
 
-def test_arrays1():
+def test_array_broadcast_stops():
     shape_start = (2, 2, 3)
     np_start = mk_seq_array(np, shape_start)
     num_start = mk_seq_array(num, shape_start)
@@ -102,7 +122,7 @@ def test_arrays1():
             assert np.array_equal(x, y)
 
 
-def test_arrays2():
+def test_arrays_both_start_and_stop_broadcast():
     shape_start = (1, 3)
     np_start = mk_seq_array(np, shape_start)
     num_start = mk_seq_array(num, shape_start)
@@ -133,33 +153,43 @@ def test_array_with_scalar(shape):
 
 
 @pytest.mark.parametrize(
-    "retstep", (True, False), ids=lambda retstep: f"(retstep={retstep})"
+    "endpoint", (True, False), ids=lambda endpoint: f"(endpoint={endpoint})"
 )
+@pytest.mark.parametrize(
+    "shape", ((0,), (2, 1)), ids=lambda shape: f"(shape={shape})"
+)
+def test_empty_array(shape, endpoint):
+    np_arr = mk_seq_array(np, shape)
+    num_arr = mk_seq_array(num, shape)
+
+    x1 = np.linspace(np_arr, [], num=5, endpoint=endpoint)
+    y1 = num.linspace(num_arr, [], num=5, endpoint=endpoint)
+    assert np.array_equal(x1, y1)
+
+    x2 = np.linspace([], np_arr, num=5, endpoint=endpoint)
+    y2 = num.linspace([], num_arr, num=5, endpoint=endpoint)
+    assert np.array_equal(x2, y2)
+
+
 @pytest.mark.parametrize(
     "endpoint", (True, False), ids=lambda endpoint: f"(endpoint={endpoint})"
 )
 @pytest.mark.parametrize(
     "shape", ((0,), (2, 1)), ids=lambda shape: f"(shape={shape})"
 )
-def test_empty_array(shape, endpoint, retstep):
+def test_empty_array_retstep(shape, endpoint):
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
 
-    x1 = np.linspace(np_arr, [], num=5, endpoint=endpoint, retstep=retstep)
-    y1 = num.linspace(num_arr, [], num=5, endpoint=endpoint, retstep=retstep)
-    if retstep:
-        assert np.array_equal(x1[0], y1[0])
-        assert np.array_equal(x1[1], y1[1])
-    else:
-        assert np.array_equal(x1, y1)
+    x1 = np.linspace(np_arr, [], num=5, endpoint=endpoint, retstep=True)
+    y1 = num.linspace(num_arr, [], num=5, endpoint=endpoint, retstep=True)
+    assert np.array_equal(x1[0], y1[0])
+    assert np.array_equal(x1[1], y1[1])
 
-    x2 = np.linspace([], np_arr, num=5, endpoint=endpoint, retstep=retstep)
-    y2 = num.linspace([], num_arr, num=5, endpoint=endpoint, retstep=retstep)
-    if retstep:
-        assert np.array_equal(x2[0], y2[0])
-        assert np.array_equal(x2[1], y2[1])
-    else:
-        assert np.array_equal(x2, y2)
+    x2 = np.linspace([], np_arr, num=5, endpoint=endpoint, retstep=True)
+    y2 = num.linspace([], num_arr, num=5, endpoint=endpoint, retstep=True)
+    assert np.array_equal(x2[0], y2[0])
+    assert np.array_equal(x2[1], y2[1])
 
 
 @pytest.mark.xfail
@@ -209,7 +239,7 @@ def test_dtype(dtype):
 
 
 class TestLinspaceErrors:
-    def setup(self):
+    def setup_method(self):
         self.start = mk_seq_array(num, (2, 3))
         self.stop = mk_seq_array(num, (2, 3)) + 10
         self.num = 5

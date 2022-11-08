@@ -24,50 +24,37 @@ a = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
 
 def test_small():
     a_num = num.array(a)
-    b = a.swapaxes(0, 1)
-    b_num = a_num.swapaxes(0, 1)
+    b = np.swapaxes(a, 0, 1)
+    b_num = num.swapaxes(a_num, 0, 1)
     assert np.array_equal(b, b_num)
-
-    c = np.swapaxes(a, 0, 1)
-    c_num = num.swapaxes(a_num, 0, 1)
-    assert np.array_equal(c, c_num)
 
 
 def test_tall():
     a_tall = np.concatenate((a,) * 100)
     a_tall_num = num.array(a_tall)
-    b_tall = a_tall.swapaxes(0, 1)
-    b_tall_num = a_tall_num.swapaxes(0, 1)
-    assert np.array_equal(b_tall, b_tall_num)
 
-    c_tall = np.swapaxes(a_tall, 0, 1)
-    c_tall_num = num.swapaxes(a_tall_num, 0, 1)
-    assert np.array_equal(c_tall, c_tall_num)
+    b_tall = np.swapaxes(a_tall, 0, 1)
+    b_tall_num = num.swapaxes(a_tall_num, 0, 1)
+    assert np.array_equal(b_tall, b_tall_num)
 
 
 def test_wide():
     a_wide = np.concatenate((a,) * 100, axis=1)
     a_wide_num = num.array(a_wide)
-    b_wide = a_wide.swapaxes(0, 1)
-    b_wide_num = a_wide_num.swapaxes(0, 1)
-    assert np.array_equal(b_wide, b_wide_num)
 
-    c_wide = np.swapaxes(a_wide, 0, 1)
-    c_wide_num = num.swapaxes(a_wide_num, 0, 1)
-    assert np.array_equal(c_wide, c_wide_num)
+    b_wide = np.swapaxes(a_wide, 0, 1)
+    b_wide_num = num.swapaxes(a_wide_num, 0, 1)
+    assert np.array_equal(b_wide, b_wide_num)
 
 
 def test_big():
     a_tall = np.concatenate((a,) * 100)
     a_big = np.concatenate((a_tall,) * 100, axis=1)
     a_big_num = num.array(a_big)
-    b_big = a_big.swapaxes(0, 1)
-    b_big_num = a_big_num.swapaxes(0, 1)
-    assert np.array_equal(b_big, b_big_num)
 
-    c_big = np.swapaxes(a_big, 0, 1)
-    c_big_num = num.swapaxes(a_big_num, 0, 1)
-    assert np.array_equal(c_big, c_big_num)
+    b_big = np.swapaxes(a_big, 0, 1)
+    b_big_num = num.swapaxes(a_big_num, 0, 1)
+    assert np.array_equal(b_big, b_big_num)
 
 
 @pytest.mark.parametrize(
@@ -106,7 +93,7 @@ def test_emtpy_array():
 
 
 class TestSwapAxesErrors:
-    def setup(self):
+    def setup_method(self):
         self.a = mk_seq_array(num, (3, 3))
 
     def test_a_none(self):
