@@ -6885,7 +6885,7 @@ def quantile(
     input_is_scalar = isscalar(q)
 
     if input_is_scalar:
-        q_arr = asarray(q)     #   0-dimensional
+        q_arr = asarray(q)  #   0-dimensional
     else:
         q_arr = q
 
