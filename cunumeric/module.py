@@ -6671,19 +6671,10 @@ def quantile_impl(
     else:
         # implicit conversion from to_dtype to qs_all.dtype assumed
         #
-        if input_is_scalar:
-            # when input_is_scalar this check must account for
-            # promotion of qresult_shape to (1,qs_all.shape)
-            #
-            if qs_all.shape != qresult_shape[1:]:
-                raise ValueError("wrong shape on output array")
+        if qs_all.shape != qresult_shape:
+            raise ValueError("wrong shape on output array")
 
-            qs_all[:] = res[0]  # projection bc/ q was promoted to [q]
-        else:
-            if qs_all.shape != qresult_shape:
-                raise ValueError("wrong shape on output array")
-
-            qs_all[:] = res
+        qs_all[:] = res
 
     return qs_all
 
@@ -6894,8 +6885,7 @@ def quantile(
     input_is_scalar = isscalar(q)
 
     if input_is_scalar:
-        q_arr = array([q])
-        # TODO: the result must also be reduced in dimension, accordingly;
+        q_arr = asarray(q)     #   0-dimensional
     else:
         q_arr = q
 
@@ -6958,9 +6948,4 @@ def quantile(
         # out = res.astype(out.dtype) -- conversion done inside impl
         return out
     else:
-        if input_is_scalar:
-            # q_arr is singleton from scalar;
-            # additional dimension 1 must be removed
-            return res[0]
-        else:
-            return res
+        return res
