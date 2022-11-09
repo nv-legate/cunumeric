@@ -22,7 +22,7 @@ repos:
       hooks:
         - id: mypy
           pass_filenames: false
-          args: ['legate', 'tests']
+          args: ['cunumeric', 'tests']
           additional_dependencies: [numpy,pytest,pytest_mock]
     - repo: local
       hooks:
