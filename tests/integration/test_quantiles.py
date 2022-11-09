@@ -19,6 +19,8 @@ import pytest
 
 import cunumeric as cu
 
+from legate.core import LEGATE_MAX_DIM
+
 
 @pytest.mark.parametrize(
     "str_method",
@@ -243,6 +245,15 @@ def test_quantiles_3(str_method, axes, qs_arr, keepdims):
         ),
         dtype=float,
     )
+
+    # cannot currently run tests with LEGATE_MAX_DIM >= 5
+    # (see https://github.com/nv-legate/legate.core/issues/318)
+    #
+    if ((keepdims is True)
+        and (cu.isscalar(qs_arr) is False)
+        and (len(qs_arr.shape) > 1)
+        and (LEGATE_MAX_DIM < 5)):
+        keepdims = False    # reset keepdims, else len(result.shape)>4
 
     if keepdims:
         remaining_shape = [
