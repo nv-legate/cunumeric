@@ -6601,19 +6601,48 @@ def quantile_impl(
         + gamma * arr_rvals
     )
 
+    # compose qarr.shape with arr.shape:
+    #
+    # result.shape = (q_arr.shape, arr.shape -{axis}):
+    #
+    qresult_shape = (*q_arr.shape, *remaining_shape)
+
     # flattening to 1D might be the right way,
     # but may consider profiling other approaches
     # (slice assignment)
     #
-    q_flat = q_arr.flatten().tolist()
+    # q_flat = q_arr.flatten().tolist()   # approach (1)
 
     # TODO: check if a container more efficient than list
     # could be used to append results into
     # e.g., pre-allocate 1d-array with len(q_flat) * prod(remaining_shape),
     # where prod = foldl (\acc x -> acc*x) 1
-    result_1D = []
+    #
+    # result_1D = [] # approach (1)
 
-    for q in q_flat:
+    # construct result NdArray:
+    #
+    # approach (3):
+    #
+    # linear_size = np.product(qresult_shape)
+    # res = zeros(linear_size, dtype=to_dtype)
+    # res = array(zeros(linear_size), dtype=to_dtype)
+
+    # approach (2):
+    #
+    res = zeros(qresult_shape, dtype=to_dtype)
+    #
+    # TODO: directly allocate qs_all, if not given;
+    # directly fill qs_all, if given;
+    #
+
+    # approach (3):
+    #
+    # begin = 0
+
+    # for q in q_flat:    # approach (1)
+    # for q in q_arr.flatten():  # approach (3)
+    for index, q in np.ndenumerate(q_arr):  # approach (2)
         (gamma, j) = method(q, n)
         (left_pos, right_pos) = (j, j + 1)
 
@@ -6643,16 +6672,26 @@ def quantile_impl(
         #
         quantiles_ls = linear_interp(gamma, arr_1D_lvals, arr_1D_rvals)
 
-        result_1D = [*result_1D, *quantiles_ls]  # append
+        # result_1D = [*result_1D, *quantiles_ls]  # approach (1): append
 
-    # compose qarr.shape with arr.shape:
-    #
-    # result.shape = (q_arr.shape, arr.shape -{axis}):
-    #
-    qresult_shape = (*q_arr.shape, *remaining_shape)
-    #
-    # construct result NdArray:
-    #
+        # approach (2):
+        #
+        if len(index) == 0:
+            # str_sr = res.shape
+            # str_sq = quantiles_ls.shape
+            # print("lhs[:] shape=%s; rhs shape = %s"%(str_sr, str_sq))
+            res[:] = quantiles_ls
+        else:
+            # str_sr = res[index].shape
+            # str_sq = quantiles_ls.shape
+            # print("lhs[index] shape=%s; rhs shape = %s"%(str_sr, str_sq))
+            res[index] = quantiles_ls
+
+        # approach (3):
+        #
+        # num_quantiles = quantiles_ls.size
+        # res[begin : begin + num_quantiles] = quantiles_ls[:]
+        # begin += num_quantiles
 
     # fails with cunumeric:
     # (numpy works)
@@ -6663,8 +6702,16 @@ def quantile_impl(
     # qs_all = ndarray(shape = qresult_shape,
     #                     buffer = array(result_1D),
     #                     dtype = to_dtype)
+    #
+    # construct result NdArray:
+    #
+    # approach (1):
+    #
+    # res = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
 
-    res = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
+    # approach (3):
+    #
+    # res.shape = qresult_shape   #  Error: AttributeError: can't set attribute
 
     if qs_all is None:
         qs_all = res
