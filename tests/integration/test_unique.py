@@ -25,7 +25,7 @@ def test_with_nonzero():
     a_np = a.__array__()
 
     b = num.unique(a)
-    b_np = num.unique(a_np)
+    b_np = np.unique(a_np)
 
     assert np.array_equal(b, b_np)
 
