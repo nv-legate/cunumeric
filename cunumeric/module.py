@@ -3506,6 +3506,14 @@ def put(
     a.put(indices=indices, values=values, mode=mode)
 
 
+def _can_broadcast_to_shape(self: ndarray, shape: NdShape) -> bool:
+    for dim in range(len(self.shape)):
+        if self.shape[dim] != shape[dim]:
+            if self.shape[dim] != 1:
+                return False
+    return True
+
+
 @add_boilerplate("a", "mask", "values")
 def putmask(a: ndarray, mask: ndarray, values: ndarray) -> None:
     """
@@ -3540,9 +3548,13 @@ def putmask(a: ndarray, mask: ndarray, values: ndarray) -> None:
 
     if a.dtype != values.dtype:
         values = values._warn_and_convert(a.dtype)
-    if values.shape != a.shape and values.size != 1:
+
+    can_broadcast = _can_broadcast_to_shape(values, a.shape)
+
+    if not can_broadcast:
         values = values._wrap(a.size)
         values = values.reshape(a.shape)
+
     a._thunk.putmask(mask._thunk, values._thunk)
 
 
