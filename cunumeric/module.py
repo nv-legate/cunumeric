@@ -6682,9 +6682,11 @@ def quantile_impl(
             # print("lhs[:] shape=%s; rhs shape = %s"%(str_sr, str_sq))
             res[:] = quantiles_ls
         else:
-            # str_sr = res[index].shape
-            # str_sq = quantiles_ls.shape
-            # print("lhs[index] shape=%s; rhs shape = %s"%(str_sr, str_sq))
+            str_rr = str(res.shape)
+            str_sr = str(res[index].shape)
+            str_sq = str(quantiles_ls.shape)
+            print("lhs[index] shape=%s; indexed shape = %s; rhs shape = %s"
+                  %(str_rr, str_sr, str_sq))
             res[index] = quantiles_ls
 
         # approach (3):
