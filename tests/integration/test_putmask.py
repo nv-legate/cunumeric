@@ -131,7 +131,15 @@ def test_ndim(ndim):
     num.putmask(num_arr, num_mask, num_val)
     assert np.array_equal(np_arr, num_arr)
 
-    # val is different shape
+    # val is different shape, but the same size
+    shape_val = (np_arr.size,)
+    np_values = mk_seq_array(np, shape_val) * 10
+    num_values = mk_seq_array(num, shape_val) * 10
+    np.putmask(np_arr, np_mask, np_values)
+    num.putmask(num_arr, num_mask, num_values)
+    assert np.array_equal(np_arr, num_arr)
+
+    # val is different shape and different size for vals and array
     shape_val = (2,) * ndim
     np_values = mk_seq_array(np, shape_val) * 10
     num_values = mk_seq_array(num, shape_val) * 10
