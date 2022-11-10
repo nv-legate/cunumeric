@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import time
+from abc import abstractproperty
 from typing import TYPE_CHECKING, Union
 
 import numpy as np
@@ -66,7 +67,7 @@ class BitGenerator:
             self.generatorType, seed, self.flags, forceBuild
         )
 
-    @property
+    @abstractproperty
     def generatorType(self) -> BitGeneratorType:
         ...
 
