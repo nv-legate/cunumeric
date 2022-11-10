@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+from itertools import chain
+
 import numpy as np
 import pytest
 from utils.generators import broadcasts_to, mk_seq_array
@@ -71,9 +73,7 @@ def test_scalar_basic_retstep(values, number, endpoint):
     y = num.linspace(start, stop, num=number, endpoint=endpoint, retstep=True)
 
     assert np.array_equal(x[0], y[0])
-    if np.isnan(x[1]) and np.isnan(y[1]):
-        pass
-    else:
+    if not (np.isnan(x[1]) and np.isnan(y[1])):
         assert x[1] == y[1]
 
 
@@ -108,18 +108,24 @@ def test_arrays_basic_retstep(endpoint):
     assert np.array_equal(x[1], y[1])
 
 
-def test_array_broadcast_stops():
-    shape_start = (2, 2, 3)
+shape_start = (2, 2, 3)
+shape_stops = (equivalent_shapes_gen(s) for s in broadcasts_to(shape_start))
+
+
+@pytest.mark.parametrize(
+    "shape_stop",
+    chain.from_iterable(shape_stops),
+    ids=lambda shape_stop: f"(shape_stop={shape_stop})",
+)
+def test_array_broadcast_stops(shape_stop):
     np_start = mk_seq_array(np, shape_start)
     num_start = mk_seq_array(num, shape_start)
 
-    for s in broadcasts_to(shape_start):
-        for shape_stop in equivalent_shapes_gen(s):
-            np_stop = mk_seq_array(np, shape_stop) + 5
-            num_stop = mk_seq_array(num, shape_stop) + 5
-            x = np.linspace(np_start, np_stop, num=5)
-            y = num.linspace(num_start, num_stop, num=5)
-            assert np.array_equal(x, y)
+    np_stop = mk_seq_array(np, shape_stop) + 5
+    num_stop = mk_seq_array(num, shape_stop) + 5
+    x = np.linspace(np_start, np_stop, num=5)
+    y = num.linspace(num_start, num_stop, num=5)
+    assert np.array_equal(x, y)
 
 
 def test_arrays_both_start_and_stop_broadcast():
