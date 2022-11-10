@@ -17,13 +17,6 @@ repos:
         - id: clang-format
           files: \.(cu|cuh|h|cc|inl)$
           types_or: []
-    - repo: https://github.com/pre-commit/mirrors-mypy
-      rev: 'v0.982'
-      hooks:
-        - id: mypy
-          pass_filenames: false
-          args: ['cunumeric' ]
-          additional_dependencies: [numpy,pytest,pytest_mock]
     - repo: local
       hooks:
         - id: enforce-pytest-main
