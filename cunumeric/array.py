@@ -2096,11 +2096,15 @@ class ndarray:
 
         """
         a = self
-        if condition.ndim != 1:
+        try:
+            if condition.ndim != 1:
+                raise ValueError(
+                    "Dimension mismatch: condition must be a 1D array"
+                )
+        except AttributeError:
             raise ValueError(
                 "Dimension mismatch: condition must be a 1D array"
             )
-
         condition = condition._warn_and_convert(np.dtype(bool))
 
         if axis is None:
@@ -2522,7 +2526,7 @@ class ndarray:
         if values.ndim != indices.ndim or values.size != indices.size:
             values = values._wrap(indices.size)
 
-        self._thunk.put(indices._thunk, values._thunk)
+        self._thunk.put(indices._thunk, values._thunk, mode == "raise")
 
     @add_boilerplate()
     def trace(
