@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,33 +13,23 @@
 # limitations under the License.
 #
 
-import numpy as np
+from itertools import product
+
 import pytest
-from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
 
-
-def test_with_nonzero():
-    (a,) = num.nonzero(num.array([1, 1, 0, 0]))
-    a_np = a.__array__()
-
-    b = num.unique(a)
-    b_np = np.unique(a_np)
-
-    assert np.array_equal(b, b_np)
+SIZE = 3
 
 
-@pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
-def test_ndim(ndim):
-    shape = (4,) * ndim
-    a = num.random.randint(0, 3, size=shape)
-    a_np = np.array(a)
+def test_0d_region_backed_stores():
+    arr = num.arange(9).reshape(3, 3)
 
-    b = np.unique(a)
-    b_np = num.unique(a_np)
-
-    assert np.array_equal(b, b_np)
+    for i, j in product(range(SIZE), range(SIZE)):
+        i_ind = num.array(i)
+        j_ind = num.array(j)
+        v = arr[i_ind, j_ind]
+        assert int(v) == i * SIZE + j
 
 
 if __name__ == "__main__":
