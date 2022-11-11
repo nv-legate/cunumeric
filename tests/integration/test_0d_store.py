@@ -12,13 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Provide TestStage subclasses for running configured test files using
-specific features on linux platforms.
 
-"""
-from __future__ import annotations
+from itertools import product
 
-from .cpu import CPU
-from .gpu import GPU
-from .eager import Eager
-from .omp import OMP
+import pytest
+
+import cunumeric as num
+
+SIZE = 3
+
+
+def test_0d_region_backed_stores():
+    arr = num.arange(9).reshape(3, 3)
+
+    for i, j in product(range(SIZE), range(SIZE)):
+        i_ind = num.array(i)
+        j_ind = num.array(j)
+        v = arr[i_ind, j_ind]
+        assert int(v) == i * SIZE + j
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(pytest.main(sys.argv))

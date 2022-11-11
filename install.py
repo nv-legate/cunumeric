@@ -139,10 +139,6 @@ def install_cunumeric(
     gasnet_dir,
     networks,
     hdf,
-    install_dir,
-    legate_branch,
-    legate_dir,
-    legate_url,
     llvm,
     march,
     maxdim,
@@ -187,10 +183,6 @@ def install_cunumeric(
         print("gasnet_dir: ", gasnet_dir)
         print("networks: ", networks)
         print("hdf: ", hdf)
-        print("install_dir: ", install_dir)
-        print("legate_branch: ", legate_branch)
-        print("legate_dir: ", legate_dir)
-        print("legate_url: ", legate_url)
         print("llvm: ", llvm)
         print("march: ", march)
         print("maxdim: ", maxdim)
@@ -226,20 +218,21 @@ def install_cunumeric(
     cuda_dir = validate_path(cuda_dir)
     nccl_dir = validate_path(nccl_dir)
     tblis_dir = validate_path(tblis_dir)
-    legate_dir = validate_path(legate_dir)
     thrust_dir = validate_path(thrust_dir)
     curand_dir = validate_path(curand_dir)
     gasnet_dir = validate_path(gasnet_dir)
     cutensor_dir = validate_path(cutensor_dir)
     openblas_dir = validate_path(openblas_dir)
 
-    if legate_dir is None:
-        try:
-            import legate.install_info as lg_install_info
+    try:
+        import legate.install_info as lg_install_info
+    except ImportError:
+        raise RuntimeError(
+            "Cannot determine Legate install directory. Please make sure "
+            "legate.core is installed in the current Python environment."
+        )
 
-            legate_dir = dirname(lg_install_info.libpath)
-        except Exception:
-            pass
+    legate_dir = dirname(lg_install_info.libpath)
 
     if verbose:
         print("cuda_dir: ", cuda_dir)
@@ -274,6 +267,8 @@ def install_cunumeric(
     pip_install_cmd = [sys.executable, "-m", "pip", "install"]
     cmd_env = dict(os.environ.items())
 
+    install_dir = None
+
     if unknown is not None:
         try:
             prefix_loc = unknown.index("--prefix")
@@ -301,14 +296,21 @@ def install_cunumeric(
             pip_install_cmd += ["--no-deps", "--no-build-isolation"]
         pip_install_cmd += ["--upgrade"]
 
+    if unknown is not None:
+        pip_install_cmd += unknown
+
     pip_install_cmd += ["."]
     if verbose:
         pip_install_cmd += ["-vv"]
 
-    cmake_flags = []
+    # Also use preexisting CMAKE_ARGS from conda if set
+    cmake_flags = cmd_env.get("CMAKE_ARGS", "").split(" ")
 
     if cmake_generator:
-        cmake_flags += [f"-G{cmake_generator}"]
+        if " " not in cmake_generator:
+            cmake_flags += [f"-G{cmake_generator}"]
+        else:
+            cmake_flags += [f"-G'{cmake_generator}'"]
 
     if debug or verbose:
         cmake_flags += ["--log-level=%s" % ("DEBUG" if debug else "VERBOSE")]
@@ -350,18 +352,14 @@ def install_cunumeric(
     # A custom path to cuRAND is ignored when CUDA support is available
     if cuda and curand_dir is not None:
         cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
-    if legate_dir:
-        cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
-    if legate_url:
-        cmake_flags += ["-Dcunumeric_LEGATE_CORE_REPOSITORY=%s" % legate_url]
-    if legate_branch:
-        cmake_flags += ["-Dcunumeric_LEGATE_CORE_BRANCH=%s" % legate_branch]
+
+    cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
 
     cmake_flags += extra_flags
     cmd_env.update(
         {
             "SKBUILD_BUILD_OPTIONS": f"-j{str(thread_count)}",
-            "SKBUILD_CONFIGURE_OPTIONS": "\n".join(cmake_flags),
+            "CMAKE_ARGS": " ".join(cmake_flags),
         }
     )
 
@@ -370,14 +368,6 @@ def install_cunumeric(
 
 def driver():
     parser = argparse.ArgumentParser(description="Install cuNumeric.")
-    parser.add_argument(
-        "--install-dir",
-        dest="install_dir",
-        metavar="DIR",
-        required=False,
-        default=None,
-        help="Path to install cuNumeric software",
-    )
     parser.add_argument(
         "--debug",
         dest="debug",
@@ -433,28 +423,6 @@ def driver():
         required=False,
         default=os.environ.get("GASNET"),
         help="Path to GASNet installation directory.",
-    )
-    parser.add_argument(
-        "--with-core",
-        dest="legate_dir",
-        metavar="DIR",
-        required=False,
-        default=os.environ.get("LEGATE_DIR"),
-        help="Path to Legate Core installation directory.",
-    )
-    parser.add_argument(
-        "--legate-url",
-        dest="legate_url",
-        required=False,
-        default="https://github.com/nv-legate/legate.core.git",
-        help="Legate git URL to build cuNumeric with.",
-    )
-    parser.add_argument(
-        "--legate-branch",
-        dest="legate_branch",
-        required=False,
-        default="branch-22.10",
-        help="Legate branch to build cuNumeric with.",
     )
     parser.add_argument(
         "--with-openblas",
@@ -520,8 +488,8 @@ def driver():
         "--cmake-generator",
         dest="cmake_generator",
         required=False,
-        default="Ninja",
-        choices=["Ninja", "Unix Makefiles"],
+        default=(None if shutil.which("ninja") is None else "Ninja"),
+        choices=["Ninja", "Unix Makefiles", None],
         help="The CMake makefiles generator",
     )
     parser.add_argument(

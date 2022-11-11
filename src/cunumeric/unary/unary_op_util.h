@@ -189,7 +189,7 @@ static constexpr bool is_floating_point =
 
 template <legate::LegateTypeCode CODE>
 static constexpr bool is_floating_or_complex =
-  is_floating_point<CODE> || legate::is_complex<legate::legate_type_of<CODE>>::value;
+  is_floating_point<CODE> || legate::is_complex<CODE>::value;
 
 template <UnaryOpCode OP_CODE, legate::LegateTypeCode CODE>
 struct UnaryOp {
@@ -203,7 +203,7 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     return abs(x);
@@ -225,9 +225,9 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
     return x;
   }
 
-  template <
-    typename _T                                                                        = T,
-    std::enable_if_t<!legate::is_complex<_T>::value and !std::is_integral<_T>::value>* = nullptr>
+  template <typename _T                                     = T,
+            std::enable_if_t<!legate::is_complex_type<_T>::value and
+                             !std::is_integral<_T>::value>* = nullptr>
   constexpr _T operator()(const _T& x) const
   {
     using std::fabs;
@@ -428,13 +428,13 @@ struct UnaryOp<UnaryOpCode::CONJ, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr T operator()(const T& x) const
   {
     return T{x.real(), -x.imag()};
   }
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr T operator()(const T& x) const
   {
     return x;
@@ -537,13 +537,13 @@ struct UnaryOp<UnaryOpCode::EXP2, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr T operator()(const T& x) const
   {
     return std::exp2(x);
   }
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr T operator()(const T& x) const
   {
     using std::exp;
@@ -578,14 +578,14 @@ struct UnaryOp<UnaryOpCode::EXPM1, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::expm1;
     return expm1(x);
   }
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::exp;
@@ -634,7 +634,7 @@ struct UnaryOp<UnaryOpCode::GETARG, CODE> {
 template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::IMAG, CODE> {
   using T                     = legate::legate_type_of<CODE>;
-  static constexpr bool valid = legate::is_complex<T>::value;
+  static constexpr bool valid = legate::is_complex_type<T>::value;
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
@@ -789,14 +789,14 @@ struct UnaryOp<UnaryOpCode::LOG1P, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::log1p;
     return log1p(x);
   }
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::log;
@@ -826,14 +826,14 @@ struct UnaryOp<UnaryOpCode::LOG2, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::log2;
     return log2(x);
   }
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const T& x) const
   {
     using std::log;
@@ -862,13 +862,13 @@ struct UnaryOp<UnaryOpCode::LOGICAL_NOT, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr bool operator()(const T& x) const
   {
     return !static_cast<bool>(x);
   }
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr bool operator()(const T& x) const
   {
     return !static_cast<bool>(x.real());
@@ -911,7 +911,7 @@ struct UnaryOp<UnaryOpCode::RAD2DEG, legate::LegateTypeCode::HALF_LT> {
 template <legate::LegateTypeCode CODE>
 struct UnaryOp<UnaryOpCode::REAL, CODE> {
   using T                     = legate::legate_type_of<CODE>;
-  static constexpr bool valid = legate::is_complex<T>::value;
+  static constexpr bool valid = legate::is_complex_type<T>::value;
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
@@ -952,13 +952,13 @@ struct UnaryOp<UnaryOpCode::RINT, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     return _T(std::rint(x.real()), std::rint(x.imag()));
   }
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     return std::rint(x);
@@ -1002,7 +1002,7 @@ struct UnaryOp<UnaryOpCode::SIGN, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  template <typename _T = T, std::enable_if_t<legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     if (x.real() != 0) {
@@ -1012,7 +1012,7 @@ struct UnaryOp<UnaryOpCode::SIGN, CODE> {
     }
   }
 
-  template <typename _T = T, std::enable_if_t<!legate::is_complex<_T>::value>* = nullptr>
+  template <typename _T = T, std::enable_if_t<!legate::is_complex_type<_T>::value>* = nullptr>
   constexpr decltype(auto) operator()(const _T& x) const
   {
     return detail::sign(x);

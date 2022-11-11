@@ -34,15 +34,15 @@ struct WrapImpl {
   void operator()(WrapArgs& args) const
   {
     using VAL     = Point<DIM>;
-    auto out_rect = args.out.shape<1>();  // output array is always 1D
-    auto out      = args.out.write_accessor<Point<DIM>, 1>(out_rect);
+    auto rect_out = args.out.shape<1>();  // output array is always 1D
+    auto out      = args.out.write_accessor<Point<DIM>, 1>(rect_out);
 
     Pitches<0> pitches_out;
-    size_t volume_out = pitches_out.flatten(out_rect);
+    size_t volume_out = pitches_out.flatten(rect_out);
     if (volume_out == 0) return;
 
 #ifndef LEGION_BOUNDS_CHECKS
-    bool dense = out.accessor.is_dense_row_major(out_rect);
+    bool dense = out.accessor.is_dense_row_major(rect_out);
 #else
     bool dense = false;
 #endif
@@ -52,24 +52,44 @@ struct WrapImpl {
       point_lo[dim] = 0;
       point_hi[dim] = args.shape[dim] - 1;
     }
-    Rect<DIM> input_rect(point_lo, point_hi);
+    Rect<DIM> rect_base(point_lo, point_hi);
 
-    Pitches<DIM - 1> pitches_in;
-    size_t volume_in = pitches_in.flatten(input_rect);
+    Pitches<DIM - 1> pitches_base;
+    size_t volume_base = pitches_base.flatten(rect_base);
 #ifdef DEBUG_CUNUMERIC
-    assert(volume_in != 0);
+    assert(volume_base != 0);
 #endif
 
-    WrapImplBody<KIND, DIM>()(out, pitches_out, out_rect, pitches_in, input_rect, dense);
+    if (args.has_input) {
+      auto rect_in = args.in.shape<1>();
+      auto in = args.in.read_accessor<int64_t, 1>(rect_in);  // input should be always integer type
+#ifdef DEBUG_CUNUMERIC
+      assert(rect_in == rect_out);
+#endif
+      WrapImplBody<KIND, DIM>()(
+        out, pitches_out, rect_out, pitches_base, rect_base, dense, args.check_bounds, in);
+
+    } else {
+      bool tmp = false;
+      WrapImplBody<KIND, DIM>()(
+        out, pitches_out, rect_out, pitches_base, rect_base, dense, args.check_bounds, tmp);
+    }  // else
   }
 };
 
 template <VariantKind KIND>
 static void wrap_template(TaskContext& context)
 {
-  auto shape = context.scalars()[0].value<DomainPoint>();
-  int dim    = shape.dim;
-  WrapArgs args{context.outputs()[0], shape};
+  auto shape        = context.scalars()[0].value<DomainPoint>();
+  int dim           = shape.dim;
+  bool has_input    = context.scalars()[1].value<bool>();
+  bool check_bounds = context.scalars()[2].value<bool>();
+  Array tmp_array   = Array();
+  WrapArgs args{context.outputs()[0],
+                shape,
+                has_input,
+                check_bounds,
+                has_input ? context.inputs()[0] : tmp_array};
   dim_dispatch(dim, WrapImpl<KIND>{}, args);
 }
 

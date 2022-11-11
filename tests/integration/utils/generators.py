@@ -80,3 +80,17 @@ def permutes_to(tgt_shape):
         for (i, j) in enumerate(axes):
             src_shape[j] = tgt_shape[i]
         yield (axes, tuple(src_shape))
+
+
+def broadcasts_to_along_axis(tgt_shape, axis, values):
+    """
+    Generates all shapes that broadcast to `tgt_shape` along axis for
+    each value.
+    """
+    axis = axis % (len(tgt_shape))
+    tgt_shape_axis_removed = tgt_shape[:axis] + tgt_shape[axis + 1 :]
+
+    for s in broadcasts_to(tgt_shape_axis_removed):
+        for v in values:
+            shape = s[:axis] + (v,) + s[axis:]
+            yield shape

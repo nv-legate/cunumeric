@@ -119,14 +119,14 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       // TODO: Our actual requirements are a little less strict than this; we require each array or
       // vector to have a stride of 1 on at least one dimension.
       std::vector<StoreMapping> mappings;
-      auto& inputs  = task.inputs();
-      auto& outputs = task.outputs();
+      auto& inputs     = task.inputs();
+      auto& reductions = task.reductions();
       for (auto& input : inputs) {
         mappings.push_back(StoreMapping::default_mapping(input, options.front()));
         mappings.back().policy.exact = true;
       }
-      for (auto& output : outputs) {
-        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+      for (auto& reduction : reductions) {
+        mappings.push_back(StoreMapping::default_mapping(reduction, options.front()));
         mappings.back().policy.exact = true;
       }
       return std::move(mappings);

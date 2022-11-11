@@ -198,6 +198,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def put(self, indices: Any, values: Any, check_bounds: bool) -> None:
+        ...
+
+    @abstractmethod
     def eye(self, k: int) -> None:
         ...
 
