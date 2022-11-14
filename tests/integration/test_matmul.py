@@ -14,7 +14,7 @@
 #
 
 import pytest
-from cunumeric.utils import matmul_modes
+from legate.core import LEGATE_MAX_DIM
 from utils.contractions import (
     check_default,
     check_permutations,
@@ -22,7 +22,7 @@ from utils.contractions import (
     check_types,
 )
 
-from legate.core import LEGATE_MAX_DIM
+from cunumeric.utils import matmul_modes
 
 
 @pytest.mark.parametrize("a_ndim", range(1, LEGATE_MAX_DIM + 1))

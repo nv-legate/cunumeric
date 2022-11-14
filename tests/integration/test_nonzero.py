@@ -127,6 +127,21 @@ def test_deprecated_0d():
     assert np.array_equal(x_np.nonzero(), x.nonzero())
 
 
+def test_flatnonzero():
+    a_np = num.array(
+        [
+            [[0, 1], [1, 1], [7, 0], [1, 0], [0, 1]],
+            [[3, 0], [0, 3], [0, 0], [2, 2], [0, 19]],
+        ]
+    )
+    a = num.array(a_np)
+    assert_equal(num.flatnonzero(a), np.flatnonzero(a_np))
+    # also check the transpose
+    assert_equal(
+        num.flatnonzero(a.transpose()), np.flatnonzero(a_np.transpose())
+    )
+
+
 if __name__ == "__main__":
     import sys
 

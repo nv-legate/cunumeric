@@ -32,15 +32,15 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow
+import pyarrow  # type: ignore
+from legate.core import Array
 from numpy.core.multiarray import normalize_axis_index  # type: ignore
 from numpy.core.numeric import normalize_axis_tuple  # type: ignore
 from typing_extensions import ParamSpec
 
-from legate.core import Array
-
 from .config import (
     BinaryOpCode,
+    ConvertCode,
     FFTDirection,
     FFTNormalization,
     FFTType,
@@ -69,6 +69,8 @@ if TYPE_CHECKING:
         SortType,
     )
 
+from math import prod
+
 FALLBACK_WARNING = (
     "cuNumeric has not fully implemented {name} "
     + "and is falling back to canonical numpy. "
@@ -92,7 +94,8 @@ def add_boilerplate(
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
     """
-    keys: Set[str] = set(array_params)
+    keys = set(array_params)
+    assert len(keys) == len(array_params)
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         assert not hasattr(
@@ -102,18 +105,18 @@ def add_boilerplate(
         # For each parameter specified by name, also consider the case where
         # it's passed as a positional parameter.
         indices: Set[int] = set()
-        all_formals: Set[str] = set()
         where_idx: Optional[int] = None
         out_idx: Optional[int] = None
-        for (idx, param) in enumerate(signature(func).parameters):
-            all_formals.add(param)
+        params = signature(func).parameters
+        extra = keys - set(params)
+        assert len(extra) == 0, f"unknown parameter(s): {extra}"
+        for (idx, param) in enumerate(params):
             if param == "where":
                 where_idx = idx
             elif param == "out":
                 out_idx = idx
             elif param in keys:
                 indices.add(idx)
-        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> R:
@@ -917,12 +920,8 @@ class ndarray:
             key = convert_to_cunumeric_ndarray(key)
             if key.dtype != bool and not np.issubdtype(key.dtype, np.integer):
                 raise TypeError("index arrays should be int or bool type")
-            if key.dtype != bool and key.dtype != np.int64:
-                runtime.warn(
-                    "converting index array to int64 type",
-                    category=RuntimeWarning,
-                )
-                key = key.astype(np.int64)
+            if key.dtype != bool:
+                key = key._warn_and_convert(np.dtype(np.int64))
 
             return key._thunk
 
@@ -1858,6 +1857,17 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        return self._astype(dtype, order, casting, subok, copy, False)
+
+    def _astype(
+        self,
+        dtype: npt.DTypeLike,
+        order: OrderType = "C",
+        casting: CastingKind = "unsafe",
+        subok: bool = True,
+        copy: bool = True,
+        temporary: bool = False,
+    ) -> ndarray:
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
@@ -1877,7 +1887,7 @@ class ndarray:
                 f"to the rule '{casting}'"
             )
         result = ndarray(self.shape, dtype=dtype, inputs=(self,))
-        result._thunk.convert(self._thunk, warn=False)
+        result._thunk.convert(self._thunk, warn=False, temporary=temporary)
         return result
 
     @add_boilerplate()
@@ -2086,16 +2096,16 @@ class ndarray:
 
         """
         a = self
-        if condition.ndim != 1:
+        try:
+            if condition.ndim != 1:
+                raise ValueError(
+                    "Dimension mismatch: condition must be a 1D array"
+                )
+        except AttributeError:
             raise ValueError(
                 "Dimension mismatch: condition must be a 1D array"
             )
-        if condition.dtype != bool:
-            runtime.warn(
-                "converting condition to bool type",
-                category=RuntimeWarning,
-            )
-            condition = condition.astype(bool)
+        condition = condition._warn_and_convert(np.dtype(bool))
 
         if axis is None:
             axis = 0
@@ -2462,6 +2472,62 @@ class ndarray:
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
+    @add_boilerplate("indices", "values")
+    def put(
+        self, indices: ndarray, values: ndarray, mode: str = "raise"
+    ) -> None:
+        """
+        Replaces specified elements of the array with given values.
+
+        Refer to :func:`cunumeric.put` for full documentation.
+
+        See Also
+        --------
+        cunumeric.put : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+
+        if values.size == 0 or indices.size == 0 or self.size == 0:
+            return
+
+        if mode not in ("raise", "wrap", "clip"):
+            raise ValueError(
+                "mode must be one of 'clip', 'raise', or 'wrap' "
+                f"(got  {mode})"
+            )
+
+        if mode == "wrap":
+            indices = indices % self.size
+        elif mode == "clip":
+            indices = indices.clip(0, self.size - 1)
+
+        indices = indices._warn_and_convert(np.dtype(np.int64))
+        values = values._warn_and_convert(self.dtype)
+
+        if indices.ndim > 1:
+            indices = indices.ravel()
+
+        if self.shape == ():
+            if mode == "raise":
+                if indices.min() < -1 or indices.max() > 0:
+                    raise ValueError("Indices out of bounds")
+            if values.shape == ():
+                v = values
+            else:
+                v = values[0]
+            self._thunk.copy(v._thunk, deep=False)
+            return
+
+        # call _wrap on the values if they need to be wrapped
+        if values.ndim != indices.ndim or values.size != indices.size:
+            values = values._wrap(indices.size)
+
+        self._thunk.put(indices._thunk, values._thunk, mode == "raise")
+
     @add_boilerplate()
     def trace(
         self,
@@ -2542,7 +2608,7 @@ class ndarray:
             self,
             rhs,
             out=out,
-            casting="no",
+            casting="unsafe",
         )
 
     def dump(self, file: Union[str, Path]) -> None:
@@ -3164,6 +3230,20 @@ class ndarray:
             shape = (args[0],) if isinstance(args[0], int) else args[0]
         else:
             shape = args
+
+        if self.size == 0 and self.ndim > 1:
+            if shape == (-1,):
+                shape = (0,)
+            new_size = prod(shape)
+            if new_size > 0:
+                raise ValueError("new shape has bigger size than original")
+            result = ndarray(
+                shape=shape,
+                dtype=self.dtype,
+                inputs=(self,),
+            )
+            result.fill(0)
+            return result
 
         computed_shape = tuple(operator.index(extent) for extent in shape)
 
@@ -3794,6 +3874,16 @@ class ndarray:
         copy._thunk.convert(self._thunk)
         return copy
 
+    def _warn_and_convert(self, dtype: np.dtype[Any]) -> ndarray:
+        if self.dtype != dtype:
+            runtime.warn(
+                f"converting array to {dtype} type",
+                category=RuntimeWarning,
+            )
+            return self.astype(dtype)
+        else:
+            return self
+
     # For performing normal/broadcast unary operations
     @classmethod
     def _perform_unary_op(
@@ -3965,10 +4055,11 @@ class ndarray:
                 shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
         elif out.shape != out_shape:
-            raise ValueError(
-                f"the output shape mismatch: expected {out_shape} but got "
-                f"{out.shape}"
+            errmsg = (
+                f"the output shapes do not match: expected {out_shape} "
+                f"but got {out.shape}"
             )
+            raise ValueError(errmsg)
 
         if dtype != src.dtype:
             src = src.astype(dtype)
@@ -4059,6 +4150,8 @@ class ndarray:
         out: Union[ndarray, None] = None,
         nan_to_identity: bool = False,
     ) -> ndarray:
+        if src.dtype.kind != "c" and src.dtype.kind != "f":
+            nan_to_identity = False
         if dtype is None:
             if out is None:
                 if src.dtype.kind == "i":
@@ -4068,12 +4161,6 @@ class ndarray:
                     dtype = src.dtype
             else:
                 dtype = out.dtype
-        if (src.dtype.kind in ("f", "c")) and np.issubdtype(dtype, np.integer):
-            # Needs changes to convert()
-            raise NotImplementedError(
-                "Integer output types currently not supported for "
-                "floating/complex inputs"
-            )
         # flatten input when axis is None
         if axis is None:
             axis = 0
@@ -4094,9 +4181,18 @@ class ndarray:
             out = ndarray(shape=src_arr.shape, dtype=dtype)
 
         if dtype != src_arr.dtype:
+            if nan_to_identity:
+                if op is ScanCode.SUM:
+                    nan_op = ConvertCode.SUM
+                else:
+                    nan_op = ConvertCode.PROD
+                # If convert is called, it will handle NAN conversion
+                nan_to_identity = False
+            else:
+                nan_op = ConvertCode.NOOP
             # convert input to temporary for type conversion
             temp = ndarray(shape=src_arr.shape, dtype=dtype)
-            temp._thunk.convert(src_arr._thunk)
+            temp._thunk.convert(src_arr._thunk, nan_op=nan_op)
             src_arr = temp
 
         out._thunk.scan(
@@ -4106,4 +4202,17 @@ class ndarray:
             dtype=dtype,
             nan_to_identity=nan_to_identity,
         )
+        return out
+
+    def _wrap(self, new_len: int) -> ndarray:
+        if new_len == 1:
+            idxs = tuple(0 for i in range(self.ndim))
+            return self[idxs]
+
+        out = ndarray(
+            shape=(new_len,),
+            dtype=self.dtype,
+            inputs=(self,),
+        )
+        out._thunk._wrap(src=self._thunk, new_len=new_len)
         return out

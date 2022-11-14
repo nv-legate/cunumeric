@@ -15,10 +15,10 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from utils.generators import mk_0to1_array
 
 import cunumeric as cn
-from legate.core import LEGATE_MAX_DIM
 
 
 def _outer(a_ndim, b_ndim, lib):

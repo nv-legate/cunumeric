@@ -18,6 +18,7 @@ Generating index arrays
    triu_indices_from
    indices
    nonzero
+   flatnonzero
    where
 
 
@@ -40,5 +41,8 @@ Inserting data into arrays
 
 .. autosummary::
    :toctree: generated/
-
+ 
+   fill_diagonal
+   put
    put_along_axis
+   place

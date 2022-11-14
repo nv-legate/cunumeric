@@ -6,6 +6,9 @@ on:
   pull_request:
     branches-ignore:
       - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 */6 * * *'
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-cunumeric-ci
@@ -49,7 +52,7 @@ jobs:
           /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/cunumeric
           rm -rf ngc-artifacts || true
-          ./build.sh > ${COMMIT}-build.log 2>&1
+          ./build-conda.sh > ${COMMIT}-build.log 2>&1
       - name: Process Output
         run: |
           cd legate-ci/github-ci/cunumeric
@@ -57,7 +60,7 @@ jobs:
         if: always()
       - name: Upload Build Log
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: build-log
           path: ./**/${{ env.COMMIT }}-build.log.gpg
@@ -125,7 +128,7 @@ jobs:
           cat *artifacts/*/*
       - name: Upload Log
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: test-${{ matrix.log }}-log
           path: ./**/${{ env.COMMIT }}-test-${{ matrix.log }}.log.gpg

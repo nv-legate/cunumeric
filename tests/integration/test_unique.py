@@ -15,9 +15,19 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
+
+
+def test_with_nonzero():
+    (a,) = num.nonzero(num.array([1, 1, 0, 0]))
+    a_np = a.__array__()
+
+    b = num.unique(a)
+    b_np = np.unique(a_np)
+
+    assert np.array_equal(b, b_np)
 
 
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
