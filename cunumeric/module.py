@@ -6607,95 +6607,50 @@ def quantile_impl(
     #
     qresult_shape = (*q_arr.shape, *remaining_shape)
 
-    # flattening to 1D might be the right way,
-    # but may consider profiling other approaches
-    # (slice assignment)
-    #
-    # q_flat = q_arr.flatten().tolist()   # approach (1)
-
-    # TODO: check if a container more efficient than list
-    # could be used to append results into
-    # e.g., pre-allocate 1d-array with len(q_flat) * prod(remaining_shape),
-    # where prod = foldl (\acc x -> acc*x) 1
-    #
-    # result_1D = [] # approach (1)
-
-    # construct result NdArray:
-    #
-    # approach (3):
-    #
-    # linear_size = np.product(qresult_shape)
-    # res = zeros(linear_size, dtype=to_dtype)
-    # res = array(zeros(linear_size), dtype=to_dtype)
-
-    # approach (2):
+    # construct result NdArray, non-flattening approach:
     #
     res = zeros(qresult_shape, dtype=to_dtype)
-    #
-    # TODO: directly allocate qs_all, if not given;
-    # directly fill qs_all, if given;
-    #
 
-    # approach (3):
-    #
-    # begin = 0
-
-    # for q in q_flat:    # approach (1)
-    # for q in q_arr.flatten():  # approach (3)
-    for index, q in np.ndenumerate(q_arr):  # approach (2)
+    for index, q in np.ndenumerate(q_arr):
         (gamma, j) = method(q, n)
         (left_pos, right_pos) = (j, j + 1)
 
         # (N-1) dimensional ndarray of left, right
         # neighbor values:
         #
+        # non-flattening approach:
+        #
         # singleton list: [left_pos];
         # extract values at index=left_pos;
-        arr_1D_lvals = arr.take([left_pos], axis).flatten()
+        arr_1D_lvals = arr.take([left_pos], axis)
 
         # ( num_vals == prod(remaining_shape) ),
         # provided prod = foldl (\acc x -> acc*x) 1,
         # otherwise fails when remaining_shape != []
-        num_vals = len(arr_1D_lvals)
+        #
+        num_vals = arr_1D_lvals.size
+        arr_vals_shape = arr_1D_lvals.shape
 
         if right_pos >= n:
             # some quantile methods may result in j==(n-1),
             # hence (j+1) could surpass array boundary;
-            arr_1D_rvals = array([0] * num_vals)
+            #
+            arr_1D_rvals = zeros(arr_vals_shape, dtype=arr_1D_lvals.dtype)
         else:
             # singleton list: [right_pos]; extract values at index=right_pos;
-            arr_1D_rvals = arr.take([right_pos], axis).flatten()
+            arr_1D_rvals = arr.take([right_pos], axis)
 
         # this is the main source of parallelism
         # (the other one being on `q` inputs; ignored for now)
-        # TODO: figure out what to pass to the `cunumeric` call
         #
         quantiles_ls = linear_interp(gamma, arr_1D_lvals, arr_1D_rvals)
 
-        # result_1D = [*result_1D, *quantiles_ls]  # approach (1): append
-
-        # approach (2):
+        # non-flattening approach:
         #
         if len(index) == 0:
-            # str_sr = res.shape
-            # str_sq = quantiles_ls.shape
-            # print("lhs[:] shape=%s; rhs shape = %s"%(str_sr, str_sq))
-            res[:] = quantiles_ls
+            res[:] = quantiles_ls.reshape(res.shape)
         else:
-            str_rr = str(res.shape)
-            str_sr = str(res[index].shape)
-            str_sq = str(quantiles_ls.shape)
-            print(
-                "lhs[index] shape=%s; indexed shape = %s; rhs shape = %s"
-                % (str_rr, str_sr, str_sq)
-            )
-            res[index] = quantiles_ls
-
-        # approach (3):
-        #
-        # num_quantiles = quantiles_ls.size
-        # res[begin : begin + num_quantiles] = quantiles_ls[:]
-        # begin += num_quantiles
+            res[index] = quantiles_ls.reshape(res[index].shape)
 
     # fails with cunumeric:
     # (numpy works)
@@ -6709,14 +6664,6 @@ def quantile_impl(
     #
     # construct result NdArray:
     #
-    # approach (1):
-    #
-    # res = asarray(result_1D, dtype=to_dtype).reshape(qresult_shape)
-
-    # approach (3):
-    #
-    # res.shape = qresult_shape   #  Error: AttributeError: can't set attribute
-
     if qs_all is None:
         qs_all = res
     else:
