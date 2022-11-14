@@ -6623,12 +6623,6 @@ def quantile_impl(
         # singleton list: [left_pos];
         # extract values at index=left_pos;
         arr_1D_lvals = arr.take([left_pos], axis)
-
-        # ( num_vals == prod(remaining_shape) ),
-        # provided prod = foldl (\acc x -> acc*x) 1,
-        # otherwise fails when remaining_shape != []
-        #
-        num_vals = arr_1D_lvals.size
         arr_vals_shape = arr_1D_lvals.shape
 
         if right_pos >= n:
