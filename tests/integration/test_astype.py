@@ -21,8 +21,8 @@ import cunumeric as num
 TEST_VECTOR = [0, 0, 1, 2, 3, 0, 1, 2, 3]
 ALL_BUT_COMPLEX = ["?", "b", "h", "i", "l", "B", "H", "I", "L", "e", "f", "d"]
 ALL_TYPES = ALL_BUT_COMPLEX + ["F", "D"]
-ORDER = ('C', 'F', 'A', 'K')
-CASTING = ('no', 'equiv', 'safe', 'same_kind')
+ORDER = ("C", "F", "A", "K")
+CASTING = ("no", "equiv", "safe", "same_kind")
 
 
 def to_dtype(s):
@@ -111,7 +111,7 @@ def test_complex_negative(src_dtype):
     out_num = in_num.astype(to_dtype("?"))
     """
     Numpy and cuNumeric have different performance.
-    For complex data 0.+1.j, Numpy set it as True, While cuNumeric set is as False.
+    For complex data 0.+1.j, Numpy set as True, cuNumeric set as False.
     """
     assert np.array_equal(out_num, out_np)
 
