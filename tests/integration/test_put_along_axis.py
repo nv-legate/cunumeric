@@ -133,16 +133,6 @@ class TestPutAlongAxisErrors:
             num.put_along_axis(self.a, ai, 100, axis=0)
 
     @pytest.mark.parametrize(
-        "shape", ((3, 2), (3, 0)), ids=lambda shape: f"(shape={shape})"
-    )
-    def test_indices_bad_shape(self, shape):
-        # In Numpy, it raises IndexError.
-        # In cuNumeric, it raises ValueError.
-        ai = num.ones(shape, dtype=int)
-        with pytest.raises(ValueError):
-            num.put_along_axis(self.a, ai, 100, axis=0)
-
-    @pytest.mark.parametrize(
         "shape", ((1,), (3, 3, 1)), ids=lambda shape: f"(shape={shape})"
     )
     def test_indices_bad_dims(self, shape):
