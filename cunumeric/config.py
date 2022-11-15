@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import os
+from abc import abstractmethod
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, List, Union, cast
 
@@ -270,6 +271,7 @@ class _CunumericSharedLib:
     CUNUMERIC_WRITE: int
     CUNUMERIC_ZIP: int
 
+    @abstractmethod
     def cunumeric_has_curand(self) -> int:
         ...
 

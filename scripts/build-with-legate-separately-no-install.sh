@@ -13,7 +13,7 @@ source ./scripts/util/read-legate-core-root.sh "$0"
 rm -rf ./{build,_skbuild,dist,cunumeric.egg-info}
 
 # Define CMake configuration arguments
-cmake_args=
+cmake_args="${CMAKE_ARGS:-}"
 
 # Use ninja-build if installed
 if [[ -n "$(which ninja)" ]]; then cmake_args+="-GNinja"; fi
@@ -45,7 +45,7 @@ cmake_args+="
 
 # Build legion_core_python and perform an "editable" install
 SKBUILD_BUILD_OPTIONS="$ninja_args"       \
-SKBUILD_CONFIGURE_OPTIONS="$cmake_args"   \
+CMAKE_ARGS="$cmake_args"                  \
 SETUPTOOLS_ENABLE_FEATURES="legacy-editable" \
     python -m pip install                 \
         --root / --prefix "$CONDA_PREFIX" \

@@ -13,30 +13,23 @@
 # limitations under the License.
 #
 
+from itertools import product
+
 import pytest
 
 import cunumeric as num
-from cunumeric.runtime import _supported_dtypes
 
-DTYPES = _supported_dtypes.keys()
-
-
-# A simple wrapper with a legate data interface implementation for testing
-class Wrapper:
-    def __init__(self, wrapped):
-        self.wrapped = wrapped
-
-    @property
-    def __legate_data_interface__(self):
-        return self.wrapped
+SIZE = 3
 
 
-@pytest.mark.parametrize("dtype", DTYPES)
-def test_roundtrip(dtype):
-    arr1 = num.array([1, 2, 3, 4], dtype=dtype)
-    data = Wrapper(arr1.__legate_data_interface__)
-    arr2 = num.asarray(data)
-    assert num.array_equal(arr1, arr2)
+def test_0d_region_backed_stores():
+    arr = num.arange(9).reshape(3, 3)
+
+    for i, j in product(range(SIZE), range(SIZE)):
+        i_ind = num.array(i)
+        j_ind = num.array(j)
+        v = arr[i_ind, j_ind]
+        assert int(v) == i * SIZE + j
 
 
 if __name__ == "__main__":
