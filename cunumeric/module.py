@@ -6480,7 +6480,7 @@ def nearest(q, n):
 #
 def is_diff(arr1, arr2):
     return len(arr1) != len(arr2) or any(
-        [arr1[i] != arr2[i] for i in range(0, len(arr1))]
+        [x != y for (x, y) in zip(arr1, arr2)]
     )
 
 
