@@ -109,7 +109,7 @@ template <VariantKind KIND>
 static void putmask_template(TaskContext& context)
 {
   auto& inputs = context.inputs();
-  PutmaskArgs args{inputs[0], inputs[1], inputs[2]};
+  PutmaskArgs args{context.outputs()[0], inputs[1], inputs[2]};
   double_dispatch(args.input.dim(), args.input.code(), PutmaskImpl<KIND>{}, args);
 }
 
