@@ -6567,7 +6567,6 @@ def quantile_impl(
     keepdims,
     to_dtype,
     qs_all,
-    input_is_scalar,
 ):
 
     ndims = len(arr.shape)
@@ -6929,7 +6928,6 @@ def quantile(
         keepdims,
         to_dtype,
         out,
-        input_is_scalar,
     )
 
     if out is not None:
