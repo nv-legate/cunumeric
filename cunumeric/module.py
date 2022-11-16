@@ -6253,7 +6253,7 @@ def floor_i(k):
 #
 def inverted_cdf(q, n):
     pos = q * n
-    k = floor(pos)
+    k = math.floor(pos)
 
     g = pos - k
     gamma = 1.0 if g > 0 else 0.0
@@ -6269,7 +6269,7 @@ def inverted_cdf(q, n):
 #
 def averaged_inverted_cdf(q, n):
     pos = q * n
-    k = floor(pos)
+    k = math.floor(pos)
 
     g = pos - k
     gamma = 1.0 if g > 0 else 0.5
@@ -6299,7 +6299,7 @@ def closest_observation(q, n):
     p = p0 - 1.0
 
     pos = 0 if p < 0 else p0
-    k = floor(pos)
+    k = math.floor(pos)
 
     j = floor_i(k)
     gamma = 1 if k < pos else (0 if j % 2 == 0 else 1)
@@ -6314,7 +6314,7 @@ def closest_observation(q, n):
 #
 def interpolated_inverted_cdf(q, n):
     pos = q * n
-    k = floor(pos)
+    k = math.floor(pos)
     # gamma = pos-k
     # this fixes it:
     #
@@ -6328,7 +6328,7 @@ def interpolated_inverted_cdf(q, n):
 #
 def hazen(q, n):
     pos = q * n + 0.5
-    k = floor(pos)
+    k = math.floor(pos)
     # gamma = pos-k
     #
     # this fixes it:
@@ -6348,7 +6348,7 @@ def hazen(q, n):
 def weibull(q, n):
     pos = q * (n + 1)
 
-    k = floor(pos)
+    k = math.floor(pos)
     # gamma = pos-k
     #
     # this fixes it:
@@ -6367,7 +6367,7 @@ def weibull(q, n):
 #
 def linear(q, n):
     pos = q * (n - 1) + 1
-    k = floor(pos)
+    k = math.floor(pos)
     # gamma = pos-k
     #
     # this fixes it:
@@ -6387,7 +6387,7 @@ def linear(q, n):
 def median_unbiased(q, n):
     fract = 1.0 / 3.0
     pos = q * (n + fract) + fract
-    k = floor(pos)
+    k = math.floor(pos)
 
     # gamma = pos-k
     #
@@ -6409,7 +6409,7 @@ def normal_unbiased(q, n):
     fract1 = 0.25
     fract2 = 3.0 / 8.0
     pos = q * (n + fract1) + fract2
-    k = floor(pos)
+    k = math.floor(pos)
 
     # gamma = pos-k
     #
@@ -6429,7 +6429,7 @@ def normal_unbiased(q, n):
 def lower(q, n):
     gamma = 0.0
     pos = q * (n - 1)
-    k = floor(pos)
+    k = math.floor(pos)
 
     j = int(k)
     return (gamma, j)
@@ -6439,7 +6439,7 @@ def lower(q, n):
 #
 def higher(q, n):
     pos = q * (n - 1)
-    k = floor(pos)
+    k = math.floor(pos)
 
     # Generic rule: (k == pos)
     gamma = 0.0 if (pos == 0 or k == pos) else 1.0
@@ -6452,7 +6452,7 @@ def higher(q, n):
 #
 def midpoint(q, n):
     pos = q * (n - 1)
-    k = floor(pos)
+    k = math.floor(pos)
 
     # Generic rule: (k == pos)
     gamma = 0.0 if (pos == 0 or k == pos) else 0.5
