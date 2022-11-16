@@ -6551,11 +6551,6 @@ def reshuffle_reshape(arr, axes_set):
 #                should be kept as dim=1;
 # to_dtype: [in] dtype to convert the result to;
 # qs_all:   [in/out] result pass through or created (returned)
-# input_is_scalar: [in] specifies if q input was scalar
-# return: nd-array of quantile output values
-#         where its shape is obtained as:
-#         concatenating q_arr.shape with arr.shape \ {axis}
-#         (the shape of `arr` obtained by taking the `axis` out)
 #
 def quantile_impl(
     arr,
@@ -6868,12 +6863,9 @@ def quantile(
         a_rr = a
         axes_set = [real_axis]
 
-    input_is_scalar = isscalar(q)
-
-    if input_is_scalar:
-        q_arr = np.asarray(q)  # 0-dimensional
-    else:
-        q_arr = q
+    # covers both array-like and scalar cases:
+    #
+    q_arr = np.asarray(q)
 
     # in the future k-sort (partition)
     # might be faster, for now it uses sort
