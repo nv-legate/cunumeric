@@ -39,32 +39,17 @@ from .deferred import DeferredArray
 from .eager import EagerArray
 from .thunk import NumPyThunk
 from .types import NdShape
-from .utils import calculate_volume, find_last_user_stacklevel, get_arg_dtype
+from .utils import (
+    _SUPPORTED_DTYPES,
+    calculate_volume,
+    find_last_user_stacklevel,
+    get_arg_dtype,
+)
 
 if TYPE_CHECKING:
     import numpy.typing as npt
     from legate.core._legion.future import Future
     from legate.core.operation import AutoTask, ManualTask
-
-_supported_dtypes = {
-    np.bool_: ty.bool_,
-    np.int8: ty.int8,
-    np.int16: ty.int16,
-    np.int32: ty.int32,
-    int: ty.int64,
-    np.int64: ty.int64,
-    np.uint8: ty.uint8,
-    np.uint16: ty.uint16,
-    np.uint32: ty.uint32,
-    np.uint: ty.uint64,
-    np.uint64: ty.uint64,
-    np.float16: ty.float16,
-    np.float32: ty.float32,
-    float: ty.float64,
-    np.float64: ty.float64,
-    np.complex64: ty.complex64,
-    np.complex128: ty.complex128,
-}
 
 ARGS = [
     Argument(
@@ -170,7 +155,7 @@ class Runtime(object):
 
     def _register_dtypes(self) -> None:
         type_system = self.legate_context.type_system
-        for numpy_type, core_type in _supported_dtypes.items():
+        for numpy_type, core_type in _SUPPORTED_DTYPES.items():
             type_system.make_alias(np.dtype(numpy_type), core_type)
 
         for dtype in _CUNUMERIC_DTYPES:

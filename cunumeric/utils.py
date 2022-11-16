@@ -20,25 +20,31 @@ from string import ascii_lowercase, ascii_uppercase
 from types import FrameType
 from typing import Any, List, Sequence, Tuple, Union, cast
 
+import legate.core.types as ty
 import numpy as np
 
 from .types import NdShape
 
-_SUPPORTED_DTYPES = [
-    np.float16,
-    np.float32,
-    np.float64,
-    float,
-    np.int16,
-    np.int32,
-    np.int64,
-    int,
-    np.uint16,
-    np.uint32,
-    np.uint64,
-    np.bool_,
-    bool,
-]
+_SUPPORTED_DTYPES = {
+    bool: ty.bool_,
+    np.bool_: ty.bool_,
+    np.int8: ty.int8,
+    np.int16: ty.int16,
+    np.int32: ty.int32,
+    int: ty.int64,
+    np.int64: ty.int64,
+    np.uint8: ty.uint8,
+    np.uint16: ty.uint16,
+    np.uint32: ty.uint32,
+    np.uint: ty.uint64,
+    np.uint64: ty.uint64,
+    np.float16: ty.float16,
+    np.float32: ty.float32,
+    float: ty.float64,
+    np.float64: ty.float64,
+    np.complex64: ty.complex64,
+    np.complex128: ty.complex128,
+}
 
 
 def is_advanced_indexing(key: Any) -> bool:
