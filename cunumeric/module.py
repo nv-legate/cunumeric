@@ -3514,6 +3514,50 @@ def put(
     a.put(indices=indices, values=values, mode=mode)
 
 
+@add_boilerplate("a", "mask", "values")
+def putmask(a: ndarray, mask: ndarray, values: ndarray) -> None:
+    """
+    putmask(a, mask, values)
+    Changes elements of an array based on conditional and input values.
+    Sets ``a.flat[n] = values[n]`` for each n where ``mask.flat[n]==True``.
+    If `values` is not the same size as `a` and `mask` then it will repeat.
+    This gives behavior different from ``a[mask] = values``.
+
+    Parameters
+    ----------
+    a : ndarray
+        Target array.
+    mask : array_like
+        Boolean mask array. It has to be the same shape as `a`.
+    values : array_like
+        Values to put into `a` where `mask` is True. If `values` is smaller
+        than `a` it will be repeated.
+
+    See Also
+    --------
+    numpy.putmask
+
+    Availability
+    ------------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not a.shape == mask.shape:
+        raise ValueError("mask and data must be the same size")
+
+    mask = mask._warn_and_convert(np.dtype(bool))
+
+    if a.dtype != values.dtype:
+        values = values._warn_and_convert(a.dtype)
+
+    try:
+        np.broadcast_shapes(values.shape, a.shape)
+    except ValueError:
+        values = values._wrap(a.size)
+        values = values.reshape(a.shape)
+
+    a._thunk.putmask(mask._thunk, values._thunk)
+
+
 @add_boilerplate("a", "val")
 def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:
     """

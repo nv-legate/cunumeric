@@ -533,7 +533,10 @@ class DeferredArray(NumPyThunk):
         return k, store
 
     def _create_indexing_array(
-        self, key: Any, is_set: bool = False
+        self,
+        key: Any,
+        is_set: bool = False,
+        set_value: Optional[Any] = None,
     ) -> tuple[bool, Any, Any, Any]:
         store = self.base
         rhs = self
@@ -583,61 +586,79 @@ class DeferredArray(NumPyThunk):
             for i in range(key_store.ndim, rhs.ndim):
                 key_store = key_store.promote(i, rhs.shape[i])
 
-            out_dtype = rhs.dtype
-            # in the case this operation is called for the set_item, we
-            # return Point<N> type field that is later used for
-            # indirect copy operation
-            if is_set:
-                N = rhs.ndim
-                out_dtype = rhs.runtime.get_point_type(N)
+            # has_set_value && set_value.size==1 corresponds to the case
+            # when a[bool_indices]=scalar
+            # then we can call "putmask" to modify input array
+            # and avoid calling Copy
+            has_set_value = set_value is not None and set_value.size == 1
+            if has_set_value:
+                mask = DeferredArray(
+                    self.runtime,
+                    base=key_store,
+                    dtype=self.dtype,
+                )
+                rhs.putmask(mask, set_value)
+                return False, rhs, rhs, self
+            else:
+                out_dtype = rhs.dtype
+                # in the case this operation is called for the set_item, we
+                # return Point<N> type field that is later used for
+                # indirect copy operation
+                if is_set:
+                    N = rhs.ndim
+                    out_dtype = rhs.runtime.get_point_type(N)
 
-            # TODO : current implementation of the ND output regions
-            # requires out.ndim == rhs.ndim. This will be fixed in the
-            # future
-            out = rhs.runtime.create_unbound_thunk(out_dtype, ndim=rhs.ndim)
-            key_dims = key.ndim  # dimension of the original key
+                # TODO : current implementation of the ND output regions
+                # requires out.ndim == rhs.ndim. This will be fixed in the
+                # future
+                out = rhs.runtime.create_unbound_thunk(
+                    out_dtype, ndim=rhs.ndim
+                )
+                key_dims = key.ndim  # dimension of the original key
 
-            task = rhs.context.create_auto_task(
-                CuNumericOpCode.ADVANCED_INDEXING
-            )
-            task.add_output(out.base)
-            task.add_input(rhs.base)
-            task.add_input(key_store)
-            task.add_scalar_arg(is_set, bool)
-            task.add_scalar_arg(key_dims, ty.int64)
-            task.add_alignment(rhs.base, key_store)
-            task.add_broadcast(
-                rhs.base, axes=tuple(range(1, len(rhs.base.shape)))
-            )
-            task.execute()
+                task = rhs.context.create_auto_task(
+                    CuNumericOpCode.ADVANCED_INDEXING
+                )
+                task.add_output(out.base)
+                task.add_input(rhs.base)
+                task.add_input(key_store)
+                task.add_scalar_arg(is_set, bool)
+                task.add_scalar_arg(key_dims, ty.int64)
+                task.add_alignment(rhs.base, key_store)
+                task.add_broadcast(
+                    rhs.base, axes=tuple(range(1, len(rhs.base.shape)))
+                )
+                task.execute()
 
-            # TODO : current implementation of the ND output regions
-            # requires out.ndim == rhs.ndim.
-            # The logic below will be removed in the future
-            out_dim = rhs.ndim - key_dims + 1
+                # TODO : current implementation of the ND output regions
+                # requires out.ndim == rhs.ndim.
+                # The logic below will be removed in the future
+                out_dim = rhs.ndim - key_dims + 1
 
-            if out_dim != rhs.ndim:
-                out_tmp = out.base
+                if out_dim != rhs.ndim:
+                    out_tmp = out.base
 
-                if out.size == 0:
-                    out_shape = tuple(out.shape[i] for i in range(0, out_dim))
-                    out = cast(
-                        DeferredArray,
-                        self.runtime.create_empty_thunk(
-                            out_shape,
-                            out_dtype,
-                            inputs=[out],
-                        ),
-                    )
-                    if not is_set:
-                        out.fill(np.array(0, dtype=out_dtype))
-                else:
-                    for dim in range(rhs.ndim - out_dim):
-                        out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
+                    if out.size == 0:
+                        out_shape = tuple(
+                            out.shape[i] for i in range(0, out_dim)
+                        )
+                        out = cast(
+                            DeferredArray,
+                            self.runtime.create_empty_thunk(
+                                out_shape,
+                                out_dtype,
+                                inputs=[out],
+                            ),
+                        )
+                        if not is_set:
+                            out.fill(np.array(0, dtype=out_dtype))
+                    else:
+                        for dim in range(rhs.ndim - out_dim):
+                            out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
 
-                    out = out._copy_store(out_tmp)
+                        out = out._copy_store(out_tmp)
 
-            return False, rhs, out, self
+                return is_set, rhs, out, self
 
         if isinstance(key, NumPyThunk):
             key = (key,)
@@ -890,7 +911,10 @@ class DeferredArray(NumPyThunk):
                 lhs,
                 index_array,
                 self,
-            ) = self._create_indexing_array(key, True)
+            ) = self._create_indexing_array(key, True, rhs)
+
+            if not copy_needed:
+                return
 
             if rhs.shape != index_array.shape:
                 rhs_tmp = rhs._broadcast(index_array.base.shape)
@@ -917,6 +941,8 @@ class DeferredArray(NumPyThunk):
                 index_array = index_array._convert_future_to_regionfield()
             if lhs.base.kind == Future:
                 lhs = lhs._convert_future_to_regionfield()
+            if lhs.base.transformed:
+                lhs = lhs._copy_store(lhs.base)
 
             if index_array.size != 0:
                 copy = self.context.create_copy()
@@ -1739,6 +1765,21 @@ class DeferredArray(NumPyThunk):
 
         if self_tmp is not self:
             self.copy(self_tmp, deep=True)
+
+    @auto_convert("mask", "values")
+    def putmask(self, mask: Any, values: Any) -> None:
+        if values.shape != self.shape:
+            values_new = values._broadcast(self.shape)
+        else:
+            values_new = values.base
+        task = self.context.create_task(CuNumericOpCode.PUTMASK)
+        task.add_input(self.base)
+        task.add_input(mask.base)
+        task.add_input(values_new)
+        task.add_output(self.base)
+        task.add_alignment(self.base, mask.base)
+        task.add_alignment(self.base, values_new)
+        task.execute()
 
     # Create an identity array with the ones offset from the diagonal by k
     def eye(self, k: int) -> None:

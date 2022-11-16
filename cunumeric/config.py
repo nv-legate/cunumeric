@@ -167,6 +167,7 @@ class _CunumericSharedLib:
     CUNUMERIC_NONZERO: int
     CUNUMERIC_PACKBITS: int
     CUNUMERIC_POTRF: int
+    CUNUMERIC_PUTMASK: int
     CUNUMERIC_RAND: int
     CUNUMERIC_READ: int
     CUNUMERIC_RED_ALL: int
@@ -358,6 +359,7 @@ class CuNumericOpCode(IntEnum):
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
     PACKBITS = _cunumeric.CUNUMERIC_PACKBITS
     POTRF = _cunumeric.CUNUMERIC_POTRF
+    PUTMASK = _cunumeric.CUNUMERIC_PUTMASK
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
