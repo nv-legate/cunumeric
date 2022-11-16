@@ -25,7 +25,7 @@ import numpy as np
 
 from .types import NdShape
 
-_SUPPORTED_DTYPES = {
+SUPPORTED_DTYPES = {
     bool: ty.bool_,
     np.bool_: ty.bool_,
     np.int8: ty.int8,
@@ -97,7 +97,7 @@ def find_last_user_frames(top_only: bool = True) -> str:
 def is_supported_dtype(dtype: Any) -> bool:
     if not isinstance(dtype, np.dtype):
         raise TypeError("expected a NumPy dtype")
-    return dtype.type in _SUPPORTED_DTYPES
+    return dtype.type in SUPPORTED_DTYPES
 
 
 def calculate_volume(shape: NdShape) -> int:

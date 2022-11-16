@@ -40,7 +40,7 @@ from .eager import EagerArray
 from .thunk import NumPyThunk
 from .types import NdShape
 from .utils import (
-    _SUPPORTED_DTYPES,
+    SUPPORTED_DTYPES,
     calculate_volume,
     find_last_user_stacklevel,
     get_arg_dtype,
@@ -155,7 +155,7 @@ class Runtime(object):
 
     def _register_dtypes(self) -> None:
         type_system = self.legate_context.type_system
-        for numpy_type, core_type in _SUPPORTED_DTYPES.items():
+        for numpy_type, core_type in SUPPORTED_DTYPES.items():
             type_system.make_alias(np.dtype(numpy_type), core_type)
 
         for dtype in _CUNUMERIC_DTYPES:
