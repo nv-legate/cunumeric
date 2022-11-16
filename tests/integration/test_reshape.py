@@ -127,8 +127,11 @@ class TestRect:
             np.reshape(self.anp, shape, order=order),
         )
 
-    @pytest.mark.xfail
-    @pytest.mark.parametrize("shape", (200, -1, -2, None), ids=str)
+    @pytest.mark.parametrize(
+        "shape",
+        (200, -1, -2, pytest.param(None, marks=pytest.mark.xfail)),
+        ids=str,
+    )
     def test_0d(self, shape):
         # for shape=None,
         # In Numpy, pass, returns the flattened 1-D array
@@ -146,8 +149,11 @@ class TestRect:
             np.reshape(self.anp, (200,)),
         )
 
-    @pytest.mark.xfail
-    @pytest.mark.parametrize("order", ("C", "F", "A", "K", None), ids=str)
+    @pytest.mark.parametrize(
+        "order",
+        ("C", "F", "A", pytest.param("K", marks=pytest.mark.xfail), None),
+        ids=str,
+    )
     def test_ravel(self, order):
         # In Numpy, pass with 'K'
         # In cuNumeric, when order is 'K', raise ValueError:
@@ -184,17 +190,18 @@ class TestReshapeErrors:
         self.a = num.arange(24)
         self.shape = (4, 3, 2)
 
+    @pytest.mark.xfail
     def test_a_none(self):
         # In Numpy, it raises ValueError: cannot reshape array
-        msg = "'NoneType' object has no attribute"
-        with pytest.raises(AttributeError, match=msg):
+        # In cuNumeric, it raises AttributeError:
+        # 'NoneType' object has no attribute
+        with pytest.raises(ValueError):
             num.reshape(None, self.shape)
 
     def test_empty_array_shape_invalid_size(self):
         a = num.arange(0).reshape(0, 1, 1)
         shape = (1, 1)
-        msg = "new shape has bigger size than original"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.reshape(a, shape)
 
     @pytest.mark.parametrize(
