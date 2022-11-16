@@ -132,18 +132,6 @@ class TestPutAlongAxisErrors:
         with pytest.raises(TypeError, match=msg):
             num.put_along_axis(self.a, ai, 100, axis=0)
 
-    @pytest.mark.xfail
-    @pytest.mark.parametrize(
-        "shape", ((3, 2), (3, 0)), ids=lambda shape: f"(shape={shape})"
-    )
-    def test_indices_bad_shape(self, shape):
-        # In Numpy, it raises IndexError.
-        # In cuNumeric, it raises ValueError.
-        ai = num.ones(shape, dtype=int)
-        msg = "shape mismatch: indexing arrays could not be broadcast"
-        with pytest.raises(IndexError, match=msg):
-            num.put_along_axis(self.a, ai, 100, axis=0)
-
     @pytest.mark.parametrize(
         "shape", ((1,), (3, 3, 1)), ids=lambda shape: f"(shape={shape})"
     )
@@ -210,19 +198,6 @@ class TestPutAlongAxisErrors:
         "shape", ((0,), (5,), (4, 5)), ids=lambda shape: f"(shape={shape})"
     )
     def test_values_axis_none(self, shape):
-        a = mk_seq_array(num, (10,))
-        ai = mk_seq_array(num, (7,))
-        values = mk_seq_array(num, shape)
-        with pytest.raises(ValueError):
-            num.put_along_axis(a, ai, values, None)
-
-    @pytest.mark.xfail
-    @pytest.mark.parametrize(
-        "shape", ((0,), (5,), (4, 5)), ids=lambda shape: f"(shape={shape})"
-    )
-    def test_values_axis_none_DIVERGENC(self, shape):
-        # In Numpy, all 3 cases pass
-        # In cuNumeric, all 3 cases raise ValueError "Shape did not match"
         np_arr = mk_seq_array(np, (10,))
         num_arr = mk_seq_array(num, (10,))
 
@@ -235,22 +210,6 @@ class TestPutAlongAxisErrors:
         np.put_along_axis(np_arr, indices, values, None)
         num.put_along_axis(num_arr, indices_num, values_num, None)
         assert np.array_equal(np_arr, num_arr)
-
-    def test_a_none(self):
-        ai = num.array([1, 1, 1])
-        msg = "object has no attribute 'ndim'"
-        with pytest.raises(AttributeError, match=msg):
-            num.put_along_axis(None, ai, 100, axis=0)
-
-    def test_indice_none(self):
-        msg = "'NoneType' object has no attribute 'dtype'"
-        with pytest.raises(AttributeError, match=msg):
-            num.put_along_axis(self.a, None, 100, axis=0)
-
-    def test_values_none(self):
-        msg = "'NoneType' object has no attribute 'dtype'"
-        with pytest.raises(AttributeError, match=msg):
-            num.put_along_axis(self.a, self.ai, None, axis=0)
 
 
 if __name__ == "__main__":

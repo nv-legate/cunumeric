@@ -3211,7 +3211,7 @@ def put_along_axis(
 
     Parameters
     ----------
-    arr : ndarray (Ni..., M, Nk...)
+    a : ndarray (Ni..., M, Nk...)
         Destination array.
     indices : ndarray (Ni..., J, Nk...)
         Indices to change along each 1d slice of `arr`. This must match the
@@ -3239,6 +3239,10 @@ def put_along_axis(
     Multiple GPUs, Multiple CPUs
 
     """
+
+    if a.size == 0:
+        return
+
     if not np.issubdtype(indices.dtype, np.integer):
         raise TypeError("`indices` must be an integer array")
 
@@ -3249,6 +3253,10 @@ def put_along_axis(
         if a.ndim > 1:
             # TODO call a=a.flat when flat is implemented
             raise ValueError("a.ndim>1 case is not supported when axis=None")
+        if (indices.size == 0) or (values.size == 0):
+            return
+        if values.shape != indices.shape:
+            values = values._wrap(indices.size)
     else:
         computed_axis = normalize_axis_index(axis, a.ndim)
 
