@@ -6607,9 +6607,25 @@ def quantile_impl(
     #
     qresult_shape = (*q_arr.shape, *remaining_shape)
 
+    # fails with cunumeric:
+    # (numpy works)
+    #
+    # cunumeric BUG: TypeError: a bytes-like object is required, not 'ndarray';
+    # TODO: open nvbug
+    #
+    # qs_all = ndarray(shape = qresult_shape,
+    #                     buffer = array(result_1D),
+    #                     dtype = to_dtype)
+    #
     # construct result NdArray, non-flattening approach:
     #
-    res = zeros(qresult_shape, dtype=to_dtype)
+    if qs_all is None:
+        qs_all = zeros(qresult_shape, dtype=to_dtype)
+    else:
+        # implicit conversion from to_dtype to qs_all.dtype assumed
+        #
+        if qs_all.shape != qresult_shape:
+            raise ValueError("wrong shape on output array")
 
     for index, q in np.ndenumerate(q_arr):
         (gamma, j) = method(q, n)
@@ -6642,31 +6658,9 @@ def quantile_impl(
         # non-flattening approach:
         #
         if len(index) == 0:
-            res[:] = quantiles_ls.reshape(res.shape)
+            qs_all[:] = quantiles_ls.reshape(qs_all.shape)
         else:
-            res[index] = quantiles_ls.reshape(res[index].shape)
-
-    # fails with cunumeric:
-    # (numpy works)
-    #
-    # cunumeric BUG: TypeError: a bytes-like object is required, not 'ndarray';
-    # TODO: open nvbug
-    #
-    # qs_all = ndarray(shape = qresult_shape,
-    #                     buffer = array(result_1D),
-    #                     dtype = to_dtype)
-    #
-    # construct result NdArray:
-    #
-    if qs_all is None:
-        qs_all = res
-    else:
-        # implicit conversion from to_dtype to qs_all.dtype assumed
-        #
-        if qs_all.shape != qresult_shape:
-            raise ValueError("wrong shape on output array")
-
-        qs_all[:] = res
+            qs_all[index] = quantiles_ls.reshape(qs_all[index].shape)
 
     return qs_all
 
