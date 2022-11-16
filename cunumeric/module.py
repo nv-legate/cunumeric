@@ -6635,9 +6635,8 @@ def quantile_impl(
         #
         # non-flattening approach:
         #
-        # singleton list: [left_pos];
         # extract values at index=left_pos;
-        arr_1D_lvals = arr.take([left_pos], axis)
+        arr_1D_lvals = arr.take(left_pos, axis)
         arr_vals_shape = arr_1D_lvals.shape
 
         if right_pos >= n:
@@ -6646,8 +6645,8 @@ def quantile_impl(
             #
             arr_1D_rvals = zeros(arr_vals_shape, dtype=arr_1D_lvals.dtype)
         else:
-            # singleton list: [right_pos]; extract values at index=right_pos;
-            arr_1D_rvals = arr.take([right_pos], axis)
+            # extract values at index=right_pos;
+            arr_1D_rvals = arr.take(right_pos, axis)
 
         # this is the main source of parallelism
         # (the other one being on `q` inputs; ignored for now)
