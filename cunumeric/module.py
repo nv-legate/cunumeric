@@ -6476,12 +6476,6 @@ def nearest(q, n):
     return (gamma, j)
 
 
-# helper: test array if sorted:
-#
-def is_sorted(a):
-    return all(a[:-1] <= a[1:])
-
-
 # helper: test if array inputs are different:
 #
 def is_diff(arr1, arr2):
@@ -6505,10 +6499,7 @@ def is_diff(arr1, arr2):
 def reshuffle_reshape(arr, axes_set):
     ndim = len(arr.shape)
 
-    if not is_sorted(axes_set):
-        sorted_axes = tuple(sort(axes_set))
-    else:
-        sorted_axes = tuple(axes_set)
+    sorted_axes = tuple(sort(axes_set))
 
     min_dim_index = sorted_axes[0]
     num_axes = len(sorted_axes)
