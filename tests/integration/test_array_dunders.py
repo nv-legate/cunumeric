@@ -18,64 +18,73 @@ import pytest
 
 import cunumeric as num
 
-np_arr = np.eye(4)
-np_vec = np.arange(4).astype(np.float64)
-num_arr = num.array(np_arr)
-num_vec = num.array(np_vec)
+arr_np = np.eye(4)
+vec_np = np.arange(4).astype(np.float64)
+
+arr_num = num.array(arr_np)
+vec_num = num.array(vec_np)
+
 indices = [0, 3, 1, 2]
 
 
 def test_array_function_implemented():
-    res_np = np.dot(np_arr, np_vec)
-    res_num = np.dot(num_arr, num_vec)
+    res_np = np.dot(arr_np, vec_np)
+    res_num = np.dot(arr_num, vec_num)
+
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, num.ndarray)  # implemented
 
 
 def test_array_function_unimplemented():
-    res_np = np.linalg.tensorsolve(np_arr, np_vec)
-    res_num = np.linalg.tensorsolve(num_arr, num_vec)
+    res_np = np.linalg.tensorsolve(arr_np, vec_np)
+    res_num = np.linalg.tensorsolve(arr_num, vec_num)
+
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, np.ndarray)  # unimplemented
 
 
 def test_array_ufunc_through_array_op():
-    assert np.array_equal(num_vec + num_vec, np_vec + np_vec)
-    assert isinstance(num_vec + np_vec, num.ndarray)
-    assert isinstance(np_vec + num_vec, num.ndarray)
+    assert np.array_equal(vec_num + vec_num, vec_np + vec_np)
+    assert isinstance(vec_num + vec_np, num.ndarray)
+    assert isinstance(vec_np + vec_num, num.ndarray)
 
 
 def test_array_ufunc_call():
-    res_np = np.add(np_vec, np_vec)
-    res_num = np.add(num_vec, num_vec)
+    res_np = np.add(vec_np, vec_np)
+    res_num = np.add(vec_num, vec_num)
+
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, num.ndarray)  # implemented
 
 
 def test_array_ufunc_reduce():
-    res_np = np.add.reduce(np_vec)
-    res_num = np.add.reduce(num_vec)
+    res_np = np.add.reduce(vec_np)
+    res_num = np.add.reduce(vec_num)
+
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, num.ndarray)  # implemented
 
 
 def test_array_ufunc_accumulate():
-    res_np = np.add.accumulate(np_vec)
-    res_num = np.add.accumulate(num_vec)
+    res_np = np.add.accumulate(vec_np)
+    res_num = np.add.accumulate(vec_num)
+
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, np.ndarray)  # unimplemented
 
 
 def test_array_ufunc_reduceat():
-    res_np = np.add.reduceat(np_vec, indices)
-    res_num = np.add.reduceat(num_vec, indices)
+    res_np = np.add.reduceat(vec_np, indices)
+    res_num = np.add.reduceat(vec_num, indices)
+
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, np.ndarray)  # unimplemented
 
 
 def test_array_ufunc_outer():
-    res_np = np.add.outer(np_vec, np_vec)
-    res_num = np.add.outer(num_vec, num_vec)
+    res_np = np.add.outer(vec_np, vec_np)
+    res_num = np.add.outer(vec_num, vec_num)
+
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, np.ndarray)  # unimplemented
 
@@ -83,8 +92,10 @@ def test_array_ufunc_outer():
 def test_array_ufunc_at():
     res_np = np.full((4,), 42)
     res_num = num.full((4,), 42)
-    np.add.at(res_np, indices, np_vec)
-    np.add.at(res_num, indices, num_vec)
+
+    np.add.at(res_np, indices, vec_np)
+    np.add.at(res_num, indices, vec_num)
+
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, num.ndarray)
 
