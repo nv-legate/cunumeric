@@ -37,7 +37,7 @@ template <VariantKind KIND, CuNumericFFTType FFT_TYPE>
 struct FFTImpl {
   template <LegateTypeCode CODE_IN,
             int32_t DIM,
-            std::enable_if_t<((DIM <= 3) && FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
+            std::enable_if_t<(FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
   void operator()(FFTArgs& args) const
   {
     using INPUT_TYPE  = legate_type_of<CODE_IN>;
@@ -54,10 +54,10 @@ struct FFTImpl {
       output, input, out_rect, in_rect, args.axes, args.direction, args.operate_over_axes);
   }
 
-  // We only support up to 3D FFTs for now
+  // Filter valid types
   template <LegateTypeCode CODE_IN,
             int32_t DIM,
-            std::enable_if_t<((DIM > 3) || !FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
+            std::enable_if_t<(!FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
   void operator()(FFTArgs& args) const
   {
     assert(false);

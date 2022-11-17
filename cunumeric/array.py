@@ -2713,12 +2713,6 @@ class ndarray:
         Single GPU
 
         """
-        # Dimensions check
-        if self.ndim > 3:
-            raise NotImplementedError(
-                f"{self.ndim}-D arrays are not supported yet"
-            )
-
         # Type
         fft_output_type = kind.output_dtype
 

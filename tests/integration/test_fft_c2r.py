@@ -145,6 +145,54 @@ def check_3d_c2r(N, dtype=np.float64):
     assert allclose(Z, Z_num)
 
 
+def check_4d_c2r(N, dtype=np.float64):
+    print(f"\n=== 4D C2R {dtype}               ===")
+    Z = (
+        np.random.rand(*N).astype(dtype)
+        + np.random.rand(*N).astype(dtype) * 1j
+    )
+    Z_num = num.array(Z)
+
+    all_kwargs = (
+        (
+            {},
+            {"norm": "forward"},
+            {"norm": "ortho"},
+            {"s": (N[0] - 1, N[1] - 2, N[2] // 2, N[3])},
+            {"s": (N[0] + 1, N[1] + 2, N[2] + 3, N[3] - 1)},
+            {"s": (N[0] + 1, N[1] + 2, N[2] + 3, N[3] // 2)},
+        )
+        + tuple({"axes": (i,)} for i in range(4))
+        + tuple({"axes": (-i,)} for i in range(1, 5))
+        + tuple({"axes": (i + 1, i)} for i in range(3))
+        + ({"axes": (0, 2, 3, 1, 1, -1)},)
+    )
+
+    for kwargs in all_kwargs:
+        print(f"=== 4D C2R {dtype}, args: {kwargs} ===")
+        out = np.fft.irfftn(Z, **kwargs)
+        out_num = num.fft.irfftn(Z_num, **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.irfftn(np.swapaxes(Z, 0, 1), **kwargs)
+        out_num = num.fft.irfftn(np.swapaxes(Z_num, 0, 1), **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.irfftn(np.swapaxes(Z, 2, 1), **kwargs)
+        out_num = num.fft.irfftn(np.swapaxes(Z_num, 2, 1), **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.irfftn(np.swapaxes(Z, 3, 1), **kwargs)
+        out_num = num.fft.irfftn(np.swapaxes(Z_num, 3, 1), **kwargs)
+        assert allclose(out, out_num)
+
+    # Odd types
+    out = np.fft.rfftn(Z)
+    out_num = num.fft.rfftn(Z_num)
+    assert allclose(out, out_num)
+    out = np.fft.ihfft(Z)
+    out_num = num.fft.ihfft(Z_num)
+    assert allclose(out, out_num)
+    assert allclose(Z, Z_num)
+
+
 def test_1d():
     check_1d_c2r(N=78)
     check_1d_c2r(N=78, dtype=np.float32)
@@ -158,6 +206,11 @@ def test_2d():
 def test_3d():
     check_3d_c2r(N=(6, 12, 10))
     check_3d_c2r(N=(6, 12, 10), dtype=np.float32)
+
+
+def test_4d():
+    check_4d_c2r(N=(6, 12, 10, 8))
+    check_4d_c2r(N=(6, 12, 10, 8), dtype=np.float32)
 
 
 if __name__ == "__main__":
