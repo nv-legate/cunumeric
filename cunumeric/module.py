@@ -6710,9 +6710,6 @@ def quantile(
         If this is set to True, the axes which are reduced are left in
         the result as dimensions with size one. With this option, the
         result will broadcast correctly against the original array `a`.
-    interpolation : str, optional
-        Deprecated name for the method keyword argument.
-        .. deprecated:: 1.22.0
     Returns
     -------
     quantile : scalar or ndarray
