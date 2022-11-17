@@ -16,9 +16,9 @@
 import pytest
 
 import cunumeric as num
-from cunumeric.runtime import _supported_dtypes
+from cunumeric.utils import SUPPORTED_DTYPES
 
-DTYPES = _supported_dtypes.keys()
+DTYPES = SUPPORTED_DTYPES.keys()
 
 
 # A simple wrapper with a legate data interface implementation for testing
