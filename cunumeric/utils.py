@@ -31,13 +31,12 @@ SUPPORTED_DTYPES = {
     np.int8: ty.int8,
     np.int16: ty.int16,
     np.int32: ty.int32,
-    int: ty.int64,
+    int: ty.int64,  # np.int is int
     np.int64: ty.int64,
     np.uint8: ty.uint8,
     np.uint16: ty.uint16,
     np.uint32: ty.uint32,
-    np.uint: ty.uint64,
-    np.uint64: ty.uint64,
+    np.uint64: ty.uint64,  # np.uint is np.uint64
     np.float16: ty.float16,
     np.float32: ty.float32,
     float: ty.float64,
