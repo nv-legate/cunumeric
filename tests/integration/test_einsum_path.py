@@ -16,15 +16,15 @@
 import numpy as np
 import pytest
 
-import cunumeric as cn
+import cunumeric as num
 
 expr = "ij,jk,kl->il"
 np_a = np.empty((2, 2))
 np_b = np.empty((2, 5))
 np_c = np.empty((5, 2))
-cn_a = cn.empty((2, 2))
-cn_b = cn.empty((2, 5))
-cn_c = cn.empty((5, 2))
+num_a = num.empty((2, 2))
+num_b = num.empty((2, 5))
+num_c = num.empty((5, 2))
 
 OPTIMIZE = [
     True,
@@ -38,9 +38,9 @@ OPTIMIZE = [
 
 @pytest.mark.parametrize("optimize", OPTIMIZE)
 def test_einsum_path(optimize):
-    np_path, _ = np.einsum_path(expr, np_a, np_b, np_c, optimize=optimize)
-    cn_path, _ = cn.einsum_path(expr, cn_a, cn_b, cn_c, optimize=optimize)
-    assert np_path == cn_path
+    path_np, _ = np.einsum_path(expr, np_a, np_b, np_c, optimize=optimize)
+    path_num, _ = num.einsum_path(expr, num_a, num_b, num_c, optimize=optimize)
+    assert path_np == path_num
 
 
 if __name__ == "__main__":

@@ -18,7 +18,7 @@ import pytest
 from utils.comparisons import allclose
 from utils.generators import mk_0to1_array
 
-import cunumeric as cn
+import cunumeric as num
 
 SHAPES = [
     # 2 arrays
@@ -42,28 +42,28 @@ SHAPES = [
 @pytest.mark.parametrize("shapes", SHAPES)
 def test_multi_dot(shapes):
     np_arrays = [mk_0to1_array(np, shape) for shape in shapes]
-    cn_arrays = [mk_0to1_array(cn, shape) for shape in shapes]
-    np_res = np.linalg.multi_dot(np_arrays)
-    cn_res = cn.linalg.multi_dot(cn_arrays)
-    assert allclose(np_res, cn_res)
+    num_arrays = [mk_0to1_array(num, shape) for shape in shapes]
+    res_np = np.linalg.multi_dot(np_arrays)
+    res_num = num.linalg.multi_dot(num_arrays)
+    assert allclose(res_np, res_num)
 
     if len(shapes[0]) == 1:
         if len(shapes[-1]) == 1:
-            out = cn.zeros(())
+            out = num.zeros(())
         else:
-            out = cn.zeros((shapes[-1][1],))
+            out = num.zeros((shapes[-1][1],))
     else:
         if len(shapes[-1]) == 1:
-            out = cn.zeros((shapes[0][0],))
+            out = num.zeros((shapes[0][0],))
         else:
-            out = cn.zeros(
+            out = num.zeros(
                 (
                     shapes[0][0],
                     shapes[-1][1],
                 )
             )
-    cn_res = cn.linalg.multi_dot(cn_arrays, out=out)
-    assert allclose(np_res, out)
+    res_num = num.linalg.multi_dot(num_arrays, out=out)
+    assert allclose(res_np, out)
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ from legate.core import LEGATE_MAX_DIM
 from utils.comparisons import allclose
 from utils.generators import mk_0to1_array
 
-import cunumeric as cn
+import cunumeric as num
 
 # TODO: add negative exponents here, once they become supported
 EXPONENTS = [0, 1, 3, 5]
@@ -29,11 +29,11 @@ EXPONENTS = [0, 1, 3, 5]
 @pytest.mark.parametrize("exp", EXPONENTS)
 def test_matrix_power(ndim, exp):
     shape = (3,) * ndim + (2, 2)
-    np_a = mk_0to1_array(np, shape)
-    cn_a = mk_0to1_array(cn, shape)
-    np_res = np.linalg.matrix_power(np_a, exp)
-    cn_res = cn.linalg.matrix_power(cn_a, exp)
-    assert allclose(np_res, cn_res)
+    a_np = mk_0to1_array(np, shape)
+    a_num = mk_0to1_array(num, shape)
+    res_np = np.linalg.matrix_power(a_np, exp)
+    res_num = num.linalg.matrix_power(a_num, exp)
+    assert allclose(res_np, res_num)
 
 
 if __name__ == "__main__":
