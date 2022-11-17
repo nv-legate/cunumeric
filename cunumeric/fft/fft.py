@@ -103,7 +103,7 @@ def fft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     axes = (axis,) if axis is not None else None
@@ -162,7 +162,7 @@ def fft2(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     return fftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -219,7 +219,7 @@ def fftn(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     if a.dtype == np.float32:
         a = a.astype(np.complex64)
@@ -305,7 +305,7 @@ def ifft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None
@@ -371,7 +371,7 @@ def ifft2(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     return ifftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -437,7 +437,7 @@ def ifftn(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     # Convert to complex if real
     if a.dtype == np.float32:
@@ -511,7 +511,7 @@ def rfft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None
@@ -557,7 +557,7 @@ def rfft2(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     return rfftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -618,7 +618,7 @@ def rfftn(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     # Convert to real if complex
     if a.dtype != np.float32 and a.dtype != np.float64:
@@ -718,7 +718,7 @@ def irfft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None
@@ -766,7 +766,7 @@ def irfft2(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     return irfftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -838,7 +838,7 @@ def irfftn(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     # Convert to complex if real
     if a.dtype == np.float32:
@@ -929,7 +929,7 @@ def hfft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None
@@ -985,7 +985,7 @@ def ihfft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None

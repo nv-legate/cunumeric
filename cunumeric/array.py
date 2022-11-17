@@ -2710,7 +2710,7 @@ class ndarray:
 
         Availability
         --------
-        Single GPU
+        Multiple GPUs
 
         """
         # Type
