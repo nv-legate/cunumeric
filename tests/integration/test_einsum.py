@@ -237,7 +237,9 @@ def check_np_vs_cn(expr, mk_input, mk_output=None, **kwargs):
             for cn_out in mk_output(cn, out_shape):
                 cn.einsum(expr, *cn_inputs, out=cn_out, **kwargs)
                 rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
-                assert allclose(cn_out, cn_res, rtol=rtol_out)
+                assert allclose(
+                    cn_out, cn_res, rtol=rtol_out, check_dtype=False
+                )
 
 
 @pytest.mark.parametrize("expr", gen_expr())

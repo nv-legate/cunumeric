@@ -4065,7 +4065,8 @@ def _contract(
         raise ValueError("Unknown mode labels on output")
 
     # Handle types
-    if dtype is not None:
+    makes_view = b is None and len(a_modes) == len(out_modes)
+    if dtype is not None and not makes_view:
         c_dtype = dtype
     elif out is not None:
         c_dtype = out.dtype
@@ -5867,8 +5868,12 @@ def sort_complex(a: ndarray) -> ndarray:
     # force complex result upon return
     if np.issubdtype(result.dtype, np.complexfloating):
         return result
-    else:
+    elif (
+        np.issubdtype(result.dtype, np.integer) and result.dtype.itemsize <= 2
+    ):
         return result.astype(np.complex64, copy=True)
+    else:
+        return result.astype(np.complex128, copy=True)
 
 
 # partition
