@@ -6642,7 +6642,7 @@ def quantile_impl(
         # non-flattening approach:
         #
         if len(index) == 0:
-            qs_all[:] = quantiles_ls.reshape(qs_all.shape)
+            qs_all[...] = quantiles_ls.reshape(qs_all.shape)
         else:
             qs_all[index] = quantiles_ls.reshape(qs_all[index].shape)
 
