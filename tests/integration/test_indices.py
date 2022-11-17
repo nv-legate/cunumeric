@@ -19,7 +19,7 @@ import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
 
-import cunumeric as cn
+import cunumeric as num
 
 
 class TestIndicesErrors:
@@ -32,19 +32,19 @@ class TestIndicesErrors:
         dimensions = 3
         msg = r"'int' object is not iterable"
         with pytest.raises(TypeError, match=msg):
-            cn.indices(dimensions)
+            num.indices(dimensions)
 
     def test_negative_dimensions(self):
         dimensions = -3
         msg = r"'int' object is not iterable"
         with pytest.raises(TypeError, match=msg):
-            cn.indices(dimensions)
+            num.indices(dimensions)
 
     def test_float_dimensions(self):
         dimensions = 3.2
         msg = r"'float' object is not iterable"
         with pytest.raises(TypeError, match=msg):
-            cn.indices(dimensions)
+            num.indices(dimensions)
 
     def test_negative_tuple_dimensions(self):
         dimensions = (1, -1)
@@ -54,7 +54,7 @@ class TestIndicesErrors:
         # in other conditions, it raises
         # "ValueError: Invalid shape: Shape((2, 1, -1))"
         with pytest.raises(ValueError):
-            cn.indices(dimensions)
+            num.indices(dimensions)
 
     def test_float_tuple_dimensions(self):
         dimensions = (3.5, 2.5)
@@ -62,7 +62,7 @@ class TestIndicesErrors:
         # "TypeError: 'float' object cannot be interpreted as an integer"
         msg = r"expected a sequence of integers or a single integer"
         with pytest.raises(TypeError, match=msg):
-            cn.indices(dimensions)
+            num.indices(dimensions)
 
 
 class TestIndices:
@@ -73,40 +73,40 @@ class TestIndices:
     @pytest.mark.parametrize("dimensions", [(0,), (0, 0), (0, 1), (1, 1)])
     def test_indices_zero(self, dimensions):
         np_res = np.indices(dimensions)
-        cn_res = cn.indices(dimensions)
+        num_res = num.indices(dimensions)
 
-        assert np.array_equal(np_res, cn_res)
+        assert np.array_equal(np_res, num_res)
 
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
     def test_indices_basic(self, ndim):
-        dimensions = tuple(random.randint(1, 5) for i in range(ndim))
+        dimensions = tuple(random.randint(1, 5) for _ in range(ndim))
 
         np_res = np.indices(dimensions)
-        cn_res = cn.indices(dimensions)
-        assert np.array_equal(np_res, cn_res)
+        num_res = num.indices(dimensions)
+        assert np.array_equal(np_res, num_res)
 
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
     def test_indices_dtype_none(self, ndim):
-        dimensions = tuple(random.randint(1, 5) for i in range(ndim))
+        dimensions = tuple(random.randint(1, 5) for _ in range(ndim))
 
         np_res = np.indices(dimensions, dtype=None)
-        cn_res = cn.indices(dimensions, dtype=None)
-        assert np.array_equal(np_res, cn_res)
+        num_res = num.indices(dimensions, dtype=None)
+        assert np.array_equal(np_res, num_res)
 
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
     def test_indices_dtype_float(self, ndim):
-        dimensions = tuple(random.randint(1, 5) for i in range(ndim))
+        dimensions = tuple(random.randint(1, 5) for _ in range(ndim))
         np_res = np.indices(dimensions, dtype=float)
-        cn_res = cn.indices(dimensions, dtype=float)
-        assert np.array_equal(np_res, cn_res)
+        num_res = num.indices(dimensions, dtype=float)
+        assert np.array_equal(np_res, num_res)
 
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
     def test_indices_sparse(self, ndim):
-        dimensions = tuple(random.randint(1, 5) for i in range(ndim))
+        dimensions = tuple(random.randint(1, 5) for _ in range(ndim))
         np_res = np.indices(dimensions, sparse=True)
-        cn_res = cn.indices(dimensions, sparse=True)
+        num_res = num.indices(dimensions, sparse=True)
         for i in range(len(np_res)):
-            assert np.array_equal(np_res[i], cn_res[i])
+            assert np.array_equal(np_res[i], num_res[i])
 
 
 if __name__ == "__main__":
