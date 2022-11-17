@@ -6661,8 +6661,6 @@ def quantile(
     overwrite_input=False,
     method="linear",
     keepdims=False,
-    *,
-    interpolation=None,
 ) -> ndarray:
     """
     Compute the q-th quantile of the data along the specified axis.
