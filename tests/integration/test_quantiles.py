@@ -88,16 +88,24 @@ def test_quantiles_1(str_method, axes, qin_arr, keepdims, overwrite_input):
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
     q_out = cu.quantile(
-        arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims,
-        overwrite_input=overwrite_input
+        arr,
+        qs_arr,
+        axis=axes,
+        method=str_method,
+        keepdims=keepdims,
+        overwrite_input=overwrite_input,
     )
     # print(q_out)
 
     # np:
     # print("numpy axis = %d:"%(axis))
     np_q_out = np.quantile(
-        arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims,
-        overwrite_input=overwrite_input
+        arr,
+        qs_arr,
+        axis=axes,
+        method=str_method,
+        keepdims=keepdims,
+        overwrite_input=overwrite_input,
     )
     # print(np_q_out)
 
