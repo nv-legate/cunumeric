@@ -6484,6 +6484,16 @@ def is_diff(arr1, arr2):
     )
 
 
+# helper: in-place interpolator:
+# quantile interpolation method to act on vectors,
+# like an axpy call:
+# [gamma](vleft, vright) { return (1-gamma)*vleft + gamma*vright;}
+#
+def in_place_interp(gamma, arr_lvals, arr_rvals, result):
+    result[...] = (1.0 - gamma) * arr_lvals + gamma * arr_rvals
+    return ()
+
+
 # for the case when axis = tuple (non-singleton)
 # reshuffling might have to be done (if tuple is non-consecutive)
 # and the src array must be collapsed along that set of axes
@@ -6577,15 +6587,6 @@ def quantile_impl(
                 arr.shape[k] for k in range(0, ndims) if k != axis
             ]
 
-    # quantile interpolation method to act on vectors,
-    # like an axpy call:
-    # [gamma](vleft, vright) { return (1-gamma)*vleft + gamma*vright;}
-    #
-    linear_interp = (
-        lambda gamma, arr_lvals, arr_rvals: (1.0 - gamma) * arr_lvals
-        + gamma * arr_rvals
-    )
-
     # compose qarr.shape with arr.shape:
     #
     # result.shape = (q_arr.shape, arr.shape -{axis}):
@@ -6634,17 +6635,21 @@ def quantile_impl(
             # extract values at index=right_pos;
             arr_1D_rvals = arr.take(right_pos, axis)
 
-        # this is the main source of parallelism
+        # vectorized interpolation: the main source of parallelism
         # (the other one being on `q` inputs; ignored for now)
         #
-        quantiles_ls = linear_interp(gamma, arr_1D_lvals, arr_1D_rvals)
-
         # non-flattening approach:
         #
         if len(index) == 0:
-            qs_all[...] = quantiles_ls.reshape(qs_all.shape)
+            # in-place update of qs_all:
+            #
+            in_place_interp(gamma, arr_1D_lvals, arr_1D_rvals,
+                            qs_all.reshape(arr_vals_shape))
         else:
-            qs_all[index] = quantiles_ls.reshape(qs_all[index].shape)
+            # in-place update of qs_all:
+            #
+            in_place_interp(gamma, arr_1D_lvals, arr_1D_rvals,
+                            qs_all[index].reshape(arr_vals_shape))
 
     return qs_all
 
