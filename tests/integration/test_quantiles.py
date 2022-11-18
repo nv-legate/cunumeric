@@ -44,7 +44,8 @@ import cunumeric as cu
     "qin_arr", (0.5, [0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49, 0.5])
 )
 @pytest.mark.parametrize("keepdims", (False, True))
-def test_quantiles_1(str_method, axes, qin_arr, keepdims):
+@pytest.mark.parametrize("overwrite_input", (False, True))
+def test_quantiles_1(str_method, axes, qin_arr, keepdims, overwrite_input):
     eps = 1.0e-8
     arr = np.ndarray(
         shape=(2, 3, 4),
@@ -87,14 +88,16 @@ def test_quantiles_1(str_method, axes, qin_arr, keepdims):
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
     q_out = cu.quantile(
-        arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims
+        arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims,
+        overwrite_input=overwrite_input
     )
     # print(q_out)
 
     # np:
     # print("numpy axis = %d:"%(axis))
     np_q_out = np.quantile(
-        arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims
+        arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims,
+        overwrite_input=overwrite_input
     )
     # print(np_q_out)
 
