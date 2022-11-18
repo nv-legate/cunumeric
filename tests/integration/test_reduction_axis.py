@@ -18,7 +18,7 @@ from itertools import permutations
 import numpy as np
 import pytest
 
-import cunumeric as cn
+import cunumeric as num
 
 
 def _sum(shape, axis, lib, dtype=None):
@@ -30,9 +30,9 @@ def _sum(shape, axis, lib, dtype=None):
 @pytest.mark.parametrize("axis", range(3), ids=str)
 @pytest.mark.parametrize("shape", permutations((3, 4, 5)), ids=str)
 def test_3d(shape, axis):
-    assert np.array_equal(_sum(shape, axis, np), _sum(shape, axis, cn))
+    assert np.array_equal(_sum(shape, axis, np), _sum(shape, axis, num))
     assert np.array_equal(
-        _sum(shape, axis, np, dtype="D"), _sum(shape, axis, cn, dtype="D")
+        _sum(shape, axis, np, dtype="D"), _sum(shape, axis, num, dtype="D")
     )
 
 

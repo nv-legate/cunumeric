@@ -16,7 +16,7 @@
 import numpy as np
 from legate.core import LEGATE_MAX_DIM
 
-import cunumeric as cn
+import cunumeric as num
 
 from .comparisons import allclose
 from .generators import mk_0to1_array
@@ -49,7 +49,7 @@ def gen_inputs_of_various_shapes(lib, modes):
     # making sure common modes appear with the same extent on both arrays
     (a_modes, b_modes, out_modes) = modes
     for (a_shape, b_shape) in gen_shapes(a_modes, b_modes):
-        if lib == cn:
+        if lib == num:
             print(f"  {a_shape} x {b_shape}")
         yield (mk_0to1_array(lib, a_shape), mk_0to1_array(lib, b_shape))
 
@@ -70,7 +70,7 @@ def gen_permuted_inputs(lib, modes):
     b = mk_0to1_array(lib, (5,) * len(b_modes))
     for a_axes in gen_permutations(len(a_modes)):
         for b_axes in gen_permutations(len(b_modes)):
-            if lib == cn:
+            if lib == num:
                 print(f"  transpose{a_axes} x transpose{b_axes}")
             yield (a.transpose(a_axes), b.transpose(b_axes))
 
@@ -85,7 +85,7 @@ def gen_inputs_of_various_types(lib, modes):
         (np.float32, np.float32),
         (np.complex64, np.complex64),
     ]:
-        if lib == cn:
+        if lib == num:
             print(f"  {a_dtype} x {b_dtype}")
         yield (
             mk_0to1_array(lib, a_shape, a_dtype),
@@ -97,7 +97,7 @@ def gen_output_of_various_types(lib, modes, a, b):
     (a_modes, b_modes, out_modes) = modes
     out_shape = (5,) * len(out_modes)
     for out_dtype in [np.float16, np.complex64]:
-        if lib == cn:
+        if lib == num:
             print(f"  -> {out_dtype}")
         yield lib.zeros(out_shape, out_dtype)
 
@@ -109,24 +109,24 @@ def _test(name, modes, operation, gen_inputs, gen_output=None, **kwargs):
         # because we may need to promote arrays so that one includes all modes.
         return
     print(name)
-    for (np_inputs, cn_inputs) in zip(
-        gen_inputs(np, modes), gen_inputs(cn, modes)
+    for (np_inputs, num_inputs) in zip(
+        gen_inputs(np, modes), gen_inputs(num, modes)
     ):
         np_res = operation(np, *np_inputs, **kwargs)
-        cn_res = operation(cn, *cn_inputs, **kwargs)
+        num_res = operation(num, *num_inputs, **kwargs)
         rtol = (
             1e-02
             if any(x.dtype == np.float16 for x in np_inputs)
             or kwargs.get("dtype") == np.float16
             else 1e-05
         )
-        assert allclose(np_res, cn_res, rtol=rtol)
+        assert allclose(np_res, num_res, rtol=rtol)
         if gen_output is not None:
-            for cn_out in gen_output(cn, modes, *cn_inputs):
-                operation(cn, *cn_inputs, out=cn_out, **kwargs)
-                rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
+            for num_out in gen_output(num, modes, *num_inputs):
+                operation(num, *num_inputs, out=num_out, **kwargs)
+                rtol_out = 1e-02 if num_out.dtype == np.float16 else rtol
                 assert allclose(
-                    cn_out, cn_res, rtol=rtol_out, check_dtype=False
+                    num_out, num_res, rtol=rtol_out, check_dtype=False
                 )
 
 

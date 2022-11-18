@@ -22,7 +22,7 @@ import pytest
 from utils.comparisons import allclose
 from utils.generators import mk_0to1_array, permutes_to
 
-import cunumeric as cn
+import cunumeric as num
 
 # Limits for exhaustive expression generation routines
 MAX_MODES = 3
@@ -213,50 +213,50 @@ def mk_typed_output(lib, shape):
     ]
 
 
-def check_np_vs_cn(expr, mk_input, mk_output=None, **kwargs):
+def check_np_vs_num(expr, mk_input, mk_output=None, **kwargs):
     lhs, rhs = expr.split("->")
     opers = lhs.split(",")
     in_shapes = [
         tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in op) for op in opers
     ]
     out_shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
-    for (np_inputs, cn_inputs) in zip(
+    for (np_inputs, num_inputs) in zip(
         product(*(mk_input(np, sh) for sh in in_shapes)),
-        product(*(mk_input(cn, sh) for sh in in_shapes)),
+        product(*(mk_input(num, sh) for sh in in_shapes)),
     ):
         np_res = np.einsum(expr, *np_inputs, **kwargs)
-        cn_res = cn.einsum(expr, *cn_inputs, **kwargs)
+        num_res = num.einsum(expr, *num_inputs, **kwargs)
         rtol = (
             1e-02
             if any(x.dtype == np.float16 for x in np_inputs)
             or kwargs.get("dtype") == np.float16
             else 1e-05
         )
-        assert allclose(np_res, cn_res, rtol=rtol)
+        assert allclose(np_res, num_res, rtol=rtol)
         if mk_output is not None:
-            for cn_out in mk_output(cn, out_shape):
-                cn.einsum(expr, *cn_inputs, out=cn_out, **kwargs)
-                rtol_out = 1e-02 if cn_out.dtype == np.float16 else rtol
+            for num_out in mk_output(num, out_shape):
+                num.einsum(expr, *num_inputs, out=num_out, **kwargs)
+                rtol_out = 1e-02 if num_out.dtype == np.float16 else rtol
                 assert allclose(
-                    cn_out, cn_res, rtol=rtol_out, check_dtype=False
+                    num_out, num_res, rtol=rtol_out, check_dtype=False
                 )
 
 
 @pytest.mark.parametrize("expr", gen_expr())
 def test_small(expr):
-    check_np_vs_cn(expr, mk_input_that_permutes_to)
-    check_np_vs_cn(expr, mk_input_that_broadcasts_to)
+    check_np_vs_num(expr, mk_input_that_permutes_to)
+    check_np_vs_num(expr, mk_input_that_broadcasts_to)
 
 
 @pytest.mark.parametrize("expr", LARGE_EXPRS)
 def test_large(expr):
-    check_np_vs_cn(expr, mk_input_default)
+    check_np_vs_num(expr, mk_input_default)
 
 
 @pytest.mark.parametrize("expr", SMALL_EXPRS)
 @pytest.mark.parametrize("dtype", [None, np.float32])
 def test_cast(expr, dtype):
-    check_np_vs_cn(
+    check_np_vs_num(
         expr, mk_typed_input, mk_typed_output, dtype=dtype, casting="unsafe"
     )
 
