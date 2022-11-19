@@ -26,9 +26,8 @@ using namespace Legion;
 
 float* allocate_buffer_omp(size_t size)
 {
-  Memory::Kind kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
   // We will not call this function on GPUs
-  auto buffer = legate::create_buffer<float, 1>(size, kind);
+  auto buffer = legate::create_buffer<float, 1>(size);
   return buffer.ptr(0);
 }
 

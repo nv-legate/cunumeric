@@ -62,23 +62,23 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
       volume, in, pitches, rect.lo, offsets, p_results);
   }
 
-  size_t operator()(const AccessorRO<VAL, DIM>& in,
-                    const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect,
-                    const size_t volume,
-                    std::vector<Buffer<int64_t>>& results)
+  void operator()(std::vector<Array>& outputs,
+                  const AccessorRO<VAL, DIM>& in,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const size_t volume)
   {
     auto stream = get_cached_stream();
 
     auto offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
     auto size    = compute_offsets(in, pitches, rect, volume, offsets, stream);
 
-    for (auto& result : results) result = create_buffer<int64_t>(size, Memory::Kind::GPU_FB_MEM);
+    std::vector<Buffer<int64_t>> results;
+    for (auto& output : outputs)
+      results.push_back(output.create_output_buffer<int64_t, 1>(Point<1>(size), true));
 
     if (size > 0) populate_nonzeros(in, pitches, rect, volume, results, offsets, stream);
     CHECK_CUDA_STREAM(stream);
-
-    return size;
   }
 };
 
