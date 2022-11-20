@@ -45,6 +45,7 @@ if TYPE_CHECKING:
     import numpy.typing as npt
     from legate.core._legion.future import Future
     from legate.core.operation import AutoTask, ManualTask
+    from legate.core.runtime import Runtime as CoreRuntime
 
 _supported_dtypes = {
     np.bool_: ty.bool_,
@@ -129,7 +130,6 @@ ARGS = [
 class Runtime(object):
     def __init__(self, legate_context: LegateContext) -> None:
         self.legate_context = legate_context
-        self.legate_runtime = get_legate_runtime()
         self.current_random_epoch = 0
         self.current_random_bitgenid = 0
         self.current_random_bitgen_zombies: tuple[Any, ...] = ()
@@ -167,6 +167,10 @@ class Runtime(object):
 
         if self.num_gpus > 0 and self.args.preload_cudalibs:
             self._load_cudalibs()
+
+    @property
+    def legate_runtime(self) -> CoreRuntime:
+        return get_legate_runtime()
 
     def _register_dtypes(self) -> None:
         type_system = self.legate_context.type_system
