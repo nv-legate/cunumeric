@@ -6645,18 +6645,18 @@ def quantile_impl(
             #
             in_place_interp(
                 gamma,
-                arr_1D_lvals,
-                arr_1D_rvals,
-                qs_all.reshape(arr_vals_shape),
+                arr_1D_lvals.reshape(qs_all.shape),
+                arr_1D_rvals.reshape(qs_all.shape),
+                qs_all,
             )
         else:
             # in-place update of qs_all:
             #
             in_place_interp(
                 gamma,
-                arr_1D_lvals,
-                arr_1D_rvals,
-                qs_all[index].reshape(arr_vals_shape),
+                arr_1D_lvals.reshape(qs_all[index].shape),
+                arr_1D_rvals.reshape(qs_all[index].shape),
+                qs_all[index],
             )
 
     return qs_all
