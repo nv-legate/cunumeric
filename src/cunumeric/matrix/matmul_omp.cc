@@ -16,6 +16,7 @@
 
 #include "cunumeric/matrix/matmul.h"
 #include "cunumeric/matrix/matmul_template.inl"
+#include "cunumeric/matrix/util.h"
 #include "cunumeric/matrix/util_omp.h"
 
 #include <cblas.h>
@@ -102,8 +103,8 @@ struct MatMulImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
                   bool rhs1_transposed,
                   bool rhs2_transposed)
   {
-    auto rhs1_copy = allocate_buffer_omp(m * k);
-    auto rhs2_copy = allocate_buffer_omp(k * n);
+    auto rhs1_copy = allocate_buffer(m * k);
+    auto rhs2_copy = allocate_buffer(k * n);
 
     if (rhs1_transposed)
       half_matrix_to_float_omp(rhs1_copy, rhs1, k, m, rhs1_stride);
