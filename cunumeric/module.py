@@ -5515,6 +5515,9 @@ def convolve(a: ndarray, v: ndarray, mode: ConvolveMode = "full") -> ndarray:
     if mode != "same":
         raise NotImplementedError("Need to implement other convolution modes")
 
+    if a is None or v is None:
+        raise TypeError("Unsupported operand type None")
+
     if a.ndim != v.ndim:
         raise RuntimeError("Arrays should have the same dimensions")
     elif a.ndim > 3:

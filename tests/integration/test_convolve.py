@@ -25,11 +25,8 @@ SHAPES = [(100,), (10, 10), (10, 10, 10)]
 FILTER_SHAPES = [(5,), (3, 5), (3, 5, 3)]
 
 
-@pytest.mark.xfail
 def test_none():
-    # Numpy raises:
-    # TypeError: unsupported operand type(s) for *: 'NoneType' and 'NoneType'
-    with pytest.raises(AttributeError):
+    with pytest.raises(TypeError):
         num.convolve(None, None, mode="same")
 
 
