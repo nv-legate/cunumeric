@@ -17,7 +17,6 @@
 import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
-
 from utils.comparisons import allclose
 
 import cunumeric as cu
