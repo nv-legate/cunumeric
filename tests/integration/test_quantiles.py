@@ -18,6 +18,8 @@ import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
 
+from utils.comparisons import allclose
+
 import cunumeric as cu
 
 
@@ -112,12 +114,7 @@ def test_quantiles_1(str_method, axes, qin_arr, keepdims, overwrite_input):
     assert cu.all(q_out.shape == np_q_out.shape)
     assert q_out.dtype == np_q_out.dtype
 
-    qo_flat = q_out.flatten().astype(np.float64)
-    np_qo_flat = np_q_out.flatten().astype(np.float64)
-    sz = qo_flat.size
-    assert cu.all(
-        [cu.abs(qo_flat[i] - np_qo_flat[i]) < eps for i in range(0, sz)]
-    )
+    assert allclose(np_q_out, q_out, atol=eps)
 
 
 @pytest.mark.parametrize(
@@ -183,12 +180,7 @@ def test_quantiles_2(str_method, ls_in, axes, keepdims):
     assert cu.all(q_out.shape == np_q_out.shape)
     assert q_out.dtype == np_q_out.dtype
 
-    qo_flat = q_out.flatten().astype(np.float64)
-    np_qo_flat = np_q_out.flatten().astype(np.float64)
-    sz = qo_flat.size
-    assert cu.all(
-        [cu.abs(qo_flat[i] - np_qo_flat[i]) < eps for i in range(0, sz)]
-    )
+    assert allclose(np_q_out, q_out, atol=eps)
 
 
 @pytest.mark.parametrize(
@@ -311,12 +303,7 @@ def test_quantiles_3(str_method, axes, qs_arr, keepdims):
     assert cu.all(q_out.shape == np_q_out.shape)
     assert q_out.dtype == np_q_out.dtype
 
-    qo_flat = q_out.flatten().astype(np.float64)
-    np_qo_flat = np_q_out.flatten().astype(np.float64)
-    sz = qo_flat.size
-    assert cu.all(
-        [cu.abs(qo_flat[i] - np_qo_flat[i]) < eps for i in range(0, sz)]
-    )
+    assert allclose(np_q_out, q_out, atol=eps)
 
 
 if __name__ == "__main__":
