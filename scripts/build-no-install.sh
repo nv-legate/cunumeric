@@ -14,7 +14,7 @@ rm -rf ./{build,_skbuild,dist,cunumeric.egg-info}
 cmake_args="${CMAKE_ARGS:-}"
 
 # Use ninja-build if installed
-if [[ -n "$(which ninja)" ]]; then cmake_args+="-GNinja"; fi
+if [[ -n "$(which ninja)" ]]; then cmake_args+=" -GNinja"; fi
 
 # Add other build options here as desired
 cmake_args+="
