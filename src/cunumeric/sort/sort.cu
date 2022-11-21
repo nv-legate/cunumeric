@@ -42,14 +42,11 @@
 namespace cunumeric {
 
 template <LegateTypeCode CODE>
-struct support_cub : std::true_type {
-};
+struct support_cub : std::true_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX64_LT> : std::false_type {
-};
+struct support_cub<LegateTypeCode::COMPLEX64_LT> : std::false_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {
-};
+struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {};
 
 template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
 void local_sort(const legate_type_of<CODE>* values_in,
