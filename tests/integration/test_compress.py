@@ -21,11 +21,8 @@ from utils.generators import mk_seq_array
 import cunumeric as num
 
 
-@pytest.mark.xfail
 def test_none_array():
-    res_np = np.compress([0], None)  # numpy return []
-    # cuNumeric raises:
-    # AttributeError: 'NoneType' object has no attribute 'compress'
+    res_np = np.compress([0], None)
     res_num = num.compress([0], None)
     assert np.array_equal(res_np, res_num)
 

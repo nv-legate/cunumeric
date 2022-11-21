@@ -3423,6 +3423,9 @@ def compress(
     Multiple GPUs, Multiple CPUs
 
     """
+    if a is None:
+        return ndarray((0,), dtype=object)  # type: ignore [unreachable]
+
     return a.compress(condition, axis=axis, out=out)
 
 
