@@ -71,10 +71,7 @@ class TestEyeErrors:
         with pytest.raises(TypeError, match=msg):
             num.eye(5, 5.0)
 
-    @pytest.mark.xfail
     def testBadK(self):
-        # numpy: raises TypeError
-        # cunumeric: the error is found by legate.core, raises struct.error
         with pytest.raises(TypeError):
             num.eye(5, k=0.0)
 
