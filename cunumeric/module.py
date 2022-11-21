@@ -1392,6 +1392,8 @@ def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if a is None:
+        return ndarray((), dtype=object)  # type: ignore [unreachable]
     return a.squeeze(axis=axis)
 
 

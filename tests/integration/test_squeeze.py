@@ -40,18 +40,10 @@ SIZES = [
 ]
 
 
-@pytest.mark.xfail
-def test_none_array_compare():
-    res_num = num.squeeze(None)  # AttributeError: 'NoneType'
-    res_np = np.squeeze(None)  # return None
-    assert np.array_equal(res_num, res_np, equal_nan=True)
-
-
 def test_none_array():
-    # numpy returned None
-    msg = r"NoneType"
-    with pytest.raises(AttributeError, match=msg):
-        num.squeeze(None)
+    res_num = num.squeeze(None)
+    res_np = np.squeeze(None)
+    assert np.array_equal(res_num, res_np)
 
 
 def test_num_invalid_axis():
