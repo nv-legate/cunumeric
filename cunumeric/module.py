@@ -2577,6 +2577,12 @@ def extract(condition: ndarray, arr: ndarray) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if arr is None:
+        return ndarray((0,), dtype=object)  # type: ignore [unreachable]
+
+    if arr.size == 0 or condition is None:
+        return ndarray((0,), dtype=arr.dtype)
+
     if condition.size != arr.size:
         raise ValueError("arr array and condition array must be of same size")
 

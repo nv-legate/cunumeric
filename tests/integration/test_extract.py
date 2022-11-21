@@ -51,31 +51,24 @@ VALUES = [
 ]
 
 
-@pytest.mark.xfail
 def test_none_array():
-    res_np = np.extract([0], None)  # return []
-    res_num = num.extract(
-        [0], None
-    )  # AttributeError: 'NoneType' object has no attribute 'size'
+    res_np = np.extract([0], None)
+    res_num = num.extract([0], None)
     assert np.array_equal(res_np, res_num)
 
 
-@pytest.mark.xfail
-def test_empty_array():
-    res_np = np.extract([0], [])  # return []
-    res_num = num.extract(
-        [0], []
-    )  # ValueError: arr array and condition array must be of same size
+@pytest.mark.parametrize("dt", (int, float))
+def test_empty_array(dt):
+    res_np = np.extract(np.ndarray([0], dtype=dt), [])
+    res_num = num.extract(np.ndarray([0], dtype=dt), [])
     assert np.array_equal(res_np, res_num)
 
 
-@pytest.mark.xfail
-def test_none_condition():
-    a = num.array([1, 2, 3, 4])
-    res_np = np.extract(None, a)  # all return []
-    res_num = num.extract(
-        None, a
-    )  # AttributeError: 'NoneType' object has no attribute 'size'
+@pytest.mark.parametrize("dt", (int, float))
+def test_none_condition(dt):
+    a = num.array([1, 2, 3, 4], dtype=dt)
+    res_np = np.extract(None, a)
+    res_num = num.extract(None, a)
     assert np.array_equal(res_np, res_num)
 
 
