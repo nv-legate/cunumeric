@@ -6246,6 +6246,8 @@ def bincount(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if x.ndim != 1:
+        raise ValueError("the input array must be 1-dimensional")
     if weights is not None:
         if weights.shape != x.shape:
             raise ValueError("weights array must be same shape for bincount")
@@ -6253,11 +6255,16 @@ def bincount(
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if x.dtype.kind != "i" and x.dtype.kind != "u":
+    if x.dtype.kind != "i":
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:
         raise ValueError("'minlength' must not be negative")
-    minlength = _builtin_max(minlength, int(amax(x)) + 1)
+    # Note that the following are non-blocking operations,
+    # though passing their results to `int` is blocking
+    max_val, min_val = amax(x), amin(x)
+    if int(min_val) < 0:
+        raise ValueError("the input array must have no negative elements")
+    minlength = _builtin_max(minlength, int(max_val) + 1)
     if x.size == 1:
         # Handle the special case of 0-D array
         if weights is None:
