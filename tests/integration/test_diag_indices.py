@@ -41,23 +41,14 @@ def test_diag_indices(n, ndim):
     assert np.array_equal(a_np, a_num)
 
 
+@pytest.mark.parametrize("n", [-10.5, -1])
+def test_negative_n(n):
+    a_np = np.diag_indices(n)
+    a_num = num.diag_indices(n)
+    assert np.array_equal(a_np, a_num)
+
+
 class TestDiagIndicesErrors:
-    @pytest.mark.parametrize("n", [-10.5, -1])
-    def test_negative_n(self, n):
-        with pytest.raises(ValueError):
-            num.diag_indices(n)
-
-    @pytest.mark.xfail
-    @pytest.mark.parametrize("n", [-10.5, -1])
-    def test_negative_n_DIVERGENCE(self, n):
-        # np.diag_indices(-10.5) returns empty 2-D array, dtype=float64
-        # np.diag_indices(-1) returns empty 2-D array, dtype=int32
-        # num.diag_indices(-10.5) raises ValueError
-        # num.diag_indices(-1) raises ValueError
-        a_np = np.diag_indices(n)
-        a_num = num.diag_indices(n)
-        assert np.array_equal(a_np, a_num)
-
     def test_none_n(self):
         msg = "unsupported operand type"
         with pytest.raises(TypeError, match=msg):

@@ -2864,6 +2864,9 @@ def diag_indices(n: int, ndim: int = 2) -> tuple[ndarray, ...]:
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if n is not None and n < 0:
+        return (arange(0, dtype=type(n)),) * ndim
+
     idx = arange(n, dtype=int)
     return (idx,) * ndim
 
