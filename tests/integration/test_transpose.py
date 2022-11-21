@@ -36,17 +36,10 @@ SIZES = [
 
 
 class TestModule:
-    @pytest.mark.xfail
     def test_none_array_compare(self):
-        res_num = num.transpose(None)  # AttributeError: 'NoneType'
-        res_np = np.transpose(None)  # return None
-        assert np.array_equal(res_num, res_np, equal_nan=True)
-
-    def test_none_array(self):
-        # numpy returned None
-        msg = r"NoneType"
-        with pytest.raises(AttributeError, match=msg):
-            num.transpose(None)
+        res_num = num.transpose(None)
+        res_np = np.transpose(None)
+        assert np.array_equal(res_num, res_np)
 
     @pytest.mark.parametrize(
         "axes", ((1, 1, 1), (1, 2, 3), (1, 2), (1, 2, 0, 1))

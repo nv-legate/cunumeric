@@ -1203,6 +1203,9 @@ def transpose(a: ndarray, axes: Optional[list[int]] = None) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if a is None:
+        return ndarray((), dtype=object)  # type: ignore [unreachable]
+
     return a.transpose(axes=axes)
 
 
