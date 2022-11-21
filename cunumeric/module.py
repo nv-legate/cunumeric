@@ -571,7 +571,7 @@ def copy(a: ndarray) -> ndarray:
 def arange(
     start: Union[int, float] = 0,
     stop: Optional[Union[int, float]] = None,
-    step: Optional[Union[int, float]] = 1,
+    step: Optional[Union[int, float]] = None,
     dtype: Optional[npt.DTypeLike] = None,
 ) -> ndarray:
     """
@@ -627,15 +627,23 @@ def arange(
         stop = start
         start = 0
 
-    if step is None:
-        step = 1
-
     if dtype is None:
-        dtype = np.array([stop]).dtype
+        if step is not None:
+            dtype = np.array([step]).dtype
+        else:
+            dtype = np.array([stop]).dtype
     else:
         dtype = np.dtype(dtype)
 
+    if step is None:
+        step = 1
+
     N = math.ceil((stop - start) / step)
+
+    # numpy returns an empty array in this case
+    if N < 0:
+        return ndarray((0,), dtype)
+
     result = ndarray((N,), dtype)
     result._thunk.arange(start, stop, step)
     return result
