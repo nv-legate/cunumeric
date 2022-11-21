@@ -903,6 +903,11 @@ def tri(
 
 @add_boilerplate("m")
 def trilu(m: ndarray, k: int, lower: bool) -> ndarray:
+    # Internally, numpy uses k in an arange with an int dtype, resulting in
+    # truncation of float values. This cast accomplishes the same outcome.
+    # Additionally, this produces the expected TypeError for None inputs
+    k = int(k)
+
     if m.ndim < 1:
         raise TypeError("Array must be at least 1-D")
     shape = m.shape if m.ndim >= 2 else m.shape * 2

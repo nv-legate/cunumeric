@@ -57,12 +57,9 @@ def test_trilu(func, shape, dtype, k):
     _test(func, anp, a, k)
 
 
-@pytest.mark.xfail
 @pytest.mark.parametrize("k", (-2.5, 0.0, 2.5), ids=lambda k: f"(k={k})")
 @pytest.mark.parametrize("func", FUNCTIONS)
 def test_trilu_float_k(func, k):
-    # cuNumeric: struct.error: required argument is not an integer
-    # Numpy: pass
     shape = (10, 10)
     anp = np.ones(shape)
     a = num.ones(shape)
@@ -76,12 +73,7 @@ class TestTriluErrors:
         with pytest.raises(AttributeError, match=msg):
             num.tril(None)
 
-    @pytest.mark.xfail
     def test_k_none(self):
-        # In cuNumeric, it raises struct.error,
-        # msg is required argument is not an integer
-        # In Numpy, it raises TypeError,
-        # msg is bad operand type for unary -: 'NoneType'
         a = num.ones((3, 3))
         with pytest.raises(TypeError):
             num.tril(a, k=None)
