@@ -537,6 +537,10 @@ class ndarray:
         --------
         flatten : Return a copy of the array collapsed into one dimension.
 
+        Availability
+        --------
+        Single CPU
+
         """
         return self.__array__().flat
 
@@ -2641,7 +2645,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Multiple CPUs
+        Single CPU
 
         """
         self.__array__().dump(file=file)
@@ -3641,7 +3645,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Multiple CPUs
+        Single CPU
 
         """
         return self.__array__().tofile(fid=fid, sep=sep, format=format)
