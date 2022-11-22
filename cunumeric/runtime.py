@@ -51,6 +51,8 @@ if TYPE_CHECKING:
     from legate.core._legion.future import Future
     from legate.core.operation import AutoTask, ManualTask
 
+    from .array import ndarray
+
 ARGS = [
     Argument(
         "test",
@@ -351,7 +353,7 @@ class Runtime(object):
 
     def get_numpy_thunk(
         self,
-        obj: Any,
+        obj: Union[ndarray, npt.NDArray[Any]],
         share: bool = False,
         dtype: Optional[np.dtype[Any]] = None,
     ) -> NumPyThunk:
@@ -403,11 +405,12 @@ class Runtime(object):
         # slice object that was used to generate a child array from
         # a parent array so we can build the same mapping from a
         # logical region to a subregion
-        parent_ptr = int(array.base.ctypes.data)  # type: ignore
+        assert array.base is not None
+        parent_ptr = int(array.base.ctypes.data)
         child_ptr = int(array.ctypes.data)
         assert child_ptr >= parent_ptr
         ptr_diff = child_ptr - parent_ptr
-        parent_shape = array.base.shape  # type: ignore
+        parent_shape = array.base.shape
         div = (
             reduce(lambda x, y: x * y, parent_shape)
             if len(parent_shape) > 1
@@ -425,8 +428,8 @@ class Runtime(object):
         key: tuple[Union[slice, None], ...] = ()
         child_idx = 0
         child_strides = tuple(array.strides)
-        parent_strides = tuple(array.base.strides)  # type: ignore
-        for idx in range(array.base.ndim):  # type: ignore
+        parent_strides = tuple(array.base.strides)
+        for idx in range(array.base.ndim):
             # Handle the adding and removing dimension cases
             if parent_strides[idx] == 0:
                 # This was an added dimension in the parent
