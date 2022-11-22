@@ -40,7 +40,7 @@ import cunumeric as cu
         "nearest",
     ),
 )
-@pytest.mark.parametrize("axes", (0, 1, (0, 2)))
+@pytest.mark.parametrize("axes", (0, 1, (0, 1), (0, 2)))
 @pytest.mark.parametrize(
     "qin_arr", (0.5, [0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49, 0.5])
 )
