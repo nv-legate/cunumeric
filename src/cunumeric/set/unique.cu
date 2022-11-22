@@ -40,7 +40,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= volume) return;
   auto point  = pitches.unflatten(offset, lo);
-  out[offset] = accessor[lo + point];
+  out[offset] = accessor[point];
 }
 
 template <typename VAL>
