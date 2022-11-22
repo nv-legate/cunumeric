@@ -206,7 +206,6 @@ enum CuNumericTunable {
   CUNUMERIC_TUNABLE_NUM_GPUS         = 1,
   CUNUMERIC_TUNABLE_NUM_PROCS        = 2,
   CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME = 3,
-  CUNUMERIC_TUNABLE_HAS_NUMAMEM      = 4,
 };
 
 enum CuNumericBounds {

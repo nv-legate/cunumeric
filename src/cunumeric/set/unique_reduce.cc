@@ -26,8 +26,7 @@ template <LegateTypeCode CODE>
 struct UniqueReduceImplBody<VariantKind::CPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  std::pair<Buffer<VAL>, size_t> operator()(
-    const std::vector<std::pair<AccessorRO<VAL, 1>, Rect<1>>>& inputs)
+  void operator()(Array& output, const std::vector<std::pair<AccessorRO<VAL, 1>, Rect<1>>>& inputs)
   {
     std::set<VAL> dedup_set;
 
@@ -39,11 +38,9 @@ struct UniqueReduceImplBody<VariantKind::CPU, CODE> {
 
     size_t size = dedup_set.size();
     size_t pos  = 0;
-    auto result = create_buffer<VAL>(size);
+    auto result = output.create_output_buffer<VAL, 1>(Point<1>(size), true);
 
     for (auto e : dedup_set) result[pos++] = e;
-
-    return std::make_pair(result, size);
   }
 };
 

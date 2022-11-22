@@ -112,17 +112,17 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
 
     std::vector<int64_t> lhs_copy_strides(lhs_ndim);
     int64_t lhs_size     = calculate_volume(lhs_ndim, lhs_shape, lhs_copy_strides.data());
-    float* lhs_copy_data = allocate_buffer_omp(lhs_size);
+    float* lhs_copy_data = allocate_buffer(lhs_size);
     half_tensor_to_float_omp(lhs_copy_data, lhs_data, lhs_ndim, lhs_shape, lhs_strides);
 
     std::vector<int64_t> rhs1_copy_strides(rhs1_ndim);
     int64_t rhs1_size     = calculate_volume(rhs1_ndim, rhs1_shape, rhs1_copy_strides.data());
-    float* rhs1_copy_data = allocate_buffer_omp(rhs1_size);
+    float* rhs1_copy_data = allocate_buffer(rhs1_size);
     half_tensor_to_float_omp(rhs1_copy_data, rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
 
     std::vector<int64_t> rhs2_copy_strides(rhs2_ndim);
     int64_t rhs2_size     = calculate_volume(rhs2_ndim, rhs2_shape, rhs2_copy_strides.data());
-    float* rhs2_copy_data = allocate_buffer_omp(rhs2_size);
+    float* rhs2_copy_data = allocate_buffer(rhs2_size);
     half_tensor_to_float_omp(rhs2_copy_data, rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
 
     ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>{}(lhs_copy_data,
