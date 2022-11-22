@@ -75,7 +75,6 @@ warn_no_return = true
 warn_return_any = false
 warn_unreachable = true
 
-show_none_errors = true
 ignore_errors = false
 
 allow_untyped_globals = false
