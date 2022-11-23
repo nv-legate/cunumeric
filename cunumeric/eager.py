@@ -1471,6 +1471,9 @@ class EagerArray(NumPyThunk):
             return
         if op in _UNARY_RED_OPS:
             fn = _UNARY_RED_OPS[op]
+            # Need to be more careful here, Numpy does not use None to mean
+            # "was not passed in" in this instance
+            kws = {"initial": initial} if initial is not None else {}
             fn(
                 rhs.array,
                 out=self.array,
@@ -1479,6 +1482,7 @@ class EagerArray(NumPyThunk):
                 where=where
                 if not isinstance(where, EagerArray)
                 else where.array,
+                **kws,
             )
         elif op == UnaryRedCode.ARGMAX:
             np.argmax(
