@@ -33,10 +33,14 @@ from typing import (
 
 import legate.core.types as ty
 import numpy as np
-import pyarrow  # type: ignore
+import pyarrow  # type: ignore  [import]
 from legate.core import Array
-from numpy.core.multiarray import normalize_axis_index  # type: ignore
-from numpy.core.numeric import normalize_axis_tuple  # type: ignore
+from numpy.core.multiarray import (  # type: ignore [attr-defined]
+    normalize_axis_index,
+)
+from numpy.core.numeric import (  # type: ignore [attr-defined]
+    normalize_axis_tuple,
+)
 from typing_extensions import ParamSpec
 
 from .config import (

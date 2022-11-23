@@ -23,7 +23,9 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
-from numpy.core.multiarray import normalize_axis_index  # type: ignore
+from numpy.core.multiarray import (  # type: ignore [attr-defined]
+    normalize_axis_index,
+)
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -4012,9 +4014,13 @@ def tensordot(
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
-class NullOptimizer(oe.paths.PathOptimizer):  # type: ignore
-    def __call__(  # type: ignore [no-untyped-def]
-        self, inputs, output, size_dict, memory_limit=None
+class NullOptimizer(oe.paths.PathOptimizer):  # type: ignore [misc,no-any-unimported] # noqa
+    def __call__(
+        self,
+        inputs: list[set[str]],
+        outputs: set[str],
+        size_dict: dict[str, int],
+        memory_limit: Union[int, None] = None,
     ) -> list[tuple[int, int]]:
         return [(0, 1)] + [(0, -1)] * (len(inputs) - 2)
 
