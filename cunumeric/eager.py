@@ -300,7 +300,6 @@ class EagerArray(NumPyThunk):
                         shape=self.shape,
                     )
                 else:
-                    assert self.runtime is not None
                     self.deferred = self.runtime.find_or_create_array_thunk(
                         self.array,
                         share=self.escaped,
