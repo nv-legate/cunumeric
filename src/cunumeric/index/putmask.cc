@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,34 +14,19 @@
  *
  */
 
-#pragma once
-
-#include "legate.h"
-#include "cunumeric/cunumeric_c.h"
+#include "cunumeric/index/putmask.h"
+#include "cunumeric/index/putmask_template.inl"
 
 namespace cunumeric {
 
-using Array = legate::Store;
+/*static*/ void PutmaskTask::cpu_variant(TaskContext& context)
+{
+  putmask_template<VariantKind::CPU>(context);
+}
 
-enum class VariantKind : int {
-  CPU = 0,
-  OMP = 1,
-  GPU = 2,
-};
-
-struct CuNumeric {
- public:
-  template <typename... Args>
-  static void record_variant(Args&&... args)
-  {
-    get_registrar().record_variant(std::forward<Args>(args)...);
-  }
-  static legate::LegateTaskRegistrar& get_registrar();
-};
-
-template <typename T>
-struct CuNumericTask : public legate::LegateTask<T> {
-  using Registrar = CuNumeric;
-};
+namespace  // unnamed
+{
+static void __attribute__((constructor)) register_tasks(void) { PutmaskTask::register_variants(); }
+}  // namespace
 
 }  // namespace cunumeric

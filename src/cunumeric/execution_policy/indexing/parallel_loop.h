@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2022 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,32 +16,22 @@
 
 #pragma once
 
-#include "legate.h"
-#include "cunumeric/cunumeric_c.h"
+#include "cunumeric/cunumeric.h"
 
 namespace cunumeric {
 
-using Array = legate::Store;
-
-enum class VariantKind : int {
-  CPU = 0,
-  OMP = 1,
-  GPU = 2,
+template <VariantKind KIND, class Tag = void>
+struct ParallelLoopPolicy {
 };
 
-struct CuNumeric {
- public:
-  template <typename... Args>
-  static void record_variant(Args&&... args)
+template <class Tag>
+struct ParallelLoopPolicy<VariantKind::CPU, Tag> {
+  template <class RECT, class KERNEL>
+  void operator()(const RECT& rect, KERNEL&& kernel)
   {
-    get_registrar().record_variant(std::forward<Args>(args)...);
+    const size_t volume = rect.volume();
+    for (size_t idx = 0; idx < volume; ++idx) { kernel(idx, Tag{}); }
   }
-  static legate::LegateTaskRegistrar& get_registrar();
-};
-
-template <typename T>
-struct CuNumericTask : public legate::LegateTask<T> {
-  using Registrar = CuNumeric;
 };
 
 }  // namespace cunumeric

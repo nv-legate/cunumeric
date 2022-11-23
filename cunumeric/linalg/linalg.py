@@ -521,7 +521,7 @@ def norm(
             # Zero norm
             return (
                 (x != 0)
-                .astype(np.int64)
+                .astype(x.dtype)
                 .sum(axis=computed_axis, keepdims=keepdims)
             )
         elif ord == 1:

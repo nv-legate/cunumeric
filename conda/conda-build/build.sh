@@ -1,7 +1,5 @@
 #!/bin/bash
-
-set -x;
-
+  
 # Rewrite conda's -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY to
 #                 -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
 CMAKE_ARGS="$(echo "$CMAKE_ARGS" | sed -r "s@_INCLUDE=ONLY@_INCLUDE=BOTH@g")"
@@ -32,6 +30,8 @@ export CUDAFLAGS="-UNDEBUG"
 export CMAKE_GENERATOR=Ninja
 export CUDAHOSTCXX=${CXX}
 
+echo "Build starting on $(date)"
+
 cmake -S . -B build ${CMAKE_ARGS}
 cmake --build build -j$CPU_COUNT
 cmake --install build
@@ -50,6 +50,8 @@ $PYTHON -m pip install             \
   --cache-dir "$PIP_CACHE_DIR"     \
   --disable-pip-version-check      \
   . -vv
+
+echo "Build ending on $(date)"
 
 # Legion leaves an egg-info file which will confuse conda trying to pick up the information
 # Remove it so the legate-core is the only egg-info file added

@@ -3211,7 +3211,7 @@ def put_along_axis(
 
     Parameters
     ----------
-    arr : ndarray (Ni..., M, Nk...)
+    a : ndarray (Ni..., M, Nk...)
         Destination array.
     indices : ndarray (Ni..., J, Nk...)
         Indices to change along each 1d slice of `arr`. This must match the
@@ -3239,6 +3239,10 @@ def put_along_axis(
     Multiple GPUs, Multiple CPUs
 
     """
+
+    if a.size == 0:
+        return
+
     if not np.issubdtype(indices.dtype, np.integer):
         raise TypeError("`indices` must be an integer array")
 
@@ -3249,6 +3253,10 @@ def put_along_axis(
         if a.ndim > 1:
             # TODO call a=a.flat when flat is implemented
             raise ValueError("a.ndim>1 case is not supported when axis=None")
+        if (indices.size == 0) or (values.size == 0):
+            return
+        if values.shape != indices.shape:
+            values = values._wrap(indices.size)
     else:
         computed_axis = normalize_axis_index(axis, a.ndim)
 
@@ -3504,6 +3512,50 @@ def put(
     Multiple GPUs, Multiple CPUs
     """
     a.put(indices=indices, values=values, mode=mode)
+
+
+@add_boilerplate("a", "mask", "values")
+def putmask(a: ndarray, mask: ndarray, values: ndarray) -> None:
+    """
+    putmask(a, mask, values)
+    Changes elements of an array based on conditional and input values.
+    Sets ``a.flat[n] = values[n]`` for each n where ``mask.flat[n]==True``.
+    If `values` is not the same size as `a` and `mask` then it will repeat.
+    This gives behavior different from ``a[mask] = values``.
+
+    Parameters
+    ----------
+    a : ndarray
+        Target array.
+    mask : array_like
+        Boolean mask array. It has to be the same shape as `a`.
+    values : array_like
+        Values to put into `a` where `mask` is True. If `values` is smaller
+        than `a` it will be repeated.
+
+    See Also
+    --------
+    numpy.putmask
+
+    Availability
+    ------------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not a.shape == mask.shape:
+        raise ValueError("mask and data must be the same size")
+
+    mask = mask._warn_and_convert(np.dtype(bool))
+
+    if a.dtype != values.dtype:
+        values = values._warn_and_convert(a.dtype)
+
+    try:
+        np.broadcast_shapes(values.shape, a.shape)
+    except ValueError:
+        values = values._wrap(a.size)
+        values = values.reshape(a.shape)
+
+    a._thunk.putmask(mask._thunk, values._thunk)
 
 
 @add_boilerplate("a", "val")
@@ -4013,7 +4065,8 @@ def _contract(
         raise ValueError("Unknown mode labels on output")
 
     # Handle types
-    if dtype is not None:
+    makes_view = b is None and len(a_modes) == len(out_modes)
+    if dtype is not None and not makes_view:
         c_dtype = dtype
     elif out is not None:
         c_dtype = out.dtype
@@ -5815,8 +5868,12 @@ def sort_complex(a: ndarray) -> ndarray:
     # force complex result upon return
     if np.issubdtype(result.dtype, np.complexfloating):
         return result
-    else:
+    elif (
+        np.issubdtype(result.dtype, np.integer) and result.dtype.itemsize <= 2
+    ):
         return result.astype(np.complex64, copy=True)
+    else:
+        return result.astype(np.complex128, copy=True)
 
 
 # partition
@@ -6189,6 +6246,8 @@ def bincount(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if x.ndim != 1:
+        raise ValueError("the input array must be 1-dimensional")
     if weights is not None:
         if weights.shape != x.shape:
             raise ValueError("weights array must be same shape for bincount")
@@ -6196,11 +6255,16 @@ def bincount(
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if x.dtype.kind != "i" and x.dtype.kind != "u":
+    if x.dtype.kind != "i":
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:
         raise ValueError("'minlength' must not be negative")
-    minlength = _builtin_max(minlength, int(amax(x)) + 1)
+    # Note that the following are non-blocking operations,
+    # though passing their results to `int` is blocking
+    max_val, min_val = amax(x), amin(x)
+    if int(min_val) < 0:
+        raise ValueError("the input array must have no negative elements")
+    minlength = _builtin_max(minlength, int(max_val) + 1)
     if x.size == 1:
         # Handle the special case of 0-D array
         if weights is None:

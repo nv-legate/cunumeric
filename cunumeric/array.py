@@ -31,6 +31,7 @@ from typing import (
     cast,
 )
 
+import legate.core.types as ty
 import numpy as np
 import pyarrow  # type: ignore
 from legate.core import Array
@@ -187,6 +188,21 @@ def _convert_all_to_numpy(obj: Any) -> Any:
         return obj
 
 
+# FIXME: we can't give an accurate return type as mypy thinks
+# the pyarrow import can be ignored, and can't override the check
+# either, because no-any-unimported needs Python >= 3.10. We can
+# fix it once we bump up the Python version
+def convert_numpy_dtype_to_pyarrow(dtype: np.dtype[Any]) -> Any:
+    if dtype.kind != "c":
+        return pyarrow.from_numpy_dtype(dtype)
+    elif dtype == np.complex64:
+        return ty.complex64
+    elif dtype == np.complex128:
+        return ty.complex128
+    else:
+        raise ValueError(f"Unsupported NumPy dtype: {dtype}")
+
+
 @clone_np_ndarray
 class ndarray:
     def __init__(
@@ -269,7 +285,7 @@ class ndarray:
             # All of our thunks implement the Legate Store interface
             # so we just need to convert our type and stick it in
             # a Legate Array
-            arrow_type = pyarrow.from_numpy_dtype(self.dtype)
+            arrow_type = convert_numpy_dtype_to_pyarrow(self.dtype)
             # If the thunk is an eager array, we need to convert it to a
             # deferred array so we can extract a legate store
             deferred_thunk = runtime.to_deferred_array(self._thunk)

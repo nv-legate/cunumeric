@@ -25,7 +25,7 @@ from legate.core import (
     legion,
 )
 
-import cunumeric as lg
+import cunumeric as num
 
 tile_shape = (4, 7)
 colors = (5, 3)
@@ -80,7 +80,7 @@ def _ingest(custom_partitioning, custom_sharding):
         get_buffer,
         get_local_colors if custom_sharding else None,
     )
-    return lg.array(tab)
+    return num.array(tab)
 
 
 @pytest.mark.parametrize("custom_sharding", [True, False])
@@ -89,10 +89,10 @@ def test(custom_partitioning, custom_sharding):
     size = 1
     for d in shape:
         size *= d
-    np_arr = np.arange(size).reshape(shape)
-    lg_arr = _ingest(custom_partitioning, custom_sharding)
-    assert np.array_equal(np_arr, lg_arr)
-    assert np.array_equal(np_arr, lg_arr * 1.0)  # force a copy
+    a_np = np.arange(size).reshape(shape)
+    a_num = _ingest(custom_partitioning, custom_sharding)
+    assert np.array_equal(a_np, a_num)
+    assert np.array_equal(a_np, a_num * 1.0)  # force a copy
 
 
 if __name__ == "__main__":
