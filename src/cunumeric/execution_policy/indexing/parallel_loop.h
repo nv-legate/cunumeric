@@ -21,8 +21,7 @@
 namespace cunumeric {
 
 template <VariantKind KIND, class Tag = void>
-struct ParallelLoopPolicy {
-};
+struct ParallelLoopPolicy {};
 
 template <class Tag>
 struct ParallelLoopPolicy<VariantKind::CPU, Tag> {
