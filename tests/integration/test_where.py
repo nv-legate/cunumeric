@@ -29,20 +29,22 @@ CONDITIONS = [
 
 
 def test_basic():
-    anp = np.array([1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0])
-    a = num.array(anp)
-    assert num.array_equal(np.where(anp), num.where(a))
+    a_np = np.array([1, 54, 4, 4, 0, 45, 5, 58, 0, 9, 0, 4, 0, 0, 0, 5, 0])
+    a_num = num.array(a_np)
+    assert num.array_equal(np.where(a_np), num.where(a_num))
 
 
 @pytest.mark.parametrize("cond", CONDITIONS, ids=str)
 def test_condition(cond):
-    anp = np.array(cond)
-    xnp = np.array([[1, 2], [3, 4]])
-    ynp = np.array([[9, 8], [7, 6]])
-    a = num.array(anp)
-    x = num.array(xnp)
-    y = num.array(ynp)
-    assert np.array_equal(np.where(anp, xnp, ynp), num.where(a, x, y))
+    a_np = np.array(cond)
+    x_np = np.array([[1, 2], [3, 4]])
+    y_np = np.array([[9, 8], [7, 6]])
+    a_num = num.array(a_np)
+    x_num = num.array(x_np)
+    y_num = num.array(y_np)
+    assert np.array_equal(
+        np.where(a_np, x_np, y_np), num.where(a_num, x_num, y_num)
+    )
 
 
 @pytest.mark.parametrize(
@@ -51,19 +53,21 @@ def test_condition(cond):
     ids=lambda shape_a: f"(shape_a={shape_a})",
 )
 def test_broadcast(shape_a):
-    a = mk_seq_array(num, shape_a)
-    anp = mk_seq_array(np, shape_a)
-    cond = a > 5
-    cond_np = anp > 5
+    a_num = mk_seq_array(num, shape_a)
+    a_np = mk_seq_array(np, shape_a)
+    cond_num = a_num > 5
+    cond_np = a_np > 5
 
     shape_x = (3, 3)
-    x = mk_seq_array(num, shape_x)
-    xnp = mk_seq_array(np, shape_x)
+    x_num = mk_seq_array(num, shape_x)
+    x_np = mk_seq_array(np, shape_x)
     shape_y = (1, 3)
-    y = mk_seq_array(num, shape_y) * 10
-    ynp = mk_seq_array(np, shape_y) * 10
+    y_num = mk_seq_array(num, shape_y) * 10
+    y_np = mk_seq_array(np, shape_y) * 10
 
-    assert np.array_equal(np.where(cond_np, xnp, ynp), num.where(cond, x, y))
+    assert np.array_equal(
+        np.where(cond_np, x_np, y_np), num.where(cond_num, x_num, y_num)
+    )
 
 
 @pytest.mark.xfail
@@ -72,9 +76,9 @@ def test_condition_none():
     # In cuNumeric, raises AttributeError:
     # 'NoneType' object has no attribute '_maybe_convert'
     x = 0
-    ynp = np.array([1, 2])
-    y = num.array(ynp)
-    assert np.array_equal(np.where(None, x, ynp), num.where(None, x, y))
+    y_np = np.array([1, 2])
+    y_num = num.array(y_np)
+    assert np.array_equal(np.where(None, x, y_np), num.where(None, x, y_num))
 
 
 @pytest.mark.xfail
@@ -92,31 +96,31 @@ def test_x_y_none(values):
     # In cuNumeric, raises ValueError: both 'x' and 'y' parameters
     # must be specified together for where
     cond = [True, False]
-    anp = np.array(cond)
-    a = num.array(anp)
+    a_np = np.array(cond)
+    a_num = num.array(a_np)
     x, y = values
-    assert np.array_equal(np.where(anp, x, y), num.where(a, x, y))
+    assert np.array_equal(np.where(a_np, x, y), num.where(a_num, x, y))
 
 
 def test_x_y_type():
-    xnp = np.arange(4, dtype=np.int32)
-    ynp = np.arange(4, dtype=np.float32) * 2.2
-    x = num.array(xnp)
-    y = num.array(ynp)
+    x_np = np.arange(4, dtype=np.int32)
+    y_np = np.arange(4, dtype=np.float32) * 2.2
+    x_num = num.array(x_np)
+    y_num = num.array(y_np)
 
-    res_np = np.where(xnp > 2.0, xnp, ynp)
-    res = num.where(x > 2.0, x, y)
+    res_np = np.where(x_np > 2.0, x_np, y_np)
+    res_num = num.where(x_num > 2.0, x_num, y_num)
 
-    assert np.array_equal(res_np, res)
-    assert res_np.dtype == res.dtype
+    assert np.array_equal(res_np, res_num)
+    assert res_np.dtype == res_num.dtype
 
 
 def test_condition_empty():
-    cond = num.array([])
+    cond_num = num.array([])
     cond_np = np.array([])
     x = 0
     y = 1
-    assert np.array_equal(np.where(cond_np, x, y), num.where(cond, x, y))
+    assert np.array_equal(np.where(cond_np, x, y), num.where(cond_num, x, y))
 
 
 class TestWhereErrors:
@@ -152,9 +156,9 @@ INPUT = [
 
 @pytest.mark.parametrize("input", INPUT, ids=str)
 def test_argwhere(input):
-    anp = np.array(input)
-    a = num.array(anp)
-    assert np.array_equal(np.argwhere(anp), num.argwhere(a))
+    a_np = np.array(input)
+    a_num = num.array(a_np)
+    assert np.array_equal(np.argwhere(a_np), num.argwhere(a_num))
 
 
 @pytest.mark.xfail
@@ -166,9 +170,9 @@ def test_argwhere_none():
 
 
 def test_argwhere_empty():
-    anp = np.array([])
-    a = num.array(anp)
-    assert np.array_equal(np.argwhere(anp), num.argwhere(a))
+    a_np = np.array([])
+    a_num = num.array(a_np)
+    assert np.array_equal(np.argwhere(a_np), num.argwhere(a_num))
 
 
 def test_argwhere_scalar():
