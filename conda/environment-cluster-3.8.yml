@@ -9,7 +9,7 @@ dependencies:
   - nccl
   - make
   - zlib
-  - cmake>=3.24
+  - cmake==3.24
   - ninja
   - sysroot_linux-64==2.17 # [linux64]
   - setuptools>=60
