@@ -541,6 +541,10 @@ class ndarray:
         --------
         flatten : Return a copy of the array collapsed into one dimension.
 
+        Availability
+        --------
+        Single CPU
+
         """
         return self.__array__().flat
 
@@ -2645,7 +2649,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Multiple CPUs
+        Single CPU
 
         """
         self.__array__().dump(file=file)
@@ -3645,7 +3649,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Multiple CPUs
+        Single CPU
 
         """
         return self.__array__().tofile(fid=fid, sep=sep, format=format)
@@ -3817,11 +3821,45 @@ class ndarray:
     def view(
         self,
         dtype: Union[npt.DTypeLike, None] = None,
-        type: Union[Any, None] = None,
+        type: Union[type, None] = None,
     ) -> ndarray:
+        """
+        New view of array with the same data.
+
+        Parameters
+        ----------
+        dtype : data-type or ndarray sub-class, optional
+            Data-type descriptor of the returned view, e.g., float32 or int16.
+            Omitting it results in the view having the same data-type as the
+            input array. This argument can also be specified as an ndarray
+            sub-class, which then specifies the type of the returned object
+            (this is equivalent to setting the ``type`` parameter).
+        type : ndarray sub-class, optional
+            Type of the returned view, e.g., ndarray or matrix. Again, omission
+            of the parameter results in type preservation.
+
+        Notes
+        -----
+        cuNumeric does not currently support type reinterpretation, or
+        conversion to ndarray sub-classes; use :func:`ndarray.__array__()` to
+        convert to `numpy.ndarray`.
+
+        See Also
+        --------
+        numpy.ndarray.view
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
         if dtype is not None and dtype != self.dtype:
             raise NotImplementedError(
                 "cuNumeric does not currently support type reinterpretation"
+            )
+        if type is not None:
+            raise NotImplementedError(
+                "cuNumeric does not currently support conversion to ndarray "
+                "sub-classes; use __array__() to convert to numpy.ndarray"
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
