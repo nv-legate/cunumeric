@@ -44,8 +44,7 @@ constexpr decltype(auto) op_dispatch(ConvertCode nan_op, Functor f, Fnargs&&... 
 }
 
 template <ConvertCode NAN_OP, legate::LegateTypeCode DST_TYPE, legate::LegateTypeCode SRC_TYPE>
-struct ConvertOp {
-};
+struct ConvertOp {};
 
 template <legate::LegateTypeCode DST_TYPE, legate::LegateTypeCode SRC_TYPE>
 struct ConvertOp<ConvertCode::NOOP, DST_TYPE, SRC_TYPE> {

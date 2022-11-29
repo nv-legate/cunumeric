@@ -176,7 +176,7 @@ def iscomplexobj(x: Union[ndarray, npt.NDArray[Any]]) -> bool:
 
     Availability
     --------
-    Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     if isinstance(x, ndarray):
         return x.dtype.kind == "c"
@@ -244,7 +244,7 @@ def isrealobj(x: ndarray) -> bool:
 
     Availability
     --------
-    Single CPU
+    Multiple GPUs, Multiple CPUs
     """
     return not iscomplexobj(x)
 
@@ -275,7 +275,7 @@ def isscalar(x: Union[ndarray, npt.NDArray[Any]]) -> bool:
 
     Availability
     --------
-    Single CPU
+    Multiple GPUs, Multiple CPUs
     """
 
     # Since the input can be any value, we can't just convert it to cunumeric
