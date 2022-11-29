@@ -80,6 +80,109 @@ def test_solve_corner_cases():
     assert allclose(b, num.matmul(a, out))
 
 
+def test_solve_b_is_empty():
+    a = num.random.rand(1, 1)
+    b = num.atleast_2d([])
+
+    out = num.linalg.solve(a, b)
+    assert np.array_equal(b, out)
+
+
+def test_solve_dtype_int():
+    n = 8
+    a = np.random.randint(0, 10, size=(n, n), dtype="i4")
+    b = np.random.randint(0, 10, size=(n,), dtype="i4")
+
+    out = num.linalg.solve(a, b)
+
+    rtol = RTOL[out.dtype]
+    atol = ATOL[out.dtype]
+    assert allclose(
+        b, num.matmul(a, out), rtol=rtol, atol=atol, check_dtype=False
+    )
+
+
+def test_solve_with_output():
+    n = 8
+    a = np.random.rand(n, n).astype("f")
+    b = np.random.rand(n).astype("f")
+    output = np.zeros((n,)).astype("f")
+
+    out = num.linalg.solve(a, b, out=output)
+
+    rtol = RTOL[out.dtype]
+    atol = ATOL[out.dtype]
+    assert allclose(
+        b, num.matmul(a, out), rtol=rtol, atol=atol, check_dtype=False
+    )
+    assert allclose(
+        b, num.matmul(a, output), rtol=rtol, atol=atol, check_dtype=False
+    )
+
+
+class TestSolveErrors:
+    def setup_method(self):
+        self.n = 3
+        self.a = num.random.rand(self.n, self.n).astype("d")
+        self.b = num.random.rand(self.n).astype("d")
+
+    def test_a_bad_dim(self):
+        a = num.random.rand(self.n).astype("d")
+        msg = "Array must be at least two-dimensional"
+        with pytest.raises(num.linalg.LinAlgError, match=msg):
+            num.linalg.solve(a, self.b)
+
+        a = 10
+        msg = "Array must be at least two-dimensional"
+        with pytest.raises(num.linalg.LinAlgError, match=msg):
+            num.linalg.solve(a, self.b)
+
+    def test_b_bad_dim(self):
+        b = 10
+        msg = "Array must be at least one-dimensional"
+        with pytest.raises(num.linalg.LinAlgError, match=msg):
+            num.linalg.solve(self.a, b)
+
+    def test_a_bad_dtype_float16(self):
+        a = self.a.astype("e")
+        msg = "array type float16 is unsupported in linalg"
+        with pytest.raises(TypeError, match=msg):
+            num.linalg.solve(a, self.b)
+
+    def test_b_bad_dtype_float16(self):
+        b = self.b.astype("e")
+        msg = "array type float16 is unsupported in linalg"
+        with pytest.raises(TypeError, match=msg):
+            num.linalg.solve(self.a, b)
+
+    def test_a_last_2_dims_not_square(self):
+        a = num.random.rand(self.n, self.n + 1).astype("d")
+        msg = "Last 2 dimensions of the array must be square"
+        with pytest.raises(num.linalg.LinAlgError, match=msg):
+            num.linalg.solve(a, self.b)
+
+    def test_a_b_mismatched_shape(self):
+        b = num.random.rand(self.n + 1).astype("d")
+        with pytest.raises(ValueError):
+            num.linalg.solve(self.a, b)
+
+        b = num.random.rand(self.n + 1, self.n).astype("d")
+        with pytest.raises(ValueError):
+            num.linalg.solve(self.a, b)
+
+    def test_output_mismatched_shape(self):
+        output = num.zeros((self.n + 1,)).astype("d")
+        msg = "Output shape mismatch"
+        with pytest.raises(ValueError, match=msg):
+            num.linalg.solve(self.a, self.b, out=output)
+
+    def test_output_mismatched_dtype(self):
+        output = num.zeros((self.n,)).astype("f")
+        msg = "Output type mismatch"
+        with pytest.raises(TypeError, match=msg):
+            num.linalg.solve(self.a, self.b, out=output)
+
+
 if __name__ == "__main__":
     import sys
 
