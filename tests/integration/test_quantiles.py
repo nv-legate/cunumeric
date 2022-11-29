@@ -46,7 +46,7 @@ import cunumeric as cu
 )
 @pytest.mark.parametrize("keepdims", (False, True))
 @pytest.mark.parametrize("overwrite_input", (False, True))
-def test_quantiles_1(str_method, axes, qin_arr, keepdims, overwrite_input):
+def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
     eps = 1.0e-8
     arr = np.ndarray(
         shape=(2, 3, 4),
@@ -152,7 +152,7 @@ def test_quantiles_1(str_method, axes, qin_arr, keepdims, overwrite_input):
 )
 @pytest.mark.parametrize("axes", (0, 1))
 @pytest.mark.parametrize("keepdims", (False, True))
-def test_quantiles_2(str_method, ls_in, axes, keepdims):
+def test_nd_quantile(str_method, ls_in, axes, keepdims):
     eps = 1.0e-8
 
     arr = np.array(ls_in)
@@ -211,7 +211,7 @@ def test_quantiles_2(str_method, ls_in, axes, keepdims):
     ),
 )
 @pytest.mark.parametrize("keepdims", (False, True))
-def test_quantiles_3(str_method, axes, qs_arr, keepdims):
+def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
     eps = 1.0e-8
     original_shape = (2, 3, 4)
     arr = np.ndarray(
@@ -294,6 +294,94 @@ def test_quantiles_3(str_method, axes, qs_arr, keepdims):
         qs_arr,
         axis=axes,
         # out=np_q_out,
+        method=str_method,
+        keepdims=keepdims,
+    )
+    # print(np_q_out)
+
+    assert cu.all(q_out.shape == np_q_out.shape)
+    assert q_out.dtype == np_q_out.dtype
+
+    assert allclose(np_q_out, q_out, atol=eps)
+
+
+@pytest.mark.parametrize(
+    "str_method",
+    (
+        "inverted_cdf",
+        "averaged_inverted_cdf",
+        "closest_observation",
+        "interpolated_inverted_cdf",
+        "hazen",
+        "weibull",
+        "linear",
+        "median_unbiased",
+        "normal_unbiased",
+        "lower",
+        "higher",
+        "midpoint",
+        "nearest",
+    ),
+)
+@pytest.mark.parametrize(
+    "qin_arr", (0.5, [0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49, 0.5])
+)
+@pytest.mark.parametrize("keepdims", (False, True))
+def test_quantiles_axis_none(str_method, qin_arr, keepdims):
+    eps = 1.0e-8
+    arr = np.ndarray(
+        shape=(2, 3, 4),
+        buffer=np.array(
+            [
+                1,
+                2,
+                2,
+                40,
+                1,
+                1,
+                2,
+                1,
+                0,
+                10,
+                3,
+                3,
+                40,
+                15,
+                3,
+                7,
+                5,
+                4,
+                7,
+                3,
+                5,
+                1,
+                0,
+                9,
+            ]
+        ),
+        dtype=int,
+    )
+
+    if cu.isscalar(qin_arr):
+        qs_arr = qin_arr
+    else:
+        qs_arr = np.array(qin_arr)
+
+    # cunumeric:
+    # print("cunumeric axis = %d:"%(axis))
+    q_out = cu.quantile(
+        arr,
+        qs_arr,
+        method=str_method,
+        keepdims=keepdims,
+    )
+    # print(q_out)
+
+    # np:
+    # print("numpy axis = %d:"%(axis))
+    np_q_out = np.quantile(
+        arr,
+        qs_arr,
         method=str_method,
         keepdims=keepdims,
     )
