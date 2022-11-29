@@ -6574,7 +6574,7 @@ def quantile_impl(
         if keepdims:
             remaining_shape = tuple(ones(ndims, dtype=int))
         else:
-            remaining_shape = ()    # only `q_arr` dictates shape;
+            remaining_shape = ()  # only `q_arr` dictates shape;
         # quantile applied to `arr` seen as 1D;
     else:
         n = arr.shape[axis]
