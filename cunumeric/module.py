@@ -6491,7 +6491,6 @@ def is_diff(arr1, arr2):
 #
 def in_place_interp(gamma, arr_lvals, arr_rvals, result):
     result[...] = (1.0 - gamma) * arr_lvals + gamma * arr_rvals
-    return ()
 
 
 # for the case when axis = tuple (non-singleton)
