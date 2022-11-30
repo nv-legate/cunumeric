@@ -6569,8 +6569,7 @@ def quantile_impl(
 
     if axis is None:
         n = arr.size
-        # BUG: depends on arr dimension, if keepdims = True:
-        #
+
         if keepdims:
             remaining_shape = tuple(ones(len(axes_set), dtype=int))
         else:
@@ -6640,29 +6639,39 @@ def quantile_impl(
             # extract values at index=right_pos;
             arr_1D_rvals = arr.take(right_pos, axis)
 
-        # vectorized interpolation: the main source of parallelism
-        # (the other one being on `q` inputs; ignored for now)
+        # axis == None, keepdims == False results in arr_1D_*vals.shape = ()
+        # which would result in incorrect in_place_interp();
+        # hence this case needs special treatment;
         #
-        # non-flattening approach:
-        #
-        if len(index) == 0:
-            # in-place update of qs_all:
-            #
-            in_place_interp(
-                gamma,
-                arr_1D_lvals.reshape(qs_all.shape),
-                arr_1D_rvals.reshape(qs_all.shape),
-                qs_all,
-            )
+        if (axis is None) and (keepdims is False):
+            if len(index) == 0:
+                qs_all[...] = (1.0 - gamma) * arr_1D_lvals + gamma * arr_1D_rvals
+            else:
+                qs_all[index] = (1.0 - gamma) * arr_1D_lvals + gamma * arr_1D_rvals
         else:
-            # in-place update of qs_all:
+            # vectorized interpolation: the main source of parallelism
+            # (the other one being on `q` inputs; ignored for now)
             #
-            in_place_interp(
-                gamma,
-                arr_1D_lvals.reshape(qs_all[index].shape),
-                arr_1D_rvals.reshape(qs_all[index].shape),
-                qs_all[index],
-            )
+            # non-flattening approach:
+            #
+            if len(index) == 0:
+                # in-place update of qs_all:
+                #
+                in_place_interp(
+                    gamma,
+                    arr_1D_lvals.reshape(qs_all.shape),
+                    arr_1D_rvals.reshape(qs_all.shape),
+                    qs_all,
+                )
+            else:
+                # in-place update of qs_all:
+                #
+                in_place_interp(
+                    gamma,
+                    arr_1D_lvals.reshape(qs_all[index].shape),
+                    arr_1D_rvals.reshape(qs_all[index].shape),
+                    qs_all[index],
+                )
 
     return qs_all
 
