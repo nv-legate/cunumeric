@@ -110,7 +110,7 @@ def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
     )
     # print(np_q_out)
 
-    assert cu.all(q_out.shape == np_q_out.shape)
+    assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
 
     assert allclose(np_q_out, q_out, atol=eps)
@@ -176,7 +176,7 @@ def test_nd_quantile(str_method, ls_in, axes, keepdims):
     )
     # print(np_q_out)
 
-    assert cu.all(q_out.shape == np_q_out.shape)
+    assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
 
     assert allclose(np_q_out, q_out, atol=eps)
@@ -299,7 +299,7 @@ def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
     )
     # print(np_q_out)
 
-    assert cu.all(q_out.shape == np_q_out.shape)
+    assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
 
     assert allclose(np_q_out, q_out, atol=eps)
@@ -387,7 +387,7 @@ def test_quantiles_axis_none(str_method, qin_arr, keepdims):
     )
     # print(np_q_out)
 
-    assert cu.all(q_out.shape == np_q_out.shape)
+    assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
 
     assert allclose(np_q_out, q_out, atol=eps)
