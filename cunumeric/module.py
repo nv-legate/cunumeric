@@ -6645,9 +6645,13 @@ def quantile_impl(
         #
         if (axis is None) and (keepdims is False):
             if len(index) == 0:
-                qs_all[...] = (1.0 - gamma) * arr_1D_lvals + gamma * arr_1D_rvals
+                qs_all[...] = (
+                    1.0 - gamma
+                ) * arr_1D_lvals + gamma * arr_1D_rvals
             else:
-                qs_all[index] = (1.0 - gamma) * arr_1D_lvals + gamma * arr_1D_rvals
+                qs_all[index] = (
+                    1.0 - gamma
+                ) * arr_1D_lvals + gamma * arr_1D_rvals
         else:
             # vectorized interpolation: the main source of parallelism
             # (the other one being on `q` inputs; ignored for now)
