@@ -71,21 +71,19 @@ def test_matrix_power_empty_matrix(exp):
 class TestMatrixPowerErrors:
     @pytest.mark.parametrize("ndim", (0, 1), ids=lambda ndim: f"(ndim={ndim})")
     def test_matrix_ndim_smaller_than_two(self, ndim):
-        # In Numpy, it raises numpy.linalg.LinAlgError
         shape = (3,) * ndim
         a_num = mk_0to1_array(num, shape)
         msg = "Expected at least 2d array"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(num.linalg.LinAlgError, match=msg):
             num.linalg.matrix_power(a_num, 1)
 
     @pytest.mark.parametrize(
         "shape", ((2, 1), (2, 2, 1)), ids=lambda shape: f"(shape={shape})"
     )
     def test_matrix_not_square(self, shape):
-        # In Numpy, it raises numpy.linalg.LinAlgError
         a_num = mk_0to1_array(num, shape)
         msg = "Last 2 dimensions of the array must be square"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(num.linalg.LinAlgError, match=msg):
             num.linalg.matrix_power(a_num, 1)
 
     @pytest.mark.parametrize(

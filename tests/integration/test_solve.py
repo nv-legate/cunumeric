@@ -88,17 +88,18 @@ def test_solve_b_is_empty():
     assert np.array_equal(b, out)
 
 
-def test_solve_dtype_int():
-    n = 8
-    a = np.random.randint(0, 10, size=(n, n), dtype="i4")
-    b = np.random.randint(0, 10, size=(n,), dtype="i4")
-
-    out = num.linalg.solve(a, b)
+@pytest.mark.parametrize("dtype", (np.int32, np.int64))
+def test_solve_dtype_int(dtype):
+    a = [[1, 4, 5], [2, 3, 1], [9, 5, 2]]
+    b = [1, 2, 3]
+    a_num = num.array(a).astype(dtype)
+    b_num = num.array(b).astype(dtype)
+    out = num.linalg.solve(a_num, b_num)
 
     rtol = RTOL[out.dtype]
     atol = ATOL[out.dtype]
     assert allclose(
-        b, num.matmul(a, out), rtol=rtol, atol=atol, check_dtype=False
+        b_num, num.matmul(a_num, out), rtol=rtol, atol=atol, check_dtype=False
     )
 
 
@@ -143,14 +144,26 @@ class TestSolveErrors:
         with pytest.raises(num.linalg.LinAlgError, match=msg):
             num.linalg.solve(self.a, b)
 
+    def test_a_dim_greater_than_two(self):
+        a = num.random.rand(self.n, self.n, self.n).astype("d")
+        b = num.random.rand(self.n, self.n).astype("d")
+        with pytest.raises(NotImplementedError):
+            num.linalg.solve(a, b)
+
+    def test_b_dim_greater_than_two(self):
+        a = num.random.rand(self.n, self.n).astype("d")
+        b = num.random.rand(self.n, self.n, self.n).astype("d")
+        with pytest.raises(NotImplementedError):
+            num.linalg.solve(a, b)
+
     def test_a_bad_dtype_float16(self):
-        a = self.a.astype("e")
+        a = self.a.astype(np.float16)
         msg = "array type float16 is unsupported in linalg"
         with pytest.raises(TypeError, match=msg):
             num.linalg.solve(a, self.b)
 
     def test_b_bad_dtype_float16(self):
-        b = self.b.astype("e")
+        b = self.b.astype(np.float16)
         msg = "array type float16 is unsupported in linalg"
         with pytest.raises(TypeError, match=msg):
             num.linalg.solve(self.a, b)
@@ -181,6 +194,12 @@ class TestSolveErrors:
         msg = "Output type mismatch"
         with pytest.raises(TypeError, match=msg):
             num.linalg.solve(self.a, self.b, out=output)
+
+    def test_a_singular_matrix(self):
+        a = num.zeros((self.n, self.n)).astype("d")
+        msg = "Singular matrix"
+        with pytest.raises(num.linalg.LinAlgError, match=msg):
+            num.linalg.solve(a, self.b)
 
 
 if __name__ == "__main__":
