@@ -393,6 +393,41 @@ def test_quantiles_axis_none(str_method, qin_arr, keepdims):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
+@pytest.mark.parametrize(
+    "str_method",
+    (
+        "inverted_cdf",
+        "averaged_inverted_cdf",
+        "closest_observation",
+        "interpolated_inverted_cdf",
+        "hazen",
+        "weibull",
+        "linear",
+        "median_unbiased",
+        "normal_unbiased",
+        "lower",
+        "higher",
+        "midpoint",
+        "nearest",
+    ),
+)
+@pytest.mark.parametrize(
+    "qin_arr", (0.5, [0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49, 0.5])
+)
+@pytest.mark.parametrize("axes", (None, 0))
+def test_random_inlined(str_method, qin_arr, axes):
+    eps = 1.0e-8
+    arr = cu.random.random((3, 4, 5))
+
+    q_out = cu.quantile(arr, qin_arr, method=str_method, axis=axes)
+    np_q_out = np.quantile(arr, qin_arr, method=str_method, axis=axes)
+
+    assert q_out.shape == np_q_out.shape
+    assert q_out.dtype == np_q_out.dtype
+
+    assert allclose(np_q_out, q_out, atol=eps)
+
+
 if __name__ == "__main__":
     import sys
 
