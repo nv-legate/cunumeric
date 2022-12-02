@@ -6925,11 +6925,15 @@ def quantile(
     ]:
         to_dtype = arr.dtype
     else:
-        to_dtype = (
-            arr.dtype
-            if (arr.dtype == np.dtype("float128"))
-            else np.dtype("float64")
-        )
+        to_dtype = np.dtype("float64")
+
+        # in case dtype("float128") becomes supported:
+        #
+        # to_dtype = (
+        #     arr.dtype
+        #     if (arr.dtype == np.dtype("float128"))
+        #     else np.dtype("float64")
+        # )
 
     res = quantile_impl(
         arr,
