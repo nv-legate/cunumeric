@@ -22,23 +22,27 @@ import cunumeric as num
 SIZES = (8, 9, 255)
 
 RTOL = {
-    np.dtype("f"): 1e-1,
-    np.dtype("F"): 1e-1,
-    np.dtype("d"): 1e-5,
-    np.dtype("D"): 1e-5,
+    np.dtype(np.float32): 1e-1,
+    np.dtype(np.complex64): 1e-1,
+    np.dtype(np.float64): 1e-5,
+    np.dtype(np.complex128): 1e-5,
 }
 
 ATOL = {
-    np.dtype("f"): 1e-3,
-    np.dtype("F"): 1e-3,
-    np.dtype("d"): 1e-8,
-    np.dtype("D"): 1e-8,
+    np.dtype(np.float32): 1e-3,
+    np.dtype(np.complex64): 1e-3,
+    np.dtype(np.float64): 1e-8,
+    np.dtype(np.complex128): 1e-8,
 }
 
 
 @pytest.mark.parametrize("n", SIZES)
-@pytest.mark.parametrize("a_dtype", ("f", "d", "F", "D"))
-@pytest.mark.parametrize("b_dtype", ("f", "d", "F", "D"))
+@pytest.mark.parametrize(
+    "a_dtype", (np.float32, np.float64, np.complex64, np.complex128)
+)
+@pytest.mark.parametrize(
+    "b_dtype", (np.float32, np.float64, np.complex64, np.complex128)
+)
 def test_solve_1d(n, a_dtype, b_dtype):
     a = np.random.rand(n, n).astype(a_dtype)
     b = np.random.rand(n).astype(b_dtype)
@@ -53,8 +57,12 @@ def test_solve_1d(n, a_dtype, b_dtype):
 
 
 @pytest.mark.parametrize("n", SIZES)
-@pytest.mark.parametrize("a_dtype", ("f", "d", "F", "D"))
-@pytest.mark.parametrize("b_dtype", ("f", "d", "F", "D"))
+@pytest.mark.parametrize(
+    "a_dtype", (np.float32, np.float64, np.complex64, np.complex128)
+)
+@pytest.mark.parametrize(
+    "b_dtype", (np.float32, np.float64, np.complex64, np.complex128)
+)
 def test_solve_2d(n, a_dtype, b_dtype):
     a = np.random.rand(n, n).astype(a_dtype)
     b = np.random.rand(n, n + 2).astype(b_dtype)
@@ -105,9 +113,9 @@ def test_solve_dtype_int(dtype):
 
 def test_solve_with_output():
     n = 8
-    a = np.random.rand(n, n).astype("f")
-    b = np.random.rand(n).astype("f")
-    output = np.zeros((n,)).astype("f")
+    a = np.random.rand(n, n).astype(np.float32)
+    b = np.random.rand(n).astype(np.float32)
+    output = np.zeros((n,)).astype(np.float32)
 
     out = num.linalg.solve(a, b, out=output)
 
@@ -124,11 +132,11 @@ def test_solve_with_output():
 class TestSolveErrors:
     def setup_method(self):
         self.n = 3
-        self.a = num.random.rand(self.n, self.n).astype("d")
-        self.b = num.random.rand(self.n).astype("d")
+        self.a = num.random.rand(self.n, self.n).astype(np.float64)
+        self.b = num.random.rand(self.n).astype(np.float64)
 
     def test_a_bad_dim(self):
-        a = num.random.rand(self.n).astype("d")
+        a = num.random.rand(self.n).astype(np.float64)
         msg = "Array must be at least two-dimensional"
         with pytest.raises(num.linalg.LinAlgError, match=msg):
             num.linalg.solve(a, self.b)
@@ -145,14 +153,14 @@ class TestSolveErrors:
             num.linalg.solve(self.a, b)
 
     def test_a_dim_greater_than_two(self):
-        a = num.random.rand(self.n, self.n, self.n).astype("d")
-        b = num.random.rand(self.n, self.n).astype("d")
+        a = num.random.rand(self.n, self.n, self.n).astype(np.float64)
+        b = num.random.rand(self.n, self.n).astype(np.float64)
         with pytest.raises(NotImplementedError):
             num.linalg.solve(a, b)
 
     def test_b_dim_greater_than_two(self):
-        a = num.random.rand(self.n, self.n).astype("d")
-        b = num.random.rand(self.n, self.n, self.n).astype("d")
+        a = num.random.rand(self.n, self.n).astype(np.float64)
+        b = num.random.rand(self.n, self.n, self.n).astype(np.float64)
         with pytest.raises(NotImplementedError):
             num.linalg.solve(a, b)
 
@@ -169,34 +177,34 @@ class TestSolveErrors:
             num.linalg.solve(self.a, b)
 
     def test_a_last_2_dims_not_square(self):
-        a = num.random.rand(self.n, self.n + 1).astype("d")
+        a = num.random.rand(self.n, self.n + 1).astype(np.float64)
         msg = "Last 2 dimensions of the array must be square"
         with pytest.raises(num.linalg.LinAlgError, match=msg):
             num.linalg.solve(a, self.b)
 
     def test_a_b_mismatched_shape(self):
-        b = num.random.rand(self.n + 1).astype("d")
+        b = num.random.rand(self.n + 1).astype(np.float64)
         with pytest.raises(ValueError):
             num.linalg.solve(self.a, b)
 
-        b = num.random.rand(self.n + 1, self.n).astype("d")
+        b = num.random.rand(self.n + 1, self.n).astype(np.float64)
         with pytest.raises(ValueError):
             num.linalg.solve(self.a, b)
 
     def test_output_mismatched_shape(self):
-        output = num.zeros((self.n + 1,)).astype("d")
+        output = num.zeros((self.n + 1,)).astype(np.float64)
         msg = "Output shape mismatch"
         with pytest.raises(ValueError, match=msg):
             num.linalg.solve(self.a, self.b, out=output)
 
     def test_output_mismatched_dtype(self):
-        output = num.zeros((self.n,)).astype("f")
+        output = num.zeros((self.n,)).astype(np.float32)
         msg = "Output type mismatch"
         with pytest.raises(TypeError, match=msg):
             num.linalg.solve(self.a, self.b, out=output)
 
     def test_a_singular_matrix(self):
-        a = num.zeros((self.n, self.n)).astype("d")
+        a = num.zeros((self.n, self.n)).astype(np.float64)
         msg = "Singular matrix"
         with pytest.raises(num.linalg.LinAlgError, match=msg):
             num.linalg.solve(a, self.b)
