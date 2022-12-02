@@ -6899,6 +6899,9 @@ def quantile(
     else:
         arr = sort(a_rr, axis=real_axis)
 
+    if arr.dtype.kind == "c":
+        raise ValueError("input array cannot be of complex type")
+
     # return type dependency on arr.dtype:
     #
     # it depends on interpolation method;
