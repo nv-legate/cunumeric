@@ -6842,10 +6842,7 @@ def quantile(
     else:
         real_axis = axis
         a_rr = a
-        if axis is None:
-            axes_set = original_shape
-        else:
-            axes_set = [real_axis]
+        axes_set = [real_axis]
 
     # covers both array-like and scalar cases:
     #
