@@ -6561,7 +6561,7 @@ def quantile_impl(
         n = arr.size
 
         if keepdims:
-            remaining_shape = tuple(ones(len(axes_set), dtype=int))
+            remaining_shape = (1,) * len(original_shape)
         else:
             remaining_shape = ()  # only `q_arr` dictates shape;
         # quantile applied to `arr` seen as 1D;
