@@ -6484,15 +6484,6 @@ def is_diff(arr1, arr2):
     )
 
 
-# helper: in-place interpolator:
-# quantile interpolation method to act on vectors,
-# like an axpy call:
-# [gamma](vleft, vright) { return (1-gamma)*vleft + gamma*vright;}
-#
-def in_place_interp(gamma, arr_lvals, arr_rvals, result):
-    result[...] = (1.0 - gamma) * arr_lvals + gamma * arr_rvals
-
-
 # for the case when axis = tuple (non-singleton)
 # reshuffling might have to be done (if tuple is non-consecutive)
 # and the src array must be collapsed along that set of axes
@@ -6638,48 +6629,24 @@ def quantile_impl(
             # extract values at index=right_pos;
             arr_1D_rvals = arr.take(right_pos, axis)
 
-        # axis == None, keepdims == False results in arr_1D_*vals.shape = ()
-        # which would result in incorrect in_place_interp();
-        # hence this case needs special treatment;
+        # vectorized for axis != None;
+        # (non-flattening approach)
         #
-        if (axis is None) and (keepdims is False):
-            if len(index) == 0:
-                qs_all[...] = (
-                    1.0 - gamma
-                ) * arr_1D_lvals + gamma * arr_1D_rvals
-            else:
-                qs_all[index] = (
-                    1.0 - gamma
-                ) * arr_1D_lvals + gamma * arr_1D_rvals
+        if len(index) == 0:
+            qs_all[...] = (
+                (1.0 - gamma) * arr_1D_lvals.reshape(qs_all.shape) +
+                gamma * arr_1D_rvals.reshape(qs_all.shape)
+            )
         else:
-            # vectorized interpolation: the main source of parallelism
-            # (the other one being on `q` inputs; ignored for now)
-            #
-            # non-flattening approach:
-            #
-            if len(index) == 0:
-                # in-place update of qs_all:
-                #
-                in_place_interp(
-                    gamma,
-                    arr_1D_lvals.reshape(qs_all.shape),
-                    arr_1D_rvals.reshape(qs_all.shape),
-                    qs_all,
-                )
-            else:
-                # in-place update of qs_all:
-                #
-                in_place_interp(
-                    gamma,
-                    arr_1D_lvals.reshape(qs_all[index].shape),
-                    arr_1D_rvals.reshape(qs_all[index].shape),
-                    qs_all[index],
-                )
+            qs_all[index] = (
+                (1.0 - gamma) * arr_1D_lvals.reshape(qs_all[index].shape) +
+                gamma * arr_1D_rvals.reshape(qs_all[index].shape)
+            )
 
     return qs_all
 
 
-# Qunatiles
+# Quantiles
 
 
 @add_boilerplate("a")
@@ -6900,7 +6867,7 @@ def quantile(
         arr = sort(a_rr, axis=real_axis)
 
     if arr.dtype.kind == "c":
-        raise ValueError("input array cannot be of complex type")
+        raise TypeError("input array cannot be of complex type")
 
     # return type dependency on arr.dtype:
     #
