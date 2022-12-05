@@ -6234,7 +6234,7 @@ def bincount(
 # arithmetic at this level,
 # (pos, k) are always positive!
 #
-def floor_i(k):
+def floor_i(k: int | float) -> int:
     j = k - 1 if k > 0 else 0
     return int(j)
 
