@@ -6482,8 +6482,8 @@ def nearest(q: float, n: int) -> tuple[float, int]:
 
 # helper: test if array inputs are different:
 #
-def is_diff(arr1, arr2):
-    return len(arr1) != len(arr2) or any(
+def is_diff(arr1: tuple[int, ...], arr2: tuple[int, ...]) -> bool:
+    return len(arr1) != len(arr2) or _builtin_any(
         [x != y for (x, y) in zip(arr1, arr2)]
     )
 
