@@ -114,7 +114,7 @@ def get_arg_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
 
 def get_arg_value_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
     dt = dtype.fields["arg_value"][0].type  # type: ignore [index]
-    return cast(Any, dt)
+    return cast(np.dtype[Any], dt)
 
 
 Modes = Tuple[List[str], List[str], List[str]]

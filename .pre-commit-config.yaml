@@ -1,6 +1,6 @@
 repos:
     - repo: https://github.com/pre-commit/mirrors-mypy
-      rev: 'v0.982'
+      rev: 'v0.991'
       hooks:
         - id: mypy
           language: system
@@ -15,11 +15,11 @@ repos:
       hooks:
             - id: black
     - repo: https://github.com/PyCQA/flake8
-      rev: 5.0.4
+      rev: 6.0.0
       hooks:
             - id: flake8
     - repo: https://github.com/pre-commit/mirrors-clang-format
-      rev: 'v14.0.6'  # Use the sha / tag you want to point at
+      rev: 'v15.0.4'  # Use the sha / tag you want to point at
       hooks:
         - id: clang-format
           files: \.(cu|cuh|h|cc|inl)$

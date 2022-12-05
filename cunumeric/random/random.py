@@ -37,6 +37,10 @@ def seed(init: Union[int, None] = None) -> None:
 
     This function is effective only when cuRAND is NOT used in the build
     and is a no-op otherwise.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
     """
     if init is None:
         init = 0

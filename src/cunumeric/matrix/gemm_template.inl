@@ -28,20 +28,15 @@ template <VariantKind KIND, LegateTypeCode CODE>
 struct GemmImplBody;
 
 template <LegateTypeCode CODE>
-struct support_gemm : std::false_type {
-};
+struct support_gemm : std::false_type {};
 template <>
-struct support_gemm<LegateTypeCode::DOUBLE_LT> : std::true_type {
-};
+struct support_gemm<LegateTypeCode::DOUBLE_LT> : std::true_type {};
 template <>
-struct support_gemm<LegateTypeCode::FLOAT_LT> : std::true_type {
-};
+struct support_gemm<LegateTypeCode::FLOAT_LT> : std::true_type {};
 template <>
-struct support_gemm<LegateTypeCode::COMPLEX64_LT> : std::true_type {
-};
+struct support_gemm<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
 template <>
-struct support_gemm<LegateTypeCode::COMPLEX128_LT> : std::true_type {
-};
+struct support_gemm<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
 
 template <VariantKind KIND>
 struct GemmImpl {

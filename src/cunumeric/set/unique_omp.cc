@@ -28,13 +28,14 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct UniqueImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  std::pair<Buffer<VAL>, size_t> operator()(const AccessorRO<VAL, DIM>& in,
-                                            const Pitches<DIM - 1>& pitches,
-                                            const Rect<DIM>& rect,
-                                            const size_t volume,
-                                            const std::vector<comm::Communicator>& comms,
-                                            const DomainPoint& point,
-                                            const Domain& launch_domain)
+  void operator()(Array& output,
+                  const AccessorRO<VAL, DIM>& in,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const size_t volume,
+                  const std::vector<comm::Communicator>& comms,
+                  const DomainPoint& point,
+                  const Domain& launch_domain)
   {
     const auto max_threads = omp_get_max_threads();
     std::vector<std::set<VAL>> dedup_set(max_threads);
@@ -66,14 +67,9 @@ struct UniqueImplBody<VariantKind::OMP, CODE, DIM> {
     }
 
     auto& final_dedup_set = dedup_set[0];
-    size_t size           = final_dedup_set.size();
+    auto result           = output.create_output_buffer<VAL, 1>(final_dedup_set.size(), true);
     size_t pos            = 0;
-    auto kind   = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    auto result = create_buffer<VAL>(size, kind);
-
     for (auto e : final_dedup_set) result[pos++] = e;
-
-    return std::make_pair(result, size);
   }
 };
 
