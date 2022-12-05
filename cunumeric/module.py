@@ -19,7 +19,7 @@ import operator
 import re
 from collections import Counter
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
+from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast, Iterable
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
@@ -6500,7 +6500,8 @@ def is_diff(arr1: tuple[int, ...], arr2: tuple[int, ...]) -> bool:
 # return: pair: (minimal_index, reshuffled_and_collapsed source array)
 # TODO: check if reshuffling, reshaping is done in-place!
 #
-def reshuffle_reshape(arr, axes_set):
+def reshuffle_reshape(arr: ndarray,
+                      axes_set: Iterable[int]) -> tuple[int, ndarray]:
     ndim = len(arr.shape)
 
     sorted_axes = tuple(sorted(axes_set))
