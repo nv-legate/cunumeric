@@ -6251,7 +6251,7 @@ def floor_i(k: int | float) -> int:
 # q = quantile input \in [0, 1]
 # n = sizeof(array)
 #
-def inverted_cdf(q, n):
+def inverted_cdf(q: float, n: int) -> tuple[float, int]:
     pos = q * n
     k = math.floor(pos)
 
@@ -6267,7 +6267,7 @@ def inverted_cdf(q, n):
 
 # 'averaged_inverted_cdf'
 #
-def averaged_inverted_cdf(q, n):
+def averaged_inverted_cdf(q: float, n: int) -> tuple[float, int]:
     pos = q * n
     k = math.floor(pos)
 
@@ -6283,7 +6283,7 @@ def averaged_inverted_cdf(q, n):
 
 # 'closest_observation'
 #
-def closest_observation(q, n):
+def closest_observation(q: float, n: int) -> tuple[float, int]:
     # p = q*n - 0.5
     # pos = 0 if p < 0 else p
 
@@ -6312,7 +6312,7 @@ def closest_observation(q, n):
 # Parzen method:
 # 'interpolated_inverted_cdf'
 #
-def interpolated_inverted_cdf(q, n):
+def interpolated_inverted_cdf(q: float, n: int) -> tuple[float, int]:
     pos = q * n
     k = math.floor(pos)
     # gamma = pos-k
@@ -6326,7 +6326,7 @@ def interpolated_inverted_cdf(q, n):
 # Hazen method:
 # 'hazen'
 #
-def hazen(q, n):
+def hazen(q: float, n: int) -> tuple[float, int]:
     pos = q * n + 0.5
     k = math.floor(pos)
     # gamma = pos-k
@@ -6345,7 +6345,7 @@ def hazen(q, n):
 # Weibull method:
 # 'weibull'
 #
-def weibull(q, n):
+def weibull(q: float, n: int) -> tuple[float, int]:
     pos = q * (n + 1)
 
     k = math.floor(pos)
@@ -6369,7 +6369,7 @@ def weibull(q, n):
 # Gumbel method:
 # 'linear'
 #
-def linear(q, n):
+def linear(q: float, n: int) -> tuple[float, int]:
     pos = q * (n - 1) + 1
     k = math.floor(pos)
     # gamma = pos-k
@@ -6388,7 +6388,7 @@ def linear(q, n):
 # Johnson & Kotz method:
 # 'median_unbiased'
 #
-def median_unbiased(q, n):
+def median_unbiased(q: float, n: int) -> tuple[float, int]:
     fract = 1.0 / 3.0
     pos = q * (n + fract) + fract
     k = math.floor(pos)
@@ -6409,7 +6409,7 @@ def median_unbiased(q, n):
 # Blom method:
 # 'normal_unbiased'
 #
-def normal_unbiased(q, n):
+def normal_unbiased(q: float, n: int) -> tuple[float, int]:
     fract1 = 0.25
     fract2 = 3.0 / 8.0
     pos = q * (n + fract1) + fract2
@@ -6430,7 +6430,7 @@ def normal_unbiased(q, n):
 
 # `lower`
 #
-def lower(q, n):
+def lower(q: float, n: int) -> tuple[float, int]:
     gamma = 0.0
     pos = q * (n - 1)
     k = math.floor(pos)
@@ -6441,7 +6441,7 @@ def lower(q, n):
 
 # `higher`
 #
-def higher(q, n):
+def higher(q: float, n: int) -> tuple[float, int]:
     pos = q * (n - 1)
     k = math.floor(pos)
 
@@ -6454,7 +6454,7 @@ def higher(q, n):
 
 # `midpoint`
 #
-def midpoint(q, n):
+def midpoint(q: float, n: int) -> tuple[float, int]:
     pos = q * (n - 1)
     k = math.floor(pos)
 
@@ -6467,7 +6467,7 @@ def midpoint(q, n):
 
 # `nearest`
 #
-def nearest(q, n):
+def nearest(q: float, n: int) -> tuple[float, int]:
     pos = q * (n - 1)
 
     # k = floor(pos)
