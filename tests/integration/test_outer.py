@@ -18,7 +18,7 @@ import pytest
 from legate.core import LEGATE_MAX_DIM
 from utils.generators import mk_0to1_array
 
-import cunumeric as cn
+import cunumeric as num
 
 
 def _outer(a_ndim, b_ndim, lib):
@@ -31,12 +31,12 @@ def _outer(a_ndim, b_ndim, lib):
 @pytest.mark.parametrize("b_ndim", range(1, LEGATE_MAX_DIM + 1))
 def test_basic(a_ndim, b_ndim):
     assert np.array_equal(
-        _outer(a_ndim, b_ndim, np), _outer(a_ndim, b_ndim, cn)
+        _outer(a_ndim, b_ndim, np), _outer(a_ndim, b_ndim, num)
     )
 
 
 def test_empty():
-    assert np.array_equal(_outer(0, 0, np), _outer(0, 0, cn))
+    assert np.array_equal(_outer(0, 0, np), _outer(0, 0, num))
 
 
 if __name__ == "__main__":

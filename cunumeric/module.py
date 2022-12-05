@@ -23,7 +23,9 @@ from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
-from numpy.core.multiarray import normalize_axis_index  # type: ignore
+from numpy.core.multiarray import (  # type: ignore [attr-defined]
+    normalize_axis_index,
+)
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
@@ -4012,9 +4014,13 @@ def tensordot(
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
-class NullOptimizer(oe.paths.PathOptimizer):  # type: ignore
-    def __call__(  # type: ignore [no-untyped-def]
-        self, inputs, output, size_dict, memory_limit=None
+class NullOptimizer(oe.paths.PathOptimizer):  # type: ignore [misc,no-any-unimported] # noqa
+    def __call__(
+        self,
+        inputs: list[set[str]],
+        outputs: set[str],
+        size_dict: dict[str, int],
+        memory_limit: Union[int, None] = None,
     ) -> list[tuple[int, int]]:
         return [(0, 1)] + [(0, -1)] * (len(inputs) - 2)
 
@@ -4065,7 +4071,8 @@ def _contract(
         raise ValueError("Unknown mode labels on output")
 
     # Handle types
-    if dtype is not None:
+    makes_view = b is None and len(a_modes) == len(out_modes)
+    if dtype is not None and not makes_view:
         c_dtype = dtype
     elif out is not None:
         c_dtype = out.dtype
@@ -5867,8 +5874,12 @@ def sort_complex(a: ndarray) -> ndarray:
     # force complex result upon return
     if np.issubdtype(result.dtype, np.complexfloating):
         return result
-    else:
+    elif (
+        np.issubdtype(result.dtype, np.integer) and result.dtype.itemsize <= 2
+    ):
         return result.astype(np.complex64, copy=True)
+    else:
+        return result.astype(np.complex128, copy=True)
 
 
 # partition
@@ -6241,6 +6252,8 @@ def bincount(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if x.ndim != 1:
+        raise ValueError("the input array must be 1-dimensional")
     if weights is not None:
         if weights.shape != x.shape:
             raise ValueError("weights array must be same shape for bincount")
@@ -6248,11 +6261,16 @@ def bincount(
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if x.dtype.kind != "i" and x.dtype.kind != "u":
+    if x.dtype.kind != "i":
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:
         raise ValueError("'minlength' must not be negative")
-    minlength = _builtin_max(minlength, int(amax(x)) + 1)
+    # Note that the following are non-blocking operations,
+    # though passing their results to `int` is blocking
+    max_val, min_val = amax(x), amin(x)
+    if int(min_val) < 0:
+        raise ValueError("the input array must have no negative elements")
+    minlength = _builtin_max(minlength, int(max_val) + 1)
     if x.size == 1:
         # Handle the special case of 0-D array
         if weights is None:

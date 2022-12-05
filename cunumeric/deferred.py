@@ -36,7 +36,9 @@ from typing import (
 import legate.core.types as ty
 import numpy as np
 from legate.core import Annotation, Future, ReductionOp, Store
-from numpy.core.numeric import normalize_axis_tuple  # type: ignore
+from numpy.core.numeric import (  # type: ignore [attr-defined]
+    normalize_axis_tuple,
+)
 from typing_extensions import ParamSpec
 
 from .config import (
@@ -710,7 +712,7 @@ class DeferredArray(NumPyThunk):
         shift = 0
         for dim, k in enumerate(key):
             if np.isscalar(k):
-                if k < 0:  # type: ignore
+                if k < 0:  # type: ignore [operator]
                     k += store.shape[dim + shift]
                 store = store.project(dim + shift, k)
                 shift -= 1
@@ -787,7 +789,7 @@ class DeferredArray(NumPyThunk):
             elif isinstance(k, slice):
                 k, store = self._slice_store(k, store, dim + shift)
             elif np.isscalar(k):
-                if k < 0:  # type: ignore
+                if k < 0:  # type: ignore [operator]
                     k += store.shape[dim + shift]
                 store = store.project(dim + shift, k)
                 shift -= 1
@@ -3035,7 +3037,7 @@ class DeferredArray(NumPyThunk):
         args: Any,
         initial: Any,
     ) -> None:
-        lhs_array = self
+        lhs_array: Union[NumPyThunk, DeferredArray] = self
         rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
 
@@ -3043,7 +3045,7 @@ class DeferredArray(NumPyThunk):
 
         if argred:
             argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
-            lhs_array = self.runtime.create_empty_thunk(  # type: ignore
+            lhs_array = self.runtime.create_empty_thunk(
                 lhs_array.shape,
                 dtype=argred_dtype,
                 inputs=[self],
@@ -3063,7 +3065,7 @@ class DeferredArray(NumPyThunk):
 
             lhs_array.fill(np.array(fill_value, dtype=lhs_array.dtype))
 
-            lhs = lhs_array.base
+            lhs = lhs_array.base  # type: ignore
             while lhs.ndim > 1:
                 lhs = lhs.project(0, 0)
 
@@ -3097,7 +3099,7 @@ class DeferredArray(NumPyThunk):
             # If output dims is not 0, then we must have axes
             assert axes is not None
             # Reduction to a smaller array
-            result = lhs_array.base
+            result = lhs_array.base  # type: ignore
             if keepdims:
                 for axis in axes:
                     result = result.project(axis, 0)

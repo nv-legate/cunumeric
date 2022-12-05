@@ -18,6 +18,8 @@
 
 #include "generator.h"
 
+#include <cuda.h>
+
 namespace randutilimpl {
 static constexpr int blocksPerMultiProcessor = 2;    // TODO: refine => number of blocks per mp
 static constexpr int blockDimX               = 256;  // TODO: refine ?
