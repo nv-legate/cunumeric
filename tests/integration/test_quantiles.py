@@ -159,7 +159,9 @@ def test_nd_quantile(str_method, ls_in, axes, keepdims):
 
     qs_arr = num.ndarray(
         shape=(2, 4),
-        buffer=num.array([0.001, 0.37, 0.42, 0.5, 0.67, 0.83, 0.99, 0.39]).data,
+        buffer=num.array(
+            [0.001, 0.37, 0.42, 0.5, 0.67, 0.83, 0.99, 0.39]
+        ).data,
     )
 
     # cunumeric:
