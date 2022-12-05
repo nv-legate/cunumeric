@@ -6359,6 +6359,10 @@ def weibull(q, n):
     gamma = 0.0 if (pos < 1 or pos > n) else pos - k
 
     j = floor_i(k)
+
+    if j >= n:
+        j = n - 1
+
     return (gamma, j)
 
 
@@ -6553,7 +6557,7 @@ def quantile_impl(
     keepdims,
     to_dtype,
     qs_all,
-):
+) -> ndarray:
 
     ndims = len(arr.shape)
 
