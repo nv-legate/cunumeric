@@ -332,7 +332,10 @@ __host__ static inline void cufft_over_axes(AccessorWO<OUTPUT_TYPE, DIM> out,
   // C2C, R2C, C2R all modify input buffer --> create a copy
   OUTPUT_TYPE* out_ptr = out.ptr(out_rect.lo);
   INPUT_TYPE* in_ptr   = nullptr;
-  {
+  if (is_c2c) {
+    // utilize out as temporary store for c2c
+    in_ptr = (INPUT_TYPE*)out.ptr(out_rect.lo);
+  } else {
     Point<DIM> fft_size_in = in_rect.hi - in_rect.lo + Point<DIM>::ONES();
     size_t num_elements_in = 1;
     for (int32_t i = 0; i < DIM; ++i) { num_elements_in *= fft_size_in[i]; }
