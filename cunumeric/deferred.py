@@ -546,11 +546,11 @@ class DeferredArray(NumPyThunk):
             assert isinstance(key, tuple)
 
             key = self._unpack_ellipsis(key, self.ndim)
-            num_arrays = 0
-            transpose_index = 0
 
             # loop through all the keys to check if there
             # is a single NumPyThunk entry
+            num_arrays = 0
+            transpose_index = 0
             for dim, k in enumerate(key):
                 if isinstance(k, NumPyThunk):
                     num_arrays += 1
@@ -559,6 +559,8 @@ class DeferredArray(NumPyThunk):
             # this is the case when there is a single boolean array passed
             # in this case we transpose original array so that the indx
             # to which boolean array is passed to goes first
+            # doing this we can avoid going through Realm Copy which should
+            # improve performance
             if (
                 num_arrays == 1
                 and key[transpose_index].dtype == bool
@@ -738,6 +740,9 @@ class DeferredArray(NumPyThunk):
     ) -> tuple[bool, Any, Any, Any]:
 
         is_bool_array, lhs, key = self._has_single_boolean_array(key, is_set)
+
+        # the case when single boolean array is passed to the advanced
+        # indexing operation
         if is_bool_array:
             return lhs._advanced_indexing_with_boolean_array(
                 key, is_set, set_value
@@ -750,7 +755,7 @@ class DeferredArray(NumPyThunk):
         start_index = -1
         shift = 0
         last_index = self.ndim
-        # in case when index arrays are passed in the scaterred way,
+        # in case when index arrays are passed in the scattered way,
         # we need to transpose original array so all index arrays
         # are close to each other
         transpose_needed = False
@@ -811,8 +816,8 @@ class DeferredArray(NumPyThunk):
                                 "shape of boolean index did not match "
                                 "indexed array "
                             )
-                    # in case of the mixed indises we all nonzero
-                    # for the bool array
+                    # in case of the mixed indices we all nonzero
+                    # for the boolean array
                     k = k.nonzero()
                     shift += len(k) - 1
                     tuple_of_arrays += k
