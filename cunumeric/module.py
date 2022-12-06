@@ -6668,7 +6668,7 @@ def quantile_impl(
 def quantile(
     a: ndarray,
     q: Union[float, Iterable[float], ndarray],
-    axis: Optional[Union[int, Iterable[int]]] = None,
+    axis: Any = None,  # FIXME: add missing mechanism to handle this type decl.
     out: Optional[ndarray] = None,
     overwrite_input: Optional[bool] = False,
     method: Optional[str] = "linear",
