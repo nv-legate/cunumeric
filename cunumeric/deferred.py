@@ -540,8 +540,11 @@ class DeferredArray(NumPyThunk):
         if isinstance(key, NumPyThunk) and key.dtype == bool:
             return True, self, key
         else:
+            # key is a single array of indices
             if isinstance(key, NumPyThunk):
                 key = (key,)
+                key = self._unpack_ellipsis(key, self.ndim)
+                return False, self, key
 
             assert isinstance(key, tuple)
 
@@ -574,10 +577,11 @@ class DeferredArray(NumPyThunk):
                 transpose_indices += tuple(
                     i for i in range(0, transpose_index)
                 )
-                new_key = tuple(key[i] for i in range(0, transpose_index))
                 transpose_indices += tuple(
                     i for i in range(transpose_index + key_dim, lhs.ndim)
                 )
+
+                new_key = tuple(key[i] for i in range(0, transpose_index))
                 new_key += tuple(
                     key[i] for i in range(transpose_index + key_dim, len(key))
                 )
