@@ -534,35 +534,81 @@ class DeferredArray(NumPyThunk):
 
         return k, store
 
-    def _has_single_boolean_array(self, key:Any)->tuple[bool, DeferredArray, Any]:
+    def _has_single_boolean_array(
+        self, key: Any, is_set: bool
+    ) -> tuple[bool, DeferredArray, Any]:
         if isinstance(key, NumPyThunk) and key.dtype == bool:
             return True, self, key
-#        else:
-#            assert isinstance(key, tuple)
-#            key = self._unpack_ellipsis(key, self.ndim)
-#            num_arrays=0;
-#            transpose_index = 0
-#            # First, we need to check if transpose is needed
-#            for dim, k in enumerate(key):
-#               if isinstance(k, NumPyThunk) :
-#                   num_arrays+=1
-#                   transpose_index = dim
-#
-#            #this is the case when there is a single boolean array passed
-#            if num_arrays==1 and key[transpose_index].dtype ==bool:
-#                lhs = self
-#                transpose_indices = (i for i in range(0, trnaspose_index))
-#                transpose_indices +=(transpose_index,)
-#                transpose_indices += (i for i in range(trnaspose_index+1,lhs.ndim))
-#                print("IRINA DEBUG transpose indices = ", transpose_indices)
-#                lhs =lhs.transpose(transpose_indices)
-#                
-#
-#                return True, lhs, key 
-        #this is a general advanced indexing case
         else:
-            return False, self, key
+            if isinstance(key, NumPyThunk):
+                key = (key,)
 
+            assert isinstance(key, tuple)
+
+            key = self._unpack_ellipsis(key, self.ndim)
+            num_arrays = 0
+            transpose_index = 0
+
+            # loop through all the keys to check if there
+            # is a single NumPyThunk entry
+            for dim, k in enumerate(key):
+                if isinstance(k, NumPyThunk):
+                    num_arrays += 1
+                    transpose_index = dim
+
+            # this is the case when there is a single boolean array passed
+            # in this case we transpose original array so that the indx
+            # to which boolean array is passed to goes first
+            if (
+                num_arrays == 1
+                and key[transpose_index].dtype == bool
+                and is_set
+            ):
+                lhs = self
+                key_dim = key[transpose_index].ndim
+                transpose_indices = tuple(
+                    (transpose_index + i) for i in range(0, key_dim)
+                )
+                transpose_indices += tuple(
+                    i for i in range(0, transpose_index)
+                )
+                new_key = tuple(key[i] for i in range(0, transpose_index))
+                transpose_indices += tuple(
+                    i for i in range(transpose_index + key_dim, lhs.ndim)
+                )
+                new_key += tuple(
+                    key[i] for i in range(transpose_index + key_dim, len(key))
+                )
+                lhs = lhs.transpose(transpose_indices)
+
+                # transform original array for all other keys in the tuple
+                if len(new_key) > 0:
+                    shift = 0
+                    store = lhs.base
+                    for dim, k in enumerate(new_key):
+                        if np.isscalar(k):
+                            if k < 0:  # type: ignore [operator]
+                                k += store.shape[dim + key_dim + shift]
+                            store = store.project(dim + key_dim + shift, k)
+                            shift -= 1
+                        elif k is np.newaxis:
+                            store = store.promote(dim + key_dim + shift, 1)
+                        elif isinstance(k, slice):
+                            k, store = self._slice_store(
+                                k, store, dim + key_dim + shift
+                            )
+                        else:
+                            raise TypeError(
+                                "Unsupported entry type passed to advanced ",
+                                "indexing operation",
+                            )
+                    lhs = DeferredArray(self.runtime, store, self.dtype)
+
+                return True, lhs, key[transpose_index]
+
+            # this is a general advanced indexing case
+            else:
+                return False, self, key
 
     def _advanced_indexing_with_boolean_array(
         self,
@@ -570,7 +616,7 @@ class DeferredArray(NumPyThunk):
         is_set: bool = False,
         set_value: Optional[Any] = None,
     ) -> tuple[bool, Any, Any, Any]:
-        rhs=self
+        rhs = self
         if not isinstance(key, DeferredArray):
             key = self.runtime.to_deferred_array(key)
 
@@ -598,6 +644,7 @@ class DeferredArray(NumPyThunk):
             out_shape = (s,) + tuple(
                 rhs.shape[i] for i in range(key.ndim, rhs.ndim)
             )
+
             out = cast(
                 DeferredArray,
                 self.runtime.create_empty_thunk(
@@ -619,7 +666,7 @@ class DeferredArray(NumPyThunk):
         # then we can call "putmask" to modify input array
         # and avoid calling Copy
         has_set_value = set_value is not None and set_value.size == 1
-        if has_set_value:
+        if has_set_value and key.shape == rhs.shape:
             mask = DeferredArray(
                 self.runtime,
                 base=key_store,
@@ -639,9 +686,7 @@ class DeferredArray(NumPyThunk):
             # TODO : current implementation of the ND output regions
             # requires out.ndim == rhs.ndim. This will be fixed in the
             # future
-            out = rhs.runtime.create_unbound_thunk(
-                out_dtype, ndim=rhs.ndim
-            )
+            out = rhs.runtime.create_unbound_thunk(out_dtype, ndim=rhs.ndim)
             key_dims = key.ndim  # dimension of the original key
 
             task = rhs.context.create_auto_task(
@@ -667,9 +712,7 @@ class DeferredArray(NumPyThunk):
                 out_tmp = out.base
 
                 if out.size == 0:
-                    out_shape = tuple(
-                        out.shape[i] for i in range(0, out_dim)
-                    )
+                    out_shape = tuple(out.shape[i] for i in range(0, out_dim))
                     out = cast(
                         DeferredArray,
                         self.runtime.create_empty_thunk(
@@ -685,10 +728,7 @@ class DeferredArray(NumPyThunk):
                         out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
 
                     out = out._copy_store(out_tmp)
-
             return is_set, rhs, out, self
-
-
 
     def _create_indexing_array(
         self,
@@ -697,20 +737,17 @@ class DeferredArray(NumPyThunk):
         set_value: Optional[Any] = None,
     ) -> tuple[bool, Any, Any, Any]:
 
-        is_bool_array, lhs, key = self._has_single_boolean_array(key)
+        is_bool_array, lhs, key = self._has_single_boolean_array(key, is_set)
         if is_bool_array:
-            return lhs._advanced_indexing_with_boolean_array(key,is_set, set_value)
-        #general advanced indexing case
-    
+            return lhs._advanced_indexing_with_boolean_array(
+                key, is_set, set_value
+            )
+        # general advanced indexing case
+
         store = lhs.base
         rhs = lhs
         # the index where the first index_array is passed to the [] operator
         start_index = -1
-        if isinstance(key, NumPyThunk):
-            key = (key,)
-
-        assert isinstance(key, tuple)
-        key = self._unpack_ellipsis(key, self.ndim)
         shift = 0
         last_index = self.ndim
         # in case when index arrays are passed in the scaterred way,
