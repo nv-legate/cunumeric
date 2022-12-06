@@ -6560,7 +6560,7 @@ def reshuffle_reshape(
 #
 def quantile_impl(
     arr: ndarray,
-    q_arr: ndarray,
+    q_arr: npt.NDArray[Any],
     axis: Optional[int],
     axes_set: Iterable[int],
     original_shape: tuple[int, ...],
