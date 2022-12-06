@@ -6671,8 +6671,8 @@ def quantile(
     axis: Any = None,  # FIXME: add missing mechanism to handle this type decl.
     out: Optional[ndarray] = None,
     overwrite_input: Optional[bool] = False,
-    method: Optional[str] = "linear",
-    keepdims: Optional[bool] = False,
+    method: str = "linear",
+    keepdims: bool = False,
 ) -> ndarray:
     """
     Compute the q-th quantile of the data along the specified axis.
