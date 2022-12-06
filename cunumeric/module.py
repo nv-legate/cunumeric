@@ -6666,13 +6666,13 @@ def quantile_impl(
 
 @add_boilerplate("a")
 def quantile(
-    a,
-    q,
-    axis=None,
-    out=None,
-    overwrite_input=False,
-    method="linear",
-    keepdims=False,
+    a: ndarray,
+    q: Union[float, Iterable[float], ndarray],
+    axis: Optional[Union[int, Iterable[int]]] = None,
+    out: Optional[ndarray] = None,
+    overwrite_input: Optional[bool] = False,
+    method: Optional[str] = "linear",
+    keepdims: Optional[bool] = False,
 ) -> ndarray:
     """
     Compute the q-th quantile of the data along the specified axis.
