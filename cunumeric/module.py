@@ -6559,15 +6559,15 @@ def reshuffle_reshape(
 # qs_all:   [in/out] result pass through or created (returned)
 #
 def quantile_impl(
-    arr,
-    q_arr,
-    axis,
-    axes_set,
-    original_shape,
-    method,
-    keepdims,
-    to_dtype,
-    qs_all,
+    arr: ndarray,
+    q_arr: ndarray,
+    axis: Optional[int],
+    axes_set: Iterable[int],
+    original_shape: tuple[int, ...],
+    method: Callable[[float, int], tuple[float, int]],
+    keepdims: bool,
+    to_dtype: np.dtype[Any],
+    qs_all: Optional[ndarray],
 ) -> ndarray:
 
     ndims = len(arr.shape)
@@ -6587,14 +6587,14 @@ def quantile_impl(
         # (can be empty [])
         #
         if keepdims:
-            remaining_shape = [
+            remaining_shape = tuple([
                 1 if k in axes_set else original_shape[k]
                 for k in range(0, len(original_shape))
-            ]
+            ])
         else:
-            remaining_shape = [
+            remaining_shape = tuple([
                 arr.shape[k] for k in range(0, ndims) if k != axis
-            ]
+            ])
 
     # compose qarr.shape with arr.shape:
     #
