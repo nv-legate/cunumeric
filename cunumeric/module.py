@@ -6587,14 +6587,16 @@ def quantile_impl(
         # (can be empty [])
         #
         if keepdims:
-            remaining_shape = tuple([
-                1 if k in axes_set else original_shape[k]
-                for k in range(0, len(original_shape))
-            ])
+            remaining_shape = tuple(
+                [
+                    1 if k in axes_set else original_shape[k]
+                    for k in range(0, len(original_shape))
+                ]
+            )
         else:
-            remaining_shape = tuple([
-                arr.shape[k] for k in range(0, ndims) if k != axis
-            ])
+            remaining_shape = tuple(
+                [arr.shape[k] for k in range(0, ndims) if k != axis]
+            )
 
     # compose qarr.shape with arr.shape:
     #
