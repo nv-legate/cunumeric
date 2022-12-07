@@ -196,9 +196,9 @@ def matrix_power(a: ndarray, n: int) -> ndarray:
     """
     # Process inputs
     if a.ndim < 2:
-        raise ValueError(f"Expected at least 2d array, but got {a.ndim}d")
+        raise LinAlgError(f"Expected at least 2d array, but got {a.ndim}d")
     if a.shape[-2] != a.shape[-1]:
-        raise ValueError("Last 2 dimensions of the array must be square")
+        raise LinAlgError("Last 2 dimensions of the array must be square")
     if not isinstance(n, int):
         raise TypeError("exponent must be an integer")
 
