@@ -672,7 +672,8 @@ class DeferredArray(NumPyThunk):
         # then we can call "putmask" to modify input array
         # and avoid calling Copy
         has_set_value = set_value is not None and set_value.size == 1
-        if has_set_value and key.shape == rhs.shape:
+        if has_set_value:
+
             mask = DeferredArray(
                 self.runtime,
                 base=key_store,
@@ -1860,6 +1861,8 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert("mask", "values")
     def putmask(self, mask: Any, values: Any) -> None:
+        assert self.shape == mask.shape
+
         if values.shape != self.shape:
             values_new = values._broadcast(self.shape)
         else:
