@@ -492,6 +492,46 @@ def test_quantile_at_0(str_method):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
+@pytest.mark.parametrize(
+    "str_method",
+    (
+        "inverted_cdf",
+        "averaged_inverted_cdf",
+        "closest_observation",
+        "interpolated_inverted_cdf",
+        "hazen",
+        "weibull",
+        "linear",
+        "median_unbiased",
+        "normal_unbiased",
+        "lower",
+        "higher",
+        "midpoint",
+        "nearest",
+    ),
+)
+@pytest.mark.parametrize(
+    "qs_arr",
+    (
+        0.5,
+        num.ndarray(
+            shape=(2, 3), buffer=num.array([x / 6.0 for x in range(0, 6)])
+        ),
+    ),
+)
+@pytest.mark.parametrize("arr", (3, (3,), [3], (2, 1), [2, 1]))
+def test_non_ndarray_input(str_method, qs_arr, arr):
+    eps = 1.0e-8
+
+    q_out = cu.quantile(arr, qs_arr, method=str_method)
+    np_q_out = num.quantile(arr, qs_arr, method=str_method)
+
+    assert q_out.shape == np_q_out.shape
+    assert q_out.dtype == np_q_out.dtype
+
+    assert allclose(np_q_out, q_out, atol=eps)
+
+
 if __name__ == "__main__":
     import sys
 

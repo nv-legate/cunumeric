@@ -6666,7 +6666,7 @@ def quantile_impl(
 
 @add_boilerplate("a")
 def quantile(
-    a: ndarray,
+    a: Any,
     q: Union[float, Iterable[float], ndarray],
     axis: Any = None,  # FIXME: add missing mechanism to handle this type decl.
     out: Optional[ndarray] = None,
@@ -6843,23 +6843,27 @@ def quantile(
     }
 
     axes_set = []
-    original_shape = a.shape
 
-    if (axis is not None) and (not isscalar(axis)):
-        if len(axis) == 1:
-            real_axis = axis[0]
+    if isscalar(a) or type(a) == list or type(a) == tuple:
+        a_rr = np.asarray(a)
+        original_shape = a_rr.shape
+    else:
+        original_shape = a.shape
+        if (axis is not None) and (not isscalar(axis)):
+            if len(axis) == 1:
+                real_axis = axis[0]
+                a_rr = a
+                axes_set = [real_axis]
+            else:
+                (real_axis, a_rr) = reshuffle_reshape(a, axis)
+                # What happens with multiple axes and overwrite_input = True ?
+                # It seems overwrite_input is reset to False;
+                overwrite_input = False
+                axes_set = axis
+        else:
+            real_axis = axis
             a_rr = a
             axes_set = [real_axis]
-        else:
-            (real_axis, a_rr) = reshuffle_reshape(a, axis)
-            # What happens with multiple axes and overwrite_input = True ?
-            # It seems overwrite_input is reset to False;
-            overwrite_input = False
-            axes_set = axis
-    else:
-        real_axis = axis
-        a_rr = a
-        axes_set = [real_axis]
 
     # covers both array-like and scalar cases:
     #
