@@ -39,7 +39,7 @@ struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
                   bool transpose_mat)
   {
     auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
-    cblas_sgemv(CblasRowMajor, trans, m, n, 1, mat, mat_stride, vec, 1, 0, lhs, 1);
+    cblas_sgemv(CblasRowMajor, trans, m, n, 1, mat, mat_stride, vec, 1, 1, lhs, 1);
   }
 };
 
@@ -54,7 +54,7 @@ struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
                   bool transpose_mat)
   {
     auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
-    cblas_dgemv(CblasRowMajor, trans, m, n, 1, mat, mat_stride, vec, 1, 0, lhs, 1);
+    cblas_dgemv(CblasRowMajor, trans, m, n, 1, mat, mat_stride, vec, 1, 1, lhs, 1);
   }
 };
 
@@ -95,7 +95,7 @@ struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
     const __complex__ float* mat = reinterpret_cast<const __complex__ float*>(mat_);
     const __complex__ float* vec = reinterpret_cast<const __complex__ float*>(vec_);
     __complex__ float alpha      = 1.0;
-    __complex__ float beta       = 0.0;
+    __complex__ float beta       = 1.0;
 
     auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
     cblas_cgemv(CblasRowMajor, trans, m, n, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1);
@@ -116,7 +116,7 @@ struct MatVecMulImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
     const __complex__ double* mat = reinterpret_cast<const __complex__ double*>(mat_);
     const __complex__ double* vec = reinterpret_cast<const __complex__ double*>(vec_);
     __complex__ double alpha      = 1.0;
-    __complex__ double beta       = 0.0;
+    __complex__ double beta       = 1.0;
 
     auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
     cblas_zgemv(CblasRowMajor, trans, m, n, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1);
