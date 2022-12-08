@@ -75,7 +75,7 @@ class TestSumNegative(object):
     """
 
     def test_array_none(self):
-        assert np.sum(None) is None
+        assert num.sum(None) is None
 
     @pytest.mark.parametrize("arr", ARR)
     def test_array(self, arr):
