@@ -48,7 +48,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.0;
-    const float beta  = 0.0;
+    const float beta  = 1.0;
 
     CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
                                rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -91,7 +91,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const double alpha = 1.0;
-    const double beta  = 0.0;
+    const double beta  = 1.0;
 
     CHECK_CUBLAS(cublasDgemm(cublas_handle,
                              rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -131,7 +131,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.0;
-    const float beta  = 0.0;
+    const float beta  = 1.0;
 
     CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
                                rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -178,7 +178,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const cuComplex alpha = make_float2(1.0, 0.0);
-    const cuComplex beta  = make_float2(0.0, 0.0);
+    const cuComplex beta  = make_float2(1.0, 0.0);
 
     CHECK_CUBLAS(cublasCgemmEx(cublas_handle,
                                rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -225,7 +225,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const cuDoubleComplex alpha = make_double2(1.0, 0.0);
-    const cuDoubleComplex beta  = make_double2(0.0, 0.0);
+    const cuDoubleComplex beta  = make_double2(1.0, 0.0);
 
     CHECK_CUBLAS(cublasZgemm(cublas_handle,
                              rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
