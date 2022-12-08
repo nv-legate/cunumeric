@@ -60,9 +60,9 @@ NO_EMPTY_SIZE = [
 
 ARR = ([], [[]], [[], []], np.inf, np.Inf, -10.3, 0, 200, 5 + 8j)
 
-DTYPE = ["h", "i", "l", "H", "I", "L", "f", "e", "d"]
+DTYPE = ["l", "L", "f", "e", "d"]
 COMPLEX_TYPE = ["F", "D"]
-NEGATIVE_DTYPE = ["?", "b", "B"]
+NEGATIVE_DTYPE = ["h", "i", "H", "I", "?", "b", "B"]
 
 
 def to_dtype(s):
