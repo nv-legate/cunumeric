@@ -74,9 +74,6 @@ class TestSumNegative(object):
     this class is to test negative cases
     """
 
-    def test_array_none(self):
-        assert num.sum(None) is None
-
     @pytest.mark.parametrize("arr", ARR)
     def test_array(self, arr):
         assert np.array_equal(np.sum(arr), num.sum(arr))
