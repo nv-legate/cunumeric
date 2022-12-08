@@ -6664,9 +6664,9 @@ def quantile_impl(
 # Quantiles
 
 
-@add_boilerplate("a")
+@add_boilerplate("b")
 def quantile(
-    a: Any,
+    b: Any,  # FIXME: more narrow mypy-type for scalar, list, tuple, ndarray
     q: Union[float, Iterable[float], ndarray],
     axis: Any = None,  # FIXME: add missing mechanism to handle this type decl.
     out: Optional[ndarray] = None,
@@ -6678,7 +6678,7 @@ def quantile(
     Compute the q-th quantile of the data along the specified axis.
     Parameters
     ----------
-    a : array_like
+    b : array_like
         Input array or object that can be converted to an array.
     q : array_like of float
         Quantile or sequence of quantiles to compute, which must be between
@@ -6843,27 +6843,24 @@ def quantile(
     }
 
     axes_set = []
+    a = asarray(b)
+    original_shape = a.shape
 
-    if isscalar(a) or type(a) == list or type(a) == tuple:
-        a_rr = np.asarray(a)
-        original_shape = a_rr.shape
-    else:
-        original_shape = a.shape
-        if (axis is not None) and (not isscalar(axis)):
-            if len(axis) == 1:
-                real_axis = axis[0]
-                a_rr = a
-                axes_set = [real_axis]
-            else:
-                (real_axis, a_rr) = reshuffle_reshape(a, axis)
-                # What happens with multiple axes and overwrite_input = True ?
-                # It seems overwrite_input is reset to False;
-                overwrite_input = False
-                axes_set = axis
-        else:
-            real_axis = axis
+    if (axis is not None) and (not isscalar(axis)):
+        if len(axis) == 1:
+            real_axis = axis[0]
             a_rr = a
             axes_set = [real_axis]
+        else:
+            (real_axis, a_rr) = reshuffle_reshape(a, axis)
+            # What happens with multiple axes and overwrite_input = True ?
+            # It seems overwrite_input is reset to False;
+            overwrite_input = False
+            axes_set = axis
+    else:
+        real_axis = axis
+        a_rr = a
+        axes_set = [real_axis]
 
     # covers both array-like and scalar cases:
     #
