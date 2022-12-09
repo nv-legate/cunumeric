@@ -583,7 +583,9 @@ def test_output_conversion(str_method, qs_arr, keepdims):
     # may interfere with checking proper functionality
     #
     cu.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=q_out)
-    num.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out)
+    num.quantile(
+        arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out
+    )
 
     assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
