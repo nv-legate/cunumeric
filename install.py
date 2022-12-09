@@ -306,12 +306,6 @@ def install_cunumeric(
     # Also use preexisting CMAKE_ARGS from conda if set
     cmake_flags = cmd_env.get("CMAKE_ARGS", "").split(" ")
 
-    if cmake_generator:
-        if " " not in cmake_generator:
-            cmake_flags += [f"-G{cmake_generator}"]
-        else:
-            cmake_flags += [f"-G'{cmake_generator}'"]
-
     if debug or verbose:
         cmake_flags += ["--log-level=%s" % ("DEBUG" if debug else "VERBOSE")]
 
@@ -356,10 +350,18 @@ def install_cunumeric(
     cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
 
     cmake_flags += extra_flags
+    ninja_flags = [f"-j{str(thread_count)}"]
+    if verbose:
+        if cmake_generator == "Unix Makefiles":
+            ninja_flags += ["VERBOSE=1"]
+        else:
+            ninja_flags += ["--verbose"]
+
     cmd_env.update(
         {
-            "SKBUILD_BUILD_OPTIONS": f"-j{str(thread_count)}",
             "CMAKE_ARGS": " ".join(cmake_flags),
+            "CMAKE_GENERATOR": cmake_generator,
+            "SKBUILD_BUILD_OPTIONS": " ".join(ninja_flags),
         }
     )
 
@@ -488,7 +490,7 @@ def driver():
         "--cmake-generator",
         dest="cmake_generator",
         required=False,
-        default=(None if shutil.which("ninja") is None else "Ninja"),
+        default=os.environ.get("CMAKE_GENERATOR", "Unix Makefiles" if shutil.which("ninja") is None else "Ninja"),
         choices=["Ninja", "Unix Makefiles", None],
         help="The CMake makefiles generator",
     )
