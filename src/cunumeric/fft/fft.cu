@@ -29,20 +29,17 @@ using namespace legate;
 using dim_t = long long int32_t;
 
 template <int32_t DIM, typename TYPE>
-__global__ static void copy_kernel(size_t volume,
-                                   Buffer<TYPE, DIM> buffer,
-                                   AccessorRO<TYPE, DIM> acc,
-                                   Pitches<DIM - 1> pitches,
-                                   Point<DIM> lo)
+__global__ static void copy_kernel(
+  size_t volume, TYPE* target, AccessorRO<TYPE, DIM> acc, Pitches<DIM - 1> pitches, Point<DIM> lo)
 {
   size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= volume) return;
-  auto p    = pitches.unflatten(offset, Point<DIM>::ZEROES());
-  buffer[p] = acc[p + lo];
+  auto p         = pitches.unflatten(offset, Point<DIM>::ZEROES());
+  target[offset] = acc[p + lo];
 }
 
 template <int32_t DIM, typename TYPE>
-__host__ static inline void copy_into_buffer(Buffer<TYPE, DIM>& buffer,
+__host__ static inline void copy_into_buffer(TYPE* target,
                                              AccessorRO<TYPE, DIM>& acc,
                                              const Rect<DIM>& rect,
                                              size_t volume,
@@ -50,15 +47,15 @@ __host__ static inline void copy_into_buffer(Buffer<TYPE, DIM>& buffer,
 {
   if (acc.accessor.is_dense_row_major(rect)) {
     auto zero = Point<DIM>::ZEROES();
-    CHECK_CUDA(cudaMemcpyAsync(
-      buffer.ptr(zero), acc.ptr(rect.lo), volume * sizeof(TYPE), cudaMemcpyDefault, stream));
+    CHECK_CUDA(
+      cudaMemcpyAsync(target, acc.ptr(rect.lo), volume * sizeof(TYPE), cudaMemcpyDefault, stream));
   } else {
     Pitches<DIM - 1> pitches;
     pitches.flatten(rect);
 
     const size_t num_blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     copy_kernel<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
-      volume, buffer, acc, pitches, rect.lo);
+      volume, target, acc, pitches, rect.lo);
 
     CHECK_CUDA_STREAM(stream);
   }
@@ -116,8 +113,8 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
     in_ptr = in.ptr(in_rect.lo);
   else {
     auto buffer = create_buffer<INPUT_TYPE, DIM>(fft_size_in, Memory::Kind::GPU_FB_MEM);
-    copy_into_buffer(buffer, in, in_rect, in_rect.volume(), stream);
-    in_ptr = buffer.ptr(zero);
+    in_ptr      = buffer.ptr(zero);
+    copy_into_buffer((INPUT_TYPE*)in_ptr, in, in_rect, in_rect.volume(), stream);
   }
   // FFT the input data
   CHECK_CUFFT(cufftXtExec(plan,
@@ -332,18 +329,19 @@ __host__ static inline void cufft_over_axes(AccessorWO<OUTPUT_TYPE, DIM> out,
   // C2C, R2C, C2R all modify input buffer --> create a copy
   OUTPUT_TYPE* out_ptr = out.ptr(out_rect.lo);
   INPUT_TYPE* in_ptr   = nullptr;
-  if (is_c2c) {
-    // utilize out as temporary store for c2c
-    in_ptr = (INPUT_TYPE*)out.ptr(out_rect.lo);
-  } else {
+  {
     Point<DIM> fft_size_in = in_rect.hi - in_rect.lo + Point<DIM>::ONES();
     size_t num_elements_in = 1;
     for (int32_t i = 0; i < DIM; ++i) { num_elements_in *= fft_size_in[i]; }
-    auto input_buffer =
-      create_buffer<INPUT_TYPE, DIM>(fft_size_in, Legion::Memory::Kind::GPU_FB_MEM);
-    copy_into_buffer<DIM, INPUT_TYPE>(
-      input_buffer, in, in_rect, num_elements_in, get_cached_stream());
-    in_ptr = input_buffer.ptr(Point<DIM>::ZEROES());
+    if (is_c2c) {
+      // utilize out as temporary store for c2c
+      in_ptr = (INPUT_TYPE*)out.ptr(out_rect.lo);
+    } else {
+      auto input_buffer =
+        create_buffer<INPUT_TYPE, DIM>(fft_size_in, Legion::Memory::Kind::GPU_FB_MEM);
+      in_ptr = input_buffer.ptr(Point<DIM>::ZEROES());
+    }
+    copy_into_buffer<DIM, INPUT_TYPE>(in_ptr, in, in_rect, num_elements_in, get_cached_stream());
   }
 
   std::vector<int64_t> c2c_axes(axes.begin(), axes.end() - (is_c2c ? 0 : 1));
