@@ -532,6 +532,65 @@ def test_non_ndarray_input(str_method, qs_arr, arr):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
+@pytest.mark.parametrize(
+    "str_method",
+    (
+        "inverted_cdf",
+        "averaged_inverted_cdf",
+        "closest_observation",
+        "interpolated_inverted_cdf",
+        "hazen",
+        "weibull",
+        "linear",
+        "median_unbiased",
+        "normal_unbiased",
+        "lower",
+        "higher",
+        "midpoint",
+        "nearest",
+    ),
+)
+@pytest.mark.parametrize(
+    "qs_arr",
+    (
+        0.5,
+        num.ndarray(
+            shape=(2, 3), buffer=num.array([x / 6.0 for x in range(0, 6)])
+        ),
+    ),
+)
+@pytest.mark.parametrize("keepdims", (False, True))
+@pytest.mark.skip(reason="numpy issues 22544, 22766 must be addressed first.")
+def test_output_conversion(str_method, qs_arr, keepdims):
+    #
+    # disabled until numpy issue: https://github.com/numpy/numpy/issues/22766
+    # gets addressed
+    #
+    eps = 1.0e-8
+
+    arr = cu.arange(4, dtype=float)
+    cu_scalar_out = int(0.0)
+    np_scalar_out = int(0.0)
+
+    if cu.isscalar(qs_arr):
+        q_out = cu_scalar_out
+        np_q_out = np_scalar_out
+    else:
+        q_out = cu.zeros(qs_arr.shape, dtype=int)
+        np_q_out = num.zeros(qs_arr.shape, dtype=int)
+
+    # also numpy bug https://github.com/numpy/numpy/issues/22544
+    # may interfere with checking proper functionality
+    #
+    cu.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=q_out)
+    num.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out)
+
+    assert q_out.shape == np_q_out.shape
+    assert q_out.dtype == np_q_out.dtype
+
+    assert allclose(np_q_out, q_out, atol=eps)
+
+
 if __name__ == "__main__":
     import sys
 
