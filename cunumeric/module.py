@@ -6664,9 +6664,9 @@ def quantile_impl(
 # Quantiles
 
 
-@add_boilerplate("b")
+@add_boilerplate("a")
 def quantile(
-    b: Any,  # FIXME: more narrow mypy-type for scalar, list, tuple, ndarray
+    a: ndarray,
     q: Union[float, Iterable[float], ndarray],
     axis: Any = None,  # FIXME: add missing mechanism to handle this type decl.
     out: Optional[ndarray] = None,
@@ -6843,7 +6843,6 @@ def quantile(
     }
 
     axes_set = []
-    a = asarray(b)
     original_shape = a.shape
 
     if (axis is not None) and (not isscalar(axis)):
