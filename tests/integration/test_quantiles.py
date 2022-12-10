@@ -560,7 +560,6 @@ def test_non_ndarray_input(str_method, qs_arr, arr):
     ),
 )
 @pytest.mark.parametrize("keepdims", (False, True))
-@pytest.mark.skip(reason="numpy issues 22544, 22766 must be addressed first.")
 def test_output_conversion(str_method, qs_arr, keepdims):
     #
     # disabled until numpy issue: https://github.com/numpy/numpy/issues/22766
@@ -579,18 +578,25 @@ def test_output_conversion(str_method, qs_arr, keepdims):
         q_out = cu.zeros(qs_arr.shape, dtype=int)
         np_q_out = num.zeros(qs_arr.shape, dtype=int)
 
-    # also numpy bug https://github.com/numpy/numpy/issues/22544
+    # temporarily reset keepdims=False due to
+    # numpy bug https://github.com/numpy/numpy/issues/22544
     # may interfere with checking proper functionality
     #
+    keepdims = False
     cu.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=q_out)
-    num.quantile(
-        arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out
-    )
 
-    assert q_out.shape == np_q_out.shape
-    assert q_out.dtype == np_q_out.dtype
+    skip_check = True  # for now, due to numpy issues 22544, 22766
+    if not skip_check:
+        num.quantile(
+            arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out
+        )
 
-    assert allclose(np_q_out, q_out, atol=eps)
+        assert q_out.shape == np_q_out.shape
+        assert q_out.dtype == np_q_out.dtype
+
+        assert allclose(np_q_out, q_out, atol=eps)
+    else:
+        assert True  # at least check no exception was thrown
 
 
 if __name__ == "__main__":
