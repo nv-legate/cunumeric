@@ -109,7 +109,7 @@ class TestProdNegative(object):
         # cuNumeric return an array with a different data
         assert allclose(out_np, out_num)
 
-    @pytest.mark.xfail
+    @pytest.mark.skip
     @pytest.mark.parametrize("dtype", NEGATIVE_COMPLEX_TYPE, ids=to_dtype)
     def test_dtype_complex_negative(self, dtype):
         arr = (num.random.rand(5, 5) * 10 + 2) + (
