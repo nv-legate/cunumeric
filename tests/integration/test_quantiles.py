@@ -562,21 +562,27 @@ def test_non_ndarray_input(str_method, qs_arr, arr):
 @pytest.mark.parametrize("keepdims", (False, True))
 def test_output_conversion(str_method, qs_arr, keepdims):
     #
-    # disabled until numpy issue: https://github.com/numpy/numpy/issues/22766
+    # downcast from float64 to float32, rather than int, until
+    # numpy issue: https://github.com/numpy/numpy/issues/22766
     # gets addressed
     #
     eps = 1.0e-8
 
-    arr = cu.arange(4, dtype=float)
-    cu_scalar_out = int(0.0)
-    np_scalar_out = int(0.0)
+    arr = cu.arange(4, dtype=num.dtype('float64'))
 
+    # get scalars of float32 type:
+    #
+    cu_scalar_out = num.float32(0)
+    np_scalar_out = num.float32(0)
+
+    # force downcast (`int` fails due to 22766):
+    #
     if cu.isscalar(qs_arr):
         q_out = cu_scalar_out
         np_q_out = np_scalar_out
     else:
-        q_out = cu.zeros(qs_arr.shape, dtype=int)
-        np_q_out = num.zeros(qs_arr.shape, dtype=int)
+        q_out = cu.zeros(qs_arr.shape, dtype=num.dtype('float32'))
+        np_q_out = num.zeros(qs_arr.shape, dtype=num.dtype('float32'))
 
     # temporarily reset keepdims=False due to
     # numpy bug https://github.com/numpy/numpy/issues/22544
@@ -585,18 +591,16 @@ def test_output_conversion(str_method, qs_arr, keepdims):
     keepdims = False
     cu.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=q_out)
 
-    skip_check = True  # for now, due to numpy issues 22544, 22766
-    if not skip_check:
-        num.quantile(
-            arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out
-        )
+    num.quantile(
+        arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out
+    )
 
+    if not cu.isscalar(q_out):
         assert q_out.shape == np_q_out.shape
         assert q_out.dtype == np_q_out.dtype
-
         assert allclose(np_q_out, q_out, atol=eps)
     else:
-        assert True  # at least check no exception was thrown
+        assert abs(q_out - np_q_out) < eps
 
 
 if __name__ == "__main__":
