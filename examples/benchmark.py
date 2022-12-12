@@ -20,7 +20,7 @@ from functools import reduce
 
 try:
     from legate.timing import time
-except ImportError:
+except (ImportError, RuntimeError):
     from time import perf_counter_ns
 
     def time():
