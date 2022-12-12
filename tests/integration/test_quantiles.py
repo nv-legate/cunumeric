@@ -568,7 +568,7 @@ def test_output_conversion(str_method, qs_arr, keepdims):
     #
     eps = 1.0e-8
 
-    arr = cu.arange(4, dtype=num.dtype('float64'))
+    arr = cu.arange(4, dtype=num.dtype("float64"))
 
     # get scalars of float32 type:
     #
@@ -581,8 +581,8 @@ def test_output_conversion(str_method, qs_arr, keepdims):
         q_out = cu_scalar_out
         np_q_out = np_scalar_out
     else:
-        q_out = cu.zeros(qs_arr.shape, dtype=num.dtype('float32'))
-        np_q_out = num.zeros(qs_arr.shape, dtype=num.dtype('float32'))
+        q_out = cu.zeros(qs_arr.shape, dtype=num.dtype("float32"))
+        np_q_out = num.zeros(qs_arr.shape, dtype=num.dtype("float32"))
 
     # temporarily reset keepdims=False due to
     # numpy bug https://github.com/numpy/numpy/issues/22544
