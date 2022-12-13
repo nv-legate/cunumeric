@@ -143,7 +143,7 @@ requirements:
     # - libcutensor >=1.3
     - cutensor >=1.3
     - libcublas
-    - libcusolver
+    - libcusolver =11.4.1.48-0
     - libcufft
 {% endif %}
     - opt_einsum >=3.3
