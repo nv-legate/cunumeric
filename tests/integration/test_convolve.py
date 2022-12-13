@@ -25,6 +25,29 @@ SHAPES = [(100,), (10, 10), (10, 10, 10)]
 FILTER_SHAPES = [(5,), (3, 5), (3, 5, 3)]
 
 
+@pytest.mark.xfail
+def test_none():
+    # Numpy raises:
+    # TypeError: unsupported operand type(s) for *: 'NoneType' and 'NoneType'
+    with pytest.raises(AttributeError):
+        num.convolve(None, None, mode="same")
+
+
+def test_empty():
+    msg = r"empty"
+    with pytest.raises(ValueError, match=msg):
+        num.convolve([], [], mode="same")
+
+
+def test_diff_dims():
+    shape1 = (5,) * 3
+    shape2 = (5,) * 2
+    arr1 = num.random.random(shape1)
+    arr2 = num.random.random(shape2)
+    with pytest.raises(RuntimeError):
+        num.convolve(arr1, arr2, mode="same")
+
+
 def check_convolve(a, v):
     anp = a.__array__()
     vnp = v.__array__()

@@ -270,6 +270,13 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
   }
 #endif
 
+#ifdef LEGION_BOUNDS_CHECKS
+  // Note: this isn't necessary because we know that the affine transformation on the output
+  // accessor will ignore coordinates of the collapsed dimension. However, Legion's bounds checks
+  // want the accessor to honor the sub-rectangle passed when it was created, so we need to
+  // put points back in the bounds to appease the checks.
+  point[collapsed_dim] = domain.lo[collapsed_dim];
+#endif
   return point;
 }
 

@@ -20,25 +20,30 @@ from string import ascii_lowercase, ascii_uppercase
 from types import FrameType
 from typing import Any, List, Sequence, Tuple, Union, cast
 
+import legate.core.types as ty
 import numpy as np
 
 from .types import NdShape
 
-_SUPPORTED_DTYPES = [
-    np.float16,
-    np.float32,
-    np.float64,
-    float,
-    np.int16,
-    np.int32,
-    np.int64,
-    int,
-    np.uint16,
-    np.uint32,
-    np.uint64,
-    np.bool_,
-    bool,
-]
+SUPPORTED_DTYPES = {
+    bool: ty.bool_,
+    np.bool_: ty.bool_,
+    np.int8: ty.int8,
+    np.int16: ty.int16,
+    np.int32: ty.int32,
+    int: ty.int64,  # np.int is int
+    np.int64: ty.int64,
+    np.uint8: ty.uint8,
+    np.uint16: ty.uint16,
+    np.uint32: ty.uint32,
+    np.uint64: ty.uint64,  # np.uint is np.uint64
+    np.float16: ty.float16,
+    np.float32: ty.float32,
+    float: ty.float64,
+    np.float64: ty.float64,
+    np.complex64: ty.complex64,
+    np.complex128: ty.complex128,
+}
 
 
 def is_advanced_indexing(key: Any) -> bool:
@@ -71,7 +76,8 @@ def find_last_user_frames(top_only: bool = True) -> str:
     for (last, _) in traceback.walk_stack(None):
         if "__name__" not in last.f_globals:
             continue
-        if not last.f_globals["__name__"].startswith("cunumeric"):
+        name = last.f_globals["__name__"]
+        if not any(name.startswith(pkg) for pkg in ("cunumeric", "legate")):
             break
 
     if top_only:
@@ -90,7 +96,7 @@ def find_last_user_frames(top_only: bool = True) -> str:
 def is_supported_dtype(dtype: Any) -> bool:
     if not isinstance(dtype, np.dtype):
         raise TypeError("expected a NumPy dtype")
-    return dtype.type in _SUPPORTED_DTYPES
+    return dtype.type in SUPPORTED_DTYPES
 
 
 def calculate_volume(shape: NdShape) -> int:
@@ -108,7 +114,7 @@ def get_arg_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
 
 def get_arg_value_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
     dt = dtype.fields["arg_value"][0].type  # type: ignore [index]
-    return cast(Any, dt)
+    return cast(np.dtype[Any], dt)
 
 
 Modes = Tuple[List[str], List[str], List[str]]

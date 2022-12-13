@@ -22,6 +22,25 @@ import cunumeric as num
 SIZES = [8, 9, 255, 512]
 
 
+def test_matrix():
+    arr = [[1, -2j], [2j, 5]]
+    np_out = np.linalg.cholesky(arr)
+    num_out = num.linalg.cholesky(arr)
+    assert np.array_equal(np_out, num_out)
+
+
+def test_array_negative_1dim():
+    arr = num.random.randint(0, 9, size=(3,))
+    with pytest.raises(ValueError):
+        num.linalg.cholesky(arr)
+
+
+def test_array_negative_3dim():
+    arr = num.random.randint(0, 9, size=(3, 3, 3))
+    with pytest.raises(NotImplementedError):
+        num.linalg.cholesky(arr)
+
+
 def test_diagonal():
     a = num.eye(10) * 10.0
     b = num.linalg.cholesky(a)

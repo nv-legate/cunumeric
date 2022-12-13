@@ -31,13 +31,17 @@ from typing import (
     cast,
 )
 
+import legate.core.types as ty
 import numpy as np
-import pyarrow  # type: ignore
-from numpy.core.multiarray import normalize_axis_index  # type: ignore
-from numpy.core.numeric import normalize_axis_tuple  # type: ignore
-from typing_extensions import ParamSpec
-
+import pyarrow  # type: ignore  [import]
 from legate.core import Array
+from numpy.core.multiarray import (  # type: ignore [attr-defined]
+    normalize_axis_index,
+)
+from numpy.core.numeric import (  # type: ignore [attr-defined]
+    normalize_axis_tuple,
+)
+from typing_extensions import ParamSpec
 
 from .config import (
     BinaryOpCode,
@@ -95,7 +99,8 @@ def add_boilerplate(
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
     """
-    keys: Set[str] = set(array_params)
+    keys = set(array_params)
+    assert len(keys) == len(array_params)
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
         assert not hasattr(
@@ -105,18 +110,18 @@ def add_boilerplate(
         # For each parameter specified by name, also consider the case where
         # it's passed as a positional parameter.
         indices: Set[int] = set()
-        all_formals: Set[str] = set()
         where_idx: Optional[int] = None
         out_idx: Optional[int] = None
-        for (idx, param) in enumerate(signature(func).parameters):
-            all_formals.add(param)
+        params = signature(func).parameters
+        extra = keys - set(params)
+        assert len(extra) == 0, f"unknown parameter(s): {extra}"
+        for (idx, param) in enumerate(params):
             if param == "where":
                 where_idx = idx
             elif param == "out":
                 out_idx = idx
             elif param in keys:
                 indices.add(idx)
-        assert len(keys - all_formals) == 0, "unkonwn parameter(s)"
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> R:
@@ -185,6 +190,21 @@ def _convert_all_to_numpy(obj: Any) -> Any:
         return obj.__array__()
     else:
         return obj
+
+
+# FIXME: we can't give an accurate return type as mypy thinks
+# the pyarrow import can be ignored, and can't override the check
+# either, because no-any-unimported needs Python >= 3.10. We can
+# fix it once we bump up the Python version
+def convert_numpy_dtype_to_pyarrow(dtype: np.dtype[Any]) -> Any:
+    if dtype.kind != "c":
+        return pyarrow.from_numpy_dtype(dtype)
+    elif dtype == np.complex64:
+        return ty.complex64
+    elif dtype == np.complex128:
+        return ty.complex128
+    else:
+        raise ValueError(f"Unsupported NumPy dtype: {dtype}")
 
 
 @clone_np_ndarray
@@ -269,7 +289,7 @@ class ndarray:
             # All of our thunks implement the Legate Store interface
             # so we just need to convert our type and stick it in
             # a Legate Array
-            arrow_type = pyarrow.from_numpy_dtype(self.dtype)
+            arrow_type = convert_numpy_dtype_to_pyarrow(self.dtype)
             # If the thunk is an eager array, we need to convert it to a
             # deferred array so we can extract a legate store
             deferred_thunk = runtime.to_deferred_array(self._thunk)
@@ -520,6 +540,10 @@ class ndarray:
         See Also
         --------
         flatten : Return a copy of the array collapsed into one dimension.
+
+        Availability
+        --------
+        Single CPU
 
         """
         return self.__array__().flat
@@ -920,12 +944,8 @@ class ndarray:
             key = convert_to_cunumeric_ndarray(key)
             if key.dtype != bool and not np.issubdtype(key.dtype, np.integer):
                 raise TypeError("index arrays should be int or bool type")
-            if key.dtype != bool and key.dtype != np.int64:
-                runtime.warn(
-                    "converting index array to int64 type",
-                    category=RuntimeWarning,
-                )
-                key = key.astype(np.int64)
+            if key.dtype != bool:
+                key = key._warn_and_convert(np.dtype(np.int64))
 
             return key._thunk
 
@@ -1861,6 +1881,17 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        return self._astype(dtype, order, casting, subok, copy, False)
+
+    def _astype(
+        self,
+        dtype: npt.DTypeLike,
+        order: OrderType = "C",
+        casting: CastingKind = "unsafe",
+        subok: bool = True,
+        copy: bool = True,
+        temporary: bool = False,
+    ) -> ndarray:
         dtype = np.dtype(dtype)
         if self.dtype == dtype:
             return self
@@ -1880,7 +1911,7 @@ class ndarray:
                 f"to the rule '{casting}'"
             )
         result = ndarray(self.shape, dtype=dtype, inputs=(self,))
-        result._thunk.convert(self._thunk, warn=False)
+        result._thunk.convert(self._thunk, warn=False, temporary=temporary)
         return result
 
     @add_boilerplate()
@@ -2089,16 +2120,16 @@ class ndarray:
 
         """
         a = self
-        if condition.ndim != 1:
+        try:
+            if condition.ndim != 1:
+                raise ValueError(
+                    "Dimension mismatch: condition must be a 1D array"
+                )
+        except AttributeError:
             raise ValueError(
                 "Dimension mismatch: condition must be a 1D array"
             )
-        if condition.dtype != bool:
-            runtime.warn(
-                "converting condition to bool type",
-                category=RuntimeWarning,
-            )
-            condition = condition.astype(bool)
+        condition = condition._warn_and_convert(np.dtype(bool))
 
         if axis is None:
             axis = 0
@@ -2465,6 +2496,62 @@ class ndarray:
                 raise ValueError("Either axis1/axis2 or axes must be supplied")
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
+    @add_boilerplate("indices", "values")
+    def put(
+        self, indices: ndarray, values: ndarray, mode: str = "raise"
+    ) -> None:
+        """
+        Replaces specified elements of the array with given values.
+
+        Refer to :func:`cunumeric.put` for full documentation.
+
+        See Also
+        --------
+        cunumeric.put : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+
+        if values.size == 0 or indices.size == 0 or self.size == 0:
+            return
+
+        if mode not in ("raise", "wrap", "clip"):
+            raise ValueError(
+                "mode must be one of 'clip', 'raise', or 'wrap' "
+                f"(got  {mode})"
+            )
+
+        if mode == "wrap":
+            indices = indices % self.size
+        elif mode == "clip":
+            indices = indices.clip(0, self.size - 1)
+
+        indices = indices._warn_and_convert(np.dtype(np.int64))
+        values = values._warn_and_convert(self.dtype)
+
+        if indices.ndim > 1:
+            indices = indices.ravel()
+
+        if self.shape == ():
+            if mode == "raise":
+                if indices.min() < -1 or indices.max() > 0:
+                    raise ValueError("Indices out of bounds")
+            if values.shape == ():
+                v = values
+            else:
+                v = values[0]
+            self._thunk.copy(v._thunk, deep=False)
+            return
+
+        # call _wrap on the values if they need to be wrapped
+        if values.ndim != indices.ndim or values.size != indices.size:
+            values = values._wrap(indices.size)
+
+        self._thunk.put(indices._thunk, values._thunk, mode == "raise")
+
     @add_boilerplate()
     def trace(
         self,
@@ -2545,7 +2632,7 @@ class ndarray:
             self,
             rhs,
             out=out,
-            casting="no",
+            casting="unsafe",
         )
 
     def dump(self, file: Union[str, Path]) -> None:
@@ -2562,7 +2649,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Multiple CPUs
+        Single CPU
 
         """
         self.__array__().dump(file=file)
@@ -3562,7 +3649,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Multiple CPUs
+        Single CPU
 
         """
         return self.__array__().tofile(fid=fid, sep=sep, format=format)
@@ -3734,11 +3821,45 @@ class ndarray:
     def view(
         self,
         dtype: Union[npt.DTypeLike, None] = None,
-        type: Union[Any, None] = None,
+        type: Union[type, None] = None,
     ) -> ndarray:
+        """
+        New view of array with the same data.
+
+        Parameters
+        ----------
+        dtype : data-type or ndarray sub-class, optional
+            Data-type descriptor of the returned view, e.g., float32 or int16.
+            Omitting it results in the view having the same data-type as the
+            input array. This argument can also be specified as an ndarray
+            sub-class, which then specifies the type of the returned object
+            (this is equivalent to setting the ``type`` parameter).
+        type : ndarray sub-class, optional
+            Type of the returned view, e.g., ndarray or matrix. Again, omission
+            of the parameter results in type preservation.
+
+        Notes
+        -----
+        cuNumeric does not currently support type reinterpretation, or
+        conversion to ndarray sub-classes; use :func:`ndarray.__array__()` to
+        convert to `numpy.ndarray`.
+
+        See Also
+        --------
+        numpy.ndarray.view
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
         if dtype is not None and dtype != self.dtype:
             raise NotImplementedError(
                 "cuNumeric does not currently support type reinterpretation"
+            )
+        if type is not None:
+            raise NotImplementedError(
+                "cuNumeric does not currently support conversion to ndarray "
+                "sub-classes; use __array__() to convert to numpy.ndarray"
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 
@@ -3810,6 +3931,16 @@ class ndarray:
         copy = ndarray(shape=self.shape, dtype=dtype, inputs=hints)
         copy._thunk.convert(self._thunk)
         return copy
+
+    def _warn_and_convert(self, dtype: np.dtype[Any]) -> ndarray:
+        if self.dtype != dtype:
+            runtime.warn(
+                f"converting array to {dtype} type",
+                category=RuntimeWarning,
+            )
+            return self.astype(dtype)
+        else:
+            return self
 
     # For performing normal/broadcast unary operations
     @classmethod

@@ -18,14 +18,31 @@ from __future__ import annotations
 
 import sys
 
-from tests._utils.config import Config
-from tests._utils.system import System
-from tests._utils.test_plan import TestPlan
+from legate.tester import PER_FILE_ARGS, SKIPPED_EXAMPLES
+from legate.tester.config import Config
+from legate.tester.test_plan import TestPlan
+from legate.tester.test_system import TestSystem
+
+SKIPPED_EXAMPLES.update(
+    {
+        "examples/ingest.py",
+        "examples/kmeans_sort.py",
+        "examples/lstm_full.py",
+        "examples/wgrad.py",
+    }
+)
+
+PER_FILE_ARGS.update(
+    {
+        "examples/lstm_full.py": ["--file", "resources/lstm_input.txt"],
+    }
+)
+
 
 if __name__ == "__main__":
     config = Config(sys.argv)
 
-    system = System(dry_run=config.dry_run)
+    system = TestSystem(dry_run=config.dry_run)
 
     plan = TestPlan(config, system)
 

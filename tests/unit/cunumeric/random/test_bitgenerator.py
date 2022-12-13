@@ -13,10 +13,11 @@
 # limitations under the License.
 #
 
-import cunumeric.random.bitgenerator as m  # module under test
 import pytest
-from cunumeric.config import BitGeneratorType
 from mock import patch
+
+import cunumeric.random.bitgenerator as m  # module under test
+from cunumeric.config import BitGeneratorType
 
 
 class TestXORWOW:

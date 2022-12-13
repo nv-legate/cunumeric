@@ -18,8 +18,6 @@
 
 #include <vector>
 
-#include "core/comm/coll.h"
-
 // Useful for IDEs
 #include "cunumeric/matrix/solve.h"
 
@@ -32,20 +30,15 @@ template <VariantKind KIND, LegateTypeCode CODE>
 struct SolveImplBody;
 
 template <LegateTypeCode CODE>
-struct support_solve : std::false_type {
-};
+struct support_solve : std::false_type {};
 template <>
-struct support_solve<LegateTypeCode::DOUBLE_LT> : std::true_type {
-};
+struct support_solve<LegateTypeCode::DOUBLE_LT> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::FLOAT_LT> : std::true_type {
-};
+struct support_solve<LegateTypeCode::FLOAT_LT> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::COMPLEX64_LT> : std::true_type {
-};
+struct support_solve<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::COMPLEX128_LT> : std::true_type {
-};
+struct support_solve<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
 
 template <VariantKind KIND>
 struct SolveImpl {
@@ -71,7 +64,7 @@ struct SolveImpl {
     size_t a_strides[2];
     VAL* a = a_array.read_write_accessor<VAL, 2>(a_shape).ptr(a_shape, a_strides);
 #ifdef DEBUG_CUNUMERIC
-    assert(a_strides[0] == 1 && a_strides[1] == m);
+    assert(a_array.is_future() || (a_strides[0] == 1 && a_strides[1] == m));
 #endif
     VAL* b = nullptr;
 
@@ -92,7 +85,7 @@ struct SolveImpl {
       size_t b_strides[2];
       b = b_array.read_write_accessor<VAL, 2>(b_shape).ptr(b_shape, b_strides);
 #ifdef DEBUG_CUNUMERIC
-      assert(b_strides[0] == 1 && b_strides[1] == m);
+      assert(b_array.is_future() || (b_strides[0] == 1 && b_strides[1] == m));
 #endif
     }
 

@@ -16,77 +16,88 @@
 import numpy as np
 import pytest
 
-import cunumeric as cn
+import cunumeric as num
 
-np_arr = np.eye(4)
-np_vec = np.arange(4).astype(np.float64)
-cn_arr = cn.array(np_arr)
-cn_vec = cn.array(np_vec)
+arr_np = np.eye(4)
+vec_np = np.arange(4).astype(np.float64)
+
+arr_num = num.array(arr_np)
+vec_num = num.array(vec_np)
+
 indices = [0, 3, 1, 2]
 
 
 def test_array_function_implemented():
-    np_res = np.dot(np_arr, np_vec)
-    cn_res = np.dot(cn_arr, cn_vec)
-    assert np.array_equal(np_res, cn_res)
-    assert isinstance(cn_res, cn.ndarray)  # implemented
+    res_np = np.dot(arr_np, vec_np)
+    res_num = np.dot(arr_num, vec_num)
+
+    assert np.array_equal(res_np, res_num)
+    assert isinstance(res_num, num.ndarray)  # implemented
 
 
 def test_array_function_unimplemented():
-    np_res = np.linalg.tensorsolve(np_arr, np_vec)
-    cn_res = np.linalg.tensorsolve(cn_arr, cn_vec)
-    assert np.array_equal(np_res, cn_res)
-    assert isinstance(cn_res, np.ndarray)  # unimplemented
+    res_np = np.linalg.tensorsolve(arr_np, vec_np)
+    res_num = np.linalg.tensorsolve(arr_num, vec_num)
+
+    assert np.array_equal(res_np, res_num)
+    assert isinstance(res_num, np.ndarray)  # unimplemented
 
 
 def test_array_ufunc_through_array_op():
-    assert np.array_equal(cn_vec + cn_vec, np_vec + np_vec)
-    assert isinstance(cn_vec + np_vec, cn.ndarray)
-    assert isinstance(np_vec + cn_vec, cn.ndarray)
+    assert np.array_equal(vec_num + vec_num, vec_np + vec_np)
+    assert isinstance(vec_num + vec_np, num.ndarray)
+    assert isinstance(vec_np + vec_num, num.ndarray)
 
 
 def test_array_ufunc_call():
-    np_res = np.add(np_vec, np_vec)
-    cn_res = np.add(cn_vec, cn_vec)
-    assert np.array_equal(np_res, cn_res)
-    assert isinstance(cn_res, cn.ndarray)  # implemented
+    res_np = np.add(vec_np, vec_np)
+    res_num = np.add(vec_num, vec_num)
+
+    assert np.array_equal(res_np, res_num)
+    assert isinstance(res_num, num.ndarray)  # implemented
 
 
 def test_array_ufunc_reduce():
-    np_res = np.add.reduce(np_vec)
-    cn_res = np.add.reduce(cn_vec)
-    assert np.array_equal(np_res, cn_res)
-    assert isinstance(cn_res, cn.ndarray)  # implemented
+    res_np = np.add.reduce(vec_np)
+    res_num = np.add.reduce(vec_num)
+
+    assert np.array_equal(res_np, res_num)
+    assert isinstance(res_num, num.ndarray)  # implemented
 
 
 def test_array_ufunc_accumulate():
-    np_res = np.add.accumulate(np_vec)
-    cn_res = np.add.accumulate(cn_vec)
-    assert np.array_equal(np_res, cn_res)
-    assert isinstance(cn_res, np.ndarray)  # unimplemented
+    res_np = np.add.accumulate(vec_np)
+    res_num = np.add.accumulate(vec_num)
+
+    assert np.array_equal(res_np, res_num)
+    assert isinstance(res_num, np.ndarray)  # unimplemented
 
 
 def test_array_ufunc_reduceat():
-    np_res = np.add.reduceat(np_vec, indices)
-    cn_res = np.add.reduceat(cn_vec, indices)
-    assert np.array_equal(np_res, cn_res)
-    assert isinstance(cn_res, np.ndarray)  # unimplemented
+    res_np = np.add.reduceat(vec_np, indices)
+    res_num = np.add.reduceat(vec_num, indices)
+
+    assert np.array_equal(res_np, res_num)
+    assert isinstance(res_num, np.ndarray)  # unimplemented
 
 
 def test_array_ufunc_outer():
-    np_res = np.add.outer(np_vec, np_vec)
-    cn_res = np.add.outer(cn_vec, cn_vec)
-    assert np.array_equal(np_res, cn_res)
-    assert isinstance(cn_res, np.ndarray)  # unimplemented
+    res_np = np.add.outer(vec_np, vec_np)
+    res_num = np.add.outer(vec_num, vec_num)
+
+    assert np.array_equal(res_np, res_num)
+    assert isinstance(res_num, np.ndarray)  # unimplemented
 
 
 def test_array_ufunc_at():
-    np_res = np.full((4,), 42)
-    cn_res = cn.full((4,), 42)
-    np.add.at(np_res, indices, np_vec)
-    np.add.at(cn_res, indices, cn_vec)
-    assert np.array_equal(np_res, cn_res)
-    assert isinstance(cn_res, cn.ndarray)
+    res_np = np.full((4,), 42)
+    res_num = num.full((4,), 42)
+
+    np.add.at(res_np, indices, vec_np)
+    np.add.at(res_num, indices, vec_num)
+
+    assert np.array_equal(res_np, res_num)
+    assert isinstance(res_num, num.ndarray)
 
 
 if __name__ == "__main__":

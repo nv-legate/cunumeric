@@ -42,14 +42,11 @@
 namespace cunumeric {
 
 template <LegateTypeCode CODE>
-struct support_cub : std::true_type {
-};
+struct support_cub : std::true_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX64_LT> : std::false_type {
-};
+struct support_cub<LegateTypeCode::COMPLEX64_LT> : std::false_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {
-};
+struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {};
 
 template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
 void local_sort(const legate_type_of<CODE>* values_in,
@@ -1426,7 +1423,6 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   CHECK_NCCL(ncclGroupEnd());
 
   // we need the amount of data to transfer on the host --> get it
-  // FIXME auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
   Buffer<size_t> size_send_total = create_buffer<size_t>(num_sort_ranks, Memory::Z_COPY_MEM);
   Buffer<size_t> size_recv_total = create_buffer<size_t>(num_sort_ranks, Memory::Z_COPY_MEM);
   {

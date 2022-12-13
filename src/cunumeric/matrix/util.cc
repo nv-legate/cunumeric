@@ -74,8 +74,7 @@ int64_t calculate_volume(size_t ndim, const int64_t* shape, int64_t* strides)
 
 float* allocate_buffer(size_t size)
 {
-  // We will not call this function on GPUs
-  auto buffer = legate::create_buffer<float, 1>(size, Memory::Kind::SYSTEM_MEM);
+  auto buffer = legate::create_buffer<float, 1>(size);
   return buffer.ptr(0);
 }
 

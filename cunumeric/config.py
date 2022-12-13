@@ -15,11 +15,11 @@
 from __future__ import annotations
 
 import os
+from abc import abstractmethod
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, List, Union, cast
 
 import numpy as np
-
 from legate.core import Library, ResourceConfig, get_legate_runtime
 
 if TYPE_CHECKING:
@@ -167,6 +167,7 @@ class _CunumericSharedLib:
     CUNUMERIC_NONZERO: int
     CUNUMERIC_PACKBITS: int
     CUNUMERIC_POTRF: int
+    CUNUMERIC_PUTMASK: int
     CUNUMERIC_RAND: int
     CUNUMERIC_READ: int
     CUNUMERIC_RED_ALL: int
@@ -193,7 +194,6 @@ class _CunumericSharedLib:
     CUNUMERIC_TRANSPOSE_COPY_2D: int
     CUNUMERIC_TRILU: int
     CUNUMERIC_TRSM: int
-    CUNUMERIC_TUNABLE_HAS_NUMAMEM: int
     CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME: int
     CUNUMERIC_TUNABLE_NUM_GPUS: int
     CUNUMERIC_TUNABLE_NUM_PROCS: int
@@ -270,6 +270,7 @@ class _CunumericSharedLib:
     CUNUMERIC_WRITE: int
     CUNUMERIC_ZIP: int
 
+    @abstractmethod
     def cunumeric_has_curand(self) -> int:
         ...
 
@@ -286,7 +287,7 @@ class CuNumericLib(Library):
         return self.name
 
     def get_shared_library(self) -> str:
-        from cunumeric.install_info import libpath  # type: ignore
+        from cunumeric.install_info import libpath
 
         return os.path.join(
             libpath, "libcunumeric" + self.get_library_extension()
@@ -357,6 +358,7 @@ class CuNumericOpCode(IntEnum):
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
     PACKBITS = _cunumeric.CUNUMERIC_PACKBITS
     POTRF = _cunumeric.CUNUMERIC_POTRF
+    PUTMASK = _cunumeric.CUNUMERIC_PUTMASK
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
@@ -521,7 +523,6 @@ class CuNumericTunable(IntEnum):
     NUM_GPUS = _cunumeric.CUNUMERIC_TUNABLE_NUM_GPUS
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
-    HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
 
 
 # Match these to CuNumericScanCode in cunumeric_c.h

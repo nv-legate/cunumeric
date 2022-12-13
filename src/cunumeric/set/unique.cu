@@ -40,7 +40,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   size_t offset = blockIdx.x * blockDim.x + threadIdx.x;
   if (offset >= volume) return;
   auto point  = pitches.unflatten(offset, lo);
-  out[offset] = accessor[lo + point];
+  out[offset] = accessor[point];
 }
 
 template <typename VAL>
@@ -49,8 +49,12 @@ using Piece = std::pair<Buffer<VAL>, size_t>;
 auto get_aligned_size = [](auto size) { return std::max<size_t>(16, (size + 15) / 16 * 16); };
 
 template <typename VAL>
-static Piece<VAL> tree_reduce(
-  Piece<VAL> my_piece, size_t my_id, size_t num_ranks, cudaStream_t stream, ncclComm_t* comm)
+static Piece<VAL> tree_reduce(Array& output,
+                              Piece<VAL> my_piece,
+                              size_t my_id,
+                              size_t num_ranks,
+                              cudaStream_t stream,
+                              ncclComm_t* comm)
 {
   size_t remaining = num_ranks;
   size_t radix     = 2;
@@ -114,7 +118,7 @@ static Piece<VAL> tree_reduce(
       auto buf_size =
         (get_aligned_size(my_piece.second * sizeof(VAL)) + sizeof(VAL) - 1) / sizeof(VAL);
       assert(my_piece.second <= buf_size);
-      my_piece.first = create_buffer<VAL>(buf_size);
+      my_piece.first = output.create_output_buffer<VAL, 1>(buf_size);
 
       CHECK_CUDA(cudaMemcpyAsync(my_piece.first.ptr(0),
                                  p_merged,
@@ -130,7 +134,7 @@ static Piece<VAL> tree_reduce(
 
   if (my_id != 0) {
     my_piece.second = 0;
-    my_piece.first  = create_buffer<VAL>(0);
+    my_piece.first  = output.create_output_buffer<VAL, 1>(0);
   }
 
   return my_piece;
@@ -140,51 +144,57 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  Piece<VAL> operator()(const AccessorRO<VAL, DIM>& in,
-                        const Pitches<DIM - 1>& pitches,
-                        const Rect<DIM>& rect,
-                        const size_t volume,
-                        const std::vector<comm::Communicator>& comms,
-                        const DomainPoint& point,
-                        const Domain& launch_domain)
+  void operator()(Array& output,
+                  const AccessorRO<VAL, DIM>& in,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const size_t volume,
+                  const std::vector<comm::Communicator>& comms,
+                  const DomainPoint& point,
+                  const Domain& launch_domain)
   {
     auto stream = get_cached_stream();
 
     // Make a copy of the input as we're going to sort it
     auto temp = create_buffer<VAL>(volume);
     VAL* ptr  = temp.ptr(0);
-    if (in.accessor.is_dense_arbitrary(rect)) {
-      auto* src = in.ptr(rect.lo);
-      CHECK_CUDA(cudaMemcpyAsync(ptr, src, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
-    } else {
-      const size_t num_blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
-      copy_into_buffer<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
-        ptr, in, rect.lo, pitches, volume);
-    }
-    CHECK_CUDA_STREAM(stream);
+    VAL* end  = ptr;
+    if (volume > 0) {
+      if (in.accessor.is_dense_arbitrary(rect)) {
+        auto* src = in.ptr(rect.lo);
+        CHECK_CUDA(
+          cudaMemcpyAsync(ptr, src, sizeof(VAL) * volume, cudaMemcpyDeviceToDevice, stream));
+      } else {
+        const size_t num_blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+        copy_into_buffer<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
+          ptr, in, rect.lo, pitches, volume);
+      }
+      CHECK_CUDA_STREAM(stream);
 
-    // Find unique values
-    thrust::sort(thrust::cuda::par.on(stream), ptr, ptr + volume);
-    auto* end = thrust::unique(thrust::cuda::par.on(stream), ptr, ptr + volume);
+      // Find unique values
+      thrust::sort(thrust::cuda::par.on(stream), ptr, ptr + volume);
+      end = thrust::unique(thrust::cuda::par.on(stream), ptr, ptr + volume);
+    }
 
     Piece<VAL> result;
     result.second = end - ptr;
     auto buf_size = (get_aligned_size(result.second * sizeof(VAL)) + sizeof(VAL) - 1) / sizeof(VAL);
     assert(end - ptr <= buf_size);
-    result.first = create_buffer<VAL>(buf_size);
-    CHECK_CUDA(cudaMemcpyAsync(
-      result.first.ptr(0), ptr, sizeof(VAL) * result.second, cudaMemcpyDeviceToDevice, stream));
+    result.first = output.create_output_buffer<VAL, 1>(buf_size);
+    if (result.second > 0)
+      CHECK_CUDA(cudaMemcpyAsync(
+        result.first.ptr(0), ptr, sizeof(VAL) * result.second, cudaMemcpyDeviceToDevice, stream));
 
     if (comms.size() > 0) {
       // The launch domain is 1D because of the output region
       assert(point.dim == 1);
       auto comm = comms[0].get<ncclComm_t*>();
-      result    = tree_reduce(result, point[0], launch_domain.get_volume(), stream, comm);
+      result    = tree_reduce(output, result, point[0], launch_domain.get_volume(), stream, comm);
     }
     CHECK_CUDA_STREAM(stream);
 
     // Finally we pack the result
-    return result;
+    output.return_data(result.first, Point<1>(result.second));
   }
 };
 

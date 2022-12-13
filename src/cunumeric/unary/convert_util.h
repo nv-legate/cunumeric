@@ -44,25 +44,24 @@ constexpr decltype(auto) op_dispatch(ConvertCode nan_op, Functor f, Fnargs&&... 
 }
 
 template <ConvertCode NAN_OP, legate::LegateTypeCode DST_TYPE, legate::LegateTypeCode SRC_TYPE>
-struct ConvertOp {
-};
+struct ConvertOp {};
 
 template <legate::LegateTypeCode DST_TYPE, legate::LegateTypeCode SRC_TYPE>
 struct ConvertOp<ConvertCode::NOOP, DST_TYPE, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
   using DST = legate::legate_type_of<DST_TYPE>;
 
-  template <
-    typename _SRC                                                                         = SRC,
-    std::enable_if_t<!legate::is_complex<_SRC>::value or legate::is_complex<DST>::value>* = nullptr>
+  template <typename _SRC                                          = SRC,
+            std::enable_if_t<!legate::is_complex_type<_SRC>::value or
+                             legate::is_complex_type<DST>::value>* = nullptr>
   constexpr DST operator()(const _SRC& src) const
   {
     return static_cast<DST>(src);
   }
 
-  template <typename _SRC = SRC,
-            std::enable_if_t<legate::is_complex<_SRC>::value and !legate::is_complex<DST>::value>* =
-              nullptr>
+  template <typename _SRC                                           = SRC,
+            std::enable_if_t<legate::is_complex_type<_SRC>::value and
+                             !legate::is_complex_type<DST>::value>* = nullptr>
   constexpr DST operator()(const _SRC& src) const
   {
     if constexpr (DST_TYPE == legate::LegateTypeCode::BOOL_LT)
@@ -79,13 +78,13 @@ template <legate::LegateTypeCode SRC_TYPE>
 struct ConvertOp<ConvertCode::NOOP, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
 
-  template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex<_SRC>::value>* = nullptr>
+  template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex_type<_SRC>::value>* = nullptr>
   __CUDA_HD__ __half operator()(const _SRC& src) const
   {
     return static_cast<__half>(static_cast<double>(src));
   }
 
-  template <typename _SRC = SRC, std::enable_if_t<legate::is_complex<_SRC>::value>* = nullptr>
+  template <typename _SRC = SRC, std::enable_if_t<legate::is_complex_type<_SRC>::value>* = nullptr>
   __CUDA_HD__ __half operator()(const _SRC& src) const
   {
     return static_cast<__half>(static_cast<double>(src.real()));
@@ -107,17 +106,17 @@ struct ConvertOp<ConvertCode::PROD, DST_TYPE, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
   using DST = legate::legate_type_of<DST_TYPE>;
 
-  template <
-    typename _SRC                                                                         = SRC,
-    std::enable_if_t<!legate::is_complex<_SRC>::value or legate::is_complex<DST>::value>* = nullptr>
+  template <typename _SRC                                          = SRC,
+            std::enable_if_t<!legate::is_complex_type<_SRC>::value or
+                             legate::is_complex_type<DST>::value>* = nullptr>
   constexpr DST operator()(const _SRC& src) const
   {
     return cunumeric::is_nan(src) ? static_cast<DST>(1) : static_cast<DST>(src);
   }
 
-  template <typename _SRC = SRC,
-            std::enable_if_t<legate::is_complex<_SRC>::value and !legate::is_complex<DST>::value>* =
-              nullptr>
+  template <typename _SRC                                           = SRC,
+            std::enable_if_t<legate::is_complex_type<_SRC>::value and
+                             !legate::is_complex_type<DST>::value>* = nullptr>
   constexpr DST operator()(const _SRC& src) const
   {
     return cunumeric::is_nan(src) ? static_cast<DST>(1) : static_cast<DST>(src.real());
@@ -128,14 +127,14 @@ template <legate::LegateTypeCode SRC_TYPE>
 struct ConvertOp<ConvertCode::PROD, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
 
-  template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex<_SRC>::value>* = nullptr>
+  template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex_type<_SRC>::value>* = nullptr>
   __CUDA_HD__ __half operator()(const _SRC& src) const
   {
     return cunumeric::is_nan(src) ? static_cast<__half>(1)
                                   : static_cast<__half>(static_cast<double>(src));
   }
 
-  template <typename _SRC = SRC, std::enable_if_t<legate::is_complex<_SRC>::value>* = nullptr>
+  template <typename _SRC = SRC, std::enable_if_t<legate::is_complex_type<_SRC>::value>* = nullptr>
   __CUDA_HD__ __half operator()(const _SRC& src) const
   {
     return cunumeric::is_nan(src) ? static_cast<__half>(1)
@@ -159,17 +158,17 @@ struct ConvertOp<ConvertCode::SUM, DST_TYPE, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
   using DST = legate::legate_type_of<DST_TYPE>;
 
-  template <
-    typename _SRC                                                                         = SRC,
-    std::enable_if_t<!legate::is_complex<_SRC>::value or legate::is_complex<DST>::value>* = nullptr>
+  template <typename _SRC                                          = SRC,
+            std::enable_if_t<!legate::is_complex_type<_SRC>::value or
+                             legate::is_complex_type<DST>::value>* = nullptr>
   constexpr DST operator()(const _SRC& src) const
   {
     return cunumeric::is_nan(src) ? static_cast<DST>(0) : static_cast<DST>(src);
   }
 
-  template <typename _SRC = SRC,
-            std::enable_if_t<legate::is_complex<_SRC>::value and !legate::is_complex<DST>::value>* =
-              nullptr>
+  template <typename _SRC                                           = SRC,
+            std::enable_if_t<legate::is_complex_type<_SRC>::value and
+                             !legate::is_complex_type<DST>::value>* = nullptr>
   constexpr DST operator()(const _SRC& src) const
   {
     return cunumeric::is_nan(src) ? static_cast<DST>(0) : static_cast<DST>(src.real());
@@ -180,14 +179,14 @@ template <legate::LegateTypeCode SRC_TYPE>
 struct ConvertOp<ConvertCode::SUM, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
 
-  template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex<_SRC>::value>* = nullptr>
+  template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex_type<_SRC>::value>* = nullptr>
   __CUDA_HD__ __half operator()(const _SRC& src) const
   {
     return cunumeric::is_nan(src) ? static_cast<__half>(0)
                                   : static_cast<__half>(static_cast<double>(src));
   }
 
-  template <typename _SRC = SRC, std::enable_if_t<legate::is_complex<_SRC>::value>* = nullptr>
+  template <typename _SRC = SRC, std::enable_if_t<legate::is_complex_type<_SRC>::value>* = nullptr>
   __CUDA_HD__ __half operator()(const _SRC& src) const
   {
     return cunumeric::is_nan(src) ? static_cast<__half>(0)

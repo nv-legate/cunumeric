@@ -15,35 +15,10 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
+from utils.utils import check_module_function
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
-
-
-def _check(a, routine, sizes):
-    b = getattr(np, routine)(*a)
-    c = getattr(num, routine)(*a)
-    is_equal = True
-    err_arr = [b, c]
-
-    if len(b) != len(c):
-        is_equal = False
-        err_arr = [b, c]
-    else:
-        for each in zip(b, c):
-            if not np.array_equal(*each):
-                err_arr = each
-                is_equal = False
-                break
-    print_msg = f"np.{routine}({sizes})"
-    assert is_equal, (
-        f"Failed, {print_msg}\n"
-        f"numpy result: {err_arr[0]}\n"
-        f"cunumeric_result: {err_arr[1]}\n"
-        f"cunumeric and numpy shows different result\n"
-    )
-    print(f"Passed, {print_msg}, np: {b}, cunumeric: {c}")
-
 
 DIM = 10
 
@@ -59,26 +34,62 @@ SIZE_CASES += [
 @pytest.mark.parametrize("size", SIZE_CASES, ids=str)
 def test_atleast_1d(size):
     a = [np.arange(np.prod(size)).reshape(size)]
-    _check(a, "atleast_1d", size)
+    print_msg = f"np & cunumeric.atleast_1d(size={size})"
+    check_module_function("atleast_1d", a, {}, print_msg)
+
+
+def test_atleast_1d_scalar():
+    a = 1.0
+    assert np.array_equal(np.atleast_1d(a), num.atleast_1d(a))
+
+
+def test_atleast_1d_none():
+    a = None
+    assert np.array_equal(np.atleast_1d(a), num.atleast_1d(a))
 
 
 @pytest.mark.parametrize("size", SIZE_CASES, ids=str)
 def test_atleast_2d(size):
     a = [np.arange(np.prod(size)).reshape(size)]
-    _check(a, "atleast_2d", size)
+    print_msg = f"np & cunumeric.atleast_2d(size={size})"
+    check_module_function("atleast_2d", a, {}, print_msg)
+
+
+def test_atleast_2d_scalar():
+    a = 1.0
+    assert np.array_equal(np.atleast_2d(a), num.atleast_2d(a))
+
+
+def test_atleast_2d_none():
+    a = None
+    assert np.array_equal(np.atleast_2d(a), num.atleast_2d(a))
 
 
 @pytest.mark.parametrize("size", SIZE_CASES, ids=str)
 def test_atleast_3d(size):
     a = [np.arange(np.prod(size)).reshape(size)]
-    _check(a, "atleast_3d", size)
+    print_msg = f"np & cunumeric.atleast_3d(size={size})"
+    check_module_function("atleast_3d", a, {}, print_msg)
+
+
+def test_atleast_3d_scalar():
+    a = 1.0
+    assert np.array_equal(np.atleast_2d(a), num.atleast_2d(a))
+
+
+def test_atleast_3d_none():
+    a = None
+    assert np.array_equal(np.atleast_2d(a), num.atleast_2d(a))
 
 
 # test to run atleast_nd w/ list of arrays
 @pytest.mark.parametrize("dim", range(1, 4))
 def test_atleast_nd(dim):
     a = list(np.arange(np.prod(size)).reshape(size) for size in SIZE_CASES)
-    _check(a, f"atleast_{dim}d", SIZE_CASES)
+    scalar = 10.0
+    a.append(scalar)
+    print_msg = f"np & cunumeric.atleast_{dim}d(size={SIZE_CASES})"
+    check_module_function(f"atleast_{dim}d", a, {}, print_msg)
 
 
 if __name__ == "__main__":
