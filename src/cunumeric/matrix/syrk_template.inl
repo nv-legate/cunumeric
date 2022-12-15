@@ -28,20 +28,15 @@ template <VariantKind KIND, LegateTypeCode CODE>
 struct SyrkImplBody;
 
 template <LegateTypeCode CODE>
-struct support_syrk : std::false_type {
-};
+struct support_syrk : std::false_type {};
 template <>
-struct support_syrk<LegateTypeCode::DOUBLE_LT> : std::true_type {
-};
+struct support_syrk<LegateTypeCode::DOUBLE_LT> : std::true_type {};
 template <>
-struct support_syrk<LegateTypeCode::FLOAT_LT> : std::true_type {
-};
+struct support_syrk<LegateTypeCode::FLOAT_LT> : std::true_type {};
 template <>
-struct support_syrk<LegateTypeCode::COMPLEX64_LT> : std::true_type {
-};
+struct support_syrk<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
 template <>
-struct support_syrk<LegateTypeCode::COMPLEX128_LT> : std::true_type {
-};
+struct support_syrk<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
 
 template <VariantKind KIND>
 struct SyrkImpl {

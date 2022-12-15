@@ -25,19 +25,10 @@ using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND>
-Memory::Kind get_memory_kind()
-{
-  if constexpr (KIND == VariantKind::OMP)
-    return CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-  else
-    return Memory::Kind::SYSTEM_MEM;
-}
-
-template <VariantKind KIND>
 struct SolveImplBody<KIND, LegateTypeCode::FLOAT_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, float* a, float* b)
   {
-    auto ipiv = create_buffer<int32_t>(std::min(m, n), get_memory_kind<KIND>());
+    auto ipiv = create_buffer<int32_t>(std::min(m, n));
 
     int32_t info = 0;
     LAPACK_sgesv(&n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
@@ -50,7 +41,7 @@ template <VariantKind KIND>
 struct SolveImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, double* a, double* b)
   {
-    auto ipiv = create_buffer<int32_t>(std::min(m, n), get_memory_kind<KIND>());
+    auto ipiv = create_buffer<int32_t>(std::min(m, n));
 
     int32_t info = 0;
     LAPACK_dgesv(&n, &nrhs, a, &m, ipiv.ptr(0), b, &n, &info);
@@ -63,7 +54,7 @@ template <VariantKind KIND>
 struct SolveImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, complex<float>* a_, complex<float>* b_)
   {
-    auto ipiv = create_buffer<int32_t>(std::min(m, n), get_memory_kind<KIND>());
+    auto ipiv = create_buffer<int32_t>(std::min(m, n));
 
     auto a = reinterpret_cast<__complex__ float*>(a_);
     auto b = reinterpret_cast<__complex__ float*>(b_);
@@ -79,7 +70,7 @@ template <VariantKind KIND>
 struct SolveImplBody<KIND, LegateTypeCode::COMPLEX128_LT> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, complex<double>* a_, complex<double>* b_)
   {
-    auto ipiv = create_buffer<int32_t>(std::min(m, n), get_memory_kind<KIND>());
+    auto ipiv = create_buffer<int32_t>(std::min(m, n));
 
     auto a = reinterpret_cast<__complex__ double*>(a_);
     auto b = reinterpret_cast<__complex__ double*>(b_);

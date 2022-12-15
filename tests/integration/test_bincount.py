@@ -27,6 +27,36 @@ DTYPES = [np.int64, np.int32, np.int16]
 MINLENGTHS = [0, 5, 15]
 
 
+def test_dtype_negative():
+    arr = num.arange(5, dtype=float)
+    msg = r"integer type"
+    with pytest.raises(TypeError, match=msg):
+        num.bincount(arr)
+
+
+def test_weight_mismatch():
+    v_num = num.random.randint(0, 9, size=N)
+    w_num = num.random.randn(N + 1)
+    msg = r"same shape"
+    with pytest.raises(ValueError, match=msg):
+        num.bincount(v_num, weights=w_num)
+
+
+def test_out_size():
+    arr = num.array([0, 1, 1, 3, 2, 1, 7, 23])
+    assert num.bincount(arr).size == num.amax(arr) + 1
+
+
+@pytest.mark.skip()
+def test_array_ndim():
+    size = (2,) * 3
+    arr = num.random.randint(0, high=9, size=size)
+    # Numpy raises : ValueError: object too deep for desired array
+    # cuNumeric run aborted
+    with pytest.raises(ValueError):
+        num.bincount(arr)
+
+
 @pytest.mark.parametrize("dtype", DTYPES)
 @pytest.mark.parametrize("minlength", MINLENGTHS)
 def test_bincount_basic(dtype, minlength):

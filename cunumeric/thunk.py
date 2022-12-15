@@ -202,6 +202,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def putmask(self, mask: Any, values: Any) -> None:
+        ...
+
+    @abstractmethod
     def eye(self, k: int) -> None:
         ...
 

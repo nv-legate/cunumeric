@@ -154,6 +154,7 @@ def test_CuNumericOpCode() -> None:
         "NONZERO",
         "PACKBITS",
         "POTRF",
+        "PUTMASK",
         "RAND",
         "READ",
         "REPEAT",
@@ -247,7 +248,6 @@ def test_CuNumericTunable() -> None:
         "NUM_GPUS",
         "NUM_PROCS",
         "MAX_EAGER_VOLUME",
-        "HAS_NUMAMEM",
     }
 
 

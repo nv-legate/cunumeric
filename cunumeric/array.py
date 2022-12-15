@@ -31,11 +31,16 @@ from typing import (
     cast,
 )
 
+import legate.core.types as ty
 import numpy as np
-import pyarrow  # type: ignore
+import pyarrow  # type: ignore  [import]
 from legate.core import Array
-from numpy.core.multiarray import normalize_axis_index  # type: ignore
-from numpy.core.numeric import normalize_axis_tuple  # type: ignore
+from numpy.core.multiarray import (  # type: ignore [attr-defined]
+    normalize_axis_index,
+)
+from numpy.core.numeric import (  # type: ignore [attr-defined]
+    normalize_axis_tuple,
+)
 from typing_extensions import ParamSpec
 
 from .config import (
@@ -187,6 +192,21 @@ def _convert_all_to_numpy(obj: Any) -> Any:
         return obj
 
 
+# FIXME: we can't give an accurate return type as mypy thinks
+# the pyarrow import can be ignored, and can't override the check
+# either, because no-any-unimported needs Python >= 3.10. We can
+# fix it once we bump up the Python version
+def convert_numpy_dtype_to_pyarrow(dtype: np.dtype[Any]) -> Any:
+    if dtype.kind != "c":
+        return pyarrow.from_numpy_dtype(dtype)
+    elif dtype == np.complex64:
+        return ty.complex64
+    elif dtype == np.complex128:
+        return ty.complex128
+    else:
+        raise ValueError(f"Unsupported NumPy dtype: {dtype}")
+
+
 @clone_np_ndarray
 class ndarray:
     def __init__(
@@ -269,7 +289,7 @@ class ndarray:
             # All of our thunks implement the Legate Store interface
             # so we just need to convert our type and stick it in
             # a Legate Array
-            arrow_type = pyarrow.from_numpy_dtype(self.dtype)
+            arrow_type = convert_numpy_dtype_to_pyarrow(self.dtype)
             # If the thunk is an eager array, we need to convert it to a
             # deferred array so we can extract a legate store
             deferred_thunk = runtime.to_deferred_array(self._thunk)
@@ -520,6 +540,10 @@ class ndarray:
         See Also
         --------
         flatten : Return a copy of the array collapsed into one dimension.
+
+        Availability
+        --------
+        Single CPU
 
         """
         return self.__array__().flat
@@ -2096,11 +2120,15 @@ class ndarray:
 
         """
         a = self
-        if condition.ndim != 1:
+        try:
+            if condition.ndim != 1:
+                raise ValueError(
+                    "Dimension mismatch: condition must be a 1D array"
+                )
+        except AttributeError:
             raise ValueError(
                 "Dimension mismatch: condition must be a 1D array"
             )
-
         condition = condition._warn_and_convert(np.dtype(bool))
 
         if axis is None:
@@ -2621,7 +2649,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Multiple CPUs
+        Single CPU
 
         """
         self.__array__().dump(file=file)
@@ -3621,7 +3649,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Multiple CPUs
+        Single CPU
 
         """
         return self.__array__().tofile(fid=fid, sep=sep, format=format)
@@ -3793,11 +3821,45 @@ class ndarray:
     def view(
         self,
         dtype: Union[npt.DTypeLike, None] = None,
-        type: Union[Any, None] = None,
+        type: Union[type, None] = None,
     ) -> ndarray:
+        """
+        New view of array with the same data.
+
+        Parameters
+        ----------
+        dtype : data-type or ndarray sub-class, optional
+            Data-type descriptor of the returned view, e.g., float32 or int16.
+            Omitting it results in the view having the same data-type as the
+            input array. This argument can also be specified as an ndarray
+            sub-class, which then specifies the type of the returned object
+            (this is equivalent to setting the ``type`` parameter).
+        type : ndarray sub-class, optional
+            Type of the returned view, e.g., ndarray or matrix. Again, omission
+            of the parameter results in type preservation.
+
+        Notes
+        -----
+        cuNumeric does not currently support type reinterpretation, or
+        conversion to ndarray sub-classes; use :func:`ndarray.__array__()` to
+        convert to `numpy.ndarray`.
+
+        See Also
+        --------
+        numpy.ndarray.view
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
         if dtype is not None and dtype != self.dtype:
             raise NotImplementedError(
                 "cuNumeric does not currently support type reinterpretation"
+            )
+        if type is not None:
+            raise NotImplementedError(
+                "cuNumeric does not currently support conversion to ndarray "
+                "sub-classes; use __array__() to convert to numpy.ndarray"
             )
         return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
 

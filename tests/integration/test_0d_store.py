@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,22 +13,23 @@
 # limitations under the License.
 #
 
-import numpy as np
+from itertools import product
+
 import pytest
 
 import cunumeric as num
 
-x = np.array([1 + 4j, 2 + 5j, 3 + 6j], np.complex64)
+SIZE = 3
 
 
-def test_sum():
-    cx = num.array(x)
-    assert num.all(num.abs(num.sum(cx) - np.sum(x)) < 1e-5)
+def test_0d_region_backed_stores():
+    arr = num.arange(9).reshape(3, 3)
 
-
-def test_prod():
-    cx = num.array(x)
-    assert num.all(num.abs(num.prod(cx) - np.prod(x)) < 1e-5)
+    for i, j in product(range(SIZE), range(SIZE)):
+        i_ind = num.array(i)
+        j_ind = num.array(j)
+        v = arr[i_ind, j_ind]
+        assert int(v) == i * SIZE + j
 
 
 if __name__ == "__main__":
