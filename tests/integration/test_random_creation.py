@@ -17,16 +17,18 @@ import numpy as np
 import pytest
 from utils.comparisons import allclose
 
-import cunumeric as cn
+import cunumeric as num
 
 
 @pytest.mark.xfail
 def test_randn():
-    cn.random.seed(42)
-    x = cn.random.randn(10)
     np.random.seed(42)
-    xn = np.random.randn(10)
-    assert allclose(x, xn)
+    num.random.seed(42)
+
+    a_np = np.random.randn(10)
+    a_num = num.random.randn(10)
+
+    assert allclose(a_num, a_np)
 
 
 if __name__ == "__main__":

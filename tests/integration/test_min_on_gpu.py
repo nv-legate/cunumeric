@@ -15,12 +15,12 @@
 
 import pytest
 
-import cunumeric as cn
+import cunumeric as num
 
 
 def test_min():
-    x = cn.array([1, 2, 3])
-    assert cn.min(x) == 1
+    x = num.array([1, 2, 3])
+    assert num.min(x) == 1
 
 
 if __name__ == "__main__":

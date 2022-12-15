@@ -62,9 +62,8 @@ struct RepeatImplBody<VariantKind::OMP, CODE, DIM> {
                   const int32_t axis,
                   const Rect<DIM>& in_rect) const
   {
-    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
     int64_t axis_extent = in_rect.hi[axis] - in_rect.lo[axis] + 1;
-    auto offsets        = create_buffer<int64_t>(axis_extent, kind);
+    auto offsets        = create_buffer<int64_t>(axis_extent);
 
     const auto max_threads = omp_get_max_threads();
     ThreadLocalStorage<int64_t> local_sums(max_threads);

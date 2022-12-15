@@ -41,10 +41,7 @@ struct ArgWhereImpl {
     size_t volume = pitches.flatten(rect_in);
 
     if (volume == 0) {
-      auto extents = Point<2>::ZEROES();
-      // auto extents = Point<2>(0,DIM);
-      auto buffer = create_buffer<VAL, 2>(extents);
-      args.out.return_data(buffer, extents);
+      args.out.make_empty();
       return;
     }
 

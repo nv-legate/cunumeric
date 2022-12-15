@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 from utils.comparisons import allclose
 
-import cunumeric as cn
+import cunumeric as num
 
 window_functions = ("bartlett", "blackman", "hamming", "hanning")
 
@@ -27,18 +27,18 @@ window_functions = ("bartlett", "blackman", "hamming", "hanning")
 @pytest.mark.parametrize("fn", window_functions)
 def test_basic_window(fn, M):
     out_np = getattr(np, fn)(M)
-    out_cn = getattr(cn, fn)(M)
+    out_num = getattr(num, fn)(M)
 
-    assert allclose(out_np, out_cn)
+    assert allclose(out_np, out_num)
 
 
 @pytest.mark.parametrize("beta", (0, 6))
 @pytest.mark.parametrize("M", (0, 1, 10, 100))
 def test_kaiser_window(M, beta):
     out_np = np.kaiser(M, beta)
-    out_cn = cn.kaiser(M, beta)
+    out_num = num.kaiser(M, beta)
 
-    assert allclose(out_np, out_cn)
+    assert allclose(out_np, out_num)
 
 
 if __name__ == "__main__":

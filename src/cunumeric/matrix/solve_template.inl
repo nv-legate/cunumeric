@@ -30,20 +30,15 @@ template <VariantKind KIND, LegateTypeCode CODE>
 struct SolveImplBody;
 
 template <LegateTypeCode CODE>
-struct support_solve : std::false_type {
-};
+struct support_solve : std::false_type {};
 template <>
-struct support_solve<LegateTypeCode::DOUBLE_LT> : std::true_type {
-};
+struct support_solve<LegateTypeCode::DOUBLE_LT> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::FLOAT_LT> : std::true_type {
-};
+struct support_solve<LegateTypeCode::FLOAT_LT> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::COMPLEX64_LT> : std::true_type {
-};
+struct support_solve<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::COMPLEX128_LT> : std::true_type {
-};
+struct support_solve<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
 
 template <VariantKind KIND>
 struct SolveImpl {

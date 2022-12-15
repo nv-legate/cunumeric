@@ -25,7 +25,8 @@ import cunumeric as num
 from cunumeric.eager import diagonal_reference
 
 
-def test_choose_1d():
+class TestChoose1d:
+
     choices1 = [
         [0, 1, 2, 3],
         [10, 11, 12, 13],
@@ -35,26 +36,36 @@ def test_choose_1d():
     a1 = [2, 3, 1, 0]
     num_a1 = num.array(a1)
     num_choices1 = num.array(choices1)
-
-    aout = np.array([2.3, 3.0, 1.2, 0.3])
-    num_aout = num.array(aout)
-
-    assert np.array_equal(
-        np.choose(a1, choices1, out=aout),
-        num.choose(num_a1, num_choices1, out=num_aout),
-    )
-    assert np.array_equal(aout, num_aout)
-
     b = [2, 4, 1, 0]
     num_b = num.array(b)
-    assert np.array_equal(
-        np.choose(b, choices1, mode="clip"),
-        num.choose(num_b, num_choices1, mode="clip"),
-    )
-    assert np.array_equal(
-        np.choose(b, choices1, mode="wrap"),
-        num.choose(num_b, num_choices1, mode="wrap"),
-    )
+
+    def test_basic(self):
+        assert np.array_equal(
+            num.choose(self.num_a1, self.num_choices1),
+            np.choose(self.a1, self.choices1),
+        )
+
+    def test_out_none(self):
+        assert np.array_equal(
+            num.choose(self.num_a1, self.num_choices1, out=None),
+            np.choose(self.a1, self.choices1, out=None),
+        )
+
+    def test_out(self):
+        aout = np.array([2.3, 3.0, 1.2, 0.3])
+        num_aout = num.array(aout)
+        assert np.array_equal(
+            np.choose(self.a1, self.choices1, out=aout),
+            num.choose(self.num_a1, self.num_choices1, out=num_aout),
+        )
+        assert np.array_equal(aout, num_aout)
+
+    @pytest.mark.parametrize("mode", ("wrap", "clip"), ids=str)
+    def test_mode(self, mode):
+        assert np.array_equal(
+            np.choose(self.b, self.choices1, mode=mode),
+            num.choose(self.num_b, self.num_choices1, mode=mode),
+        )
 
 
 def test_choose_2d():
@@ -102,6 +113,163 @@ def test_choose_target_ndim(ndim):
                 assert np.array_equal(np_res, num_res)
 
 
+SHAPES_A = (
+    (2, 4),
+    (2, 1),
+    (1, 4),
+    (1, 1),
+    (4,),
+    (1,),
+    (3, 2, 4),
+    (2, 3, 2, 4),
+    (1, 3, 1, 1),
+)
+
+
+@pytest.mark.parametrize(
+    "shape_a", SHAPES_A, ids=lambda shape_a: f"(shape_a={shape_a})"
+)
+def test_choose_a_array(shape_a):
+    shape_choices = (3, 2, 4)
+    np_a = mk_seq_array(np, shape_a) % shape_choices[0]
+    num_a = mk_seq_array(num, shape_a) % shape_choices[0]
+    np_choices = mk_seq_array(np, shape_choices)
+    num_choices = mk_seq_array(num, shape_choices)
+
+    np_res = np.choose(np_a, np_choices)
+    num_res = num.choose(num_a, num_choices)
+    assert np.array_equal(np_res, num_res)
+
+
+def test_choose_a_scalar():
+    shape_choices = (3, 2, 4)
+    a = 1
+    np_choices = mk_seq_array(np, shape_choices)
+    num_choices = mk_seq_array(num, shape_choices)
+
+    np_res = np.choose(a, np_choices)
+    num_res = num.choose(a, num_choices)
+    assert np.array_equal(np_res, num_res)
+
+
+@pytest.mark.parametrize("mode", ("wrap", "clip"), ids=str)
+@pytest.mark.parametrize(
+    "shape_a", ((3, 2, 4), (4,)), ids=lambda shape_a: f"(shape_a={shape_a})"
+)
+def test_choose_mode(shape_a, mode):
+    shape_choices = (3, 2, 4)
+    np_a = mk_seq_array(np, shape_a) - 10
+    num_a = mk_seq_array(num, shape_a) - 10
+    np_choices = mk_seq_array(np, shape_choices)
+    num_choices = mk_seq_array(num, shape_choices)
+
+    np_res = np.choose(np_a, np_choices, mode=mode)
+    num_res = num.choose(num_a, num_choices, mode=mode)
+    assert np.array_equal(np_res, num_res)
+
+
+def test_choose_out():
+    shape_choices = (3, 2, 4)
+    shape_a = (2, 4)
+    shape_a_out = (2, 4)
+    np_a = mk_seq_array(np, shape_a) % shape_choices[0]
+    np_a = np_a.astype(np.int32)
+    num_a = mk_seq_array(num, shape_a) % shape_choices[0]
+    num_a = num_a.astype(
+        np.int32
+    )  # cuNumeric would convert np.int32 to default type np.int64
+    np_choices = mk_seq_array(np, shape_choices)
+    num_choices = mk_seq_array(num, shape_choices)
+    np_aout = mk_seq_array(np, shape_a_out) - 10
+    num_aout = mk_seq_array(num, shape_a_out) - 10
+
+    np_res = np.choose(np_a, np_choices, out=np_aout)
+    num_res = num.choose(num_a, num_choices, out=num_aout)
+    assert np.array_equal(np_res, num_res)
+    assert np.array_equal(np_aout, num_aout)
+
+
+@pytest.mark.xfail
+def test_choose_mode_none():
+    # In Numpy, pass and returns array equals default mode
+    # In cuNumeric, raises ValueError: mode=None not understood.
+    # Must be 'raise', 'wrap', or 'clip'
+    shape_choices = (3, 2, 4)
+    shape_a = (2, 4)
+    np_a = mk_seq_array(np, shape_a) % shape_choices[0]
+    num_a = mk_seq_array(num, shape_a) % shape_choices[0]
+    np_choices = mk_seq_array(np, shape_choices)
+    num_choices = mk_seq_array(num, shape_choices)
+
+    np_res = np.choose(np_a, np_choices, mode=None)
+    num_res = num.choose(num_a, num_choices, mode=None)
+    assert np.array_equal(np_res, num_res)
+
+
+class TestChooseErrors:
+    def setup_method(self):
+        self.shape_choices = (3, 2, 4)
+        self.choices = mk_seq_array(num, self.shape_choices)
+        self.shape_a = (2, 4)
+        self.a = mk_seq_array(num, self.shape_a) % self.shape_choices[0]
+
+    @pytest.mark.parametrize(
+        "value", (-1, 3), ids=lambda value: f"(value={value})"
+    )
+    def test_a_value_out_of_bound(self, value):
+        shape_a = (2, 4)
+        a = num.full(shape_a, value)
+        msg = "invalid entry in choice array"
+        with pytest.raises(ValueError, match=msg):
+            num.choose(a, self.choices)
+
+    def test_a_value_float(self):
+        shape_a = (2, 4)
+        a = num.full(shape_a, 1.0)
+        with pytest.raises(TypeError):
+            num.choose(a, self.choices)
+
+    @pytest.mark.parametrize(
+        "shape_a",
+        ((3, 4), (2, 2), (2,), (0,)),
+        ids=lambda shape_a: f"(shape_a={shape_a})",
+    )
+    def test_a_invalid_shape(self, shape_a):
+        a = mk_seq_array(num, shape_a) % self.shape_choices[0]
+        msg = "shape mismatch"
+        with pytest.raises(ValueError, match=msg):
+            num.choose(a, self.choices)
+
+    @pytest.mark.xfail
+    def test_a_none(self):
+        # In Numpy, it raises TypeError
+        # In cuNumeric, it raises AttributeError:
+        # 'NoneType' object has no attribute 'choose'
+        with pytest.raises(TypeError):
+            num.choose(None, self.choices)
+
+    def test_empty_choices(self):
+        msg = "invalid entry in choice array"
+        with pytest.raises(ValueError, match=msg):
+            num.choose(self.a, [])
+
+    @pytest.mark.xfail
+    def test_choices_none(self):
+        # In Numpy, it raises TypeError
+        # In cuNumeric, it raises IndexError: tuple index out of range
+        with pytest.raises(TypeError):
+            num.choose(self.a, None)
+
+    def test_invalid_mode(self):
+        with pytest.raises(ValueError):
+            num.choose(self.a, self.choices, mode="InvalidValue")
+
+    def test_out_invalid_shape(self):
+        aout = mk_seq_array(num, (1, 4))
+        with pytest.raises(ValueError):
+            num.choose(self.a, self.choices, out=aout)
+
+
 def test_diagonal():
     ad = np.arange(24).reshape(4, 3, 2)
     num_ad = num.array(ad)
@@ -129,7 +297,6 @@ def test_diagonal():
     for ndim in range(3, LEGATE_MAX_DIM + 1):
         a_shape = tuple(random.randint(1, 9) for i in range(ndim))
         np_array = mk_seq_array(np, a_shape)
-        np_array = mk_seq_array(np, a_shape)
         num_array = mk_seq_array(num, a_shape)
         for num_axes in range(3, ndim + 1):
             for axes in permutations(range(ndim), num_axes):
@@ -140,65 +307,212 @@ def test_diagonal():
                 assert np.array_equal(res_num, res_ref)
 
 
-KS = [0, -1, 1, -2, 2]
+KS = (0, -1, 1, -2, 2)
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("k", KS, ids=lambda k: f"(k={k})")
+@pytest.mark.parametrize(
+    "shape", ((5, 1), (1, 5)), ids=lambda shape: f"(shape={shape})"
+)
+def test_diagonal_offset(shape, k):
+    # for shape=(5, 1) and k=1, 2,
+    # for shape=(1, 5) and k=-1, -2,
+    # In cuNumeric,  raise ValueError: 'offset'
+    # for diag or diagonal must be in range
+    # In Numpy, pass and returns empty array
+    a = mk_seq_array(num, shape)
+    an = mk_seq_array(np, shape)
+
+    b = num.diagonal(a, k)
+    bn = np.diagonal(an, k)
+    assert np.array_equal(b, bn)
+
+
+@pytest.mark.parametrize(
+    "shape",
+    (pytest.param((3, 0), marks=pytest.mark.xfail), (0, 3)),
+    ids=lambda shape: f"(shape={shape})",
+)
+def test_diagonal_empty_array(shape):
+    # for shape=(3, 0) and k=0,
+    # In cuNumeric,  raise ValueError: 'offset'
+    # for diag or diagonal must be in range
+    # In Numpy, pass and returns empty array
+    a = mk_seq_array(num, shape)
+    an = mk_seq_array(np, shape)
+
+    b = num.diagonal(a)
+    bn = np.diagonal(an)
+    assert np.array_equal(b, bn)
+
+
+class TestDiagonalErrors:
+    def setup_method(self):
+        shape = (3, 4, 5)
+        self.a = mk_seq_array(num, shape)
+
+    def test_0d_array(self):
+        a = num.array(3)
+        with pytest.raises(ValueError):
+            num.diagonal(a)
+
+    def test_1d_array(self):
+        shape = (3,)
+        a = mk_seq_array(num, shape)
+        with pytest.raises(ValueError):
+            num.diagonal(a)
+
+    @pytest.mark.xfail
+    def test_array_none(self):
+        # In cuNumeric, it raises AttributeError:
+        # 'NoneType' object has no attribute 'diagonal'
+        # In Numpy, it raises ValueError:
+        # diag requires an array of at least two dimensions.
+        with pytest.raises(ValueError):
+            num.diagonal(None)
+
+    @pytest.mark.parametrize(
+        "axes",
+        ((0, 0), pytest.param((0, -3), marks=pytest.mark.xfail)),
+        ids=lambda axes: f"(axes={axes})",
+    )
+    def test_axes_same(self, axes):
+        # For axes =  (0, -3),
+        # In cuNumeric, it raises ValueError:
+        # axes must be the same size as ndim for transpose
+        # In Numpy, it raises ValueError: axis1 and axis2 cannot be the same
+        axis1, axis2 = axes
+        msg = "axes passed to _diag_helper should be all different"
+        with pytest.raises(ValueError, match=msg):
+            num.diagonal(self.a, 0, axis1, axis2)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize(
+        "axes", ((0, -4), (3, 0)), ids=lambda axes: f"(axes={axes})"
+    )
+    def test_axes_out_of_bound(self, axes):
+        # In Numpy, it raises numpy.AxisError: is out of bounds
+        # In cuNumeric, it raises ValueError:
+        # axes must be the same size as ndim for transpose
+        axis1, axis2 = axes
+        with pytest.raises(np.AxisError):
+            num.diagonal(self.a, 0, axis1, axis2)
+
+    @pytest.mark.xfail
+    def test_axes_float(self):
+        # In Numpy, it raise TypeError
+        # In cuNumeric, it raises AssertionError
+        with pytest.raises(TypeError):
+            num.diagonal(self.a, 0, 0.0, 1)
+
+    @pytest.mark.xfail
+    def test_axes_none(self):
+        # In Numpy, it raise TypeError
+        # In cuNumeric, it raises AssertionError
+        with pytest.raises(TypeError):
+            num.diagonal(self.a, 0, None, 0)
+
+    @pytest.mark.parametrize(
+        "k",
+        (pytest.param(0.0, marks=pytest.mark.xfail), -1.5, 1.5),
+        ids=lambda k: f"(k={k})",
+    )
+    def test_k_float(self, k):
+        # for k=0.0,
+        # In cuNumeric, pass
+        # In Numpy, raises TypeError: integer argument expected, got float
+        with pytest.raises(TypeError):
+            num.diagonal(self.a, k)
+
+    def test_k_none(self):
+        with pytest.raises(TypeError):
+            num.diagonal(self.a, None)
 
 
 @pytest.mark.parametrize("k", KS, ids=lambda k: f"(k={k})")
-def test_diag(k):
-    print(f"diag(k={k})")
-    a = num.array(
-        [
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 16],
-            [17, 18, 19, 20],
-        ]
-    )
-    an = np.array(
-        [
-            [1, 2, 3, 4],
-            [5, 6, 7, 8],
-            [9, 10, 11, 12],
-            [13, 14, 15, 16],
-            [17, 18, 19, 20],
-        ]
-    )
+@pytest.mark.parametrize(
+    "shape",
+    (
+        (5,),
+        (3, 3),
+        pytest.param((5, 1), marks=pytest.mark.xfail),
+        pytest.param((1, 5), marks=pytest.mark.xfail),
+    ),
+    ids=lambda shape: f"(shape={shape})",
+)
+def test_diag(shape, k):
+    # for shape=(5, 1) and k=1, 2,
+    # for shape=(1, 5) and k=-1, -2,
+    # In cuNumeric,  raise ValueError:
+    # 'offset' for diag or diagonal must be in range
+    # In Numpy, pass and returns empty array
+    a = mk_seq_array(num, shape)
+    an = mk_seq_array(np, shape)
 
     b = num.diag(a, k=k)
     bn = np.diag(an, k=k)
     assert np.array_equal(b, bn)
 
-    c = num.diag(b, k=k)
-    cn = np.diag(bn, k=k)
-    assert np.array_equal(c, cn)
 
-    d = num.array(
-        [
-            [1, 2, 3, 4, 5],
-            [6, 7, 8, 9, 10],
-            [11, 12, 13, 14, 15],
-            [16, 17, 18, 19, 20],
-        ]
+@pytest.mark.parametrize(
+    "shape",
+    ((0,), pytest.param((3, 0), marks=pytest.mark.xfail), (0, 3)),
+    ids=lambda shape: f"(shape={shape})",
+)
+def test_diag_empty_array(shape):
+    # for shape=(3, 0) and k=0,
+    # In cuNumeric,  raise ValueError:
+    # 'offset' for diag or diagonal must be in range
+    # In Numpy, pass and returns empty array
+    a = mk_seq_array(num, shape)
+    an = mk_seq_array(np, shape)
+
+    b = num.diag(a)
+    bn = np.diag(an)
+    assert np.array_equal(b, bn)
+
+
+class TestDiagErrors:
+    def test_0d_array(self):
+        a = num.array(3)
+        msg = "Input must be 1- or 2-d"
+        with pytest.raises(ValueError, match=msg):
+            num.diag(a)
+
+    def test_3d_array(self):
+        shape = (3, 4, 5)
+        a = mk_seq_array(num, shape)
+        with pytest.raises(ValueError):
+            num.diag(a)
+
+    @pytest.mark.xfail
+    def test_array_none(self):
+        # In cuNumeric, it raises AttributeError,
+        # 'NoneType' object has no attribute 'ndim'
+        # In Numpy, it raises ValueError, Input must be 1- or 2-d.
+        with pytest.raises(ValueError):
+            num.diag(None)
+
+    @pytest.mark.parametrize(
+        "k",
+        (pytest.param(0.0, marks=pytest.mark.xfail), -1.5, 1.5),
+        ids=lambda k: f"(k={k})",
     )
-    dn = np.array(
-        [
-            [1, 2, 3, 4, 5],
-            [6, 7, 8, 9, 10],
-            [11, 12, 13, 14, 15],
-            [16, 17, 18, 19, 20],
-        ]
-    )
+    def test_k_float(self, k):
+        # for k=0.0,
+        # In cuNumeric, pass
+        # In Numpy, raises TypeError: integer argument expected, got float
+        shape = (3, 3)
+        a = mk_seq_array(num, shape)
+        with pytest.raises(TypeError):
+            num.diag(a, k=k)
 
-    e = num.diag(d, k=k)
-    en = np.diag(dn, k=k)
-    assert np.array_equal(e, en)
-
-    f = num.diag(e, k=k)
-    fn = np.diag(en, k=k)
-    assert np.array_equal(f, fn)
-
-    return
+    def test_k_none(self):
+        shape = (3, 3)
+        a = mk_seq_array(num, shape)
+        with pytest.raises(TypeError):
+            num.diag(a, k=None)
 
 
 if __name__ == "__main__":

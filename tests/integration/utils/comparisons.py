@@ -27,9 +27,18 @@ def allclose(
     equal_nan: bool = False,
     *,
     diff_limit: Union[int, None] = 5,  # None means no limit at all
+    check_dtype: bool = True,
 ) -> bool:
+    if np.shape(a) != np.shape(b):
+        print(f"allclose: different shape: {np.shape(a)} vs {np.shape(b)}")
+        return False
+
     # simplify handling of scalar values
     a, b = np.atleast_1d(a), np.atleast_1d(b)
+
+    if check_dtype and a.dtype != b.dtype:
+        print(f"allclose: different dtype: {a.dtype} vs {b.dtype}")
+        return False
 
     close = np.isclose(a, b, rtol=rtol, atol=atol, equal_nan=equal_nan)
 
