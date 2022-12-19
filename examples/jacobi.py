@@ -55,7 +55,9 @@ def run_jacobi(N, iters, warmup, perform_check, timing, verbose):
     if perform_check:
         assert check(A, x, b)
     else:
-        assert not math.isnan(np.sum(x))
+        assert not math.isnan(
+            np.sum(x)
+        ), f"{np.count_nonzero(~np.isnan(x))} NaNs in x"
 
     total = (stop - start) / 1000.0
     if timing:

@@ -70,7 +70,9 @@ def run_logistic_regression(N, F, T, I, warmup, S, B):  # noqa: E741
             )
     stop = time()
 
-    assert not math.isnan(np.sum(weights))
+    assert not math.isnan(
+        np.sum(weights)
+    ), f"{np.count_nonzero(~np.isnan(weights))} NaNs in weights"
 
     total = (stop - start) / 1000.0
     print(f"Elapsed Time: {total} ms")
