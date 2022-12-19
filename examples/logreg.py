@@ -16,6 +16,7 @@
 #
 
 import argparse
+import math
 
 from benchmark import parse_args, run_benchmark, time
 
@@ -68,6 +69,8 @@ def run_logistic_regression(N, F, T, I, warmup, S, B):  # noqa: E741
                 + str(log_likelihood(features, target, weights))
             )
     stop = time()
+
+    assert not math.isnan(np.sum(weights))
 
     total = (stop - start) / 1000.0
     print(f"Elapsed Time: {total} ms")

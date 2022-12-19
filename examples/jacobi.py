@@ -16,6 +16,7 @@
 #
 
 import argparse
+import math
 
 from benchmark import parse_args, run_benchmark, time
 
@@ -33,10 +34,7 @@ def generate_random(N):
 
 def check(A, x, b):
     print("Checking result...")
-    if np.allclose(A.dot(x), b):
-        print("PASS!")
-    else:
-        print("FAIL!")
+    return np.allclose(A.dot(x), b)
 
 
 def run_jacobi(N, iters, warmup, perform_check, timing, verbose):
@@ -55,7 +53,9 @@ def run_jacobi(N, iters, warmup, perform_check, timing, verbose):
     stop = time()
 
     if perform_check:
-        check(A, x, b)
+        assert check(A, x, b)
+    else:
+        assert not math.isnan(np.sum(x))
 
     total = (stop - start) / 1000.0
     if timing:
