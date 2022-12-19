@@ -761,6 +761,11 @@ def test():
     x_num[1, :, [False, True, False, True]] = 129
     assert np.array_equal(x, x_num)
 
+    # set item with mixed indices
+    x[:, [False, True, False], 1] = 111
+    x_num[:, [False, True, False], 1] = 111
+    assert np.array_equal(x, x_num)
+
     x[..., [False, True, False, True, False]] = 200
     x_num[..., [False, True, False, True, False]] = 200
     assert np.array_equal(x, x_num)

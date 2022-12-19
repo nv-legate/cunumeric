@@ -542,8 +542,6 @@ class DeferredArray(NumPyThunk):
         else:
             # key is a single array of indices
             if isinstance(key, NumPyThunk):
-                key = (key,)
-                key = self._unpack_ellipsis(key, self.ndim)
                 return False, self, key
 
             assert isinstance(key, tuple)
@@ -583,7 +581,7 @@ class DeferredArray(NumPyThunk):
 
                 new_key = tuple(key[i] for i in range(0, transpose_index))
                 new_key += tuple(
-                    key[i] for i in range(transpose_index + key_dim, len(key))
+                    key[i] for i in range(transpose_index + 1, len(key))
                 )
                 lhs = lhs.transpose(transpose_indices)
 
@@ -744,18 +742,25 @@ class DeferredArray(NumPyThunk):
         set_value: Optional[Any] = None,
     ) -> tuple[bool, Any, Any, Any]:
 
-        is_bool_array, lhs, key = self._has_single_boolean_array(key, is_set)
+        is_bool_array, lhs, bool_key = self._has_single_boolean_array(
+            key, is_set
+        )
 
         # the case when single boolean array is passed to the advanced
         # indexing operation
         if is_bool_array:
             return lhs._advanced_indexing_with_boolean_array(
-                key, is_set, set_value
+                bool_key, is_set, set_value
             )
         # general advanced indexing case
 
-        store = lhs.base
-        rhs = lhs
+        store = self.base
+        rhs = self
+        if isinstance(key, NumPyThunk):
+            key = (key,)
+        assert isinstance(key, tuple)
+        key = self._unpack_ellipsis(key, self.ndim)
+
         # the index where the first index_array is passed to the [] operator
         start_index = -1
         shift = 0
