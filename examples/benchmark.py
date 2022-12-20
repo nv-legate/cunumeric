@@ -18,6 +18,60 @@
 import math
 from functools import reduce
 
+try:
+    from legate.timing import time
+except (ImportError, RuntimeError):
+    from time import perf_counter_ns
+
+    def time():
+        return perf_counter_ns() / 1000.0
+
+
+# Add common arguments and parse
+def parse_args(parser):
+    parser.add_argument(
+        "-b",
+        "--benchmark",
+        type=int,
+        default=1,
+        dest="benchmark",
+        help="number of times to benchmark this application (default 1 - "
+        "normal execution)",
+    )
+    parser.add_argument(
+        "--package",
+        dest="package",
+        choices=["legate", "numpy", "cupy"],
+        type=str,
+        default="legate",
+        help="NumPy package to use",
+    )
+    parser.add_argument(
+        "--cupy-allocator",
+        dest="cupy_allocator",
+        choices=["default", "off", "managed"],
+        type=str,
+        default="default",
+        help="cupy allocator to use",
+    )
+    args, _ = parser.parse_known_args()
+    if args.package == "legate":
+        import cunumeric as np
+    elif args.package == "cupy":
+        import cupy as np
+
+        if args.cupy_allocator == "off":
+            np.cuda.set_allocator(None)
+            print("Turning off memory pool")
+        elif args.cupy_allocator == "managed":
+            np.cuda.set_allocator(
+                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
+            )
+            print("Using managed memory pool")
+    elif args.package == "numpy":
+        import numpy as np
+    return args, np
+
 
 # A helper method for benchmarking applications
 def run_benchmark(f, samples, name, args):
