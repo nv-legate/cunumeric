@@ -26,6 +26,9 @@ class WriteTask : public CuNumericTask<WriteTask> {
 
  public:
   static void cpu_variant(legate::TaskContext& context);
+#ifdef LEGATE_USE_OPENMP
+  static void omp_variant(legate::TaskContext& context) { WriteTask::cpu_variant(context); }
+#endif
 #ifdef LEGATE_USE_CUDA
   static void gpu_variant(legate::TaskContext& context);
 #endif
