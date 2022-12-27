@@ -504,7 +504,7 @@ class EagerArray(NumPyThunk):
                 elif nan_op is ConvertCode.PROD and np.isnan(rhs.array.item()):
                     self.array.fill(1)
                 else:
-                    self.array.fill(rhs.array.item())
+                    self.array.fill(rhs.array.astype(self.array.dtype).item())
             else:
                 if nan_op is ConvertCode.SUM:
                     self.array[:] = np.where(np.isnan(rhs.array), 0, rhs.array)
