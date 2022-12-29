@@ -52,9 +52,6 @@ struct Putmask {
   Putmask(PutmaskArgs& args) : dense(false)
   {
     rect = args.input.shape<DIM>();
-#ifdef DEBUG_CUNUMERIC
-    assert(rect == args.mask.shape<DIM>());
-#endif
 
     input  = args.input.read_write_accessor<T, DIM>(rect);
     mask   = args.mask.read_accessor<bool, DIM>(rect);

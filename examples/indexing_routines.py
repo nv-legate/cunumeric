@@ -15,16 +15,11 @@
 # limitations under the License.
 #
 
-from __future__ import print_function
-
 import argparse
 import gc
 import math
 
-from benchmark import run_benchmark
-from legate.timing import time
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark, time
 
 
 def compute_diagonal(steps, N, timing, warmup):
@@ -265,15 +260,6 @@ if __name__ == "__main__":
         help="print verbose output",
     )
     parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    parser.add_argument(
         "-r",
         "--routine",
         default="all",
@@ -281,8 +267,9 @@ if __name__ == "__main__":
         choices=["diagonal", "choose", "repeat", "ai1", "ai2", "ai3", "all"],
         help="name of the index routine to test",
     )
-    args, unknown = parser.parse_known_args()
-    print("Warning, unrecognized arguments: ", unknown)
+
+    args, np = parse_args(parser)
+
     run_benchmark(
         run_indexing_routines,
         args.benchmark,
