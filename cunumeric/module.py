@@ -6308,6 +6308,8 @@ def bincount(
     return out
 
 
+# Quantiles
+
 # account for 0-based indexing
 # there's no negative numbers
 # arithmetic at this level,
@@ -6321,10 +6323,6 @@ def floor_i(k: int | float) -> int:
 # Generic rule: if `q` input value falls onto a node, then return that node
 
 # Discontinuous methods:
-#
-# 'inverted_cdf'
-# q = quantile input \in [0, 1]
-# n = sizeof(array)
 #
 # 'inverted_cdf'
 # q = quantile input \in [0, 1]
@@ -6577,8 +6575,6 @@ def is_diff(arr1: tuple[int, ...], arr2: tuple[int, ...]) -> bool:
 # axes_set: [in] tuple or list of axes (indices less than arr dimension);
 #
 # return: pair: (minimal_index, reshuffled_and_collapsed source array)
-# TODO: check if reshuffling, reshaping is done in-place!
-#
 def reshuffle_reshape(
     arr: ndarray, axes_set: Iterable[int]
 ) -> tuple[int, ndarray]:
@@ -6672,16 +6668,6 @@ def quantile_impl(
     #
     qresult_shape = (*q_arr.shape, *remaining_shape)
 
-    # fails with cunumeric:
-    # (numpy works)
-    #
-    # cunumeric BUG: TypeError: a bytes-like object is required, not 'ndarray';
-    # TODO: open nvbug
-    #
-    # qs_all = ndarray(shape = qresult_shape,
-    #                     buffer = array(result_1D),
-    #                     dtype = to_dtype)
-    #
     # construct result NdArray, non-flattening approach:
     #
     if qs_all is None:
@@ -6727,9 +6713,6 @@ def quantile_impl(
             ) + gamma * arr_1D_rvals.reshape(qs_all[index].shape)
 
     return qs_all
-
-
-# Quantiles
 
 
 @add_boilerplate("a")
