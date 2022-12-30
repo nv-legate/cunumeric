@@ -19,7 +19,7 @@ import pytest
 from legate.core import LEGATE_MAX_DIM
 from utils.comparisons import allclose
 
-import cunumeric as cu
+import cunumeric as num
 
 ALL_METHODS = (
     "inverted_cdf",
@@ -80,14 +80,14 @@ def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
         dtype=int,
     )
 
-    if cu.isscalar(qin_arr):
+    if num.isscalar(qin_arr):
         qs_arr = qin_arr
     else:
         qs_arr = np.array(qin_arr)
 
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
-    q_out = cu.quantile(
+    q_out = num.quantile(
         arr,
         qs_arr,
         axis=axes,
@@ -146,7 +146,7 @@ def test_nd_quantile(str_method, ls_in, axes, keepdims):
 
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
-    q_out = cu.quantile(
+    q_out = num.quantile(
         arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims
     )
     # print(q_out)
@@ -217,7 +217,7 @@ def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
     #
     if (
         (keepdims is True)
-        and (cu.isscalar(qs_arr) is False)
+        and (num.isscalar(qs_arr) is False)
         and (len(qs_arr.shape) > 1)
         and (LEGATE_MAX_DIM < 5)
     ):
@@ -235,16 +235,16 @@ def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
             if k != axes
         ]
 
-    if cu.isscalar(qs_arr):
-        q_out = cu.zeros(remaining_shape, dtype=float)
+    if num.isscalar(qs_arr):
+        q_out = num.zeros(remaining_shape, dtype=float)
         # np_q_out = np.zeros(remaining_shape, dtype=float)
     else:
-        q_out = cu.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
+        q_out = num.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
         # np_q_out = np.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
 
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
-    cu.quantile(
+    num.quantile(
         arr, qs_arr, axis=axes, out=q_out, method=str_method, keepdims=keepdims
     )
     # print(q_out)
@@ -310,14 +310,14 @@ def test_quantiles_axis_none(str_method, qin_arr, keepdims):
         dtype=int,
     )
 
-    if cu.isscalar(qin_arr):
+    if num.isscalar(qin_arr):
         qs_arr = qin_arr
     else:
         qs_arr = np.array(qin_arr)
 
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
-    q_out = cu.quantile(
+    q_out = num.quantile(
         arr,
         qs_arr,
         method=str_method,
@@ -348,9 +348,9 @@ def test_quantiles_axis_none(str_method, qin_arr, keepdims):
 @pytest.mark.parametrize("axes", (None, 0))
 def test_random_inlined(str_method, qin_arr, axes):
     eps = 1.0e-8
-    arr = cu.random.random((3, 4, 5))
+    arr = num.random.random((3, 4, 5))
 
-    q_out = cu.quantile(arr, qin_arr, method=str_method, axis=axes)
+    q_out = num.quantile(arr, qin_arr, method=str_method, axis=axes)
     np_q_out = np.quantile(arr, qin_arr, method=str_method, axis=axes)
 
     assert q_out.shape == np_q_out.shape
@@ -362,9 +362,9 @@ def test_random_inlined(str_method, qin_arr, axes):
 @pytest.mark.parametrize("str_method", ALL_METHODS)
 def test_quantile_at_1(str_method):
     eps = 1.0e-8
-    arr = cu.arange(4)
+    arr = num.arange(4)
 
-    q_out = cu.quantile(arr, 1.0, method=str_method)
+    q_out = num.quantile(arr, 1.0, method=str_method)
     np_q_out = np.quantile(arr, 1.0, method=str_method)
 
     assert q_out.shape == np_q_out.shape
@@ -376,9 +376,9 @@ def test_quantile_at_1(str_method):
 @pytest.mark.parametrize("str_method", ALL_METHODS)
 def test_quantile_at_0(str_method):
     eps = 1.0e-8
-    arr = cu.arange(4)
+    arr = num.arange(4)
 
-    q_out = cu.quantile(arr, 0.0, method=str_method)
+    q_out = num.quantile(arr, 0.0, method=str_method)
     np_q_out = np.quantile(arr, 0.0, method=str_method)
 
     assert q_out.shape == np_q_out.shape
@@ -401,7 +401,7 @@ def test_quantile_at_0(str_method):
 def test_non_ndarray_input(str_method, qs_arr, arr):
     eps = 1.0e-8
 
-    q_out = cu.quantile(arr, qs_arr, method=str_method)
+    q_out = num.quantile(arr, qs_arr, method=str_method)
     np_q_out = np.quantile(arr, qs_arr, method=str_method)
 
     assert q_out.shape == np_q_out.shape
@@ -429,20 +429,20 @@ def test_output_conversion(str_method, qs_arr, keepdims):
     #
     eps = 1.0e-8
 
-    arr = cu.arange(4, dtype=np.dtype("float64"))
+    arr = num.arange(4, dtype=np.dtype("float64"))
 
     # get scalars of float32 type:
     #
-    cu_scalar_out = np.float32(0)
+    num_scalar_out = np.float32(0)
     np_scalar_out = np.float32(0)
 
     # force downcast (`int` fails due to 22766):
     #
-    if cu.isscalar(qs_arr):
-        q_out = cu_scalar_out
+    if num.isscalar(qs_arr):
+        q_out = num_scalar_out
         np_q_out = np_scalar_out
     else:
-        q_out = cu.zeros(qs_arr.shape, dtype=np.dtype("float32"))
+        q_out = num.zeros(qs_arr.shape, dtype=np.dtype("float32"))
         np_q_out = np.zeros(qs_arr.shape, dtype=np.dtype("float32"))
 
     # temporarily reset keepdims=False due to
@@ -450,13 +450,13 @@ def test_output_conversion(str_method, qs_arr, keepdims):
     # may interfere with checking proper functionality
     #
     keepdims = False
-    cu.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=q_out)
+    num.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=q_out)
 
     np.quantile(
         arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out
     )
 
-    if not cu.isscalar(q_out):
+    if not num.isscalar(q_out):
         assert q_out.shape == np_q_out.shape
         assert q_out.dtype == np_q_out.dtype
         assert allclose(np_q_out, q_out, atol=eps)
