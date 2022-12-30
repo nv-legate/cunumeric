@@ -6658,14 +6658,12 @@ def quantile_impl(
         #
         if keepdims:
             remaining_shape = tuple(
-                [
-                    1 if k in axes_set else original_shape[k]
-                    for k in range(0, len(original_shape))
-                ]
+                1 if k in axes_set else original_shape[k]
+                for k in range(0, len(original_shape))
             )
         else:
             remaining_shape = tuple(
-                [arr.shape[k] for k in range(0, ndims) if k != axis]
+                arr.shape[k] for k in range(0, ndims) if k != axis
             )
 
     # compose qarr.shape with arr.shape:
@@ -6738,9 +6736,9 @@ def quantile_impl(
 def quantile(
     a: ndarray,
     q: Union[float, Iterable[float], ndarray],
-    axis: Optional[NdShapeLike] = None,
+    axis: Union[None, int, tuple[int, ...]] = None,
     out: Optional[ndarray] = None,
-    overwrite_input: Optional[bool] = False,
+    overwrite_input: bool = False,
     method: str = "linear",
     keepdims: bool = False,
 ) -> ndarray:
@@ -6914,8 +6912,7 @@ def quantile(
     axes_set: Iterable[int] = []
     original_shape = a.shape
 
-    if axis is not None and not np.isscalar(axis):
-        assert isinstance(axis, Iterable)
+    if axis is not None and isinstance(axis, Iterable):
         if len(axis) == 1:
             real_axis = axis[0]
             a_rr = a
