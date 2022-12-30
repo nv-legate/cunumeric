@@ -6719,9 +6719,10 @@ def quantile(
 ) -> ndarray:
     """
     Compute the q-th quantile of the data along the specified axis.
+
     Parameters
     ----------
-    b : array_like
+    a : array_like
         Input array or object that can be converted to an array.
     q : array_like of float
         Quantile or sequence of quantiles to compute, which must be between
@@ -6731,8 +6732,7 @@ def quantile(
         to compute the quantile(s) along a flattened version of the array.
     out : ndarray, optional
         Alternative output array in which to place the result. It must have
-        the same shape and buffer length as the expected output, but the
-        type (of the output) will be cast if necessary.
+        the same shape as the expected output.
     overwrite_input : bool, optional
         If True, then allow the input array `a` to be modified by
         intermediate calculations, to save memory. In this case, the
@@ -6740,8 +6740,7 @@ def quantile(
         undefined.
     method : str, optional
         This parameter specifies the method to use for estimating the
-        quantile.  There are many different methods, some unique to NumPy.
-        See the notes for explanation.  The options sorted by their R type
+        quantile.  The options sorted by their R type
         as summarized in the H&F paper [1]_ are:
         1. 'inverted_cdf'
         2. 'averaged_inverted_cdf'
@@ -6758,13 +6757,11 @@ def quantile(
         * 'higher',
         * 'midpoint'
         * 'nearest'
-        .. versionchanged:: 1.22.0
-            This argument was previously called "interpolation" and only
-            offered the "linear" default and last four options.
     keepdims : bool, optional
         If this is set to True, the axes which are reduced are left in
         the result as dimensions with size one. With this option, the
         result will broadcast correctly against the original array `a`.
+
     Returns
     -------
     quantile : scalar or ndarray
@@ -6776,90 +6773,20 @@ def quantile(
         data-type is ``float64``. Otherwise, the output data-type is the
         same as that of the input. If `out` is specified, that array is
         returned instead.
+
+    Raises
+    ------
+    TypeError
+        If the type of the input is complex.
+
     See Also
     --------
-    numpy.mean
-    numpy.percentile : equivalent to quantile, but with q in the range [0, 100]
-    numpy.median : equivalent to ``quantile(..., 0.5)``
-    numpy.nanquantile
-    Notes
-    -----
-    Given a vector ``V`` of length ``N``, the q-th quantile of ``V`` is the
-    value ``q`` of the way from the minimum to the maximum in a sorted copy of
-    ``V``. The values and distances of the two nearest neighbors as well as the
-    `method` parameter will determine the quantile if the normalized
-    ranking does not match the location of ``q`` exactly. This function is the
-    same as the median if ``q=0.5``, the same as the minimum if ``q=0.0`` and
-    the same as the maximum if ``q=1.0``.
-    The optional `method` parameter specifies the method to use when the
-    desired quantile lies between two data points ``i < j``.
-    If ``g`` is the fractional part of the index surrounded by ``i`` and ``j``,
-    and alpha and beta are correction constants modifying i and j:
-    .. math::
-        i + g = (q - alpha) / ( n - alpha - beta + 1 )
-    The different methods then work as follows
-    inverted_cdf:
-        method 1 of H&F [1]_.
-        This method gives discontinuous results:
-        * if g > 0 ; then take j
-        * if g = 0 ; then take i
-    averaged_inverted_cdf:
-        method 2 of H&F [1]_.
-        This method gives discontinuous results:
-        * if g > 0 ; then take j
-        * if g = 0 ; then average between bounds
-    closest_observation:
-        method 3 of H&F [1]_.
-        This method gives discontinuous results:
-        * if g > 0 ; then take j
-        * if g = 0 and index is odd ; then take j
-        * if g = 0 and index is even ; then take i
-    interpolated_inverted_cdf:
-        method 4 of H&F [1]_.
-        This method gives continuous results using:
-        * alpha = 0
-        * beta = 1
-    hazen:
-        method 5 of H&F [1]_.
-        This method gives continuous results using:
-        * alpha = 1/2
-        * beta = 1/2
-    weibull:
-        method 6 of H&F [1]_.
-        This method gives continuous results using:
-        * alpha = 0
-        * beta = 0
-    linear:
-        method 7 of H&F [1]_.
-        This method gives continuous results using:
-        * alpha = 1
-        * beta = 1
-    median_unbiased:
-        method 8 of H&F [1]_.
-        This method is probably the best method if the sample
-        distribution function is unknown (see reference).
-        This method gives continuous results using:
-        * alpha = 1/3
-        * beta = 1/3
-    normal_unbiased:
-        method 9 of H&F [1]_.
-        This method is probably the best method if the sample
-        distribution function is known to be normal.
-        This method gives continuous results using:
-        * alpha = 3/8
-        * beta = 3/8
-    lower:
-        NumPy method kept for backwards compatibility.
-        Takes ``i`` as the interpolation point.
-    higher:
-        NumPy method kept for backwards compatibility.
-        Takes ``j`` as the interpolation point.
-    nearest:
-        NumPy method kept for backwards compatibility.
-        Takes ``i`` or ``j``, whichever is nearest.
-    midpoint:
-        NumPy method kept for backwards compatibility.
-        Uses ``(i + j) / 2``.
+    numpy.quantile
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
     References
     ----------
     .. [1] R. J. Hyndman and Y. Fan,
