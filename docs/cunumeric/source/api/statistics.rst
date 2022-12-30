@@ -22,7 +22,7 @@ Histograms
 
 
 Order statistics
-----------
+----------------
 
 .. autosummary::
    :toctree: generated/
