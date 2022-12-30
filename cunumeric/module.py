@@ -5812,7 +5812,7 @@ def searchsorted(
 @add_boilerplate("a")
 def sort(
     a: ndarray,
-    axis: int = -1,
+    axis: Union[int, None] = -1,
     kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
@@ -6738,7 +6738,7 @@ def quantile_impl(
 def quantile(
     a: ndarray,
     q: Union[float, Iterable[float], ndarray],
-    axis: Any = None,  # FIXME: add missing mechanism to handle this type decl.
+    axis: Optional[NdShapeLike] = None,
     out: Optional[ndarray] = None,
     overwrite_input: Optional[bool] = False,
     method: str = "linear",
@@ -6894,8 +6894,6 @@ def quantile(
        The American Statistician, 50(4), pp. 361-365, 1996
     """
 
-    from .logic import isscalar
-
     dict_methods = {
         "inverted_cdf": inverted_cdf,
         "averaged_inverted_cdf": averaged_inverted_cdf,
@@ -6912,24 +6910,26 @@ def quantile(
         "nearest": nearest,
     }
 
-    axes_set = []
+    real_axis: Optional[int]
+    axes_set: Iterable[int] = []
     original_shape = a.shape
 
-    if (axis is not None) and (not isscalar(axis)):
+    if axis is not None and not np.isscalar(axis):
+        assert isinstance(axis, Iterable)
         if len(axis) == 1:
             real_axis = axis[0]
             a_rr = a
-            axes_set = [real_axis]
         else:
             (real_axis, a_rr) = reshuffle_reshape(a, axis)
             # What happens with multiple axes and overwrite_input = True ?
             # It seems overwrite_input is reset to False;
             overwrite_input = False
-            axes_set = axis
+        axes_set = axis
     else:
         real_axis = axis
         a_rr = a
-        axes_set = [real_axis]
+        if real_axis is not None:
+            axes_set = [real_axis]
 
     # covers both array-like and scalar cases:
     #

@@ -3480,7 +3480,7 @@ class DeferredArray(NumPyThunk):
         self,
         rhs: Any,
         argsort: bool = False,
-        axis: int = -1,
+        axis: Union[int, None] = -1,
         kind: SortType = "quicksort",
         order: Union[None, str, list[str]] = None,
     ) -> None:
