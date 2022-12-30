@@ -348,7 +348,7 @@ def test_quantiles_axis_none(str_method, qin_arr, keepdims):
 @pytest.mark.parametrize("axes", (None, 0))
 def test_random_inlined(str_method, qin_arr, axes):
     eps = 1.0e-8
-    arr = num.random.random((3, 4, 5))
+    arr = np.random.random((3, 4, 5))
 
     q_out = num.quantile(arr, qin_arr, method=str_method, axis=axes)
     np_q_out = np.quantile(arr, qin_arr, method=str_method, axis=axes)
@@ -362,7 +362,7 @@ def test_random_inlined(str_method, qin_arr, axes):
 @pytest.mark.parametrize("str_method", ALL_METHODS)
 def test_quantile_at_1(str_method):
     eps = 1.0e-8
-    arr = num.arange(4)
+    arr = np.arange(4)
 
     q_out = num.quantile(arr, 1.0, method=str_method)
     np_q_out = np.quantile(arr, 1.0, method=str_method)
@@ -376,7 +376,7 @@ def test_quantile_at_1(str_method):
 @pytest.mark.parametrize("str_method", ALL_METHODS)
 def test_quantile_at_0(str_method):
     eps = 1.0e-8
-    arr = num.arange(4)
+    arr = np.arange(4)
 
     q_out = num.quantile(arr, 0.0, method=str_method)
     np_q_out = np.quantile(arr, 0.0, method=str_method)
@@ -429,21 +429,12 @@ def test_output_conversion(str_method, qs_arr, keepdims):
     #
     eps = 1.0e-8
 
-    arr = num.arange(4, dtype=np.dtype("float64"))
-
-    # get scalars of float32 type:
-    #
-    num_scalar_out = np.float32(0)
-    np_scalar_out = np.float32(0)
+    arr = np.arange(4, dtype=np.dtype("float64"))
 
     # force downcast (`int` fails due to 22766):
     #
-    if num.isscalar(qs_arr):
-        q_out = num_scalar_out
-        np_q_out = np_scalar_out
-    else:
-        q_out = num.zeros(qs_arr.shape, dtype=np.dtype("float32"))
-        np_q_out = np.zeros(qs_arr.shape, dtype=np.dtype("float32"))
+    q_out = num.zeros(np.shape(qs_arr), dtype=np.dtype("float32"))
+    np_q_out = np.zeros(np.shape(qs_arr), dtype=np.dtype("float32"))
 
     # temporarily reset keepdims=False due to
     # numpy bug https://github.com/numpy/numpy/issues/22544
