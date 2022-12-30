@@ -21,25 +21,24 @@ from utils.comparisons import allclose
 
 import cunumeric as cu
 
-
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
+ALL_METHODS = (
+    "inverted_cdf",
+    "averaged_inverted_cdf",
+    "closest_observation",
+    "interpolated_inverted_cdf",
+    "hazen",
+    "weibull",
+    "linear",
+    "median_unbiased",
+    "normal_unbiased",
+    "lower",
+    "higher",
+    "midpoint",
+    "nearest",
 )
+
+
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize("axes", (0, 1, (0, 1), (0, 2)))
 @pytest.mark.parametrize(
     "qin_arr", (0.5, [0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49, 0.5])
@@ -116,24 +115,7 @@ def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
-)
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize(
     "ls_in",
     (
@@ -184,24 +166,7 @@ def test_nd_quantile(str_method, ls_in, axes, keepdims):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
-)
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize("axes", (0, 1))
 @pytest.mark.parametrize(
     "qs_arr",
@@ -307,24 +272,7 @@ def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
-)
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize(
     "qin_arr", (0.5, [0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49, 0.5])
 )
@@ -395,24 +343,7 @@ def test_quantiles_axis_none(str_method, qin_arr, keepdims):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
-)
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize(
     "qin_arr", (0.5, [0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49, 0.5])
 )
@@ -430,24 +361,7 @@ def test_random_inlined(str_method, qin_arr, axes):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
-)
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 def test_quantile_at_1(str_method):
     eps = 1.0e-8
     arr = cu.arange(4)
@@ -461,24 +375,7 @@ def test_quantile_at_1(str_method):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
-)
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 def test_quantile_at_0(str_method):
     eps = 1.0e-8
     arr = cu.arange(4)
@@ -492,24 +389,7 @@ def test_quantile_at_0(str_method):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
-)
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize(
     "qs_arr",
     (
@@ -532,24 +412,7 @@ def test_non_ndarray_input(str_method, qs_arr, arr):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.parametrize(
-    "str_method",
-    (
-        "inverted_cdf",
-        "averaged_inverted_cdf",
-        "closest_observation",
-        "interpolated_inverted_cdf",
-        "hazen",
-        "weibull",
-        "linear",
-        "median_unbiased",
-        "normal_unbiased",
-        "lower",
-        "higher",
-        "midpoint",
-        "nearest",
-    ),
-)
+@pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize(
     "qs_arr",
     (
