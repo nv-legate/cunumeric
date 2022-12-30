@@ -14,7 +14,7 @@
 #
 
 
-import numpy as num
+import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
 from utils.comparisons import allclose
@@ -47,9 +47,9 @@ ALL_METHODS = (
 @pytest.mark.parametrize("overwrite_input", (False, True))
 def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
     eps = 1.0e-8
-    arr = num.ndarray(
+    arr = np.ndarray(
         shape=(2, 3, 4),
-        buffer=num.array(
+        buffer=np.array(
             [
                 1,
                 2,
@@ -83,7 +83,7 @@ def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
     if cu.isscalar(qin_arr):
         qs_arr = qin_arr
     else:
-        qs_arr = num.array(qin_arr)
+        qs_arr = np.array(qin_arr)
 
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
@@ -99,7 +99,7 @@ def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
 
     # np:
     # print("numpy axis = %d:"%(axis))
-    np_q_out = num.quantile(
+    np_q_out = np.quantile(
         arr,
         qs_arr,
         axis=axes,
@@ -137,13 +137,11 @@ def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
 def test_nd_quantile(str_method, ls_in, axes, keepdims):
     eps = 1.0e-8
 
-    arr = num.array(ls_in)
+    arr = np.array(ls_in)
 
-    qs_arr = num.ndarray(
+    qs_arr = np.ndarray(
         shape=(2, 4),
-        buffer=num.array(
-            [0.001, 0.37, 0.42, 0.5, 0.67, 0.83, 0.99, 0.39]
-        ).data,
+        buffer=np.array([0.001, 0.37, 0.42, 0.5, 0.67, 0.83, 0.99, 0.39]).data,
     )
 
     # cunumeric:
@@ -155,7 +153,7 @@ def test_nd_quantile(str_method, ls_in, axes, keepdims):
 
     # np:
     # print("numpy axis = %d:"%(axis))
-    np_q_out = num.quantile(
+    np_q_out = np.quantile(
         arr, qs_arr, axis=axes, method=str_method, keepdims=keepdims
     )
     # print(np_q_out)
@@ -172,8 +170,8 @@ def test_nd_quantile(str_method, ls_in, axes, keepdims):
     "qs_arr",
     (
         0.5,
-        num.ndarray(
-            shape=(5, 6), buffer=num.array([x / 30.0 for x in range(0, 30)])
+        np.ndarray(
+            shape=(5, 6), buffer=np.array([x / 30.0 for x in range(0, 30)])
         ),
     ),
 )
@@ -181,9 +179,9 @@ def test_nd_quantile(str_method, ls_in, axes, keepdims):
 def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
     eps = 1.0e-8
     original_shape = (2, 3, 4)
-    arr = num.ndarray(
+    arr = np.ndarray(
         shape=original_shape,
-        buffer=num.array(
+        buffer=np.array(
             [
                 1,
                 2,
@@ -239,10 +237,10 @@ def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
 
     if cu.isscalar(qs_arr):
         q_out = cu.zeros(remaining_shape, dtype=float)
-        # np_q_out = num.zeros(remaining_shape, dtype=float)
+        # np_q_out = np.zeros(remaining_shape, dtype=float)
     else:
         q_out = cu.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
-        # np_q_out = num.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
+        # np_q_out = np.zeros((*qs_arr.shape, *remaining_shape), dtype=float)
 
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
@@ -256,7 +254,7 @@ def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
     # due to numpy bug https://github.com/numpy/numpy/issues/22544
     # out = <not-None> fails with keepdims = True
     #
-    np_q_out = num.quantile(
+    np_q_out = np.quantile(
         arr,
         qs_arr,
         axis=axes,
@@ -279,9 +277,9 @@ def test_quantiles_w_output(str_method, axes, qs_arr, keepdims):
 @pytest.mark.parametrize("keepdims", (False, True))
 def test_quantiles_axis_none(str_method, qin_arr, keepdims):
     eps = 1.0e-8
-    arr = num.ndarray(
+    arr = np.ndarray(
         shape=(2, 3, 4),
-        buffer=num.array(
+        buffer=np.array(
             [
                 1,
                 2,
@@ -315,7 +313,7 @@ def test_quantiles_axis_none(str_method, qin_arr, keepdims):
     if cu.isscalar(qin_arr):
         qs_arr = qin_arr
     else:
-        qs_arr = num.array(qin_arr)
+        qs_arr = np.array(qin_arr)
 
     # cunumeric:
     # print("cunumeric axis = %d:"%(axis))
@@ -329,7 +327,7 @@ def test_quantiles_axis_none(str_method, qin_arr, keepdims):
 
     # np:
     # print("numpy axis = %d:"%(axis))
-    np_q_out = num.quantile(
+    np_q_out = np.quantile(
         arr,
         qs_arr,
         method=str_method,
@@ -353,7 +351,7 @@ def test_random_inlined(str_method, qin_arr, axes):
     arr = cu.random.random((3, 4, 5))
 
     q_out = cu.quantile(arr, qin_arr, method=str_method, axis=axes)
-    np_q_out = num.quantile(arr, qin_arr, method=str_method, axis=axes)
+    np_q_out = np.quantile(arr, qin_arr, method=str_method, axis=axes)
 
     assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
@@ -367,7 +365,7 @@ def test_quantile_at_1(str_method):
     arr = cu.arange(4)
 
     q_out = cu.quantile(arr, 1.0, method=str_method)
-    np_q_out = num.quantile(arr, 1.0, method=str_method)
+    np_q_out = np.quantile(arr, 1.0, method=str_method)
 
     assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
@@ -381,7 +379,7 @@ def test_quantile_at_0(str_method):
     arr = cu.arange(4)
 
     q_out = cu.quantile(arr, 0.0, method=str_method)
-    np_q_out = num.quantile(arr, 0.0, method=str_method)
+    np_q_out = np.quantile(arr, 0.0, method=str_method)
 
     assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
@@ -394,8 +392,8 @@ def test_quantile_at_0(str_method):
     "qs_arr",
     (
         0.5,
-        num.ndarray(
-            shape=(2, 3), buffer=num.array([x / 6.0 for x in range(0, 6)])
+        np.ndarray(
+            shape=(2, 3), buffer=np.array([x / 6.0 for x in range(0, 6)])
         ),
     ),
 )
@@ -404,7 +402,7 @@ def test_non_ndarray_input(str_method, qs_arr, arr):
     eps = 1.0e-8
 
     q_out = cu.quantile(arr, qs_arr, method=str_method)
-    np_q_out = num.quantile(arr, qs_arr, method=str_method)
+    np_q_out = np.quantile(arr, qs_arr, method=str_method)
 
     assert q_out.shape == np_q_out.shape
     assert q_out.dtype == np_q_out.dtype
@@ -417,8 +415,8 @@ def test_non_ndarray_input(str_method, qs_arr, arr):
     "qs_arr",
     (
         0.5,
-        num.ndarray(
-            shape=(2, 3), buffer=num.array([x / 6.0 for x in range(0, 6)])
+        np.ndarray(
+            shape=(2, 3), buffer=np.array([x / 6.0 for x in range(0, 6)])
         ),
     ),
 )
@@ -431,12 +429,12 @@ def test_output_conversion(str_method, qs_arr, keepdims):
     #
     eps = 1.0e-8
 
-    arr = cu.arange(4, dtype=num.dtype("float64"))
+    arr = cu.arange(4, dtype=np.dtype("float64"))
 
     # get scalars of float32 type:
     #
-    cu_scalar_out = num.float32(0)
-    np_scalar_out = num.float32(0)
+    cu_scalar_out = np.float32(0)
+    np_scalar_out = np.float32(0)
 
     # force downcast (`int` fails due to 22766):
     #
@@ -444,8 +442,8 @@ def test_output_conversion(str_method, qs_arr, keepdims):
         q_out = cu_scalar_out
         np_q_out = np_scalar_out
     else:
-        q_out = cu.zeros(qs_arr.shape, dtype=num.dtype("float32"))
-        np_q_out = num.zeros(qs_arr.shape, dtype=num.dtype("float32"))
+        q_out = cu.zeros(qs_arr.shape, dtype=np.dtype("float32"))
+        np_q_out = np.zeros(qs_arr.shape, dtype=np.dtype("float32"))
 
     # temporarily reset keepdims=False due to
     # numpy bug https://github.com/numpy/numpy/issues/22544
@@ -454,7 +452,7 @@ def test_output_conversion(str_method, qs_arr, keepdims):
     keepdims = False
     cu.quantile(arr, qs_arr, method=str_method, keepdims=keepdims, out=q_out)
 
-    num.quantile(
+    np.quantile(
         arr, qs_arr, method=str_method, keepdims=keepdims, out=np_q_out
     )
 
