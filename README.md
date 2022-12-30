@@ -55,10 +55,6 @@ conda install -c nvidia -c conda-forge -c legate cunumeric
 The conda package is compatible with CUDA >= 11.4 (CUDA driver version >= r470),
 and Volta or later GPU architectures.
 
-Docker image build scripts, as well as specialized install scripts for
-supported clusters are available on the
-[quickstart](https://github.com/nv-legate/quickstart) repo.
-
 See [BUILD.md](BUILD.md) for instructions on building cuNumeric from source.
 
 ## Usage and Execution

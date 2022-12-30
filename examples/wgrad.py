@@ -16,8 +16,8 @@
 #
 
 import argparse
-import datetime
-import math
+
+from legate.timing import time
 
 import cunumeric as np
 
@@ -45,17 +45,14 @@ def cross_correlate(x, y, C, K, R, S, B, H, W):
 
 
 def run_wgrad(H=256, W=256, B=32, C=256, K=32, R=5, S=5, timing=False):
-    if timing:
-        start = datetime.datetime.now()
+    start = time()
     x, y = initialize(C, K, B, H, W)
-    dw = cross_correlate(x, y, C, K, R, S, B, H, W)
-    # Do a little sum over dw to sync the results
-    total = np.sum(dw)
-    assert not math.isnan(total)
+    _ = cross_correlate(x, y, C, K, R, S, B, H, W)
+    stop = time()
+    total = (stop - start) / 1000.0
     if timing:
-        stop = datetime.datetime.now()
-        delta = stop - start
-        print("Elapsed Time: " + str(delta.total_seconds() * 1000.0) + " ms")
+        print("Elapsed Time: " + str(total) + " ms")
+    return total
 
 
 if __name__ == "__main__":
@@ -104,7 +101,7 @@ if __name__ == "__main__":
         dest="W",
         help="width of images in pixels",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(parser)
     run_wgrad(
         args.H, args.W, args.B, args.C, args.K, args.R, args.R, args.timing
     )
