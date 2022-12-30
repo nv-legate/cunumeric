@@ -6557,14 +6557,6 @@ def nearest(q: float, n: int) -> tuple[float, int]:
     return (gamma, j)
 
 
-# helper: test if array inputs are different:
-#
-def is_diff(arr1: tuple[int, ...], arr2: tuple[int, ...]) -> bool:
-    return len(arr1) != len(arr2) or _builtin_any(
-        [x != y for (x, y) in zip(arr1, arr2)]
-    )
-
-
 # for the case when axis = tuple (non-singleton)
 # reshuffling might have to be done (if tuple is non-consecutive)
 # and the src array must be collapsed along that set of axes
@@ -6586,7 +6578,7 @@ def reshuffle_reshape(
     num_axes = len(sorted_axes)
     reshuffled_axes = tuple(range(min_dim_index, min_dim_index + num_axes))
 
-    non_consecutive = is_diff(sorted_axes, reshuffled_axes)
+    non_consecutive = sorted_axes != reshuffled_axes
     if non_consecutive:
         arr_shuffled = moveaxis(arr, sorted_axes, reshuffled_axes)
     else:
