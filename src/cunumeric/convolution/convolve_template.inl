@@ -230,7 +230,7 @@ static unsigned roundup_tile(Point<DIM>& tile,
       int t1 = tile[d1], t2 = 0;
       while (t1 == bounds[d1]) {
         skipdims |= (1 << d1);
-        if (--d1 < 0) break;
+        if (--d1 < 0) return result;  // all dims at their bounds so we're done
         t1 = tile[d1];
       }
       for (int d = d1 - 1; d >= 0; d--) {
