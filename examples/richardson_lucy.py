@@ -15,7 +15,7 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 float_type = "float32"
 
@@ -28,17 +28,16 @@ def run_richardson_lucy(shape, filter_shape, num_iter, warmup, timing):
     im_deconv = np.full(image.shape, 0.5, dtype=float_type)
     psf_mirror = np.flip(psf)
 
-    start = time()
+    timer.start()
 
     for idx in range(num_iter + warmup):
         if idx == warmup:
-            start = time()
+            timer.start()
         conv = np.convolve(im_deconv, psf, mode="same")
         relative_blur = image / conv
         im_deconv *= np.convolve(relative_blur, psf_mirror, mode="same")
 
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
 
@@ -111,7 +110,7 @@ if __name__ == "__main__":
         help="perform timing",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_richardson_lucy,

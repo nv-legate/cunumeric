@@ -18,7 +18,7 @@
 import argparse
 import math
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(N, F, T):
@@ -52,10 +52,10 @@ def run_logistic_regression(N, F, T, I, warmup, S, B):  # noqa: E741
         features = np.hstack((intercept, features))
     weights = np.zeros(features.shape[1], dtype=T)
 
-    start = time()
+    timer.start()
     for step in range(-warmup, I):
         if step == 0:
-            start = time()
+            timer.start()
         scores = np.dot(features, weights)
         predictions = sigmoid(scores)
         error = target - predictions
@@ -68,13 +68,12 @@ def run_logistic_regression(N, F, T, I, warmup, S, B):  # noqa: E741
                 + ": "
                 + str(log_likelihood(features, target, weights))
             )
-    stop = time()
+    total = timer.stop()
 
     assert not math.isnan(
         np.sum(weights)
     ), f"{np.count_nonzero(~np.isnan(weights))} NaNs in weights"
 
-    total = (stop - start) / 1000.0
     print(f"Elapsed Time: {total} ms")
     return total
 
@@ -137,7 +136,7 @@ if __name__ == "__main__":
         help="number of iterations between sampling the log likelihood",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     if args.P == 16:
         run_benchmark(

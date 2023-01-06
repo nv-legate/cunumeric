@@ -17,7 +17,7 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(M, N, K, ft):
@@ -44,20 +44,19 @@ def run_gemm(N, I, warmup, ft):  # noqa: E741
     print("Total Size:       " + str(space / 1e6) + " MB")
     A, B, C = initialize(N, N, N, ft)
 
-    start = time()
+    timer.start()
     # Run for as many iterations as was requested
     for idx in range(I + warmup):
         if idx == warmup:
-            start = time()
+            timer.start()
         np.dot(A, B, out=C)
         # We need to rotate the matrices to keep Legate honest
         # about moving data so it can't just duplicate A and B
         # on the first iteration and reuse them, this means
         # that A, B, C all need to be square
         A, B, C = B, C, A
-    stop = time()
+    total = timer.stop()
 
-    total = (stop - start) / 1000.0
     print("Elapsed Time:     " + str(total) + " ms")
     average = total / I
     print("Average GEMM:     " + str(average) + " ms")
@@ -101,7 +100,7 @@ if __name__ == "__main__":
         "(16,32,64)",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     if args.P == 16:
         run_benchmark(
