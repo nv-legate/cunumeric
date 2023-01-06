@@ -1323,8 +1323,8 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
 
     CHECK_CUDA_STREAM(stream);
 
-    auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, fftsize);
-    auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, fftsize);
+    auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, cufftPlanParms(fftsize));
+    auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, cufftPlanParms(fftsize));
 
     // Set the stream and working area for the plans
     CHECK_CUFFT(cufftSetStream(forward_plan.handle(), stream));

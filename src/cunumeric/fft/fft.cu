@@ -25,7 +25,6 @@ namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
-
 using dim_t = long long int32_t;
 
 template <int32_t DIM, typename TYPE>
@@ -74,7 +73,6 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
 {
   auto stream = get_cached_stream();
 
-  size_t workarea_size = 0;
   size_t num_elements;
   dim_t n[DIM];
   dim_t inembed[DIM];
@@ -93,19 +91,15 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
     num_elements *= n[i];
   }
 
-  // Create the plan
-  cufftHandle plan;
-  CHECK_CUFFT(cufftCreate(&plan));
-  CHECK_CUFFT(cufftSetAutoAllocation(plan, 0 /*we'll do the allocation*/));
-  CHECK_CUFFT(cufftSetStream(plan, stream));
+  // get plan from cache
+  auto cufft_context =
+    get_cufft_plan((cufftType)type, cufftPlanParms(DIM, n, inembed, 1, 1, onembed, 1, 1, 1));
+  CHECK_CUFFT(cufftSetStream(cufft_context.handle(), stream));
 
-  // Create the plan and allocate a temporary buffer for it if it needs one
-  CHECK_CUFFT(cufftMakePlanMany64(
-    plan, DIM, n, inembed, 1, 1, onembed, 1, 1, static_cast<cufftType>(type), 1, &workarea_size));
-
-  if (workarea_size > 0) {
-    auto workarea_buffer = create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
-    CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
+  if (cufft_context.workareaSize() > 0) {
+    auto workarea_buffer =
+      create_buffer<uint8_t>(cufft_context.workareaSize(), Legion::Memory::Kind::GPU_FB_MEM);
+    CHECK_CUFFT(cufftSetWorkArea(cufft_context.handle(), workarea_buffer.ptr(0)));
   }
 
   const void* in_ptr{nullptr};
@@ -117,13 +111,10 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
     copy_into_buffer((INPUT_TYPE*)in_ptr, in, in_rect, in_rect.volume(), stream);
   }
   // FFT the input data
-  CHECK_CUFFT(cufftXtExec(plan,
+  CHECK_CUFFT(cufftXtExec(cufft_context.handle(),
                           const_cast<void*>(in_ptr),
                           static_cast<void*>(out.ptr(out_rect.lo)),
                           static_cast<int32_t>(direction)));
-
-  // Clean up our resources, Buffers are cleaned up by Legion
-  CHECK_CUFFT(cufftDestroy(plan));
 }
 
 // Perform the FFT operation as multiple 1D FFTs along the specified axes (Complex-to-complex case).
@@ -137,7 +128,6 @@ __host__ static inline void cufft_over_axes_c2c(INOUT_TYPE* out,
 {
   auto stream = get_cached_stream();
 
-  size_t workarea_size = 0;
   dim_t n[DIM];
 
   // Full volume dimensions / strides
@@ -161,12 +151,6 @@ __host__ static inline void cufft_over_axes_c2c(INOUT_TYPE* out,
   Buffer<uint8_t> workarea_buffer;
   size_t last_workarea_size = 0;
   for (auto& axis : axes) {
-    // Create the plan
-    cufftHandle plan;
-    CHECK_CUFFT(cufftCreate(&plan));
-    CHECK_CUFFT(cufftSetAutoAllocation(plan, 0 /*we'll do the allocation*/));
-    CHECK_CUFFT(cufftSetStream(plan, stream));
-
     // Single axis dimensions / strides
     dim_t size_1d = n[axis];
 
@@ -182,37 +166,27 @@ __host__ static inline void cufft_over_axes_c2c(INOUT_TYPE* out,
     for (int32_t i = axis + 1; i < DIM; ++i) { stride *= fft_size[i]; }
     dim_t dist = (axis == DIM - 1) ? size_1d : 1;
 
-    // Create the plan and allocate a temporary buffer for it if it needs one
-    CHECK_CUFFT(cufftMakePlanMany64(plan,
-                                    1,
-                                    &size_1d,
-                                    n,
-                                    stride,
-                                    dist,
-                                    n,
-                                    stride,
-                                    dist,
-                                    (cufftType)type,
-                                    batches,
-                                    &workarea_size));
+    // get plan from cache
+    auto cufft_context = get_cufft_plan(
+      (cufftType)type, cufftPlanParms(1, &size_1d, n, stride, dist, n, stride, dist, batches));
+    CHECK_CUFFT(cufftSetStream(cufft_context.handle(), stream));
 
-    if (workarea_size > 0) {
-      if (workarea_size > last_workarea_size) {
+    if (cufft_context.workareaSize() > 0) {
+      if (cufft_context.workareaSize() > last_workarea_size) {
         if (last_workarea_size > 0) workarea_buffer.destroy();
-        workarea_buffer = create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
-        last_workarea_size = workarea_size;
+        workarea_buffer =
+          create_buffer<uint8_t>(cufft_context.workareaSize(), Legion::Memory::Kind::GPU_FB_MEM);
+        last_workarea_size = cufft_context.workareaSize();
       }
-      CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
+      CHECK_CUFFT(cufftSetWorkArea(cufft_context.handle(), workarea_buffer.ptr(0)));
     }
 
     for (uint32_t n = 0; n < num_slices; ++n) {
-      CHECK_CUFFT(cufftXtExec(plan,
+      CHECK_CUFFT(cufftXtExec(cufft_context.handle(),
                               static_cast<void*>(out + (n * offset)),
                               static_cast<void*>(out + (n * offset)),
                               static_cast<int32_t>(direction)));
     }
-
-    CHECK_CUFFT(cufftDestroy(plan));
   }
 }
 
@@ -228,7 +202,6 @@ __host__ static inline void cufft_r2c_c2r(OUTPUT_TYPE* out,
 {
   auto stream = get_cached_stream();
 
-  size_t workarea_size = 0;
   dim_t n[DIM];
   dim_t inembed[DIM];
   dim_t onembed[DIM];
@@ -247,12 +220,6 @@ __host__ static inline void cufft_r2c_c2r(OUTPUT_TYPE* out,
     num_elements_in *= fft_size_in[i];
     num_elements_out *= fft_size_out[i];
   }
-
-  // Create the plan
-  cufftHandle plan;
-  CHECK_CUFFT(cufftCreate(&plan));
-  CHECK_CUFFT(cufftSetAutoAllocation(plan, 0 /*we'll do the allocation*/));
-  CHECK_CUFFT(cufftSetStream(plan, stream));
 
   // Batched 1D dimension
   dim_t size_1d = n[axis];
@@ -276,33 +243,24 @@ __host__ static inline void cufft_r2c_c2r(OUTPUT_TYPE* out,
   dim_t idist = (axis == DIM - 1) ? fft_size_in[axis] : 1;
   dim_t odist = (axis == DIM - 1) ? fft_size_out[axis] : 1;
 
-  // Create the plan and allocate a temporary buffer for it if it needs one
-  CHECK_CUFFT(cufftMakePlanMany64(plan,
-                                  1,
-                                  &size_1d,
-                                  inembed,
-                                  istride,
-                                  idist,
-                                  onembed,
-                                  ostride,
-                                  odist,
-                                  (cufftType)type,
-                                  batches,
-                                  &workarea_size));
+  // get plan from cache
+  auto cufft_context = get_cufft_plan(
+    (cufftType)type,
+    cufftPlanParms(1, &size_1d, inembed, istride, idist, onembed, ostride, odist, batches));
+  CHECK_CUFFT(cufftSetStream(cufft_context.handle(), stream));
 
-  if (workarea_size > 0) {
-    auto workarea_buffer = create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
-    CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
+  if (cufft_context.workareaSize() > 0) {
+    auto workarea_buffer =
+      create_buffer<uint8_t>(cufft_context.workareaSize(), Legion::Memory::Kind::GPU_FB_MEM);
+    CHECK_CUFFT(cufftSetWorkArea(cufft_context.handle(), workarea_buffer.ptr(0)));
   }
 
   for (uint32_t n = 0; n < num_slices; ++n) {
-    CHECK_CUFFT(cufftXtExec(plan,
+    CHECK_CUFFT(cufftXtExec(cufft_context.handle(),
                             static_cast<void*>(in + (n * offset_in)),
                             static_cast<void*>(out + (n * offset_out)),
                             static_cast<int32_t>(direction)));
   }
-
-  CHECK_CUFFT(cufftDestroy(plan));
 }
 
 // Perform the FFT operation as multiple 1D FFTs along the specified axes.

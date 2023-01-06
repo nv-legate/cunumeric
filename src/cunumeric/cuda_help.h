@@ -108,6 +108,33 @@ class cufftContext {
   std::vector<cufftXtCallbackType> callback_types_{};
 };
 
+struct cufftPlanParms {
+  int rank_;
+  long long int n_[LEGION_MAX_DIM];
+  long long int inembed_[LEGION_MAX_DIM];
+  long long int istride_;
+  long long int idist_;
+  long long int onembed_[LEGION_MAX_DIM];
+  long long int ostride_;
+  long long int odist_;
+  long long int batch_;
+
+  cufftPlanParms();
+  cufftPlanParms(const Legion::DomainPoint& size);
+  cufftPlanParms(int rank,
+                 long long int* n,
+                 long long int* inembed,
+                 long long int istride,
+                 long long int idist,
+                 long long int* onembed,
+                 long long int ostride,
+                 long long int odist,
+                 long long int batch);
+
+  bool operator==(const cufftPlanParms& other) const;
+  std::string to_string() const;
+};
+
 // Defined in cudalibs.cu
 
 // Return a cached stream for the current GPU
@@ -115,7 +142,7 @@ legate::cuda::StreamView get_cached_stream();
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();
-cufftContext get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
+cufftContext get_cufft_plan(cufftType type, const cufftPlanParms& parms);
 
 __host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
 {

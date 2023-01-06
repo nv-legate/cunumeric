@@ -45,6 +45,72 @@ void cufftContext::setCallback(cufftXtCallbackType type, void* callback, void* d
   CHECK_CUFFT(cufftXtSetCallback(handle(), callbacks, type, datas));
 }
 
+cufftPlanParms::cufftPlanParms() : rank_(0) {}
+
+cufftPlanParms::cufftPlanParms(const DomainPoint& size)
+  : rank_(size.dim),
+    n_{0},
+    inembed_{0},
+    onembed_{0},
+    istride_(1),
+    idist_(1),
+    ostride_(1),
+    odist_(1),
+    batch_(1)
+{
+  for (int dim = 0; dim < rank_; ++dim) n_[dim] = size[dim];
+}
+
+cufftPlanParms::cufftPlanParms(int rank,
+                               long long int* n,
+                               long long int* inembed,
+                               long long int istride,
+                               long long int idist,
+                               long long int* onembed,
+                               long long int ostride,
+                               long long int odist,
+                               long long int batch)
+  : rank_(rank),
+    n_{0},
+    inembed_{0},
+    onembed_{0},
+    istride_(istride),
+    idist_(idist),
+    ostride_(ostride),
+    odist_(odist),
+    batch_(batch)
+{
+  for (int dim = 0; dim < rank_; ++dim) {
+    n_[dim]       = n[dim];
+    inembed_[dim] = inembed[dim];
+    onembed_[dim] = onembed[dim];
+  }
+}
+
+bool cufftPlanParms::operator==(const cufftPlanParms& other) const
+{
+  bool equal = rank_ == other.rank_ && istride_ == other.istride_ && idist_ == other.idist_ &&
+               ostride_ == other.ostride_ && odist_ == other.odist_ && batch_ == other.batch_;
+  if (equal) {
+    for (int dim = 0; dim < rank_; ++dim) {
+      equal = equal && (n_[dim] == other.n_[dim]);
+      equal = equal && (inembed_[dim] == other.inembed_[dim]);
+      equal = equal && (onembed_[dim] == other.onembed_[dim]);
+      if (!equal) break;
+    }
+  }
+  return equal;
+}
+
+std::string cufftPlanParms::to_string() const
+{
+  std::ostringstream ss;
+  ss << "cufftPlanParms[rank(" << rank_ << "), n(" << n_[0] << "), inembed(" << inembed_[0]
+     << "), istride(" << istride_ << "), idist(" << idist_ << "), onembed(" << onembed_[0]
+     << "), ostride(" << ostride_ << "), odist(" << odist_ << "), batch(" << batch_ << ")]";
+  return std::move(ss).str();
+}
+
 struct cufftPlanCache {
  private:
   // Maximum number of plans to keep per dimension
@@ -53,7 +119,7 @@ struct cufftPlanCache {
  private:
   struct LRUEntry {
     std::unique_ptr<cufftPlan> plan{nullptr};
-    DomainPoint fftshape{};
+    cufftPlanParms parms;
     uint32_t lru_index{0};
   };
 
@@ -62,18 +128,20 @@ struct cufftPlanCache {
   ~cufftPlanCache();
 
  public:
-  cufftPlan* get_cufft_plan(const DomainPoint& size);
+  cufftPlan* get_cufft_plan(const cufftPlanParms& parms);
 
  private:
   using Cache = std::array<LRUEntry, MAX_PLANS>;
   std::array<Cache, LEGION_MAX_DIM + 1> cache_{};
   cufftType type_;
+  int64_t cache_hits_     = 0;
+  int64_t cache_requests_ = 0;
 };
 
 cufftPlanCache::cufftPlanCache(cufftType type) : type_(type)
 {
   for (auto& cache : cache_)
-    for (auto& entry : cache) assert(0 == entry.fftshape.dim);
+    for (auto& entry : cache) assert(0 == entry.parms.rank_);
 }
 
 cufftPlanCache::~cufftPlanCache()
@@ -83,21 +151,28 @@ cufftPlanCache::~cufftPlanCache()
       if (entry.plan != nullptr) CHECK_CUFFT(cufftDestroy(entry.plan->handle));
 }
 
-cufftPlan* cufftPlanCache::get_cufft_plan(const DomainPoint& size)
+cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParms& parms)
 {
+  cache_requests_++;
   int32_t match = -1;
-  auto& cache   = cache_[size.dim];
-  for (int32_t idx = 0; idx < MAX_PLANS; ++idx)
-    if (cache[idx].fftshape == size) {
+  auto& cache   = cache_[parms.rank_];
+  for (int32_t idx = 0; idx < MAX_PLANS; ++idx) {
+    auto& entry = cache[idx];
+    if (nullptr == entry.plan) break;
+    if (entry.parms == parms) {
       match = idx;
+      cache_hits_++;
       break;
     }
+  }
+
+  float hit_rate = (float)cache_hits_ / cache_requests_;
 
   cufftPlan* result{nullptr};
   // If there's no match, we create a new plan
   if (-1 == match) {
-    log_cudalibs.debug() << "[cufftPlanCache] no match found for " << size << " (type: " << type_
-                         << ")";
+    log_cudalibs.debug() << "[cufftPlanCache] no match found for " << parms.to_string()
+                         << " (type: " << type_ << ", hitrate: " << hit_rate << ")";
     int32_t plan_index = -1;
     for (int32_t idx = 0; idx < MAX_PLANS; ++idx) {
       auto& entry = cache[idx];
@@ -109,48 +184,60 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const DomainPoint& size)
         plan_index      = idx;
         break;
       } else if (entry.lru_index == MAX_PLANS - 1) {
-        log_cudalibs.debug() << "[cufftPlanCache] evict entry " << idx << " for " << entry.fftshape
-                             << " (type: " << type_ << ")";
+        log_cudalibs.debug() << "[cufftPlanCache] evict entry " << idx << " for "
+                             << entry.parms.to_string() << " (type: " << type_ << ")";
         CHECK_CUFFT(cufftDestroy(entry.plan->handle));
         plan_index = idx;
         break;
+      } else {
+        entry.lru_index++;
       }
     }
     assert(plan_index != -1);
-    auto& entry    = cache[plan_index];
-    entry.fftshape = size;
-    result         = entry.plan.get();
+    auto& entry = cache[plan_index];
+
+    if (entry.lru_index != 0) {
+      for (int32_t idx = plan_index + 1; idx < MAX_PLANS; ++idx) {
+        auto& other = cache[idx];
+        if (nullptr == other.plan) break;
+        ++other.lru_index;
+      }
+      entry.lru_index = 0;
+    }
+
+    entry.parms = parms;
+    result      = entry.plan.get();
 
     CHECK_CUFFT(cufftCreate(&result->handle));
     CHECK_CUFFT(cufftSetAutoAllocation(result->handle, 0 /*we'll do the allocation*/));
 
-    std::vector<int32_t> n(size.dim);
-    for (int32_t dim = 0; dim < size.dim; ++dim) n[dim] = size[dim];
-    CHECK_CUFFT(cufftMakePlanMany(result->handle,
-                                  size.dim,
-                                  n.data(),
-                                  nullptr,
-                                  1,
-                                  1,
-                                  nullptr,
-                                  1,
-                                  1,
-                                  type_,
-                                  1 /*batch*/,
-                                  &result->workarea_size));
+    CHECK_CUFFT(cufftMakePlanMany64(result->handle,
+                                    entry.parms.rank_,
+                                    entry.parms.n_,
+                                    entry.parms.inembed_[0] != 0 ? entry.parms.inembed_ : nullptr,
+                                    entry.parms.istride_,
+                                    entry.parms.idist_,
+                                    entry.parms.onembed_[0] != 0 ? entry.parms.onembed_ : nullptr,
+                                    entry.parms.ostride_,
+                                    entry.parms.odist_,
+                                    type_,
+                                    entry.parms.batch_,
+                                    &result->workarea_size));
   }
   // Otherwise, we return the cached plan and adjust the LRU count
   else {
-    log_cudalibs.debug() << "[cufftPlanCache] found match for " << size << " (type: " << type_
-                         << ")";
+    log_cudalibs.debug() << "[cufftPlanCache] found match for " << parms.to_string()
+                         << " (type: " << type_ << ", hitrate: " << hit_rate << ")";
     auto& entry = cache[match];
     result      = entry.plan.get();
 
-    for (int32_t idx = 0; idx < MAX_PLANS; ++idx) {
-      auto& other = cache[idx];
-      if (other.lru_index < entry.lru_index) ++other.lru_index;
+    if (entry.lru_index != 0) {
+      for (int32_t idx = 0; idx < MAX_PLANS; ++idx) {
+        auto& other = cache[idx];
+        if (other.lru_index < entry.lru_index) ++other.lru_index;
+      }
+      entry.lru_index = 0;
     }
-    entry.lru_index = 0;
   }
   return result;
 }
@@ -220,7 +307,7 @@ cutensorHandle_t* CUDALibraries::get_cutensor()
   return cutensor_;
 }
 
-cufftContext CUDALibraries::get_cufft_plan(cufftType type, const DomainPoint& size)
+cufftContext CUDALibraries::get_cufft_plan(cufftType type, const cufftPlanParms& parms)
 {
   auto finder = plan_caches_.find(type);
   cufftPlanCache* cache{nullptr};
@@ -230,7 +317,7 @@ cufftContext CUDALibraries::get_cufft_plan(cufftType type, const DomainPoint& si
     plan_caches_[type] = cache;
   } else
     cache = finder->second;
-  return cufftContext(cache->get_cufft_plan(size));
+  return cufftContext(cache->get_cufft_plan(parms));
 }
 
 static CUDALibraries& get_cuda_libraries(Processor proc)
@@ -271,11 +358,11 @@ cutensorHandle_t* get_cutensor()
   return lib.get_cutensor();
 }
 
-cufftContext get_cufft_plan(cufftType type, const Legion::DomainPoint& size)
+cufftContext get_cufft_plan(cufftType type, const cufftPlanParms& parms)
 {
   const auto proc = Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
-  return lib.get_cufft_plan(type, size);
+  return lib.get_cufft_plan(type, parms);
 }
 
 class LoadCUDALibsTask : public CuNumericTask<LoadCUDALibsTask> {
