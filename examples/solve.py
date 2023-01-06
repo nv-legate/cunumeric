@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +17,7 @@
 
 import argparse
 
-from legate.timing import time
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark, time
 
 
 def solve(m, n, nrhs, dtype):
@@ -66,5 +66,11 @@ if __name__ == "__main__":
         dest="dtype",
         help="data type",
     )
-    args = parser.parse_args()
-    solve(args.m, args.n, args.nrhs, args.dtype)
+    args, np = parse_args(parser)
+
+    run_benchmark(
+        solve,
+        args.benchmark,
+        "Solve",
+        (args.m, args.n, args.nrhs, args.dtype),
+    )
