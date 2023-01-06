@@ -17,7 +17,7 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 class Param:
@@ -290,7 +290,7 @@ def run_lstm(
 
     pointer = 0
 
-    start = time()
+    timer.start()
 
     for iteration in range(max_iters):
         # Reset
@@ -325,8 +325,7 @@ def run_lstm(
         pointer += T_steps
     update_status(max_iters, smooth_loss)
 
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
     return total
@@ -397,7 +396,7 @@ if __name__ == "__main__":
         help="standard deviation of weights for initialization",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_lstm,

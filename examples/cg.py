@@ -17,7 +17,7 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 # This is technically dead code right now, but we'll keep it around in
@@ -100,10 +100,10 @@ def run_cg(
         min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
     )
 
-    start = time()
+    timer.start()
     for i in range(-warmup, max_iters):
         if i == 0:
-            start = time()
+            timer.start()
         Ap = A.dot(p)
         alpha = rsold / (p.dot(Ap))
         x = x + alpha * p
@@ -123,7 +123,7 @@ def run_cg(
         beta = rsnew / rsold
         p = r + beta * p
         rsold = rsnew
-    stop = time()
+    total = timer.stop()
 
     if converged < 0:
         print("Convergence FAILURE!")
@@ -132,7 +132,6 @@ def run_cg(
     if perform_check:
         check(A, x, b)
 
-    total = (stop - start) / 1000.0
     if timing:
         print(f"Elapsed Time: {total} ms")
     return total
@@ -174,10 +173,10 @@ def run_preconditioned_cg(
         min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
     )
 
-    start = time()
+    timer.start()
     for i in range(-warmup, max_iters):
         if i == 0:
-            start = time()
+            timer.start()
         Ap = A.dot(p)
         alpha = rzold / (p.dot(Ap))
         x = x + alpha * p
@@ -199,7 +198,7 @@ def run_preconditioned_cg(
         beta = rznew / rzold
         p = z + beta * p
         rzold = rznew
-    stop = time()
+    total = timer.stop()
 
     if converged < 0:
         print("Convergence FAILURE!")
@@ -208,7 +207,6 @@ def run_preconditioned_cg(
     if perform_check:
         check(A, x, b)
 
-    total = (stop - start) / 1000.0
     if timing:
         print(f"Elapsed Time: {total} ms")
     return total
@@ -290,7 +288,7 @@ if __name__ == "__main__":
         help="convergence check threshold",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_preconditioned_cg if args.precondition else run_cg,

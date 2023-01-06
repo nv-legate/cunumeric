@@ -18,7 +18,7 @@
 import argparse
 import re
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def run_einsum(expr, N, iters, warmup, dtype, cupy_compatibility):
@@ -82,10 +82,10 @@ def run_einsum(expr, N, iters, warmup, dtype, cupy_compatibility):
     C = np.zeros((N,) * len(c_modes), dtype=dtype)
 
     # Run contraction
-    start = time()
+    timer.start()
     for idx in range(iters + warmup):
         if idx == warmup:
-            start = time()
+            timer.start()
         if cupy_compatibility:
             C = np.einsum(expr, A, B)
         else:
@@ -102,10 +102,9 @@ def run_einsum(expr, N, iters, warmup, dtype, cupy_compatibility):
             A, C = C, A
         else:
             B, C = C, B
-    stop = time()
+    total = timer.stop()
 
     # Print statistics
-    total = (stop - start) / 1000.0
     average = total / iters
     print(f"Elapsed Time: {total:.3f} ms")
     print(f"Average Iteration: {average:.3f} ms")
@@ -162,7 +161,7 @@ if __name__ == "__main__":
              else, use einsum(expr, A, B, out=C)""",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     cupy_compatibility = args.cupy_compatibility or args.package == "cupy"
     if cupy_compatibility:
