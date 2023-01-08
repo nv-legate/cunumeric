@@ -37,18 +37,24 @@ NO_EMPTY_SIZES = [
 def test_int(size):
     arr = mk_seq_array(num, shape=size)
     max_data = reduce(lambda x, y: x * y, size)
-    assert max_data - 2 in arr
-    assert max_data + 2 not in arr
+    assert -1 not in arr
+    assert 0 not in arr
+    assert 1 in arr
+    assert max_data // 2 in arr
+    assert max_data in arr
+    assert max_data + 1 not in arr
 
 
 @pytest.mark.parametrize("size", NO_EMPTY_SIZES)
 def test_complex(size):
     arr = mk_seq_array(num, shape=size) + mk_seq_array(num, shape=size) * 1.0j
     max_data = reduce(lambda x, y: x * y, size)
-    assert (max_data - 2) + (max_data - 2) * 1.0j in arr
-    assert (max_data + 2) + (max_data + 2) * 1.0j not in arr
-    assert (max_data - 2) + max_data * 1.0j not in arr
-    assert max_data - 2 not in arr
+    assert -1 not in arr
+    assert 0 not in arr
+    assert 1 + 1.0j in arr
+    assert (max_data // 2) + (max_data // 2) * 1.0j in arr
+    assert max_data + max_data * 1.0j in arr
+    assert (max_data + 1) + (max_data + 1) * 1.0j not in arr
 
 
 if __name__ == "__main__":

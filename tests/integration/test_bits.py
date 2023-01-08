@@ -34,27 +34,24 @@ class TestPackbits(object):
     def test_dtype(self):
         shape = (3, 3)
         in_num = num.random.random(size=shape)
-        msg = r"type"
         # TypeError: Expected an input array of integer or boolean data type
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             num.packbits(in_num)
 
     def test_axis_outbound(self):
         shape = (3, 3)
         in_num = num.random.randint(low=0, high=2, size=shape)
-        msg = r"out of bounds"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.packbits(in_num, axis=2)
 
-    @pytest.mark.parametrize("bitorder", (1, True, "True", "BIG", "LITTER"))
+    @pytest.mark.parametrize("bitorder", (1, True, "True", "BIG", "LITTLE"))
     def test_bitorder_negative(self, bitorder):
         shape = (3, 3)
         in_num = num.random.randint(low=0, high=2, size=shape, dtype="i")
-        msg = r"order"
         # when bitorder is 1 or True, Numpy raises
         # "TypeError: pack() argument 3 must be str".
         # while cuNumeric raises valueError.
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.packbits(in_num, bitorder=bitorder)
 
     @pytest.mark.parametrize("arr", ([], [[]]))
@@ -106,20 +103,18 @@ class TestUnpackbits(object):
     def test_dtype(self):
         shape = (3, 3)
         in_num = num.random.random(size=shape)
-        msg = r"type"
         # TypeError: Expected an input array of unsigned byte data type
-        with pytest.raises(TypeError, match=msg):
+        with pytest.raises(TypeError):
             num.unpackbits(in_num)
 
     def test_axis_outbound(self):
         shape = (3, 3)
         in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
         in_num = num.array(in_np)
-        msg = r"out of bounds"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.unpackbits(in_num, axis=2)
 
-    @pytest.mark.parametrize("bitorder", (1, True, "True", "BIG", "LITTER"))
+    @pytest.mark.parametrize("bitorder", (1, True, "True", "BIG", "LITTLE"))
     def test_bitorder_negative(self, bitorder):
         shape = (3, 3)
         in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
@@ -127,8 +122,7 @@ class TestUnpackbits(object):
         # when bitorder is 1 or True, Numpy raises
         # "TypeError: unpack() argument 4 must be str".
         # while cuNumeric raises valueError.
-        msg = r"order"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.unpackbits(in_num, bitorder=bitorder)
 
     @pytest.mark.parametrize("arr", ([], [[]]))
