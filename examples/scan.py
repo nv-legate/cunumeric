@@ -18,8 +18,7 @@
 import argparse
 
 import numpy as np
-from benchmark import run_benchmark
-from legate.timing import time
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(shape, dt, axis):
@@ -75,14 +74,12 @@ def run_scan(OP, shape, dt, ax, check):
     print(f"Axis:            axis={ax}")
     print(f"Data type:       dtype={dt}32")
     A, B = initialize(shape=shape, dt=dt, axis=ax)
-    start = time()
+    timer.start()
 
     # op handling
     getattr(num, OP)(A, out=B, axis=ax)
 
-    stop = time()
-    delta = stop - start
-    total = delta / 1000.0
+    total = timer.stop()
     print(f"Elapsed Time:  {total}ms")
     # error checking
     if check:
@@ -131,49 +128,8 @@ if __name__ == "__main__":
         action="store_true",
         help="check the result of the solve",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    parser.add_argument(
-        "--package",
-        dest="package",
-        choices=["legate", "numpy", "cupy"],
-        type=str,
-        default="legate",
-        help="NumPy package to use (legate, numpy, or cupy)",
-    )
-    parser.add_argument(
-        "--cupy-allocator",
-        dest="cupy_allocator",
-        choices=["default", "off", "managed"],
-        type=str,
-        default="default",
-        help="cupy allocator to use (default, off, or managed)",
-    )
 
-    args, _ = parser.parse_known_args()
-
-    if args.package == "legate":
-        import cunumeric as num
-    elif args.package == "cupy":
-        import cupy as num
-
-        if args.cupy_allocator == "off":
-            num.cuda.set_allocator(None)
-            print("Turning off memory pool")
-        elif args.cupy_allocator == "managed":
-            num.cuda.set_allocator(
-                num.cuda.MemoryPool(num.cuda.malloc_managed).malloc
-            )
-            print("Using managed memory pool")
-    elif args.package == "numpy":
-        import numpy as num
+    args, num, timer = parse_args(parser)
 
     run_benchmark(
         run_scan,

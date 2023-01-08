@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 # Copyright 2022 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,20 +17,17 @@
 
 import argparse
 
-from legate.timing import time
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def solve(m, n, nrhs, dtype):
     a = np.random.rand(m, n).astype(dtype=dtype)
     b = np.random.rand(n, nrhs).astype(dtype=dtype)
 
-    start = time()
+    timer.start()
     np.linalg.solve(a, b)
-    stop = time()
+    total = timer.stop()
 
-    total = (stop - start) / 1000.0
     print(f"Elapsed Time: {total} ms")
 
 
@@ -66,5 +65,11 @@ if __name__ == "__main__":
         dest="dtype",
         help="data type",
     )
-    args = parser.parse_args()
-    solve(args.m, args.n, args.nrhs, args.dtype)
+    args, np, timer = parse_args(parser)
+
+    run_benchmark(
+        solve,
+        args.benchmark,
+        "Solve",
+        (args.m, args.n, args.nrhs, args.dtype),
+    )
