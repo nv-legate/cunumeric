@@ -15,7 +15,9 @@
 import pytest
 from legate.core import LEGATE_MAX_DIM
 from utils.contractions import check_default
+from utils.generators import mk_0to1_array
 
+import cunumeric as num
 from cunumeric.utils import inner_modes
 
 
@@ -29,6 +31,31 @@ def test_inner(a_ndim, b_ndim):
         return lib.inner(*args, **kwargs)
 
     check_default(name, modes, operation)
+
+
+class TestInnerErrors:
+    def setup_method(self):
+        self.A = mk_0to1_array(num, (5, 3))
+        self.B = mk_0to1_array(num, (2, 3))
+
+    @pytest.mark.parametrize(
+        "shapeA",
+        ((3,), (4, 3), (5, 4, 3)),
+        ids=lambda shapeA: f"(shapeA={shapeA})",
+    )
+    def test_a_b_invalid_shape(self, shapeA):
+        A = mk_0to1_array(num, shapeA)
+        B = mk_0to1_array(num, (3, 2))
+        with pytest.raises(ValueError):
+            num.inner(A, B)
+
+    @pytest.mark.parametrize(
+        "shape", ((5,), (2,), (5, 3)), ids=lambda shape: f"(shape={shape})"
+    )
+    def test_out_invalid_shape(self, shape):
+        out = num.zeros(shape)
+        with pytest.raises(ValueError):
+            num.inner(self.A, self.B, out=out)
 
 
 if __name__ == "__main__":
