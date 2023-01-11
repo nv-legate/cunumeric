@@ -15,35 +15,29 @@ limitations under the License.
 
 -->
 
-# Dependencies
+# Basic build
 
 Users must have a working installation of the
 [Legate Core](https://github.com/nv-legate/legate.core)
-library prior to installing cuNumeric.
+library prior to installing cuNumeric. **Installing cuNumeric by itself will not
+automatically install Legate Core.**
 
 As for other dependencies, the Dependencies section on the
 [Legate Core build instructions](https://github.com/nv-legate/legate.core/blob/HEAD/BUILD.md)
-also covers cuNumeric.
+also covers cuNumeric, so no additional packages are required.
 
-# Building for Users
+Once Legate Core is installed, you can simply invoke `./install.py` from the
+cuNumeric top-level directory. The build will automatically pick up the
+configuration used when building Legate Core (e.g. the CUDA Toolkit directory).
 
-cuNumeric provides the same source-based installation scripts as Legate Core (a
-custom `install.py` script, that is backed by `pip install`). See the
-[Legate Core build instructions](https://github.com/nv-legate/legate.core/blob/HEAD/BUILD.md)
-for help on using these.
+# Advanced topics
 
-Note: Installing cuNumeric by itself will *not* automatically install Legate Core.
-
-# Building for Developers
-
-## Overview
+## Building through pip & cmake
 
 cuNumeric uses the same cmake/scikit-build-based build workflow as Legate Core.
 See the
 [Legate Core build instructions](https://github.com/nv-legate/legate.core/blob/HEAD/BUILD.md)
 for an overview.
-
-## Example
 
 There are several examples in the `scripts` folder. We walk through the steps in
 `build-with-legate-separately-no-install.sh` here.

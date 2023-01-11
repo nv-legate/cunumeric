@@ -18,15 +18,7 @@
 import argparse
 import math
 
-from benchmark import run_benchmark
-
-try:
-    from legate.timing import time
-except (ImportError, RuntimeError):
-    from time import perf_counter_ns
-
-    def time():
-        return perf_counter_ns() / 1000.0
+from benchmark import parse_args, run_benchmark
 
 
 def generate_random(N):
@@ -40,35 +32,33 @@ def generate_random(N):
     return A, b
 
 
-def solve(A, b, iters, verbose):
+def check(A, x, b):
+    print("Checking result...")
+    return np.allclose(A.dot(x), b)
+
+
+def run_jacobi(N, iters, warmup, perform_check, timing, verbose):
+    A, b = generate_random(N)
+
     print("Solving system...")
     x = np.zeros(A.shape[1])
     d = np.diag(A)
     R = A - np.diag(d)
-    for i in range(iters):
+
+    timer.start()
+    for i in range(iters + warmup):
+        if i == warmup:
+            timer.start()
         x = (b - np.dot(R, x)) / d
-    return x
+    total = timer.stop()
 
-
-def check(A, x, b):
-    print("Checking result...")
-    if np.allclose(A.dot(x), b):
-        print("PASS!")
-    else:
-        print("FAIL!")
-
-
-def run_jacobi(N, iters, perform_check, timing, verbose):
-    A, b = generate_random(N)
-    start = time()
-    x = solve(A, b, iters, verbose)
     if perform_check:
-        check(A, x, b)
+        assert check(A, x, b)
     else:
-        # Need a synchronization here for timing
-        assert not math.isnan(np.sum(x))
-    stop = time()
-    total = (stop - start) / 1000.0
+        assert not math.isnan(
+            np.sum(x)
+        ), f"{np.count_nonzero(~np.isnan(x))} NaNs in x"
+
     if timing:
         print(f"Elapsed Time: {total} ms")
     return total
@@ -89,6 +79,14 @@ if __name__ == "__main__":
         default=1000,
         dest="iters",
         help="number of iterations to run",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
     )
     parser.add_argument(
         "-n",
@@ -112,53 +110,19 @@ if __name__ == "__main__":
         action="store_true",
         help="print verbose output",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    parser.add_argument(
-        "--package",
-        dest="package",
-        choices=["legate", "numpy", "cupy"],
-        type=str,
-        default="legate",
-        help="NumPy package to use (legate, numpy, or cupy)",
-    )
-    parser.add_argument(
-        "--cupy-allocator",
-        dest="cupy_allocator",
-        choices=["default", "off", "managed"],
-        type=str,
-        default="default",
-        help="cupy allocator to use (default, off, or managed)",
-    )
 
-    args, _ = parser.parse_known_args()
-
-    if args.package == "legate":
-        import cunumeric as np
-    elif args.package == "cupy":
-        import cupy as np
-
-        if args.cupy_allocator == "off":
-            np.cuda.set_allocator(None)
-            print("Turning off memory pool")
-        elif args.cupy_allocator == "managed":
-            np.cuda.set_allocator(
-                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
-            )
-            print("Using managed memory pool")
-    elif args.package == "numpy":
-        import numpy as np
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_jacobi,
         args.benchmark,
         "Jacobi",
-        (args.N, args.iters, args.check, args.timing, args.verbose),
+        (
+            args.N,
+            args.iters,
+            args.warmup,
+            args.check,
+            args.timing,
+            args.verbose,
+        ),
     )
