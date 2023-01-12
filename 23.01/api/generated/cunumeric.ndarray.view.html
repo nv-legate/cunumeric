@@ -409,6 +409,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.take_along_axis.html">cunumeric.take_along_axis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.fill_diagonal.html">cunumeric.fill_diagonal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.put.html">cunumeric.put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.putmask.html">cunumeric.putmask</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.put_along_axis.html">cunumeric.put_along_axis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.place.html">cunumeric.place</a></li>
 </ul>
@@ -806,8 +807,35 @@
 <h1>cunumeric.ndarray.view<a class="headerlink" href="#cunumeric-ndarray-view" title="Permalink to this heading">#</a></h1>
 <dl class="py method">
 <dt class="sig sig-object py" id="cunumeric.ndarray.view">
-<span class="sig-prename descclassname"><span class="pre">ndarray.</span></span><span class="sig-name descname"><span class="pre">view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">npt.DTypeLike</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray"><span class="pre">ndarray</span></a></span></span><a class="headerlink" href="#cunumeric.ndarray.view" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<span class="sig-prename descclassname"><span class="pre">ndarray.</span></span><span class="sig-name descname"><span class="pre">view</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">npt.DTypeLike</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">type</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#type" title="(in Python v3.11)"><span class="pre">type</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray"><span class="pre">ndarray</span></a></span></span><a class="headerlink" href="#cunumeric.ndarray.view" title="Permalink to this definition">#</a></dt>
+<dd><p>New view of array with the same data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dtype</strong> (<em>data-type</em><em> or </em><em>ndarray sub-class</em><em>, </em><em>optional</em>) – Data-type descriptor of the returned view, e.g., float32 or int16.
+Omitting it results in the view having the same data-type as the
+input array. This argument can also be specified as an ndarray
+sub-class, which then specifies the type of the returned object
+(this is equivalent to setting the <code class="docutils literal notranslate"><span class="pre">type</span></code> parameter).</p></li>
+<li><p><strong>type</strong> (<em>ndarray sub-class</em><em>, </em><em>optional</em>) – Type of the returned view, e.g., ndarray or matrix. Again, omission
+of the parameter results in type preservation.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>cuNumeric does not currently support type reinterpretation, or
+conversion to ndarray sub-classes; use <a class="reference internal" href="cunumeric.ndarray.__array__.html#cunumeric.ndarray.__array__" title="cunumeric.ndarray.__array__"><code class="xref py py-func docutils literal notranslate"><span class="pre">ndarray.__array__()</span></code></a> to
+convert to <cite>numpy.ndarray</cite>.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.ndarray.view.html#numpy.ndarray.view" title="(in NumPy v1.24)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.ndarray.view</span></code></a></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Availability<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Multiple GPUs, Multiple CPUs</em></p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 

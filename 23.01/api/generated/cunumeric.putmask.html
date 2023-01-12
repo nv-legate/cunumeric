@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>cunumeric.ndarray.itemset &#8212; cunumeric  documentation</title>
+    <title>cunumeric.putmask &#8212; cunumeric  documentation</title>
   
   
   
@@ -42,11 +42,11 @@
     <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/clipboard.min.js"></script>
     <script src="../../_static/copybutton.js"></script>
-    <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/cunumeric.ndarray.itemset';</script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/cunumeric.putmask';</script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="cunumeric.ndarray.tostring" href="cunumeric.ndarray.tostring.html" />
-    <link rel="prev" title="cunumeric.ndarray.tolist" href="cunumeric.ndarray.tolist.html" />
+    <link rel="next" title="cunumeric.put_along_axis" href="cunumeric.put_along_axis.html" />
+    <link rel="prev" title="cunumeric.put" href="cunumeric.put.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="docsearch:language" content="en">
   </head>
@@ -323,7 +323,7 @@
   </p>
   <div class="bd-toc-item navbar-nav">
     <ul class="current nav bd-sidenav">
-<li class="toctree-l1 has-children"><a class="reference internal" href="../routines.html">Routines</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../routines.html">Routines</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
 <li class="toctree-l2 has-children"><a class="reference internal" href="../creation.html">Array creation routines</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.empty.html">cunumeric.empty</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.empty_like.html">cunumeric.empty_like</a></li>
@@ -389,7 +389,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.unpackbits.html">cunumeric.unpackbits</a></li>
 </ul>
 </li>
-<li class="toctree-l2 has-children"><a class="reference internal" href="../indexing.html">Indexing routines</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../indexing.html">Indexing routines</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.diag_indices.html">cunumeric.diag_indices</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.diag_indices_from.html">cunumeric.diag_indices_from</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.mask_indices.html">cunumeric.mask_indices</a></li>
@@ -409,7 +409,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.take_along_axis.html">cunumeric.take_along_axis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.fill_diagonal.html">cunumeric.fill_diagonal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.put.html">cunumeric.put</a></li>
-<li class="toctree-l3"><a class="reference internal" href="cunumeric.putmask.html">cunumeric.putmask</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">cunumeric.putmask</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.put_along_axis.html">cunumeric.put_along_axis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.place.html">cunumeric.place</a></li>
 </ul>
@@ -644,8 +644,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1 current active has-children"><a class="reference internal" href="../classes.html">Classes</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
-<li class="toctree-l2 current active has-children"><a class="reference internal" href="../ndarray.html">The N-Dimensional array (<code class="xref py py-class docutils literal notranslate"><span class="pre">cunumeric.ndarray</span></code>)</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l1 has-children"><a class="reference internal" href="../classes.html">Classes</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../ndarray.html">The N-Dimensional array (<code class="xref py py-class docutils literal notranslate"><span class="pre">cunumeric.ndarray</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
 <li class="toctree-l3"><a class="reference internal" href="../_ndarray.html">cunumeric.ndarray</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.all.html">cunumeric.ndarray.all</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.any.html">cunumeric.ndarray.any</a></li>
@@ -667,7 +667,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.flat.html">cunumeric.ndarray.flat</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.item.html">cunumeric.ndarray.item</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.tolist.html">cunumeric.ndarray.tolist</a></li>
-<li class="toctree-l3 current active"><a class="current reference internal" href="#">cunumeric.ndarray.itemset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.itemset.html">cunumeric.ndarray.itemset</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.tostring.html">cunumeric.ndarray.tostring</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.tobytes.html">cunumeric.ndarray.tobytes</a></li>
 <li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.tofile.html">cunumeric.ndarray.tofile</a></li>
@@ -803,33 +803,29 @@
             
             <article class="bd-article" role="main">
               
-  <section id="cunumeric-ndarray-itemset">
-<h1>cunumeric.ndarray.itemset<a class="headerlink" href="#cunumeric-ndarray-itemset" title="Permalink to this heading">#</a></h1>
-<dl class="py method">
-<dt class="sig sig-object py" id="cunumeric.ndarray.itemset">
-<span class="sig-prename descclassname"><span class="pre">ndarray.</span></span><span class="sig-name descname"><span class="pre">itemset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.ndarray.itemset" title="Permalink to this definition">#</a></dt>
-<dd><p>Insert scalar into an array (scalar is cast to array’s dtype,
-if possible)</p>
-<p>There must be at least 1 argument, and define the last argument
-as <em>item</em>.  Then, <code class="docutils literal notranslate"><span class="pre">a.itemset(*args)</span></code> is equivalent to but faster
-than <code class="docutils literal notranslate"><span class="pre">a[args]</span> <span class="pre">=</span> <span class="pre">item</span></code>.  The item should be a scalar value and <cite>args</cite>
-must select a single item in the array <cite>a</cite>.</p>
+  <section id="cunumeric-putmask">
+<h1>cunumeric.putmask<a class="headerlink" href="#cunumeric-putmask" title="Permalink to this heading">#</a></h1>
+<dl class="py function">
+<dt class="sig sig-object py" id="cunumeric.putmask">
+<span class="sig-prename descclassname"><span class="pre">cunumeric.</span></span><span class="sig-name descname"><span class="pre">putmask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">a</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">values</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.putmask" title="Permalink to this definition">#</a></dt>
+<dd><p>Changes elements of an array based on conditional and input values.
+Sets <code class="docutils literal notranslate"><span class="pre">a.flat[n]</span> <span class="pre">=</span> <span class="pre">values[n]</span></code> for each n where <code class="docutils literal notranslate"><span class="pre">mask.flat[n]==True</span></code>.
+If <cite>values</cite> is not the same size as <cite>a</cite> and <cite>mask</cite> then it will repeat.
+This gives behavior different from <code class="docutils literal notranslate"><span class="pre">a[mask]</span> <span class="pre">=</span> <span class="pre">values</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>*args</strong> – If one argument: a scalar, only used in case <cite>a</cite> is of size 1.
-If two arguments: the last argument is the value to be set
-and must be a scalar, the first argument specifies a single array
-element location. It is either an int or a tuple.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>a</strong> (<a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray"><em>ndarray</em></a>) – Target array.</p></li>
+<li><p><strong>mask</strong> (<em>array_like</em>) – Boolean mask array. It has to be the same shape as <cite>a</cite>.</p></li>
+<li><p><strong>values</strong> (<em>array_like</em>) – Values to put into <cite>a</cite> where <cite>mask</cite> is True. If <cite>values</cite> is smaller
+than <cite>a</cite> it will be repeated.</p></li>
+</ul>
 </dd>
 </dl>
-<p class="rubric">Notes</p>
-<p>Compared to indexing syntax, <cite>itemset</cite> provides some speed increase
-for placing a scalar into a particular location in an <cite>ndarray</cite>,
-if you must do this.  However, generally this is discouraged:
-among other problems, it complicates the appearance of the code.
-Also, when using <cite>itemset</cite> (and <cite>item</cite>) inside a loop, be sure
-to assign the methods to a local variable to avoid the attribute
-look-up at each loop iteration.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://numpy.org/doc/stable/reference/generated/numpy.putmask.html#numpy.putmask" title="(in NumPy v1.24)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.putmask</span></code></a></p>
+</div>
 <dl class="field-list simple">
 <dt class="field-odd">Availability<span class="colon">:</span></dt>
 <dd class="field-odd"><p><em>Multiple GPUs, Multiple CPUs</em></p>
@@ -847,17 +843,17 @@ look-up at each loop iteration.</p>
             <footer class="bd-footer-article">
                 <!-- Previous / next buttons -->
 <div class='prev-next-area'>
-  <a class='left-prev' id="prev-link" href="cunumeric.ndarray.tolist.html" title="previous page">
+  <a class='left-prev' id="prev-link" href="cunumeric.put.html" title="previous page">
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
           <p class="prev-next-subtitle">previous</p>
-          <p class="prev-next-title">cunumeric.ndarray.tolist</p>
+          <p class="prev-next-title">cunumeric.put</p>
       </div>
   </a>
-  <a class='right-next' id="next-link" href="cunumeric.ndarray.tostring.html" title="next page">
+  <a class='right-next' id="next-link" href="cunumeric.put_along_axis.html" title="next page">
   <div class="prev-next-info">
       <p class="prev-next-subtitle">next</p>
-      <p class="prev-next-title">cunumeric.ndarray.tostring</p>
+      <p class="prev-next-title">cunumeric.put_along_axis</p>
   </div>
   <i class="fa-solid fa-angle-right"></i>
   </a>
@@ -878,10 +874,10 @@ look-up at each loop iteration.</p>
 <nav id="bd-toc-nav" class="page-toc">
     <ul class="visible nav section-nav flex-column">
  <li class="toc-h2 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#cunumeric.ndarray.itemset">
+  <a class="reference internal nav-link" href="#cunumeric.putmask">
    <code class="docutils literal notranslate">
     <span class="pre">
-     ndarray.itemset()
+     putmask()
     </span>
    </code>
   </a>
@@ -903,7 +899,7 @@ look-up at each loop iteration.</p>
 <div class="toc-item">
   
 <div class="tocsection sourcelink">
-    <a href="../../_sources/api/generated/cunumeric.ndarray.itemset.rst.txt">
+    <a href="../../_sources/api/generated/cunumeric.putmask.rst.txt">
         <i class="fa-solid fa-file-lines"></i> Show Source
     </a>
 </div>

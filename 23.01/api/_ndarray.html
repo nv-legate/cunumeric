@@ -409,6 +409,7 @@
 <li class="toctree-l3"><a class="reference internal" href="generated/cunumeric.take_along_axis.html">cunumeric.take_along_axis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/cunumeric.fill_diagonal.html">cunumeric.fill_diagonal</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/cunumeric.put.html">cunumeric.put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="generated/cunumeric.putmask.html">cunumeric.putmask</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/cunumeric.put_along_axis.html">cunumeric.put_along_axis</a></li>
 <li class="toctree-l3"><a class="reference internal" href="generated/cunumeric.place.html">cunumeric.place</a></li>
 </ul>
@@ -911,56 +912,59 @@
 <tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.prod.html#cunumeric.ndarray.prod" title="cunumeric.ndarray.prod"><code class="xref py py-obj docutils literal notranslate"><span class="pre">prod</span></code></a>([axis, dtype, out, keepdims, initial, ...])</p></td>
 <td><p>a.prod(axis=None, dtype=None, out=None, keepdims=False, initial=1, where=True)</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.ravel.html#cunumeric.ndarray.ravel" title="cunumeric.ndarray.ravel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ravel</span></code></a>([order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.put.html#cunumeric.ndarray.put" title="cunumeric.ndarray.put"><code class="xref py py-obj docutils literal notranslate"><span class="pre">put</span></code></a>(indices, values[, mode])</p></td>
+<td><p>Replaces specified elements of the array with given values.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.ravel.html#cunumeric.ndarray.ravel" title="cunumeric.ndarray.ravel"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ravel</span></code></a>([order])</p></td>
 <td><p>Return a flattened array.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.reshape.html#cunumeric.ndarray.reshape" title="cunumeric.ndarray.reshape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reshape</span></code></a>(shape[, order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.reshape.html#cunumeric.ndarray.reshape" title="cunumeric.ndarray.reshape"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reshape</span></code></a>(shape[, order])</p></td>
 <td><p>Returns an array containing the same data with a new shape.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.searchsorted.html#cunumeric.ndarray.searchsorted" title="cunumeric.ndarray.searchsorted"><code class="xref py py-obj docutils literal notranslate"><span class="pre">searchsorted</span></code></a>(v[, side, sorter])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.searchsorted.html#cunumeric.ndarray.searchsorted" title="cunumeric.ndarray.searchsorted"><code class="xref py py-obj docutils literal notranslate"><span class="pre">searchsorted</span></code></a>(v[, side, sorter])</p></td>
 <td><p>Find the indices into a sorted array a such that, if the corresponding elements in v were inserted before the indices, the order of a would be preserved.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.setfield.html#cunumeric.ndarray.setfield" title="cunumeric.ndarray.setfield"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setfield</span></code></a>(val, dtype[, offset])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.setfield.html#cunumeric.ndarray.setfield" title="cunumeric.ndarray.setfield"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setfield</span></code></a>(val, dtype[, offset])</p></td>
 <td><p></p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.setflags.html#cunumeric.ndarray.setflags" title="cunumeric.ndarray.setflags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setflags</span></code></a>([write, align, uic])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.setflags.html#cunumeric.ndarray.setflags" title="cunumeric.ndarray.setflags"><code class="xref py py-obj docutils literal notranslate"><span class="pre">setflags</span></code></a>([write, align, uic])</p></td>
 <td><p>Set array flags WRITEABLE, ALIGNED, WRITEBACKIFCOPY, respectively.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sort.html#cunumeric.ndarray.sort" title="cunumeric.ndarray.sort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sort</span></code></a>([axis, kind, order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sort.html#cunumeric.ndarray.sort" title="cunumeric.ndarray.sort"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sort</span></code></a>([axis, kind, order])</p></td>
 <td><p>Sort an array in-place.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.squeeze.html#cunumeric.ndarray.squeeze" title="cunumeric.ndarray.squeeze"><code class="xref py py-obj docutils literal notranslate"><span class="pre">squeeze</span></code></a>([axis])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.squeeze.html#cunumeric.ndarray.squeeze" title="cunumeric.ndarray.squeeze"><code class="xref py py-obj docutils literal notranslate"><span class="pre">squeeze</span></code></a>([axis])</p></td>
 <td><p>Remove axes of length one from <cite>a</cite>.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sum.html#cunumeric.ndarray.sum" title="cunumeric.ndarray.sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sum</span></code></a>([axis, dtype, out, keepdims, initial, where])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.sum.html#cunumeric.ndarray.sum" title="cunumeric.ndarray.sum"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sum</span></code></a>([axis, dtype, out, keepdims, initial, where])</p></td>
 <td><p>a.sum(axis=None, dtype=None, out=None, keepdims=False, initial=0, where=True)</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.swapaxes.html#cunumeric.ndarray.swapaxes" title="cunumeric.ndarray.swapaxes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">swapaxes</span></code></a>(axis1, axis2)</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.swapaxes.html#cunumeric.ndarray.swapaxes" title="cunumeric.ndarray.swapaxes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">swapaxes</span></code></a>(axis1, axis2)</p></td>
 <td><p>Return a view of the array with <cite>axis1</cite> and <cite>axis2</cite> interchanged.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.take.html#cunumeric.ndarray.take" title="cunumeric.ndarray.take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">take</span></code></a>(indices[, axis, out, mode])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.take.html#cunumeric.ndarray.take" title="cunumeric.ndarray.take"><code class="xref py py-obj docutils literal notranslate"><span class="pre">take</span></code></a>(indices[, axis, out, mode])</p></td>
 <td><p>Take elements from an array along an axis.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tobytes.html#cunumeric.ndarray.tobytes" title="cunumeric.ndarray.tobytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tobytes</span></code></a>([order])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tobytes.html#cunumeric.ndarray.tobytes" title="cunumeric.ndarray.tobytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tobytes</span></code></a>([order])</p></td>
 <td><p>Construct Python bytes containing the raw data bytes in the array.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tofile.html#cunumeric.ndarray.tofile" title="cunumeric.ndarray.tofile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tofile</span></code></a>(fid[, sep, format])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tofile.html#cunumeric.ndarray.tofile" title="cunumeric.ndarray.tofile"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tofile</span></code></a>(fid[, sep, format])</p></td>
 <td><p>Write array to a file as text or binary (default).</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tolist.html#cunumeric.ndarray.tolist" title="cunumeric.ndarray.tolist"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tolist</span></code></a>()</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tolist.html#cunumeric.ndarray.tolist" title="cunumeric.ndarray.tolist"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tolist</span></code></a>()</p></td>
 <td><p>Return the array as an <code class="docutils literal notranslate"><span class="pre">a.ndim</span></code>-levels deep nested list of Python scalars.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tostring.html#cunumeric.ndarray.tostring" title="cunumeric.ndarray.tostring"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tostring</span></code></a>([order])</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.tostring.html#cunumeric.ndarray.tostring" title="cunumeric.ndarray.tostring"><code class="xref py py-obj docutils literal notranslate"><span class="pre">tostring</span></code></a>([order])</p></td>
 <td><p>A compatibility alias for <cite>tobytes</cite>, with exactly the same behavior.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.transpose.html#cunumeric.ndarray.transpose" title="cunumeric.ndarray.transpose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transpose</span></code></a>([axes])</p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.transpose.html#cunumeric.ndarray.transpose" title="cunumeric.ndarray.transpose"><code class="xref py py-obj docutils literal notranslate"><span class="pre">transpose</span></code></a>([axes])</p></td>
 <td><p>Returns a view of the array with axes transposed.</p></td>
 </tr>
-<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.unique.html#cunumeric.ndarray.unique" title="cunumeric.ndarray.unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unique</span></code></a>()</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.unique.html#cunumeric.ndarray.unique" title="cunumeric.ndarray.unique"><code class="xref py py-obj docutils literal notranslate"><span class="pre">unique</span></code></a>()</p></td>
 <td><p>Find the unique elements of an array.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.view.html#cunumeric.ndarray.view" title="cunumeric.ndarray.view"><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code></a>([dtype, type])</p></td>
-<td><p></p></td>
+<tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.ndarray.view.html#cunumeric.ndarray.view" title="cunumeric.ndarray.view"><code class="xref py py-obj docutils literal notranslate"><span class="pre">view</span></code></a>([dtype, type])</p></td>
+<td><p>New view of array with the same data.</p></td>
 </tr>
 </tbody>
 </table>

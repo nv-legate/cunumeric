@@ -44,5 +44,6 @@ Inserting data into arrays
  
    fill_diagonal
    put
+   putmask
    put_along_axis
    place

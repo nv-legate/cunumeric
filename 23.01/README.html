@@ -45,7 +45,7 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'README';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Dependencies" href="BUILD.html" />
+    <link rel="next" title="Basic build" href="BUILD.html" />
     <link rel="prev" title="Welcome to cuNumeric’s documentation!" href="index.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="docsearch:language" content="en">
@@ -355,7 +355,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
---><section id="cunumeric">
+-->
+<section id="cunumeric">
 <h1>cuNumeric<a class="headerlink" href="#cunumeric" title="Permalink to this heading">#</a></h1>
 <p>cuNumeric is a <a class="reference external" href="https://github.com/nv-legate/legate.core">Legate</a> library
 that aims to provide a distributed and accelerated drop-in replacement for the
@@ -363,23 +364,14 @@ that aims to provide a distributed and accelerated drop-in replacement for the
 <a class="reference external" href="https://legion.stanford.edu">Legion</a> runtime. Using cuNumeric you do things like run
 <a class="reference external" href="https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb">the final example of the Python CFD course</a>
 completely unmodified on 2048 A100 GPUs in a <a class="reference external" href="https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb">DGX SuperPOD</a> and achieve good weak scaling.</p>
-<img src="docs/figures/cfd-demo.png" alt="drawing" width="500"/><p>cuNumeric works best for programs that have very large arrays of data
+<img src="docs/figures/cfd-demo.png" alt="drawing" width="500"/>
+<p>cuNumeric works best for programs that have very large arrays of data
 that cannot fit in the memory of a single GPU or a single node and need
 to span multiple nodes and GPUs. While our implementation of the current
 NumPy API is still incomplete, programs that use unimplemented features
 will still work (assuming enough memory) by falling back to the
 canonical NumPy implementation.</p>
 <p>If you have questions, please contact us at legate(at)nvidia.com.</p>
-<ol class="simple">
-<li><p><a class="reference external" href="#installation">Installation</a></p></li>
-<li><p><a class="reference external" href="#usage-and-execution">Usage and Execution</a></p></li>
-<li><p><a class="reference external" href="#supported-and-planned-features">Supported and Planned Features</a></p></li>
-<li><p><a class="reference external" href="#supported-types-and-dimensions">Supported Types and Dimensions</a></p></li>
-<li><p><a class="reference external" href="#documentation">Documentation</a></p></li>
-<li><p><a class="reference external" href="#future-directions">Future Directions</a></p></li>
-<li><p><a class="reference external" href="#contributing">Contributing</a></p></li>
-<li><p><a class="reference external" href="#known-bugs">Known Bugs</a></p></li>
-</ol>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
 <p>cuNumeric is available <a class="reference external" href="https://anaconda.org/legate/cunumeric">on conda</a>:</p>
@@ -388,10 +380,7 @@ canonical NumPy implementation.</p>
 </div>
 <p>The conda package is compatible with CUDA &gt;= 11.4 (CUDA driver version &gt;= r470),
 and Volta or later GPU architectures.</p>
-<p>Docker image build scripts, as well as specialized install scripts for
-supported clusters are available on the
-<a class="reference external" href="https://github.com/nv-legate/quickstart">quickstart</a> repo.</p>
-<p>See <a class="reference internal" href="BUILD.html"><span class="doc">BUILD.md</span></a> for instructions on building cuNumeric from source.</p>
+<p>See <a class="reference internal" href="BUILD.html"><span class="doc std std-doc">BUILD.md</span></a> for instructions on building cuNumeric from source.</p>
 </section>
 <section id="usage-and-execution">
 <h2>Usage and Execution<a class="headerlink" href="#usage-and-execution" title="Permalink to this heading">#</a></h2>
@@ -463,7 +452,7 @@ features of Legion from inside the Python interpreter.</p></li>
 </section>
 <section id="contributing">
 <h2>Contributing<a class="headerlink" href="#contributing" title="Permalink to this heading">#</a></h2>
-<p>See the discussion of contributing in <a class="reference internal" href="CONTRIBUTING.html"><span class="doc">CONTRIBUTING.md</span></a>.</p>
+<p>See the discussion of contributing in <a class="reference internal" href="CONTRIBUTING.html"><span class="doc std std-doc">CONTRIBUTING.md</span></a>.</p>
 </section>
 <section id="known-issues">
 <h2>Known Issues<a class="headerlink" href="#known-issues" title="Permalink to this heading">#</a></h2>
@@ -512,7 +501,7 @@ please contact us and we will be able to help you.</p></li>
   <a class='right-next' id="next-link" href="BUILD.html" title="next page">
   <div class="prev-next-info">
       <p class="prev-next-subtitle">next</p>
-      <p class="prev-next-title">Dependencies</p>
+      <p class="prev-next-title">Basic build</p>
   </div>
   <i class="fa-solid fa-angle-right"></i>
   </a>

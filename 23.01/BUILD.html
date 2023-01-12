@@ -6,7 +6,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
-    <title>Dependencies &#8212; cunumeric  documentation</title>
+    <title>Basic build &#8212; cunumeric  documentation</title>
   
   
   
@@ -355,34 +355,28 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
---><section id="dependencies">
-<h1>Dependencies<a class="headerlink" href="#dependencies" title="Permalink to this heading">#</a></h1>
+-->
+<section id="basic-build">
+<h1>Basic build<a class="headerlink" href="#basic-build" title="Permalink to this heading">#</a></h1>
 <p>Users must have a working installation of the
 <a class="reference external" href="https://github.com/nv-legate/legate.core">Legate Core</a>
-library prior to installing cuNumeric.</p>
+library prior to installing cuNumeric. <strong>Installing cuNumeric by itself will not
+automatically install Legate Core.</strong></p>
 <p>As for other dependencies, the Dependencies section on the
 <a class="reference external" href="https://github.com/nv-legate/legate.core/blob/HEAD/BUILD.md">Legate Core build instructions</a>
-also covers cuNumeric.</p>
+also covers cuNumeric, so no additional packages are required.</p>
+<p>Once Legate Core is installed, you can simply invoke <code class="docutils literal notranslate"><span class="pre">./install.py</span></code> from the
+cuNumeric top-level directory. The build will automatically pick up the
+configuration used when building Legate Core (e.g. the CUDA Toolkit directory).</p>
 </section>
-<section id="building-for-users">
-<h1>Building for Users<a class="headerlink" href="#building-for-users" title="Permalink to this heading">#</a></h1>
-<p>cuNumeric provides the same source-based installation scripts as Legate Core (a
-custom <code class="docutils literal notranslate"><span class="pre">install.py</span></code> script, that is backed by <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span></code>). See the
-<a class="reference external" href="https://github.com/nv-legate/legate.core/blob/HEAD/BUILD.md">Legate Core build instructions</a>
-for help on using these.</p>
-<p>Note: Installing cuNumeric by itself will <em>not</em> automatically install Legate Core.</p>
-</section>
-<section id="building-for-developers">
-<h1>Building for Developers<a class="headerlink" href="#building-for-developers" title="Permalink to this heading">#</a></h1>
-<section id="overview">
-<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this heading">#</a></h2>
+<section id="advanced-topics">
+<h1>Advanced topics<a class="headerlink" href="#advanced-topics" title="Permalink to this heading">#</a></h1>
+<section id="building-through-pip-cmake">
+<h2>Building through pip &amp; cmake<a class="headerlink" href="#building-through-pip-cmake" title="Permalink to this heading">#</a></h2>
 <p>cuNumeric uses the same cmake/scikit-build-based build workflow as Legate Core.
 See the
 <a class="reference external" href="https://github.com/nv-legate/legate.core/blob/HEAD/BUILD.md">Legate Core build instructions</a>
 for an overview.</p>
-</section>
-<section id="example">
-<h2>Example<a class="headerlink" href="#example" title="Permalink to this heading">#</a></h2>
 <p>There are several examples in the <code class="docutils literal notranslate"><span class="pre">scripts</span></code> folder. We walk through the steps in
 <code class="docutils literal notranslate"><span class="pre">build-with-legate-separately-no-install.sh</span></code> here.</p>
 <p>We assume a pre-existing Legate Core build. For details on building Legate Core,
@@ -408,7 +402,8 @@ Once the C++ libraries are available, we can do an editable (development) pip in
 <p>The Python source tree and CMake build tree are now available with the environment Python
 for running cuNumeric programs. The diagram below illustrates the
 complete workflow for building both Legate core and cuNumeric.</p>
-<img src="docs/figures/developer-build.png" alt="drawing" width="600"/></section>
+<img src="docs/figures/developer-build.png" alt="drawing" width="600"/>
+</section>
 </section>
 
 
@@ -451,27 +446,17 @@ complete workflow for building both Legate core and cuNumeric.</p>
     <ul class="visible nav section-nav flex-column">
  <li class="toc-h1 nav-item toc-entry">
   <a class="reference internal nav-link" href="#">
-   Dependencies
+   Basic build
   </a>
  </li>
  <li class="toc-h1 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#building-for-users">
-   Building for Users
-  </a>
- </li>
- <li class="toc-h1 nav-item toc-entry">
-  <a class="reference internal nav-link" href="#building-for-developers">
-   Building for Developers
+  <a class="reference internal nav-link" href="#advanced-topics">
+   Advanced topics
   </a>
   <ul class="visible nav section-nav flex-column">
    <li class="toc-h2 nav-item toc-entry">
-    <a class="reference internal nav-link" href="#overview">
-     Overview
-    </a>
-   </li>
-   <li class="toc-h2 nav-item toc-entry">
-    <a class="reference internal nav-link" href="#example">
-     Example
+    <a class="reference internal nav-link" href="#building-through-pip-cmake">
+     Building through pip &amp; cmake
     </a>
    </li>
   </ul>
