@@ -350,18 +350,18 @@ def install_cunumeric(
     cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
 
     cmake_flags += extra_flags
-    ninja_flags = [f"-j{str(thread_count)}"]
+    build_flags = [f"-j{str(thread_count)}"]
     if verbose:
         if cmake_generator == "Unix Makefiles":
-            ninja_flags += ["VERBOSE=1"]
+            build_flags += ["VERBOSE=1"]
         else:
-            ninja_flags += ["--verbose"]
+            build_flags += ["--verbose"]
 
     cmd_env.update(
         {
             "CMAKE_ARGS": " ".join(cmake_flags),
             "CMAKE_GENERATOR": cmake_generator,
-            "SKBUILD_BUILD_OPTIONS": " ".join(ninja_flags),
+            "SKBUILD_BUILD_OPTIONS": " ".join(build_flags),
         }
     )
 
