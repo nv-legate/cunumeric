@@ -1,0 +1,6 @@
+﻿cunumeric.inner
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: inner

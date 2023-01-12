@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.nbytes
+========================
+
+.. currentmodule:: cunumeric
+
+.. autoproperty:: ndarray.nbytes

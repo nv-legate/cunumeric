@@ -1,0 +1,6 @@
+﻿cunumeric.logical\_xor
+======================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: logical_xor
