@@ -490,7 +490,10 @@ def driver():
         "--cmake-generator",
         dest="cmake_generator",
         required=False,
-        default=os.environ.get("CMAKE_GENERATOR", "Unix Makefiles" if shutil.which("ninja") is None else "Ninja"),
+        default=os.environ.get(
+            "CMAKE_GENERATOR",
+            "Unix Makefiles" if shutil.which("ninja") is None else "Ninja",
+        ),
         choices=["Ninja", "Unix Makefiles", None],
         help="The CMake makefiles generator",
     )
