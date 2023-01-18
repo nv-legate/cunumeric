@@ -331,7 +331,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/cunumeric.cc
 )
 
-if(NOT CMAKE_BUILD_TYPE STREQUAL "Release")
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   list(APPEND cunumeric_CXX_DEFS DEBUG_CUNUMERIC)
   list(APPEND cunumeric_CUDA_DEFS DEBUG_CUNUMERIC)
 endif()
