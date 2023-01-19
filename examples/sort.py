@@ -18,7 +18,7 @@
 import argparse
 
 import numpy as np
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def check_sorted(a, a_sorted, package, axis=-1):
@@ -73,19 +73,18 @@ def run_sort(
         print("UNKNOWN type " + str(newtype))
         assert False
 
-    start = time()
+    timer.start()
     if argsort:
         a_sorted = num.argsort(a, axis)
     else:
         a_sorted = num.sort(a, axis)
-    stop = time()
+    total = timer.stop()
 
     if perform_check and not argsort:
         check_sorted(a, a_sorted, package, axis)
     else:
         # do we need to synchronize?
         assert True
-    total = (stop - start) * 1e-3
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
     return total
@@ -155,7 +154,7 @@ if __name__ == "__main__":
         help="use argsort",
     )
 
-    args, num = parse_args(parser)
+    args, num, timer = parse_args(parser)
 
     run_benchmark(
         run_sort,

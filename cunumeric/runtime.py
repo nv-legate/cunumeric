@@ -23,7 +23,7 @@ import legate.core.types as ty
 import numpy as np
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 from legate.core.context import Context as LegateContext
-from legate.rc import ArgSpec, Argument, parse_command_args
+from legate.util.args import ArgSpec, Argument, parse_library_command_args
 from typing_extensions import TypeGuard
 
 from .config import (
@@ -149,7 +149,7 @@ class Runtime(object):
         self.has_curand = cunumeric_lib.shared_object.cunumeric_has_curand()
         self._register_dtypes()
 
-        self.args = parse_command_args("cunumeric", ARGS)
+        self.args = parse_library_command_args("cunumeric", ARGS)
         self.args.warning = self.args.warning or self.args.test_mode
 
         if self.num_gpus > 0 and self.args.preload_cudalibs:

@@ -18,7 +18,7 @@
 import argparse
 
 import numpy as np
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(shape, dt, axis):
@@ -74,13 +74,12 @@ def run_scan(OP, shape, dt, ax, check):
     print(f"Axis:            axis={ax}")
     print(f"Data type:       dtype={dt}32")
     A, B = initialize(shape=shape, dt=dt, axis=ax)
-    start = time()
+    timer.start()
 
     # op handling
     getattr(num, OP)(A, out=B, axis=ax)
 
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     print(f"Elapsed Time:  {total}ms")
     # error checking
     if check:
@@ -130,7 +129,7 @@ if __name__ == "__main__":
         help="check the result of the solve",
     )
 
-    args, num = parse_args(parser)
+    args, num, timer = parse_args(parser)
 
     run_benchmark(
         run_scan,

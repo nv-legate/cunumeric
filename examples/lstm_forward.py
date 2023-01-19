@@ -17,11 +17,11 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
-    start = time()
+    timer.start()
 
     X = np.random.randn(sentence_length, batch_size, hidden_size)
     h0 = np.random.randn(1, hidden_size)
@@ -63,8 +63,7 @@ def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
         Ct[t] = np.tanh(C[t])
         Hout[t] = IFOGf[t, :, 2 * d : 3 * d] * Ct[t]
 
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
     return total
@@ -97,7 +96,7 @@ if __name__ == "__main__":
         help="perform timing",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_lstm,

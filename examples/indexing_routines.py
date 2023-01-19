@@ -19,7 +19,7 @@ import argparse
 import gc
 import math
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def compute_diagonal(steps, N, timing, warmup):
@@ -27,11 +27,10 @@ def compute_diagonal(steps, N, timing, warmup):
     print("measuring diagonal")
     for step in range(steps + warmup):
         if step == warmup:
-            start = time()
+            timer.start()
         A2 = np.diag(A1)
         A1 = np.diag(A2)
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         space = (N * N + N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
@@ -52,10 +51,9 @@ def compute_choose(steps, N, timing, warmup):
     C1 = np.arange(N, dtype=int) % 10
     for step in range(steps + warmup):
         if step == warmup:
-            start = time()
+            timer.start()
         C1 = np.choose(C1, A, mode="wrap")
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         space = N * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
@@ -82,10 +80,9 @@ def compute_repeat(steps, N, timing, warmup):
     print("measuring repeat")
     for step in range(steps + warmup):
         if step == warmup:
-            start = time()
+            timer.start()
         A2 = np.repeat(A2, R, axis=1)
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         space = (N * N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
@@ -108,11 +105,10 @@ def compute_advanced_indexing_1d(steps, N, timing, warmup):
     indx_bool = (B % 2).astype(bool)
     for step in range(steps + warmup):
         if step == warmup:
-            start = time()
+            timer.start()
         A1[indx] = 10  # 1 copy
         A1[indx_bool] = 12  # 1 AI and 1 copy
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         space = (3 * N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
@@ -136,12 +132,11 @@ def compute_advanced_indexing_2d(steps, N, timing, warmup):
     indx2d_bool = (A2 % 2).astype(bool)
     for step in range(steps + warmup):
         if step == warmup:
-            start = time()
+            timer.start()
         A2[indx_bool, indx_bool] = 11  # one ZIP and 1 copy = N+N*N
         A2[:, indx] = 12  # one ZIP and 3 copies = N+3*N*N
         A2[indx2d_bool] = 13  # 1 copy and one AI task = 2* N*N
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         space = (6 * N * N + 2 * N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
@@ -171,11 +166,10 @@ def compute_advanced_indexing_3d(steps, N, timing, warmup):
     indx3d_bool = (A3 % 2).astype(bool)
     for step in range(steps + warmup):
         if step == warmup:
-            start = time()
+            timer.start()
         A3[indx, :, indx] = 15  # 1 ZIP and 3 copy = N+3N*N
         A3[indx3d_bool] = 16  # 1 copy and 1 AI task = 2*N*N
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         space = (5 * N * N + N) * np.dtype(int).itemsize / 1073741824
         print("Total Size:       " + str(space) + " GB")
@@ -268,7 +262,7 @@ if __name__ == "__main__":
         help="name of the index routine to test",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_indexing_routines,

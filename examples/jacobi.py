@@ -18,7 +18,7 @@
 import argparse
 import math
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def generate_random(N):
@@ -45,12 +45,12 @@ def run_jacobi(N, iters, warmup, perform_check, timing, verbose):
     d = np.diag(A)
     R = A - np.diag(d)
 
-    start = time()
+    timer.start()
     for i in range(iters + warmup):
         if i == warmup:
-            start = time()
+            timer.start()
         x = (b - np.dot(R, x)) / d
-    stop = time()
+    total = timer.stop()
 
     if perform_check:
         assert check(A, x, b)
@@ -59,7 +59,6 @@ def run_jacobi(N, iters, warmup, perform_check, timing, verbose):
             np.sum(x)
         ), f"{np.count_nonzero(~np.isnan(x))} NaNs in x"
 
-    total = (stop - start) / 1000.0
     if timing:
         print(f"Elapsed Time: {total} ms")
     return total
@@ -112,7 +111,7 @@ if __name__ == "__main__":
         help="print verbose output",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_jacobi,
