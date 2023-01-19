@@ -143,7 +143,7 @@ def add_boilerplate(
                     kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
-                    if kwargs[k].flags.writeable is False:
+                    if not kwargs[k].flags.writeable:
                         raise RuntimeError("out is not writeable")
                 elif k in keys:
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
@@ -205,11 +205,11 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
     This check needs to be manually inserted
     with consideration on the behavior of the corresponding method
     """
-    if arr is not None:
-        check_list = [arr] if not isinstance(arr, tuple) else arr
-        for each in check_list:
-            if not each.flags.writeable:
-                raise RuntimeError("array is not writeable")
+    if arr is None:
+        return
+    check_list = (arr,) if not isinstance(arr, tuple) else arr
+    if any(not arr.flags.writeable for arr in check_list):
+        raise ValueError("array is not writeable")
 
 
 class flagsobj(object):
@@ -324,14 +324,10 @@ class flagsobj(object):
         return repr(self)
 
     def check_flag(self, key: str) -> str:
-        if len(key) <= 2:
-            if key in flagsobj.short.keys():
-                key = flagsobj.short[key]
-        else:
-            key = key.lower()
-        if not hasattr(self, key):
-            raise AttributeError(f"{key} is unknown flag for ndarray.flags")
-        return key
+        attr = flagsobj.short.get(key)
+        if attr is None:
+            raise KeyError("Unknown flag")
+        return attr
 
 
 # FIXME: we can't give an accurate return type as mypy thinks
