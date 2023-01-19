@@ -270,29 +270,27 @@ class flagsobj(object):
 
     @property
     def fnc(self) -> bool:
-        return (bool)(self.f_contiguous and ~self.c_contiguous)
+        return self.f_contiguous and not self.c_contiguous
 
     @property
     def forc(self) -> bool:
-        return (bool)(self.f_contiguous or self.c_contiguous)
+        return self.f_contiguous or self.c_contiguous
 
     @property
     def behaved(self) -> bool:
-        return (bool)(self.aligned and self.writeable)
+        return self.aligned and self.writeable
 
     @property
     def carray(self) -> bool:
-        return (bool)(self.behaved and self.c_contiguous)
+        return self.behaved and self.c_contiguous
 
     @property
     def farray(self) -> bool:
-        return (bool)(
-            self.behaved and self.f_contiguous and ~self.c_contiguous
-        )
+        return self.behaved and self.f_contiguous and not self.c_contiguous
 
     @writeable.setter  # type: ignore
     def writeable(self, value: bool) -> None:
-        if value is True and self.owndata is False:
+        if value and not self.owndata:
             raise ValueError(
                 "cannot set WRITEABLE flag to True for this array"
             )
@@ -317,15 +315,14 @@ class flagsobj(object):
     def __repr__(self) -> str:
         output = ""
         for each in self.__dict__:
-            output += f"{each.strip('_').upper()} : {self.__dict__[each]} \n"
+            output += f"{each.strip('_').upper()} : {self.__dict__[each]}\n"
         return output
 
     def __str__(self) -> str:
         return repr(self)
 
     def check_flag(self, key: str) -> str:
-        attr = flagsobj.short.get(key)
-        if attr is None:
+        if (attr := self.short.get(key)) is None:
             raise KeyError("Unknown flag")
         return attr
 
@@ -3529,11 +3526,11 @@ class ndarray:
         # set by the caller. The numpy interface specifies only bool values,
         # despite its None defaults.
         if write is not None:
-            self._flags["WRITEABLE"] = write
+            self._flags["W"] = write
         if align is not None:
-            self._flags["ALIGNED"] = align
+            self._flags["A"] = align
         if uic is not None:
-            self._flags["WRITEBACKIFCOPY"] = uic
+            self._flags["X"] = uic
 
     @add_boilerplate()
     def searchsorted(

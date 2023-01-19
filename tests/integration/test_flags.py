@@ -34,19 +34,17 @@ def _print_result(test_result, print_msg, err_arr):
 
 
 class Test_flags:
-    attrs = [
-        "c_contiguous",
-        "f_contiguous",
-        "owndata",
-        "writeable",
-        "writebackifcopy",
-        "aligned",
-        "behaved",
-        "carray",
-        "farray",
-        "fnc",
-        "forc",
-    ]
+    attrs = {
+        "C": "c_contiguous",
+        "F": "f_contiguous",
+        "O": "owndata",
+        "W": "writeable",
+        "A": "aligned",
+        "X": "writebackifcopy",
+        "B": "behaved",
+        "CA": "carray",
+        "FA": "farray",
+    }
 
     @pytest.mark.parametrize("view_test", [False, True], ids=bool)
     def test_default_flags_attr(self, view_test):
@@ -63,8 +61,8 @@ class Test_flags:
         is_equal = True
         err_arr = None
         arr_np.flags.aligned = False
-        # test default values in `ndarrray.flags`
-        for attr in self.attrs:
+        # test default values in `ndarray.flags`
+        for _, attr in self.attrs.items():
             if getattr(b, attr) != getattr(c, attr):
                 is_equal = False
                 err_arr = [attr, getattr(b, attr), getattr(c, attr)]
@@ -100,12 +98,12 @@ class Test_flags:
                 is_equal = False
                 err_arr = [attr, b[attr], c[attr]]
                 break
-            if b[attr] is not b[self.attrs[idx].upper()]:
+            if b[attr] is not b[list(self.attrs)[idx].upper()]:
                 is_equal = False
                 err_arr = [
-                    (attr, self.attrs[idx].upper()),
+                    (attr, list(self.attrs)[idx].upper()),
                     b[attr],
-                    self.attrs[idx].upper(),
+                    list(self.attrs)[idx].upper(),
                 ]
                 break
 
@@ -125,24 +123,25 @@ class Test_flags:
         err_arr = None
         # we don't test `aligned`
         # because the setter for `aligned` is not implemented
-        for attr in self.attrs[3:5]:
-            attr = attr.upper()
+        for short, attr in list(self.attrs.items())[3:5]:
+            if attr == "aligned":
+                continue
             # alter flags
             error_b = False
             error_c = False
             try:
-                b.flags[attr] = not b.flags[attr]
+                b.flags[short] = not b.flags[short]
             except ValueError:
                 error_b = True
             try:
-                c.flags[attr] = not c.flags[attr]
+                c.flags[short] = not c.flags[short]
             except ValueError:
                 error_c = True
-            if attr == "WRITEBACKIFCOPY":
+            if attr == "writebackifcopy":
                 is_equal = error_b and error_c
             else:
-                is_equal = b.flags[attr] == c.flags[attr]
-            err_arr = [("flags", attr), b.flags[attr], c.flags[attr]]
+                is_equal = b.flags[short] == c.flags[short]
+            err_arr = [("flags", attr), b.flags[short], c.flags[short]]
             if not is_equal:
                 break
         _print_result(is_equal, "np.ndarray.flags", err_arr)
