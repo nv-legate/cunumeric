@@ -144,7 +144,7 @@ def add_boilerplate(
                 elif k == "out":
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                     if not kwargs[k].flags.writeable:
-                        raise RuntimeError("out is not writeable")
+                        raise ValueError("out is not writeable")
                 elif k in keys:
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
 
