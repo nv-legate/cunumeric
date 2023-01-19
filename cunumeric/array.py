@@ -206,10 +206,10 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
     with consideration on the behavior of the corresponding method
     """
     if arr is None:
-      return
+        return
     check_list = (arr,) if not isinstance(arr, tuple) else arr
     if any(not arr.flags.writeable for arr in check_list):
-      raise ValueError("array is not writeable")
+        raise ValueError("array is not writeable")
 
 
 class flagsobj(object):
