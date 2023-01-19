@@ -324,6 +324,7 @@ class ufunc:
                     f"{out.shape} doesn't match the broadcast shape "
                     f"{out_shape}"
                 )
+            check_writeable(out)
 
         if not isinstance(where, bool) or not where:
             raise NotImplementedError(
@@ -663,8 +664,6 @@ class binary_ufunc(ufunc):
         arrs, (out,), out_shape, where = self._prepare_operands(
             *args, out=out, where=where
         )
-
-        check_writeable(out)
 
         orig_args = args[: self.nin]
 
