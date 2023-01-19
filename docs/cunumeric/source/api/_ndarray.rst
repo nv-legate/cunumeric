@@ -43,6 +43,7 @@ cunumeric.ndarray
       ~ndarray.nonzero
       ~ndarray.partition
       ~ndarray.prod
+      ~ndarray.put
       ~ndarray.ravel
       ~ndarray.reshape
       ~ndarray.searchsorted

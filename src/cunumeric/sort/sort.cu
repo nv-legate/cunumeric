@@ -42,14 +42,11 @@
 namespace cunumeric {
 
 template <LegateTypeCode CODE>
-struct support_cub : std::true_type {
-};
+struct support_cub : std::true_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX64_LT> : std::false_type {
-};
+struct support_cub<LegateTypeCode::COMPLEX64_LT> : std::false_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {
-};
+struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {};
 
 template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
 void local_sort(const legate_type_of<CODE>* values_in,
@@ -1426,7 +1423,6 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   CHECK_NCCL(ncclGroupEnd());
 
   // we need the amount of data to transfer on the host --> get it
-  // FIXME auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
   Buffer<size_t> size_send_total = create_buffer<size_t>(num_sort_ranks, Memory::Z_COPY_MEM);
   Buffer<size_t> size_recv_total = create_buffer<size_t>(num_sort_ranks, Memory::Z_COPY_MEM);
   {
@@ -1561,32 +1557,36 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   // communicate all2all (in sort dimension)
   CHECK_NCCL(ncclGroupStart());
   for (size_t r = 0; r < num_sort_ranks; r++) {
-    CHECK_NCCL(ncclSend(val_send_buffers[r].ptr(0),
-                        size_send_total[r] * sizeof(VAL),
-                        ncclInt8,
-                        sort_ranks[r],
-                        *comm,
-                        stream));
-    CHECK_NCCL(ncclRecv(merge_buffers[r].values.ptr(0),
-                        merge_buffers[r].size * sizeof(VAL),
-                        ncclInt8,
-                        sort_ranks[r],
-                        *comm,
-                        stream));
+    if (size_send_total[r] > 0)
+      CHECK_NCCL(ncclSend(val_send_buffers[r].ptr(0),
+                          size_send_total[r] * sizeof(VAL),
+                          ncclInt8,
+                          sort_ranks[r],
+                          *comm,
+                          stream));
+    if (merge_buffers[r].size > 0)
+      CHECK_NCCL(ncclRecv(merge_buffers[r].values.ptr(0),
+                          merge_buffers[r].size * sizeof(VAL),
+                          ncclInt8,
+                          sort_ranks[r],
+                          *comm,
+                          stream));
   }
   CHECK_NCCL(ncclGroupEnd());
 
   if (argsort) {
     CHECK_NCCL(ncclGroupStart());
     for (size_t r = 0; r < num_sort_ranks; r++) {
-      CHECK_NCCL(ncclSend(
-        idc_send_buffers[r].ptr(0), size_send_total[r], ncclInt64, sort_ranks[r], *comm, stream));
-      CHECK_NCCL(ncclRecv(merge_buffers[r].indices.ptr(0),
-                          merge_buffers[r].size,
-                          ncclInt64,
-                          sort_ranks[r],
-                          *comm,
-                          stream));
+      if (size_send_total[r] > 0)
+        CHECK_NCCL(ncclSend(
+          idc_send_buffers[r].ptr(0), size_send_total[r], ncclInt64, sort_ranks[r], *comm, stream));
+      if (merge_buffers[r].size > 0)
+        CHECK_NCCL(ncclRecv(merge_buffers[r].indices.ptr(0),
+                            merge_buffers[r].size,
+                            ncclInt64,
+                            sort_ranks[r],
+                            *comm,
+                            stream));
     }
     CHECK_NCCL(ncclGroupEnd());
   }

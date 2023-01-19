@@ -33,6 +33,7 @@ from .config import (
     FFT_R2C,
     FFT_Z2D,
     BinaryOpCode,
+    ConvertCode,
     FFTDirection,
     ScanCode,
     UnaryOpCode,
@@ -45,7 +46,6 @@ from .utils import is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
-
     from legate.core import FieldID, Future, Region
 
     from .config import BitGeneratorType, FFTType
@@ -215,14 +215,17 @@ class EagerArray(NumPyThunk):
         self.key: Optional[tuple[Any, ...]] = key
         #: if this ever becomes set (to a DeferredArray), we forward all
         #: operations to it
-        self.deferred: Optional[DeferredArray] = None
+        self.deferred: Optional[Union[DeferredArray, NumPyThunk]] = None
         self.escaped = False
 
     @property
     def storage(self) -> Union[Future, tuple[Region, FieldID]]:
         if self.deferred is None:
             self.to_deferred_array()
-        return self.deferred.storage  # type: ignore
+
+        assert self.deferred is not None
+
+        return self.deferred.storage
 
     @property
     def shape(self) -> NdShape:
@@ -265,10 +268,9 @@ class EagerArray(NumPyThunk):
         assert self.runtime.is_deferred_array(self.deferred)
         for child in self.children:
             if child.deferred is None:
-                # mypy can't deduce that children nodes will always have
-                # their .key attribute set.
-                func = getattr(self.deferred, child.key[0])  # type: ignore
-                args = child.key[1:]  # type: ignore
+                assert child.key is not None
+                func = getattr(self.deferred, child.key[0])
+                args = child.key[1:]
                 child.deferred = func(*args)
         # After we've made all the deferred views for each child then
         # we can traverse down. Do it this way so we can get partition
@@ -298,7 +300,7 @@ class EagerArray(NumPyThunk):
                         shape=self.shape,
                     )
                 else:
-                    self.deferred = self.runtime.find_or_create_array_thunk(  # type: ignore # noqa E501
+                    self.deferred = self.runtime.find_or_create_array_thunk(
                         self.array,
                         share=self.escaped,
                         defer=True,
@@ -334,7 +336,7 @@ class EagerArray(NumPyThunk):
             if self.ndim == 1:
                 out.array = np.convolve(self.array, v.array, mode)
             else:
-                from scipy.signal import convolve  # type: ignore
+                from scipy.signal import convolve  # type: ignore [import]
 
                 out.array = convolve(self.array, v.array, mode)
 
@@ -485,15 +487,31 @@ class EagerArray(NumPyThunk):
         self.children.append(result)
         return result
 
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self,
+        rhs: Any,
+        warn: bool = True,
+        nan_op: ConvertCode = ConvertCode.NOOP,
+        temporary: bool = False,
+    ) -> None:
         self.check_eager_args(rhs)
         if self.deferred is not None:
             return self.deferred.convert(rhs, warn=warn)
         else:
             if self.array.size == 1:
-                self.array.fill(rhs.array.item())
+                if nan_op is ConvertCode.SUM and np.isnan(rhs.array.item()):
+                    self.array.fill(0)
+                elif nan_op is ConvertCode.PROD and np.isnan(rhs.array.item()):
+                    self.array.fill(1)
+                else:
+                    self.array.fill(rhs.array.astype(self.array.dtype).item())
             else:
-                self.array[:] = rhs.array
+                if nan_op is ConvertCode.SUM:
+                    self.array[:] = np.where(np.isnan(rhs.array), 0, rhs.array)
+                elif nan_op is ConvertCode.PROD:
+                    self.array[:] = np.where(np.isnan(rhs.array), 1, rhs.array)
+                else:
+                    self.array[:] = rhs.array
 
     def fill(self, value: Any) -> None:
         if self.deferred is not None:
@@ -612,6 +630,20 @@ class EagerArray(NumPyThunk):
                 ndims = rhs.array.ndim
                 axes = tuple(range(ndims - naxes, ndims))
                 self.array = diagonal_reference(rhs.array, axes)
+
+    def put(self, indices: Any, values: Any, check_bounds: bool) -> None:
+        self.check_eager_args(indices, values)
+        if self.deferred is not None:
+            self.deferred.put(indices, values, check_bounds)
+        else:
+            np.put(self.array, indices.array, values.array)
+
+    def putmask(self, mask: Any, values: Any) -> None:
+        self.check_eager_args(mask, values)
+        if self.deferred is not None:
+            self.deferred.putmask(mask, values)
+        else:
+            np.putmask(self.array, mask.array, values.array)
 
     def eye(self, k: int) -> None:
         if self.deferred is not None:
@@ -1447,10 +1479,9 @@ class EagerArray(NumPyThunk):
             return
         if op in _UNARY_RED_OPS:
             fn = _UNARY_RED_OPS[op]
-            if initial is None:
-                # NumPy starts using this predefined constant, instead of None,
-                # to mean no value was given by the caller
-                initial = np._NoValue  # type: ignore
+            # Need to be more careful here, Numpy does not use None to mean
+            # "was not passed in" in this instance
+            kws = {"initial": initial} if initial is not None else {}
             fn(
                 rhs.array,
                 out=self.array,
@@ -1459,6 +1490,7 @@ class EagerArray(NumPyThunk):
                 where=where
                 if not isinstance(where, EagerArray)
                 else where.array,
+                **kws,
             )
         elif op == UnaryRedCode.ARGMAX:
             np.argmax(
@@ -1570,6 +1602,19 @@ class EagerArray(NumPyThunk):
                 raise LinAlgError(e) from e
             if no_tril:
                 result = np.triu(result.T.conj(), k=1) + result
+            self.array[:] = result
+
+    def solve(self, a: Any, b: Any) -> None:
+        self.check_eager_args(a, b)
+        if self.deferred is not None:
+            self.deferred.solve(a, b)
+        else:
+            try:
+                result = np.linalg.solve(a.array, b.array)
+            except np.linalg.LinAlgError as e:
+                from .linalg import LinAlgError
+
+                raise LinAlgError(e) from e
             self.array[:] = result
 
     def scan(

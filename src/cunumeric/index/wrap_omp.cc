@@ -24,32 +24,42 @@ using namespace legate;
 
 template <int DIM>
 struct WrapImplBody<VariantKind::OMP, DIM> {
+  template <typename IND>
   void operator()(const AccessorWO<Point<DIM>, 1>& out,
                   const Pitches<0>& pitches_out,
-                  const Rect<1>& out_rect,
-                  const Pitches<DIM - 1>& pitches_in,
-                  const Rect<DIM>& in_rect,
-                  const bool dense) const
+                  const Rect<1>& rect_out,
+                  const Pitches<DIM - 1>& pitches_base,
+                  const Rect<DIM>& rect_base,
+                  const bool dense,
+                  const bool check_bounds,
+                  const IND& indices) const
   {
-    const int64_t start  = out_rect.lo[0];
-    const int64_t end    = out_rect.hi[0];
-    const auto in_volume = in_rect.volume();
+    const int64_t start                = rect_out.lo[0];
+    const int64_t end                  = rect_out.hi[0];
+    const auto volume_base             = rect_base.volume();
+    std::atomic<bool> is_out_of_bounds = false;
     if (dense) {
-      auto outptr = out.ptr(out_rect);
+      auto outptr = out.ptr(rect_out);
 #pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
-        const int64_t input_idx = i % in_volume;
-        auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
+        if (check_bounds)
+          if (check_idx_omp(i, volume_base, indices)) is_out_of_bounds = true;
+        const int64_t input_idx = compute_idx(i, volume_base, indices);
+        auto point              = pitches_base.unflatten(input_idx, rect_base.lo);
         outptr[i - start]       = point;
       }
     } else {
 #pragma omp parallel for schedule(static)
       for (int64_t i = start; i <= end; i++) {
-        const int64_t input_idx = i % in_volume;
-        auto point              = pitches_in.unflatten(input_idx, in_rect.lo);
+        if (check_bounds)
+          if (check_idx_omp(i, volume_base, indices)) is_out_of_bounds = true;
+        const int64_t input_idx = compute_idx(i, volume_base, indices);
+        auto point              = pitches_base.unflatten(input_idx, rect_base.lo);
         out[i]                  = point;
       }
     }  // else
+
+    if (is_out_of_bounds) throw legate::TaskException("index is out of bounds in index array");
   }
 };
 

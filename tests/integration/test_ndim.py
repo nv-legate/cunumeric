@@ -15,9 +15,9 @@
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
 
 
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
@@ -31,6 +31,21 @@ def test_ndarray(ndim):
 
 @pytest.mark.parametrize("input", (42, [0, 1, 2], [[0, 1, 2], [3, 4, 5]]))
 def test_python_values(input):
+    assert np.ndim(input) == num.ndim(input)
+
+
+def test_ndarray_none():
+    inp = None
+    assert np.ndim(inp) == num.ndim(inp)
+
+
+@pytest.mark.parametrize("input", ([], (), (()), ((), ()), [[]], [[], []]))
+def test_ndarray_empty(input):
+    assert np.ndim(input) == num.ndim(input)
+
+
+@pytest.mark.parametrize("input", [([1, 2], [3.3, 4.4])])
+def test_python_values_diff_dim(input):
     assert np.ndim(input) == num.ndim(input)
 
 

@@ -16,25 +16,32 @@
 import inspect
 from typing import List, Tuple, Union
 
-import cunumeric.utils as m  # module under test
 import numpy as np
 import pytest
 
-EXPECTED_SUPPORTED_DTYPES = [
-    np.float16,
-    np.float32,
-    np.float64,
-    float,
-    np.int16,
-    np.int32,
-    np.int64,
-    int,
-    np.uint16,
-    np.uint32,
-    np.uint64,
-    np.bool_,
-    bool,
-]
+import cunumeric.utils as m  # module under test
+
+EXPECTED_SUPPORTED_DTYPES = set(
+    [
+        bool,
+        np.bool_,
+        np.int8,
+        np.int16,
+        np.int32,
+        int,
+        np.int64,
+        np.uint8,
+        np.uint16,
+        np.uint32,
+        np.uint64,
+        np.float16,
+        np.float32,
+        float,
+        np.float64,
+        np.complex64,
+        np.complex128,
+    ]
+)
 
 
 class Test_is_advanced_indexing:
@@ -109,7 +116,7 @@ class Test_find_last_user_frames:
 
 
 def test__SUPPORTED_DTYPES():
-    assert m._SUPPORTED_DTYPES == EXPECTED_SUPPORTED_DTYPES
+    assert set(m.SUPPORTED_DTYPES.keys()) == EXPECTED_SUPPORTED_DTYPES
 
 
 class Test_is_supported_dtype:
@@ -125,9 +132,7 @@ class Test_is_supported_dtype:
         assert m.is_supported_dtype(np.dtype(value))
 
     # This is just a representative sample, not exhasutive
-    @pytest.mark.parametrize(
-        "value", [np.float128, np.complex64, np.datetime64]
-    )
+    @pytest.mark.parametrize("value", [np.float128, np.datetime64])
     def test_unsupported(self, value) -> None:
         assert not m.is_supported_dtype(np.dtype(value))
 

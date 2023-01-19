@@ -17,9 +17,8 @@
 #ifndef __CUNUMERIC_C_H__
 #define __CUNUMERIC_C_H__
 
-#include "legate_preamble.h"
-
 #ifndef LEGATE_USE_PYTHON_CFFI
+#include "legate_preamble.h"
 #include "core/legate_c.h"
 #endif
 
@@ -53,11 +52,13 @@ enum CuNumericOpCode {
   CUNUMERIC_NONZERO,
   CUNUMERIC_PACKBITS,
   CUNUMERIC_POTRF,
+  CUNUMERIC_PUTMASK,
   CUNUMERIC_RAND,
   CUNUMERIC_READ,
   CUNUMERIC_REPEAT,
   CUNUMERIC_SCALAR_UNARY_RED,
   CUNUMERIC_SEARCHSORTED,
+  CUNUMERIC_SOLVE,
   CUNUMERIC_SORT,
   CUNUMERIC_SYRK,
   CUNUMERIC_TILE,
@@ -205,7 +206,6 @@ enum CuNumericTunable {
   CUNUMERIC_TUNABLE_NUM_GPUS         = 1,
   CUNUMERIC_TUNABLE_NUM_PROCS        = 2,
   CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME = 3,
-  CUNUMERIC_TUNABLE_HAS_NUMAMEM      = 4,
 };
 
 enum CuNumericBounds {
@@ -219,6 +219,14 @@ enum CuNumericBounds {
 enum CuNumericScanCode {
   CUNUMERIC_SCAN_PROD = 1,
   CUNUMERIC_SCAN_SUM,
+};
+
+// Match these to ConvertCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericConvertCode {
+  CUNUMERIC_CONVERT_NAN_NOOP = 1,
+  CUNUMERIC_CONVERT_NAN_PROD,
+  CUNUMERIC_CONVERT_NAN_SUM,
 };
 
 // Match these to BitGeneratorOperation in config.py

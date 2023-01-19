@@ -36,14 +36,11 @@ enum class UnaryRedCode : int {
 };
 
 template <UnaryRedCode OP_CODE>
-struct is_arg_reduce : std::false_type {
-};
+struct is_arg_reduce : std::false_type {};
 template <>
-struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {
-};
+struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {};
 template <>
-struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {
-};
+struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {};
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&... args)
@@ -151,7 +148,7 @@ struct UnaryRedOp<UnaryRedCode::COUNT_NONZERO, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
-  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -174,7 +171,7 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
-  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -243,7 +240,7 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
-  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = Argval<RHS>;
@@ -276,7 +273,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
-  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = Argval<RHS>;
@@ -305,6 +302,18 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
     for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
     return VAL(idx, rhs);
   }
+};
+
+template <legate::LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::CONTAINS, TYPE_CODE> {
+  // Set to false so that this only gets enabled when expliclty declared valid.
+  static constexpr bool valid = false;
+  // This class only provides the typedefs necessary to match the other operators.
+  // It does not provide fold/convert functions.
+  using RHS     = legate::legate_type_of<TYPE_CODE>;
+  using VAL     = bool;
+  using _RED_OP = UnaryRedOp<UnaryRedCode::SUM, legate::LegateTypeCode::BOOL_LT>;
+  using OP      = _RED_OP::OP;
 };
 
 }  // namespace cunumeric

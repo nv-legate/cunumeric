@@ -37,12 +37,13 @@ class TestSquare:
         a = num.arange(100).reshape(10, 10)
         assert np.array_equal(self.anp, a)
 
+    @pytest.mark.parametrize("order", ("C", "F", "A", None), ids=str)
     @pytest.mark.parametrize("shape", SQUARE_CASES, ids=str)
-    def test_shape(self, shape):
+    def test_shape(self, shape, order):
         a = num.arange(100).reshape(10, 10)
         assert np.array_equal(
-            num.reshape(a, shape),
-            np.reshape(self.anp, shape),
+            num.reshape(a, shape, order=order),
+            np.reshape(self.anp, shape, order=order),
         )
 
     def test_1d(self):
@@ -102,7 +103,7 @@ class TestSquare:
         assert np.array_equal(a.ravel(), anp.ravel())
 
 
-RECT_CASES = [
+RECT_CASES = (
     (10, 2, 10),
     (20, 10),
     (20, -5),
@@ -110,15 +111,31 @@ RECT_CASES = [
     (200, 1),
     (1, 200),
     (10, 20),
-]
+)
 
 
 class TestRect:
 
     anp = np.random.rand(5, 4, 10)
 
+    @pytest.mark.parametrize("order", ("C", "F", "A", None), ids=str)
     @pytest.mark.parametrize("shape", RECT_CASES, ids=str)
-    def test_shape(self, shape):
+    def test_shape(self, shape, order):
+        a = num.array(self.anp)
+        assert np.array_equal(
+            num.reshape(a, shape, order=order),
+            np.reshape(self.anp, shape, order=order),
+        )
+
+    @pytest.mark.parametrize(
+        "shape",
+        (200, -1, -2, pytest.param(None, marks=pytest.mark.xfail)),
+        ids=str,
+    )
+    def test_0d(self, shape):
+        # for shape=None,
+        # In Numpy, pass, returns the flattened 1-D array
+        # In cuNumeric, raises TypeError: 'NoneType' object is not iterable
         a = num.array(self.anp)
         assert np.array_equal(
             num.reshape(a, shape),
@@ -132,12 +149,94 @@ class TestRect:
             np.reshape(self.anp, (200,)),
         )
 
-    def test_ravel(self):
+    @pytest.mark.parametrize(
+        "order",
+        ("C", "F", "A", pytest.param("K", marks=pytest.mark.xfail), None),
+        ids=str,
+    )
+    def test_ravel(self, order):
+        # In Numpy, pass with 'K'
+        # In cuNumeric, when order is 'K', raise ValueError:
+        # order 'K' is not permitted for reshaping
         a = num.array(self.anp)
         assert np.array_equal(
-            num.ravel(a),
-            np.ravel(self.anp),
+            num.ravel(a, order=order),
+            np.ravel(self.anp, order=order),
         )
+
+    @pytest.mark.xfail
+    def test_ravel_a_none(self):
+        # In Numpy, pass and returns [None]
+        # In cuNumeric, raises AttributeError:
+        # 'NoneType' object has no attribute 'ravel'
+        assert np.array_equal(
+            num.ravel(None),
+            np.ravel(None),
+        )
+
+
+@pytest.mark.parametrize("shape", (0, (0,), (1, 0), (0, 1, 1)), ids=str)
+def test_reshape_empty_array(shape):
+    a = num.arange(0).reshape(0, 1)
+    anp = np.arange(0).reshape(0, 1)
+    assert np.array_equal(
+        num.reshape(a, shape),
+        np.reshape(anp, shape),
+    )
+
+
+class TestReshapeErrors:
+    def setup_method(self):
+        self.a = num.arange(24)
+        self.shape = (4, 3, 2)
+
+    @pytest.mark.xfail
+    def test_a_none(self):
+        # In Numpy, it raises ValueError: cannot reshape array
+        # In cuNumeric, it raises AttributeError:
+        # 'NoneType' object has no attribute
+        with pytest.raises(ValueError):
+            num.reshape(None, self.shape)
+
+    def test_empty_array_shape_invalid_size(self):
+        a = num.arange(0).reshape(0, 1, 1)
+        shape = (1, 1)
+        with pytest.raises(ValueError):
+            num.reshape(a, shape)
+
+    @pytest.mark.parametrize(
+        "shape",
+        ((-1, 0, 2), (4, 3, 4), (4, 3, 0), (4, 3), (4,), (0,), 4),
+        ids=str,
+    )
+    def test_shape_invalid_size(self, shape):
+        msg = "cannot reshape array"
+        with pytest.raises(ValueError, match=msg):
+            num.reshape(self.a, shape)
+
+    def test_shape_unknown_dimensions(self):
+        shape = (-5, -1, 2)
+        msg = "can only specify one unknown dimension"
+        with pytest.raises(ValueError, match=msg):
+            num.reshape(self.a, shape)
+
+    @pytest.mark.parametrize("shape", ((4, 3, 2.0), 24.0), ids=str)
+    def test_shape_float(self, shape):
+        with pytest.raises(TypeError):
+            num.reshape(self.a, shape)
+
+    def test_invalid_order(self):
+        with pytest.raises(ValueError):
+            num.reshape(self.a, self.shape, order="Z")
+
+
+class TestRavelErrors:
+    def setup_method(self):
+        self.a = num.arange(24).reshape(4, 3, 2)
+
+    def test_invalid_order(self):
+        with pytest.raises(ValueError):
+            num.ravel(self.a, order="Z")
 
 
 if __name__ == "__main__":

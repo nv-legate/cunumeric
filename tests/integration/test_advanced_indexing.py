@@ -17,11 +17,11 @@ import random
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 from pytest_lazyfixture import lazy_fixture
 from utils.generators import mk_seq_array
 
 import cunumeric as num
-from legate.core import LEGATE_MAX_DIM
 
 
 @pytest.fixture
@@ -186,6 +186,12 @@ def test_empty_bool():
     idx_np = np.array([False, False], dtype=bool)
     idx_num = num.array([False, False], dtype=bool)
     assert np.array_equal(arr_np[idx_np], arr_num[idx_num])
+
+    assert np.array_equal(arr_np[idx_np, 0:0], arr_num[idx_num, 0:0])
+    assert np.array_equal(arr_np[idx_np, 2:1], arr_num[idx_num, 2:1])
+    arr_np[idx_np, 0:0] = 5
+    arr_num[idx_num, 0:0] = 5
+    assert np.array_equal(arr_np, arr_num)
 
 
 def test_future_stores():
@@ -749,6 +755,20 @@ def test():
     res = x[[1, 1], :, [False, True, False, True]]
     res_num = x_num[[1, 1], :, [False, True, False, True]]
     assert np.array_equal(res, res_num)
+
+    # set item with mixed indices
+    x[1, :, [False, True, False, True]] = 129
+    x_num[1, :, [False, True, False, True]] = 129
+    assert np.array_equal(x, x_num)
+
+    # set item with mixed indices
+    x[:, [False, True, False], 1] = 111
+    x_num[:, [False, True, False], 1] = 111
+    assert np.array_equal(x, x_num)
+
+    x[..., [False, True, False, True, False]] = 200
+    x_num[..., [False, True, False, True, False]] = 200
+    assert np.array_equal(x, x_num)
 
     # b: combining basic and advanced indexing schemes
     ind0 = np.array([1, 1])

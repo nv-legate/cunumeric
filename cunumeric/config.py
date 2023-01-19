@@ -15,11 +15,11 @@
 from __future__ import annotations
 
 import os
+from abc import abstractmethod
 from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, List, Union, cast
 
 import numpy as np
-
 from legate.core import Library, ResourceConfig, get_legate_runtime
 
 if TYPE_CHECKING:
@@ -139,6 +139,9 @@ class _CunumericSharedLib:
     CUNUMERIC_CHOOSE: int
     CUNUMERIC_CONTRACT: int
     CUNUMERIC_CONVERT: int
+    CUNUMERIC_CONVERT_NAN_NOOP: int
+    CUNUMERIC_CONVERT_NAN_PROD: int
+    CUNUMERIC_CONVERT_NAN_SUM: int
     CUNUMERIC_CONVOLVE: int
     CUNUMERIC_DIAG: int
     CUNUMERIC_DOT: int
@@ -164,6 +167,7 @@ class _CunumericSharedLib:
     CUNUMERIC_NONZERO: int
     CUNUMERIC_PACKBITS: int
     CUNUMERIC_POTRF: int
+    CUNUMERIC_PUTMASK: int
     CUNUMERIC_RAND: int
     CUNUMERIC_READ: int
     CUNUMERIC_RED_ALL: int
@@ -183,13 +187,13 @@ class _CunumericSharedLib:
     CUNUMERIC_SCAN_PROD: int
     CUNUMERIC_SCAN_SUM: int
     CUNUMERIC_SEARCHSORTED: int
+    CUNUMERIC_SOLVE: int
     CUNUMERIC_SORT: int
     CUNUMERIC_SYRK: int
     CUNUMERIC_TILE: int
     CUNUMERIC_TRANSPOSE_COPY_2D: int
     CUNUMERIC_TRILU: int
     CUNUMERIC_TRSM: int
-    CUNUMERIC_TUNABLE_HAS_NUMAMEM: int
     CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME: int
     CUNUMERIC_TUNABLE_NUM_GPUS: int
     CUNUMERIC_TUNABLE_NUM_PROCS: int
@@ -266,6 +270,7 @@ class _CunumericSharedLib:
     CUNUMERIC_WRITE: int
     CUNUMERIC_ZIP: int
 
+    @abstractmethod
     def cunumeric_has_curand(self) -> int:
         ...
 
@@ -282,7 +287,7 @@ class CuNumericLib(Library):
         return self.name
 
     def get_shared_library(self) -> str:
-        from cunumeric.install_info import libpath  # type: ignore
+        from cunumeric.install_info import libpath
 
         return os.path.join(
             libpath, "libcunumeric" + self.get_library_extension()
@@ -353,6 +358,7 @@ class CuNumericOpCode(IntEnum):
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
     PACKBITS = _cunumeric.CUNUMERIC_PACKBITS
     POTRF = _cunumeric.CUNUMERIC_POTRF
+    PUTMASK = _cunumeric.CUNUMERIC_PUTMASK
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT
@@ -360,6 +366,7 @@ class CuNumericOpCode(IntEnum):
     SCAN_GLOBAL = _cunumeric.CUNUMERIC_SCAN_GLOBAL
     SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
     SEARCHSORTED = _cunumeric.CUNUMERIC_SEARCHSORTED
+    SOLVE = _cunumeric.CUNUMERIC_SOLVE
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK
     TILE = _cunumeric.CUNUMERIC_TILE
@@ -516,7 +523,6 @@ class CuNumericTunable(IntEnum):
     NUM_GPUS = _cunumeric.CUNUMERIC_TUNABLE_NUM_GPUS
     NUM_PROCS = _cunumeric.CUNUMERIC_TUNABLE_NUM_PROCS
     MAX_EAGER_VOLUME = _cunumeric.CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME
-    HAS_NUMAMEM = _cunumeric.CUNUMERIC_TUNABLE_HAS_NUMAMEM
 
 
 # Match these to CuNumericScanCode in cunumeric_c.h
@@ -524,6 +530,14 @@ class CuNumericTunable(IntEnum):
 class ScanCode(IntEnum):
     PROD = _cunumeric.CUNUMERIC_SCAN_PROD
     SUM = _cunumeric.CUNUMERIC_SCAN_SUM
+
+
+# Match these to CuNumericConvertCode in cunumeric_c.h
+@unique
+class ConvertCode(IntEnum):
+    NOOP = _cunumeric.CUNUMERIC_CONVERT_NAN_NOOP
+    PROD = _cunumeric.CUNUMERIC_CONVERT_NAN_PROD
+    SUM = _cunumeric.CUNUMERIC_CONVERT_NAN_SUM
 
 
 # Match these to BitGeneratorOperation in cunumeric_c.h

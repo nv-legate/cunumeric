@@ -13,10 +13,12 @@
 # limitations under the License.
 #
 import pytest
-from cunumeric.utils import tensordot_modes
-from utils.contractions import check_default
-
 from legate.core import LEGATE_MAX_DIM
+from utils.contractions import check_default
+from utils.generators import mk_0to1_array
+
+import cunumeric as num
+from cunumeric.utils import tensordot_modes
 
 
 def gen_axes(a_ndim, b_ndim):
@@ -37,6 +39,48 @@ def test_tensordot(a_ndim, b_ndim):
             return lib.tensordot(*args, **kwargs, axes=axes)
 
         check_default(name, modes, operation)
+
+
+class TestTensorDotErrors:
+    def setup_method(self):
+        self.A = mk_0to1_array(num, (2, 3, 4))
+        self.B = mk_0to1_array(num, (3, 2, 4))
+
+    @pytest.mark.parametrize(
+        "axis",
+        (
+            1,
+            2,
+            [],
+            [0],
+            [0, 0],
+            ([0, 1], [0, 1]),
+            ([0, 1], [1, 0], [0, 1]),
+            ([0, 0], [0, 0]),
+        ),
+        ids=lambda axis: f"(axis={axis})",
+    )
+    def test_axis_invalid_value(self, axis):
+        with pytest.raises(ValueError):
+            num.tensordot(self.A, self.B, axis)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize(
+        "axis", (4, ([0, 3], [1, 3])), ids=lambda axis: f"(axis={axis})"
+    )
+    def test_axis_invalid_index(self, axis):
+        # In Numpy, for both cases, it raises IndexError
+        # In cuNumeric, for both cases, it raises ValueError
+        with pytest.raises(IndexError):
+            num.tensordot(self.A, self.B, axis)
+
+    @pytest.mark.parametrize(
+        "shape", ((4,), (4, 3)), ids=lambda shape: f"(shape={shape})"
+    )
+    def test_out_invalid_shape(self, shape):
+        out = num.zeros(shape)
+        with pytest.raises(ValueError):
+            num.tensordot(self.A, self.B, out=out)
 
 
 if __name__ == "__main__":

@@ -16,23 +16,59 @@
 
 import numpy as np
 import pytest
-
-import cunumeric as num
 from legate.core import LEGATE_MAX_DIM
 
+import cunumeric as num
 
-@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
-@pytest.mark.parametrize("dtype", ("B", "i", "?"))
-@pytest.mark.parametrize("bitorder", ("little", "big"))
-def test_packbits(ndim, dtype, bitorder):
-    in_np = np.array([], dtype=dtype)
-    in_num = num.array([], dtype=dtype)
-    out_np = np.packbits(in_np, bitorder=bitorder)
-    out_num = num.packbits(in_num, bitorder=bitorder)
-    assert np.array_equal(out_np, out_num)
 
-    for extent in (3, 5, 8, 16):
-        shape = (extent,) * ndim
+class TestPackbits(object):
+    def test_none_arr(self):
+        # Numpy raises "TypeError:
+        # Expected an input array of integer or boolean data type"
+        # For cuNumeric raises:
+        #  > if a.dtype.kind not in ("u", "i", "b"):
+        #  E AttributeError: 'NoneType' object has no attribute 'dtype'
+        with pytest.raises(AttributeError):
+            num.packbits(None)
+
+    def test_dtype(self):
+        shape = (3, 3)
+        in_num = num.random.random(size=shape)
+        # TypeError: Expected an input array of integer or boolean data type
+        with pytest.raises(TypeError):
+            num.packbits(in_num)
+
+    def test_axis_outbound(self):
+        shape = (3, 3)
+        in_num = num.random.randint(low=0, high=2, size=shape)
+        with pytest.raises(ValueError):
+            num.packbits(in_num, axis=2)
+
+    @pytest.mark.parametrize("bitorder", (1, True, "True", "BIG", "LITTLE"))
+    def test_bitorder_negative(self, bitorder):
+        shape = (3, 3)
+        in_num = num.random.randint(low=0, high=2, size=shape, dtype="i")
+        # when bitorder is 1 or True, Numpy raises
+        # "TypeError: pack() argument 3 must be str".
+        # while cuNumeric raises valueError.
+        with pytest.raises(ValueError):
+            num.packbits(in_num, bitorder=bitorder)
+
+    @pytest.mark.parametrize("arr", ([], [[]]))
+    @pytest.mark.parametrize("dtype", ("B", "i", "?"))
+    @pytest.mark.parametrize("bitorder", ("little", "big"))
+    def test_arr(self, arr, dtype, bitorder):
+        in_np = np.array(arr, dtype=dtype)
+        in_num = num.array(arr, dtype=dtype)
+        out_np = np.packbits(in_np, bitorder=bitorder)
+        out_num = num.packbits(in_num, bitorder=bitorder)
+        assert np.array_equal(out_np, out_num)
+
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("dtype", ("B", "i", "?"))
+    @pytest.mark.parametrize("bitorder", ("little", "big"))
+    def test_common(self, ndim, dtype, bitorder):
+        shape = (3,) * ndim
         in_np = np.random.randint(low=0, high=2, size=shape, dtype=dtype)
         in_num = num.array(in_np)
 
@@ -40,23 +76,68 @@ def test_packbits(ndim, dtype, bitorder):
         out_num = num.packbits(in_num, bitorder=bitorder)
         assert np.array_equal(out_np, out_num)
 
-        for axis in range(ndim):
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("dtype", ("B", "i", "?"))
+    @pytest.mark.parametrize("bitorder", ("little", "big"))
+    def test_axis(self, ndim, dtype, bitorder):
+        shape = (5,) * ndim
+        in_np = np.random.randint(low=0, high=2, size=shape, dtype=dtype)
+        in_num = num.array(in_np)
+
+        for axis in range(-ndim + 1, ndim):
             out_np = np.packbits(in_np, axis=axis, bitorder=bitorder)
             out_num = num.packbits(in_num, axis=axis, bitorder=bitorder)
             assert np.array_equal(out_np, out_num)
 
 
-@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
-@pytest.mark.parametrize("bitorder", ("little", "big"))
-def test_unpackbits(ndim, bitorder):
-    in_np = np.array([], dtype="B")
-    in_num = num.array([], dtype="B")
-    out_np = np.unpackbits(in_np, bitorder=bitorder)
-    out_num = num.unpackbits(in_num, bitorder=bitorder)
-    assert np.array_equal(out_np, out_num)
+class TestUnpackbits(object):
+    def test_none_arr(self):
+        # Numpy raises "TypeError:
+        # TypeError: Expected an input array of unsigned byte data type
+        # For cuNumeric raises:
+        # > if a.dtype != "B":
+        # E AttributeError: 'NoneType' object has no attribute 'dtype'
+        with pytest.raises(AttributeError):
+            num.unpackbits(None)
 
-    for extent in (3, 5, 8, 16):
-        shape = (extent,) * ndim
+    def test_dtype(self):
+        shape = (3, 3)
+        in_num = num.random.random(size=shape)
+        # TypeError: Expected an input array of unsigned byte data type
+        with pytest.raises(TypeError):
+            num.unpackbits(in_num)
+
+    def test_axis_outbound(self):
+        shape = (3, 3)
+        in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
+        in_num = num.array(in_np)
+        with pytest.raises(ValueError):
+            num.unpackbits(in_num, axis=2)
+
+    @pytest.mark.parametrize("bitorder", (1, True, "True", "BIG", "LITTLE"))
+    def test_bitorder_negative(self, bitorder):
+        shape = (3, 3)
+        in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
+        in_num = num.array(in_np)
+        # when bitorder is 1 or True, Numpy raises
+        # "TypeError: unpack() argument 4 must be str".
+        # while cuNumeric raises valueError.
+        with pytest.raises(ValueError):
+            num.unpackbits(in_num, bitorder=bitorder)
+
+    @pytest.mark.parametrize("arr", ([], [[]]))
+    @pytest.mark.parametrize("bitorder", ("little", "big"))
+    def test_arr(self, arr, bitorder):
+        in_np = np.array(arr, dtype="B")
+        in_num = num.array(arr, dtype="B")
+        out_np = np.unpackbits(in_np, bitorder=bitorder)
+        out_num = num.unpackbits(in_num, bitorder=bitorder)
+        assert np.array_equal(out_np, out_num)
+
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("bitorder", ("little", "big"))
+    def test_common(self, ndim, bitorder):
+        shape = (5,) * ndim
         in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
         in_num = num.array(in_np)
 
@@ -64,22 +145,59 @@ def test_unpackbits(ndim, bitorder):
         out_num = num.unpackbits(in_num, bitorder=bitorder)
         assert np.array_equal(out_np, out_num)
 
-        out_np = np.unpackbits(in_np, count=extent // 2, bitorder=bitorder)
-        out_num = num.unpackbits(in_num, count=extent // 2, bitorder=bitorder)
+    @pytest.mark.parametrize("count", (-9, 4, -1, 0, 4, 8, 9))
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("bitorder", ("little", "big"))
+    def test_count(self, ndim, count, bitorder):
+        shape = (5,) * ndim
+        in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
+        in_num = num.array(in_np)
+
+        out_np = np.unpackbits(in_np, count=count, bitorder=bitorder)
+        out_num = num.unpackbits(in_num, count=count, bitorder=bitorder)
         assert np.array_equal(out_np, out_num)
 
-        for axis in range(ndim):
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("bitorder", ("little", "big"))
+    def test_axis(self, ndim, bitorder):
+        shape = (5,) * ndim
+        in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
+        in_num = num.array(in_np)
+
+        for axis in range(-ndim + 1, ndim):
             out_np = np.unpackbits(in_np, axis=axis, bitorder=bitorder)
             out_num = num.unpackbits(in_num, axis=axis, bitorder=bitorder)
             assert np.array_equal(out_np, out_num)
 
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("bitorder", ("little", "big"))
+    @pytest.mark.parametrize("count", (-2, 0, 2, 5))
+    def test_axis_count(self, ndim, bitorder, count):
+        shape = (5,) * ndim
+        in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
+        in_num = num.array(in_np)
+
+        for axis in range(-ndim + 1, ndim):
             out_np = np.unpackbits(
-                in_np, count=extent // 2, axis=axis, bitorder=bitorder
+                in_np, count=count, axis=axis, bitorder=bitorder
             )
             out_num = num.unpackbits(
-                in_num, count=extent // 2, axis=axis, bitorder=bitorder
+                in_num, count=count, axis=axis, bitorder=bitorder
             )
             assert np.array_equal(out_np, out_num)
+
+
+@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+@pytest.mark.parametrize("bitorder", ("little", "big"))
+@pytest.mark.parametrize("dtype", ("B", "i", "?"))
+def test_pack_unpack(ndim, bitorder, dtype):
+    shape = (8,) * ndim
+    in_np = np.random.randint(low=0, high=2, size=shape, dtype=dtype)
+    in_num = num.array(in_np)
+    for axis in range(ndim):
+        out_b = num.packbits(in_num, axis=axis)
+        out_p = num.unpackbits(out_b, count=in_num.shape[0], axis=axis)
+        assert np.array_equal(in_num, out_p)
 
 
 if __name__ == "__main__":

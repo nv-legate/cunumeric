@@ -40,11 +40,8 @@ constexpr decltype(auto) op_dispatch(ScanCode op_code, Functor f, Fnargs&&... ar
   return f.template operator()<ScanCode::SUM>(std::forward<Fnargs>(args)...);
 }
 
-// RRRR not sure I fully understand these?
-
 template <ScanCode OP_CODE, legate::LegateTypeCode CODE>
-struct ScanOp {
-};
+struct ScanOp {};
 
 template <legate::LegateTypeCode CODE>
 struct ScanOp<ScanCode::SUM, CODE> : thrust::plus<legate::legate_type_of<CODE>> {

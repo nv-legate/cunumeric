@@ -17,10 +17,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Union
 
 import numpy as np
-from cunumeric.array import ndarray
-from cunumeric.runtime import runtime
 
+from cunumeric.array import ndarray
 from cunumeric.random import generator
+from cunumeric.runtime import runtime
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -37,6 +37,10 @@ def seed(init: Union[int, None] = None) -> None:
 
     This function is effective only when cuRAND is NOT used in the build
     and is a no-op otherwise.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
     """
     if init is None:
         init = 0

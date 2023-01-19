@@ -17,10 +17,11 @@ from __future__ import annotations
 from abc import ABC, abstractmethod, abstractproperty
 from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
+from .config import ConvertCode
+
 if TYPE_CHECKING:
     import numpy as np
     import numpy.typing as npt
-
     from legate.core import FieldID, Future, Region
 
     from .config import (
@@ -151,7 +152,13 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
-    def convert(self, rhs: Any, warn: bool = True) -> None:
+    def convert(
+        self,
+        rhs: Any,
+        warn: bool = True,
+        nan_op: ConvertCode = ConvertCode.NOOP,
+        temporary: bool = False,
+    ) -> None:
         ...
 
     @abstractmethod
@@ -188,6 +195,14 @@ class NumPyThunk(ABC):
     def _diag_helper(
         self, rhs: Any, offset: int, naxes: int, extract: bool, trace: bool
     ) -> None:
+        ...
+
+    @abstractmethod
+    def put(self, indices: Any, values: Any, check_bounds: bool) -> None:
+        ...
+
+    @abstractmethod
+    def putmask(self, mask: Any, values: Any) -> None:
         ...
 
     @abstractmethod
@@ -681,6 +696,10 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def cholesky(self, src: Any, no_tril: bool) -> None:
+        ...
+
+    @abstractmethod
+    def solve(self, a: Any, b: Any) -> None:
         ...
 
     @abstractmethod

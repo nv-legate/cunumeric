@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import math
+import operator
 import re
 from collections import Counter
 from itertools import chain
@@ -32,11 +33,14 @@ from typing import (
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
-from cunumeric.coverage import is_implemented
-from numpy.core.multiarray import normalize_axis_index  # type: ignore
+from numpy.core.multiarray import (  # type: ignore [attr-defined]
+    normalize_axis_index,
+)
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
+
+from cunumeric.coverage import is_implemented
 
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
@@ -189,6 +193,7 @@ def eye(
         dtype = np.dtype(dtype)
     if M is None:
         M = N
+    k = operator.index(k)
     result = ndarray((N, M), dtype)
     result._thunk.eye(k)
     return result
@@ -1015,7 +1020,7 @@ def ndim(a: ndarray) -> int:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.ndim
+    return 0 if a is None else a.ndim
 
 
 @add_boilerplate("a")
@@ -2315,6 +2320,8 @@ def array_split(
         )
 
     if isinstance(indices, int):
+        if indices <= 0:
+            raise ValueError("number sections must be larger than 0.")
         res = array.shape[axis] % indices
         if equal and res != 0:
             raise ValueError("array split does not result in an equal divison")
@@ -2554,17 +2561,44 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
 
+    if repeats is None:
+        raise TypeError(
+            "int() argument must be a string, a bytes-like object or a number,"
+            " not 'NoneType'"
+        )
+
+    if np.ndim(repeats) > 1:
+        raise ValueError("`repeats` should be scalar or 1D array")
+
+    # axes should be integer type
+    if axis is not None and not isinstance(axis, int):
+        raise TypeError("Axis should be integer type")
+
     # when array is a scalar
     if np.ndim(a) == 0:
+        if axis is not None and axis != 0:
+            raise np.AxisError("axis is out of bounds for array of dimension")
         if np.ndim(repeats) == 0:
+            if not isinstance(repeats, int):
+                runtime.warn(
+                    "converting repeats to an integer type",
+                    category=UserWarning,
+                )
+            repeats = np.int64(repeats)
             return full((repeats,), cast(Union[int, float], a))
+        elif np.ndim(repeats) == 1 and len(repeats) == 1:
+            if not isinstance(repeats, int):
+                runtime.warn(
+                    "converting repeats to an integer type",
+                    category=UserWarning,
+                )
+            repeats = np.int64(repeats)
+            return full((repeats[0],), cast(Union[int, float], a))
         else:
             raise ValueError(
                 "`repeat` with a scalar parameter `a` is only "
                 "implemented for scalar values of the parameter `repeats`."
             )
-    if np.ndim(repeats) > 1:
-        raise ValueError("`repeats` should be scalar or 1D array")
 
     # array is an array
     array = convert_to_cunumeric_ndarray(a)
@@ -2576,9 +2610,6 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
         array = array.ravel()
         axis = 0
 
-    # axes should be integer type
-    if not isinstance(axis, int):
-        raise TypeError("Axis should be integer type")
     axis_int = np.int32(axis)
 
     if axis_int >= array.ndim:
@@ -2613,12 +2644,7 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
     # repeats is an array
     else:
         # repeats should be integer type
-        if repeats.dtype != np.int64:
-            runtime.warn(
-                "converting repeats to an integer type",
-                category=RuntimeWarning,
-            )
-        repeats = repeats.astype(np.int64)
+        repeats = repeats._warn_and_convert(np.int64)
         if repeats.shape[0] != array.shape[axis]:
             raise ValueError("incorrect shape of repeats array")
         result = array._thunk.repeat(
@@ -3422,7 +3448,7 @@ def put_along_axis(
 
     Parameters
     ----------
-    arr : ndarray (Ni..., M, Nk...)
+    a : ndarray (Ni..., M, Nk...)
         Destination array.
     indices : ndarray (Ni..., J, Nk...)
         Indices to change along each 1d slice of `arr`. This must match the
@@ -3450,6 +3476,10 @@ def put_along_axis(
     Multiple GPUs, Multiple CPUs
 
     """
+
+    if a.size == 0:
+        return
+
     if not np.issubdtype(indices.dtype, np.integer):
         raise TypeError("`indices` must be an integer array")
 
@@ -3460,6 +3490,10 @@ def put_along_axis(
         if a.ndim > 1:
             # TODO call a=a.flat when flat is implemented
             raise ValueError("a.ndim>1 case is not supported when axis=None")
+        if (indices.size == 0) or (values.size == 0):
+            return
+        if values.shape != indices.shape:
+            values = values._wrap(indices.size)
     else:
         computed_axis = normalize_axis_index(axis, a.ndim)
 
@@ -3677,6 +3711,88 @@ def diagonal(
     return a.diagonal(
         offset=offset, axis1=axis1, axis2=axis2, extract=extract, axes=axes
     )
+
+
+@add_boilerplate("a", "indices", "values")
+def put(
+    a: ndarray, indices: ndarray, values: ndarray, mode: str = "raise"
+) -> None:
+    """
+    Replaces specified elements of an array with given values.
+    The indexing works as if the target array is first flattened.
+
+    Parameters
+    ----------
+    a : array_like
+        Array to put data into
+    indices : array_like
+        Target indices, interpreted as integers.
+        WARNING: In case there are repeated entries in the
+        indices array, Legate doesn't guarantee the order in
+        which values are updated.
+
+    values : array_like
+        Values to place in `a` at target indices. If values array is shorter
+        than indices, it will be repeated as necessary.
+    mode : {'raise', 'wrap', 'clip'}, optional
+        Specifies how out-of-bounds indices will behave.
+        'raise' : raise an error.
+        'wrap' : wrap around.
+        'clip' : clip to the range.
+
+    See Also
+    --------
+    numpy.put
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    a.put(indices=indices, values=values, mode=mode)
+
+
+@add_boilerplate("a", "mask", "values")
+def putmask(a: ndarray, mask: ndarray, values: ndarray) -> None:
+    """
+    putmask(a, mask, values)
+    Changes elements of an array based on conditional and input values.
+    Sets ``a.flat[n] = values[n]`` for each n where ``mask.flat[n]==True``.
+    If `values` is not the same size as `a` and `mask` then it will repeat.
+    This gives behavior different from ``a[mask] = values``.
+
+    Parameters
+    ----------
+    a : ndarray
+        Target array.
+    mask : array_like
+        Boolean mask array. It has to be the same shape as `a`.
+    values : array_like
+        Values to put into `a` where `mask` is True. If `values` is smaller
+        than `a` it will be repeated.
+
+    See Also
+    --------
+    numpy.putmask
+
+    Availability
+    ------------
+    Multiple GPUs, Multiple CPUs
+    """
+    if not a.shape == mask.shape:
+        raise ValueError("mask and data must be the same size")
+
+    mask = mask._warn_and_convert(np.dtype(bool))
+
+    if a.dtype != values.dtype:
+        values = values._warn_and_convert(a.dtype)
+
+    try:
+        np.broadcast_shapes(values.shape, a.shape)
+    except ValueError:
+        values = values._wrap(a.size)
+        values = values.reshape(a.shape)
+
+    a._thunk.putmask(mask._thunk, values._thunk)
 
 
 @add_boilerplate("a", "val")
@@ -4133,9 +4249,13 @@ def tensordot(
 
 
 # Trivial multi-tensor contraction strategy: contract in input order
-class NullOptimizer(oe.paths.PathOptimizer):  # type: ignore
-    def __call__(  # type: ignore [no-untyped-def]
-        self, inputs, output, size_dict, memory_limit=None
+class NullOptimizer(oe.paths.PathOptimizer):  # type: ignore [misc,no-any-unimported] # noqa
+    def __call__(
+        self,
+        inputs: list[set[str]],
+        outputs: set[str],
+        size_dict: dict[str, int],
+        memory_limit: Union[int, None] = None,
     ) -> list[tuple[int, int]]:
         return [(0, 1)] + [(0, -1)] * (len(inputs) - 2)
 
@@ -4190,7 +4310,8 @@ def _contract(
     check_writeable(out)
 
     # Handle types
-    if dtype is not None:
+    makes_view = b is None and len(a_modes) == len(out_modes)
+    if dtype is not None and not makes_view:
         c_dtype = dtype
     elif out is not None:
         c_dtype = out.dtype
@@ -5992,8 +6113,12 @@ def sort_complex(a: ndarray) -> ndarray:
     # force complex result upon return
     if np.issubdtype(result.dtype, np.complexfloating):
         return result
-    else:
+    elif (
+        np.issubdtype(result.dtype, np.integer) and result.dtype.itemsize <= 2
+    ):
         return result.astype(np.complex64, copy=True)
+    else:
+        return result.astype(np.complex128, copy=True)
 
 
 # partition
@@ -6366,6 +6491,8 @@ def bincount(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if x.ndim != 1:
+        raise ValueError("the input array must be 1-dimensional")
     if weights is not None:
         if weights.shape != x.shape:
             raise ValueError("weights array must be same shape for bincount")
@@ -6373,11 +6500,16 @@ def bincount(
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if x.dtype.kind != "i" and x.dtype.kind != "u":
+    if x.dtype.kind != "i":
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:
         raise ValueError("'minlength' must not be negative")
-    minlength = _builtin_max(minlength, int(amax(x)) + 1)
+    # Note that the following are non-blocking operations,
+    # though passing their results to `int` is blocking
+    max_val, min_val = amax(x), amin(x)
+    if int(min_val) < 0:
+        raise ValueError("the input array must have no negative elements")
+    minlength = _builtin_max(minlength, int(max_val) + 1)
     if x.size == 1:
         # Handle the special case of 0-D array
         if weights is None:

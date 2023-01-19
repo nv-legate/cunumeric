@@ -16,12 +16,8 @@
 #
 
 import argparse
-import datetime
-import math
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def generate_random(N, min, max, D):
@@ -75,16 +71,10 @@ def black_scholes(S, X, T, R, V):
 def run_black_scholes(N, D):
     print("Running black scholes on %dK options..." % N)
     N *= 1000
-    start = datetime.datetime.now()
+    timer.start()
     S, X, T, R, V = initialize(N, D)
-    call, put = black_scholes(S, X, T, R, V)
-    # Check the result for NaNs to synchronize before stopping timing
-    call_sum = np.sum(call)
-    put_sum = np.sum(put)
-    assert not math.isnan(call_sum) and not math.isnan(put_sum)
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    _, _ = black_scholes(S, X, T, R, V)
+    total = timer.stop()
     print("Elapsed Time: " + str(total) + " ms")
     return total
 
@@ -107,16 +97,9 @@ if __name__ == "__main__":
         dest="P",
         help="precision of the computation in bits",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np, timer = parse_args(parser)
+
     if args.P == 16:
         run_benchmark(
             run_black_scholes,

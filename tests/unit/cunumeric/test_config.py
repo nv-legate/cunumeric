@@ -13,13 +13,13 @@
 # limitations under the License.
 #
 
-import cunumeric.config as m  # module under test
 import pytest
-from mock import patch
-
-from cunumeric import runtime
 from legate.core import Library, ResourceConfig
 from legate.core.context import Context
+from mock import patch
+
+import cunumeric.config as m  # module under test
+from cunumeric import runtime
 
 
 class _FakeSO:
@@ -113,7 +113,7 @@ class TestCuNumericLib:
         lib.initialize(_FakeSO)
         lib.set_runtime(runtime)
         lib.destroy()
-        assert mock_destroy.called_once_with()
+        mock_destroy.assert_called_once_with()
 
 
 def test_CUNUMERIC_LIB_NAME() -> None:
@@ -154,12 +154,14 @@ def test_CuNumericOpCode() -> None:
         "NONZERO",
         "PACKBITS",
         "POTRF",
+        "PUTMASK",
         "RAND",
         "READ",
         "REPEAT",
         "SCALAR_UNARY_RED",
         "SCAN_GLOBAL",
         "SCAN_LOCAL",
+        "SOLVE",
         "SORT",
         "SEARCHSORTED",
         "SYRK",
@@ -246,7 +248,6 @@ def test_CuNumericTunable() -> None:
         "NUM_GPUS",
         "NUM_PROCS",
         "MAX_EAGER_VOLUME",
-        "HAS_NUMAMEM",
     }
 
 

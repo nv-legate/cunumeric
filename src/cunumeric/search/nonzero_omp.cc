@@ -29,11 +29,11 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  size_t operator()(const AccessorRO<VAL, DIM>& in,
-                    const Pitches<DIM - 1>& pitches,
-                    const Rect<DIM>& rect,
-                    const size_t volume,
-                    std::vector<Buffer<int64_t>>& results)
+  void operator()(std::vector<Array>& outputs,
+                  const AccessorRO<VAL, DIM>& in,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const size_t volume)
   {
     const auto max_threads = omp_get_max_threads();
 
@@ -59,8 +59,9 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
       for (auto idx = 1; idx < max_threads; ++idx) offsets[idx] = offsets[idx - 1] + sizes[idx - 1];
     }
 
-    auto kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-    for (auto& result : results) result = create_buffer<int64_t>(size, kind);
+    std::vector<Buffer<int64_t>> results;
+    for (auto& output : outputs)
+      results.push_back(output.create_output_buffer<int64_t, 1>(Point<1>(size), true));
 
 #pragma omp parallel
     {
@@ -74,8 +75,6 @@ struct NonzeroImplBody<VariantKind::OMP, CODE, DIM> {
         ++out_idx;
       }
     }
-
-    return size;
   }
 };
 

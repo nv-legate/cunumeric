@@ -18,11 +18,8 @@
 # Derived from https://github.com/bryancatanzaro/kmeans
 
 import argparse
-import datetime
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(N, D, C, T):
@@ -81,7 +78,7 @@ def run_kmeans(C, D, T, I, N, S, benchmarking):  # noqa: E741
     print("Number of dimensions: " + str(D))
     print("Number of centroids: " + str(C))
     print("Max iterations: " + str(I))
-    start = datetime.datetime.now()
+    timer.start()
     data, centroids = initialize(N, D, C, T)
 
     data_dots = np.square(np.linalg.norm(data, ord=2, axis=1))
@@ -129,9 +126,7 @@ def run_kmeans(C, D, T, I, N, S, benchmarking):  # noqa: E741
         + ": "
         + str(prior_distance_sum)
     )
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    total = timer.stop()
     print("Elapsed Time: " + str(total) + " ms")
     return total
 
@@ -139,7 +134,6 @@ def run_kmeans(C, D, T, I, N, S, benchmarking):  # noqa: E741
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c",
         "--centers",
         type=int,
         default=10,
@@ -186,16 +180,9 @@ if __name__ == "__main__":
         dest="S",
         help="number of iterations between sampling the log likelihood",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np, timer = parse_args(parser)
+
     if args.P == 16:
         run_benchmark(
             run_kmeans,

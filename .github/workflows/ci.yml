@@ -6,6 +6,9 @@ on:
   pull_request:
     branches-ignore:
       - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 */6 * * *'
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-cunumeric-ci
@@ -57,7 +60,7 @@ jobs:
         if: always()
       - name: Upload Build Log
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: build-log
           path: ./**/${{ env.COMMIT }}-build.log.gpg
@@ -74,9 +77,10 @@ jobs:
           - {name: GPU test, options: --use cuda --gpus 1 --debug, log: gpu}
           - {name: 2 GPUs test, options: --use cuda --gpus 2 --debug, log: gpus}
           - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2 --debug, log: omp}
-          - {name: 2 OpenMPs test, options: --use openmp --omps 2 --ompthreads 2 --debug, log: omps}
+          - {name: 2 NUMA OpenMPs test, options: --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug, log: omps}
           - {name: Eager execution test, options: --use eager --debug, log: eager}
           - {name: mypy, options: mypy, log: mypy}
+          - {name: documentation, options: docs, log: docs}
     name: ${{ matrix.name }}
     steps:
       - name: Dump GitHub context
@@ -125,7 +129,7 @@ jobs:
           cat *artifacts/*/*
       - name: Upload Log
         if: always()
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: test-${{ matrix.log }}-log
           path: ./**/${{ env.COMMIT }}-test-${{ matrix.log }}.log.gpg
