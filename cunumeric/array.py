@@ -56,7 +56,7 @@ from .config import (
 from .coverage import clone_np_ndarray
 from .runtime import runtime
 from .types import NdShape
-from .utils import _broadcast_shapes, dot_modes
+from .utils import dot_modes
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -2209,12 +2209,14 @@ class ndarray:
         # we need to broadcast all arrays in choices with
         # input and output arrays
         if out is not None:
-            out_shape = _broadcast_shapes(a.shape, choices[0].shape, out.shape)
+            out_shape = np.broadcast_shapes(
+                a.shape, choices[0].shape, out.shape
+            )
         else:
-            out_shape = _broadcast_shapes(a.shape, choices[0].shape)
+            out_shape = np.broadcast_shapes(a.shape, choices[0].shape)
 
         for c in choices:
-            out_shape = _broadcast_shapes(out_shape, c.shape)
+            out_shape = np.broadcast_shapes(out_shape, c.shape)
 
         # if output is provided, it shape should be the same as out_shape
         if out is not None and out.shape != out_shape:
@@ -4121,13 +4123,13 @@ class ndarray:
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
             if isinstance(where, ndarray):
-                _broadcast_shapes(src.shape, out.shape, where.shape)
+                np.broadcast_shapes(src.shape, out.shape, where.shape)
             else:
-                _broadcast_shapes(src.shape, out.shape)
+                np.broadcast_shapes(src.shape, out.shape)
         else:
             # No output yet, so make one
             if isinstance(where, ndarray):
-                out_shape = _broadcast_shapes(src.shape, where.shape)
+                out_shape = np.broadcast_shapes(src.shape, where.shape)
             else:
                 out_shape = src.shape
             if dtype is not None:
@@ -4240,7 +4242,7 @@ class ndarray:
         #       or a where mask is given.
         if isinstance(where, ndarray):
             # The where array has to broadcast to the src.shape
-            if _broadcast_shapes(src.shape, where.shape) != src.shape:
+            if np.broadcast_shapes(src.shape, where.shape) != src.shape:
                 raise ValueError(
                     '"where" array must broadcast against source array '
                     "for reduction"
@@ -4325,7 +4327,7 @@ class ndarray:
         # Collapsing down to a single value in this case
         # Check to see if we need to broadcast between inputs
         if one.shape != two.shape:
-            broadcast = _broadcast_shapes(one.shape, two.shape)
+            broadcast = np.broadcast_shapes(one.shape, two.shape)
         else:
             broadcast = None
 
@@ -4356,7 +4358,7 @@ class ndarray:
         two = two._maybe_convert(common_type, args)
 
         # Compute the output shape
-        out_shape = _broadcast_shapes(mask.shape, one.shape, two.shape)
+        out_shape = np.broadcast_shapes(mask.shape, one.shape, two.shape)
         out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
         out._thunk.where(mask._thunk, one._thunk, two._thunk)
         return out

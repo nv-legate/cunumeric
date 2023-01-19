@@ -54,13 +54,7 @@ from .array import (
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike, OrderType, SortSide
-from .utils import (
-    AxesPairLike,
-    _broadcast_shapes,
-    inner_modes,
-    matmul_modes,
-    tensordot_modes,
-)
+from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
 if TYPE_CHECKING:
     from typing import Callable
@@ -1444,7 +1438,8 @@ def broadcast_shapes(
     Single CPU
 
     """
-    return _broadcast_shapes(*args)
+    # TODO: expected "Union[SupportsIndex, Sequence[SupportsIndex]]"
+    return np.broadcast_shapes(*args)  # type: ignore [arg-type]
 
 
 def _broadcast_to(
@@ -5008,7 +5003,7 @@ def isclose(
             "cuNumeric does not support `equal_nan` yet for isclose"
         )
 
-    out_shape = _broadcast_shapes(a.shape, b.shape)
+    out_shape = np.broadcast_shapes(a.shape, b.shape)
     out = empty(out_shape, dtype=bool)
 
     common_type = ndarray.find_common_type(a, b)

@@ -23,7 +23,7 @@ from typing import Any, List, Sequence, Tuple, Union, cast
 import legate.core.types as ty
 import numpy as np
 
-from .types import NdShape, NdShapeLike
+from .types import NdShape
 
 SUPPORTED_DTYPES = {
     bool: ty.bool_,
@@ -44,14 +44,6 @@ SUPPORTED_DTYPES = {
     np.complex64: ty.complex64,
     np.complex128: ty.complex128,
 }
-
-
-def _broadcast_shapes(
-    *args: Union[NdShapeLike, Sequence[NdShapeLike]]
-) -> NdShape:
-    # Call 'np.broadcast_shapes' for now.
-    # We will have a new implementation later
-    return np.broadcast_shapes(*args)  # type: ignore [arg-type]
 
 
 def is_advanced_indexing(key: Any) -> bool:

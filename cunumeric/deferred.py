@@ -57,7 +57,7 @@ from .linalg.cholesky import cholesky
 from .linalg.solve import solve
 from .sort import sort
 from .thunk import NumPyThunk
-from .utils import _broadcast_shapes, is_advanced_indexing
+from .utils import is_advanced_indexing
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -413,7 +413,7 @@ class DeferredArray(NumPyThunk):
         shapes = tuple(a.shape for a in arrays)
         if len(arrays) > 1:
             # TODO: replace with cunumeric.broadcast_shapes, when available
-            b_shape = _broadcast_shapes(*shapes)
+            b_shape = np.broadcast_shapes(*shapes)
         else:
             b_shape = arrays[0].shape
 

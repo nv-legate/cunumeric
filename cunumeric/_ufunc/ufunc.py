@@ -21,7 +21,6 @@ import numpy as np
 from ..array import check_writeable, convert_to_cunumeric_ndarray, ndarray
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from ..types import NdShape
-from ..utils import _broadcast_shapes
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -316,7 +315,7 @@ class ufunc:
         shapes.extend(arr.shape for arr in outputs if arr is not None)
 
         # Check if the broadcasting is possible
-        out_shape = _broadcast_shapes(*shapes)
+        out_shape = np.broadcast_shapes(*shapes)
 
         for out in outputs:
             if out is not None and out.shape != out_shape:
