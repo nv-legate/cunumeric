@@ -4284,7 +4284,6 @@ def _contract(
     casting: CastingKind = "same_kind",
     dtype: Optional[np.dtype[Any]] = None,
 ) -> ndarray:
-
     # Sanity checks
     if len(a_modes) != a.ndim:
         raise ValueError(
