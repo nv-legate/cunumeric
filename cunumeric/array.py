@@ -244,6 +244,24 @@ class flagsobj(object):
         self._aligned = aligned
         self._writebackifcopy = writebackifcopy
 
+        # cunumeric does not support these yet, assert default values
+        self._c_contiguous is True
+        self._f_contiguous is False
+        self._owndata is True
+        self._aligned is False
+        self._writebackifcopy is False
+
+    @staticmethod
+    def copy(other: flagsobj) -> flagsobj:
+        return flagsobj(
+            c_contiguous=other.c_contiguous,
+            f_contiguous=other.f_contiguous,
+            owndata=other.owndata,
+            writeable=other.writeable,
+            aligned=other.aligned,
+            writebackifcopy=other.writebackifcopy,
+        )
+
     @property
     def c_contiguous(self) -> bool:
         return self._c_contiguous
@@ -393,7 +411,7 @@ class ndarray:
         # TODO: flags are passed. We use this argument only for views
         # Not all routines are changed to pass these arguments correctly yet.
         if flags is not None:
-            self._flags = flagsobj(*flags.__dict__.values())
+            self._flags = flagsobj.copy(flags)
             self._flags._owndata = False
         else:
             self._flags = flagsobj()  # type : ignore
