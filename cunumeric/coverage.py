@@ -116,8 +116,8 @@ def implemented(
     # ufuncs the way we need it to. The alternative would be to vendor and
     # modify a custom version of @wraps
     if hasattr(wrapper.__wrapped__, "_name"):
-        wrapper.__name__ = wrapper.__wrapped__._name
-        wrapper.__qualname__ = wrapper.__wrapped__._name
+        wrapper.__name__ = wrapper.__wrapped__._name  # type: ignore
+        wrapper.__qualname__ = wrapper.__wrapped__._name  # type: ignore
 
     # TODO (bev) Scraping text to set flags seems a bit fragile. It would be
     # preferable to start with flags, and use those to update docstrings.

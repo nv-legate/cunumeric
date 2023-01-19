@@ -368,7 +368,7 @@ class Runtime(object):
     ) -> NumPyThunk:
         # Check to see if this object implements the Legate data interface
         if hasattr(obj, "__legate_data_interface__"):
-            legate_data = obj.__legate_data_interface__
+            legate_data = obj.__legate_data_interface__  # type: ignore
             if legate_data["version"] != 1:
                 raise NotImplementedError(
                     "Need support for other Legate data interface versions"
