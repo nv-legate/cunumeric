@@ -2473,7 +2473,6 @@ class ndarray:
     # currently offset option is implemented only for the case of number of
     # axes=2. This restriction can be lifted in the future if there is a
     # use case of having arbitrary number of offsets
-    @add_boilerplate()
     def _diag_helper(
         self,
         offset: int = 0,
