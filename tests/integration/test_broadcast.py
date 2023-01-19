@@ -160,8 +160,8 @@ def test_broadcast_view(dim):
     _broadcast_view(SHAPE_LISTS[dim])
 
 
-def test_broadcast_shapes():
-    dim = DIM_CASES[0]
+@pytest.mark.parametrize("dim", DIM_CASES, ids=str)
+def test_broadcast_shapes(dim):
     shape_list = SHAPE_LISTS[dim]
     _check(*shape_list, params=shape_list, routine="broadcast_shapes")
 
