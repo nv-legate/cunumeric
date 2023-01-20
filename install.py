@@ -76,10 +76,13 @@ class BooleanFlag(argparse.Action):
         setattr(namespace, self.dest, not option_string.startswith("--no"))
 
 
-def execute_command(args, verbose, **kwargs):
+def execute_command(args, verbose, ignore_errors=False, **kwargs):
     if verbose:
         print('Executing: "', " ".join(args), '" with ', kwargs)
-    subprocess.check_call(args, **kwargs)
+    if ignore_errors:
+        subprocess.call(args, **kwargs)
+    else:
+        subprocess.check_call(args, **kwargs)
 
 
 def scikit_build_cmake_build_dir(skbuild_dir):
@@ -254,6 +257,25 @@ def install_cunumeric(
         print("Performing a clean build to accommodate build isolation.")
         clean_first = True
 
+    cmd_env = dict(os.environ.items())
+
+    # Explicitly uninstall cunumeric if doing a clean/isolated build.
+    #
+    # A prior installation may have built and installed cunumeric C++
+    # dependencies (like BLAS or tblis).
+    #
+    # CMake will find and use them for the current build, which would normally
+    # be correct, but pip uninstalls files from any existing installation as
+    # the last step of the install process, including the libraries found by
+    # CMake during the current build.
+    #
+    # Therefore this uninstall step must occur *before* CMake attempts to find
+    # these dependencies, triggering CMake to build and install them again.
+    if clean_first or build_isolation:
+        execute_command([
+            sys.executable, "-m", "pip", "uninstall", "-y", "cunumeric"
+        ], verbose, ignore_errors=True, cwd=cunumeric_dir, env=cmd_env)
+
     if clean_first:
         shutil.rmtree(skbuild_dir, ignore_errors=True)
         shutil.rmtree(join(cunumeric_dir, "dist"), ignore_errors=True)
@@ -265,7 +287,6 @@ def install_cunumeric(
 
     # Configure and build cuNumeric via setup.py
     pip_install_cmd = [sys.executable, "-m", "pip", "install"]
-    cmd_env = dict(os.environ.items())
 
     install_dir = None
 
