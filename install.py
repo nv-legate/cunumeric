@@ -271,7 +271,7 @@ def install_cunumeric(
     #
     # Therefore this uninstall step must occur *before* CMake attempts to find
     # these dependencies, triggering CMake to build and install them again.
-    if clean_first or build_isolation:
+    if clean_first or (build_isolation and not editable):
         execute_command(
             [sys.executable, "-m", "pip", "uninstall", "-y", "cunumeric"],
             verbose,
