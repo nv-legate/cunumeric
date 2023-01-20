@@ -19,7 +19,17 @@ import operator
 import re
 from collections import Counter
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
@@ -35,7 +45,12 @@ from cunumeric.coverage import is_implemented
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
-from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
+from .array import (
+    add_boilerplate,
+    check_writeable,
+    convert_to_cunumeric_ndarray,
+    ndarray,
+)
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike, OrderType, SortSide
@@ -1292,7 +1307,8 @@ def _atleast_nd(
     # 'reshape' change the shape of arrays
     # only when arr.shape != _reshape_recur(ndim,arr)
     result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
-    # if the number of arrys in `arys` is 1, the return value is a single array
+    # if the number of arrays in `arys` is 1,
+    # the return value is a single array
     if len(result) == 1:
         return result[0]
     return result
@@ -1426,6 +1442,215 @@ def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     return a.squeeze(axis=axis)
+
+
+def broadcast_shapes(
+    *args: Union[NdShapeLike, Sequence[NdShapeLike]]
+) -> NdShape:
+    """
+
+    Broadcast the input shapes into a single shape.
+
+    Parameters
+    ----------
+    `*args` : tuples of ints, or ints
+        The shapes to be broadcast against each other.
+
+    Returns
+    -------
+    tuple : Broadcasted shape.
+
+    See Also
+    --------
+    numpy.broadcast_shapes
+
+    Availability
+    --------
+    Single CPU
+
+    """
+    # TODO: expected "Union[SupportsIndex, Sequence[SupportsIndex]]"
+    return np.broadcast_shapes(*args)  # type: ignore [arg-type]
+
+
+def _broadcast_to(
+    arr: ndarray,
+    shape: NdShapeLike,
+    subok: bool = False,
+    broadcasted: bool = False,
+) -> ndarray:
+    # create an array object w/ options passed from 'broadcast' routines
+    arr = array(arr, copy=False, subok=subok)
+    # 'broadcast_to' returns a read-only view of the original array
+    out_shape = broadcast_shapes(arr.shape, shape)
+    result = ndarray(
+        shape=out_shape,
+        thunk=arr._thunk.broadcast_to(out_shape),
+        flags=arr.flags,
+    )
+    result.setflags(write=False)
+    return result
+
+
+@add_boilerplate("arr")
+def broadcast_to(
+    arr: ndarray, shape: NdShapeLike, subok: bool = False
+) -> ndarray:
+
+    """
+
+    Broadcast an array to a new shape.
+
+    Parameters
+    ----------
+    arr : array_like
+        The array to broadcast.
+    shape : tuple or int
+        The shape of the desired array.
+        A single integer i is interpreted as (i,).
+    subok : bool, optional
+        If True, then sub-classes will be passed-through,
+        otherwise the returned array will be forced to
+        be a base-class array (default).
+
+    Returns
+    -------
+    broadcast : array
+        A readonly view on the original array with the given shape.
+        It is typically not contiguous.
+        Furthermore, more than one element of a broadcasted array
+        may refer to a single memory location.
+
+    See Also
+    --------
+    numpy.broadcast_to
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    return _broadcast_to(arr, shape, subok)
+
+
+def _broadcast_arrays(
+    arrs: list[ndarray],
+    subok: bool = False,
+) -> list[ndarray]:
+    # create an arry object w/ options passed from 'broadcast' routines
+    arrays = [array(arr, copy=False, subok=subok) for arr in arrs]
+    # check if the broadcast can happen in the input list of arrays
+    shapes = [arr.shape for arr in arrays]
+    out_shape = broadcast_shapes(*shapes)
+    # broadcast to the final shape
+    arrays = [_broadcast_to(arr, out_shape, subok) for arr in arrays]
+    return arrays
+
+
+def broadcast_arrays(
+    *args: Sequence[Any], subok: bool = False
+) -> list[ndarray]:
+    """
+
+    Broadcast any number of arrays against each other.
+
+    Parameters
+    ----------
+    `*args` : array_likes
+        The arrays to broadcast.
+
+    subok : bool, optional
+        If True, then sub-classes will be passed-through,
+        otherwise the returned arrays will be forced to
+        be a base-class array (default).
+
+    Returns
+    -------
+    broadcasted : list of arrays
+        These arrays are views on the original arrays.
+        They are typically not contiguous.
+        Furthermore, more than one element of a broadcasted array
+        may refer to a single memory location.
+        If you need to write to the arrays, make copies first.
+        While you can set the writable flag True,
+        writing to a single output value may end up changing
+        more than one location in the output array.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    arrs = [convert_to_cunumeric_ndarray(arr) for arr in args]
+    return _broadcast_arrays(arrs, subok=subok)
+
+
+class broadcast:
+    def __init__(self, *arrays: Sequence[Any]) -> None:
+        """
+
+        Produce an object that broadcasts input parameters
+        against one another. It has shape and nd properties,
+        and may be used as an iterator.
+
+        Parameters
+        ----------
+        `*arrays` : array_likes
+            The arrays to broadcast.
+
+        subok : bool, optional
+            If True, then sub-classes will be passed-through,
+            otherwise the returned arrays will be forced to
+            be a base-class array (default).
+
+        """
+        arrs = [convert_to_cunumeric_ndarray(arr) for arr in arrays]
+        broadcasted = _broadcast_arrays(arrs)
+        self._iters = tuple(arr.flat for arr in broadcasted)
+        self._index = 0
+        self._shape = broadcasted[0].shape
+        self._size = np.prod(self.shape, dtype=int)
+
+    def __iter__(self) -> broadcast:
+        self._index = 0
+        return self
+
+    def __next__(self) -> Any:
+        if self._index < self.size:
+            result = tuple(each[self._index] for each in self._iters)
+            self._index += 1
+            return result
+
+    def reset(self) -> None:
+        self._index = 0
+
+    @property
+    def index(self) -> int:
+        return self._index
+
+    @property
+    def iters(self) -> Tuple[Iterable[Any], ...]:
+        return self._iters
+
+    @property
+    def numiter(self) -> int:
+        return len(self._iters)
+
+    @property
+    def nd(self) -> int:
+        return self.ndim
+
+    @property
+    def ndim(self) -> int:
+        return len(self.shape)
+
+    @property
+    def shape(self) -> NdShape:
+        return self._shape
+
+    @property
+    def size(self) -> int:
+        return self._size
 
 
 # Joining arrays
@@ -2244,7 +2469,9 @@ def array_split(
             new_subarray = array[tuple(in_shape)].view()
         else:
             out_shape[axis] = 0
-            new_subarray = ndarray(tuple(out_shape), dtype=array.dtype)
+            new_subarray = ndarray(
+                tuple(out_shape), dtype=array.dtype, flags=array.flags
+            )
         result.append(new_subarray)
         start_idx = pts
 
@@ -2584,6 +2811,9 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     """
     if arr.size == 0:
         return
+
+    # check if the current calling array is `writeable`
+    check_writeable(arr)
 
     if mask.size != arr.size:
         raise ValueError("arr array and condition array must be of same size")
@@ -4151,6 +4381,9 @@ def _contract(
         raise ValueError("Duplicate mode labels on output")
     if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
         raise ValueError("Unknown mode labels on output")
+
+    # Check if `out` is writeable
+    check_writeable(out)
 
     # Handle types
     makes_view = b is None and len(a_modes) == len(out_modes)

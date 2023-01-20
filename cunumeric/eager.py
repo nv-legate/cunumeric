@@ -559,6 +559,15 @@ class EagerArray(NumPyThunk):
         else:
             self.array = np.flip(rhs.array, axes)
 
+    def broadcast_to(self, shape: NdShape) -> NumPyThunk:
+        # When Eager and Deferred broadcasted arrays are used for computation,
+        # eager arrays are converted by 'to_deferred()'
+        # this method uses array.base to create a deferred array,
+        # which is different from the shape of the broadcasted arrays
+        if self.deferred is None:
+            self.to_deferred_array()
+        return self.deferred.broadcast_to(shape)  # type: ignore [union-attr]
+
     def contract(
         self,
         lhs_modes: list[str],
