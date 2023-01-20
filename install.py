@@ -272,9 +272,13 @@ def install_cunumeric(
     # Therefore this uninstall step must occur *before* CMake attempts to find
     # these dependencies, triggering CMake to build and install them again.
     if clean_first or build_isolation:
-        execute_command([
-            sys.executable, "-m", "pip", "uninstall", "-y", "cunumeric"
-        ], verbose, ignore_errors=True, cwd=cunumeric_dir, env=cmd_env)
+        execute_command(
+            [sys.executable, "-m", "pip", "uninstall", "-y", "cunumeric"],
+            verbose,
+            ignore_errors=True,
+            cwd=cunumeric_dir,
+            env=cmd_env,
+        )
 
     if clean_first:
         shutil.rmtree(skbuild_dir, ignore_errors=True)
