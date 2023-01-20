@@ -111,7 +111,7 @@ requirements:
     # cudart needed for CPU and GPU builds because of curand
     - cuda-cudart-dev ={{ cuda_version }}
     - python
-    - scikit-build
+    - scikit-build >=0.13.1,<0.16.5
     - openblas =* =*openmp*
 {% if not gpu_enabled_bool %}
     - legate-core ={{ core_version }} =*_cpu

@@ -17,7 +17,7 @@ requires = [
     "wheel",
     "ninja",
     "setuptools",
-    "scikit-build>=0.13.1",
+    "scikit-build>=0.13.1,<0.16.5",
     "cmake>=3.22.1,!=3.23.0,!=3.25.0",
 ]
 
