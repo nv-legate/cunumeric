@@ -6354,6 +6354,8 @@ def averaged_inverted_cdf(q: float, n: int) -> tuple[float, int]:
     j = int(k) - 1
     if j < 0:
         return (0.0, 0)
+    elif j >= n - 1:
+        return (1.0, n - 2)
     else:
         return (gamma, j)
 
