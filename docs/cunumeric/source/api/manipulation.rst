@@ -43,7 +43,6 @@ Changing number of dimensions
    atleast_1d
    atleast_2d
    atleast_3d
-   broadcast
    broadcast_arrays
    broadcast_shapes
    broadcast_to

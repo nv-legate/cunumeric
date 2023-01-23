@@ -1586,24 +1586,21 @@ def broadcast_arrays(
 
 
 class broadcast:
+    """Produce an object that broadcasts input parameters against one another.
+    It has shape and nd properties and may be used as an iterator.
+
+    Parameters
+    ----------
+    `*arrays` : array_likes
+        The arrays to broadcast.
+
+    subok : bool, optional
+        If True, then sub-classes will be passed-through, otherwise the
+        returned arrays will be forced to be a base-class array (default).
+
+    """
+
     def __init__(self, *arrays: Sequence[Any]) -> None:
-        """
-
-        Produce an object that broadcasts input parameters
-        against one another. It has shape and nd properties,
-        and may be used as an iterator.
-
-        Parameters
-        ----------
-        `*arrays` : array_likes
-            The arrays to broadcast.
-
-        subok : bool, optional
-            If True, then sub-classes will be passed-through,
-            otherwise the returned arrays will be forced to
-            be a base-class array (default).
-
-        """
         arrs = [convert_to_cunumeric_ndarray(arr) for arr in arrays]
         broadcasted = _broadcast_arrays(arrs)
         self._iters = tuple(arr.flat for arr in broadcasted)
@@ -1622,6 +1619,7 @@ class broadcast:
             return result
 
     def reset(self) -> None:
+        """Reset the broadcasted result's iterator(s)."""
         self._index = 0
 
     @property
