@@ -25,7 +25,7 @@ if runtime.has_curand:
 else:
     from cunumeric.random.legacy import *
 
-clone_module(_nprandom, globals())
+clone_module(_nprandom, globals(), include_builtin_function_type=True)
 
 del clone_module
 del _nprandom
