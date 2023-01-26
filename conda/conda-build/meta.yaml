@@ -104,10 +104,7 @@ requirements:
     # the nvcc requirement is necessary because it contains crt/host_config.h used by cuda runtime. This is a packaging bug that has been reported.
     - cuda-nvcc ={{ cuda_version }}
     # libcurand is used both in CPU and GPU builds
-    # temporarily pin curand until problems are resolved
-    - libcurand-dev =10.3.0.86
-    # the following line is only necessary for pinning curand
-    - libcurand =10.3.0.86
+    - libcurand-dev
     # cudart needed for CPU and GPU builds because of curand
     - cuda-cudart-dev ={{ cuda_version }}
     - python
