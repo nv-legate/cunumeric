@@ -47,9 +47,9 @@ class TestMatmulErrors:
     @pytest.mark.parametrize(
         "shapesAB",
         (
-                ((2, 4), (2, 3)),
-                ((3, 2, 4), (2, 4, 3)),
-                ((3, 2, 4), (3, 2, 3)),
+            ((2, 4), (2, 3)),
+            ((3, 2, 4), (2, 4, 3)),
+            ((3, 2, 4), (3, 2, 3)),
         ),
         ids=lambda shapesAB: f"(shapesAB={shapesAB})",
     )
@@ -63,14 +63,14 @@ class TestMatmulErrors:
     @pytest.mark.parametrize(
         "shapesAB",
         (
-                ((3, 2), (3,)),
-                pytest.param(((4, 1), (3,)), marks=pytest.mark.xfail),
-                ((1, 4), (3,)),
-                ((3,), (2, 3)),
-                ((3,), (4, 1)),
-                pytest.param(((3,), (1, 4)), marks=pytest.mark.xfail),
-                ((3,), (2,)),
-                pytest.param(((3,), (1,)), marks=pytest.mark.xfail),
+            ((3, 2), (3,)),
+            pytest.param(((4, 1), (3,)), marks=pytest.mark.xfail),
+            ((1, 4), (3,)),
+            ((3,), (2, 3)),
+            ((3,), (4, 1)),
+            pytest.param(((3,), (1, 4)), marks=pytest.mark.xfail),
+            ((3,), (2,)),
+            pytest.param(((3,), (1,)), marks=pytest.mark.xfail),
         ),
         ids=lambda shapesAB: f"(shapesAB={shapesAB})",
     )
@@ -96,7 +96,7 @@ class TestMatmulErrors:
         with pytest.raises(ValueError):
             num.matmul(3, num.ones((1, 1)))
         with pytest.raises(ValueError):
-            num.matmul(num.ones((1,1)), 3)
+            num.matmul(num.ones((1, 1)), 3)
 
     @pytest.mark.parametrize(
         "shape", ((2, 3), (3, 4, 3)), ids=lambda shape: f"(shape={shape})"
@@ -118,7 +118,6 @@ class TestMatmulErrors:
         out = num.zeros(shape)
         num.matmul(A, B, out=out)
 
-
     def test_out_invalid_dtype(self):
         A = num.ones((3, 2, 4))
         B = num.ones((3, 4, 3))
@@ -130,10 +129,10 @@ class TestMatmulErrors:
     @pytest.mark.parametrize(
         "casting_dtype",
         (
-                ('no', np.float32),
-                ('equiv', np.float32),
-                ('safe', np.float32),
-                ('same_kind', np.int64),
+            ("no", np.float32),
+            ("equiv", np.float32),
+            ("safe", np.float32),
+            ("same_kind", np.int64),
         ),
         ids=lambda casting_dtype: f"(casting_dtype={casting_dtype})",
     )
