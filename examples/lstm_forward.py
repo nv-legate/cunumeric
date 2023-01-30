@@ -16,16 +16,12 @@
 #
 
 import argparse
-import datetime
-import math
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
-    start = datetime.datetime.now()
+    timer.start()
 
     X = np.random.randn(sentence_length, batch_size, hidden_size)
     h0 = np.random.randn(1, hidden_size)
@@ -67,13 +63,7 @@ def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
         Ct[t] = np.tanh(C[t])
         Hout[t] = IFOGf[t, :, 2 * d : 3 * d] * Ct[t]
 
-    # Do a little sum of the outputs to synchronize and check for NaNs
-    total = np.sum(Hout)
-    assert not math.isnan(total)
-
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    total = timer.stop()
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
     return total
@@ -82,7 +72,7 @@ def run_lstm(batch_size, hidden_size, sentence_length, word_size, timing):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-b", "--batch", type=int, default=32, dest="batch", help="batch size"
+        "-B", "--batch", type=int, default=32, dest="batch", help="batch size"
     )
     parser.add_argument(
         "--hidden", type=int, default=10, dest="hidden", help="hidden size"
@@ -105,15 +95,9 @@ if __name__ == "__main__":
         action="store_true",
         help="perform timing",
     )
-    parser.add_argument(
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np, timer = parse_args(parser)
+
     run_benchmark(
         run_lstm,
         args.benchmark,

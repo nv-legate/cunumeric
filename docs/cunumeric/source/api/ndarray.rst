@@ -124,7 +124,7 @@ Item selection and manipulation
    :toctree: generated/
 
    ndarray.take
-   .. ndarray.put
+   ndarray.put
    .. ndarray.repeat
    ndarray.choose
    ndarray.sort

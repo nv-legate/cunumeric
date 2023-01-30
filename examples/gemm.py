@@ -16,12 +16,8 @@
 #
 
 import argparse
-import datetime
-import math
 
-from benchmark import run_benchmark
-
-import cunumeric as np
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(M, N, K, ft):
@@ -39,7 +35,7 @@ def total_space(M, N, K, ft):
     return (M * N + M * K + K * N) * np.dtype(ft).itemsize
 
 
-def run_gemm(N, I, ft):  # noqa: E741
+def run_gemm(N, I, warmup, ft):  # noqa: E741
     print("Problem Size:     M=" + str(N) + " N=" + str(N) + " K=" + str(N))
     print("Total Iterations: " + str(I))
     flops = total_flops(N, N, N)
@@ -47,25 +43,20 @@ def run_gemm(N, I, ft):  # noqa: E741
     space = total_space(N, N, N, ft)
     print("Total Size:       " + str(space / 1e6) + " MB")
     A, B, C = initialize(N, N, N, ft)
-    # Compute some sums and check for NaNs to force synchronization
-    # before we start the timing
-    assert not math.isnan(np.sum(A))
-    assert not math.isnan(np.sum(B))
-    assert not math.isnan(np.sum(C))
-    start = datetime.datetime.now()
+
+    timer.start()
     # Run for as many iterations as was requested
-    for idx in range(I):
+    for idx in range(I + warmup):
+        if idx == warmup:
+            timer.start()
         np.dot(A, B, out=C)
         # We need to rotate the matrices to keep Legate honest
         # about moving data so it can't just duplicate A and B
         # on the first iteration and reuse them, this means
         # that A, B, C all need to be square
         A, B, C = B, C, A
-    # Do another sum to synchronize for timings, B is last output
-    assert not math.isnan(np.sum(B))
-    stop = datetime.datetime.now()
-    delta = stop - start
-    total = delta.total_seconds() * 1000.0
+    total = timer.stop()
+
     print("Elapsed Time:     " + str(total) + " ms")
     average = total / I
     print("Average GEMM:     " + str(average) + " ms")
@@ -84,6 +75,14 @@ if __name__ == "__main__":
         help="number of iterations to run",
     )
     parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
+    )
+    parser.add_argument(
         "-n",
         "--num",
         type=int,
@@ -100,27 +99,29 @@ if __name__ == "__main__":
         help="number of bits of precision to use for the gemm computation "
         "(16,32,64)",
     )
-    parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    args = parser.parse_args()
+
+    args, np, timer = parse_args(parser)
+
     if args.P == 16:
         run_benchmark(
-            run_gemm, args.benchmark, "HGEMM", (args.N, args.I, np.float16)
+            run_gemm,
+            args.benchmark,
+            "HGEMM",
+            (args.N, args.I, args.warmup, np.float16),
         )
     elif args.P == 32:
         run_benchmark(
-            run_gemm, args.benchmark, "SGEMM", (args.N, args.I, np.float32)
+            run_gemm,
+            args.benchmark,
+            "SGEMM",
+            (args.N, args.I, args.warmup, np.float32),
         )
     elif args.P == 64:
         run_benchmark(
-            run_gemm, args.benchmark, "DGEMM", (args.N, args.I, np.float64)
+            run_gemm,
+            args.benchmark,
+            "DGEMM",
+            (args.N, args.I, args.warmup, np.float64),
         )
     else:
         raise TypeError("Precision must be one of 16, 32, or 64")

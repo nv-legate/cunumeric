@@ -17,7 +17,13 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass
 from functools import wraps
-from types import FunctionType, MethodDescriptorType, MethodType, ModuleType
+from types import (
+    BuiltinFunctionType,
+    FunctionType,
+    MethodDescriptorType,
+    MethodType,
+    ModuleType,
+)
 from typing import Any, Container, Mapping, Optional, cast
 
 import numpy as np
@@ -78,7 +84,7 @@ class CuWrapperMetadata:
 
 class CuWrapped(AnyCallable, Protocol):
     _cunumeric: CuWrapperMetadata
-    __wrapped__: Any
+    __wrapped__: AnyCallable
     __name__: str
     __qualname__: str
 
@@ -194,7 +200,9 @@ def unimplemented(
 
 
 def clone_module(
-    origin_module: ModuleType, new_globals: dict[str, Any]
+    origin_module: ModuleType,
+    new_globals: dict[str, Any],
+    include_builtin_function_type: bool = False,
 ) -> None:
     """Copy attributes from one module to another, excluding submodules
 
@@ -230,7 +238,10 @@ def clone_module(
         # Only need to wrap things that are in the origin module to begin with
         if attr not in origin_module.__dict__:
             continue
-        if isinstance(value, (FunctionType, lgufunc)):
+        if isinstance(value, (FunctionType, lgufunc)) or (
+            include_builtin_function_type
+            and isinstance(value, BuiltinFunctionType)
+        ):
             wrapped = implemented(
                 cast(AnyCallable, value), mod_name, attr, reporting=reporting
             )
@@ -239,7 +250,10 @@ def clone_module(
     from numpy import ufunc as npufunc
 
     for attr, value in missing.items():
-        if isinstance(value, (FunctionType, npufunc)):
+        if isinstance(value, (FunctionType, npufunc)) or (
+            include_builtin_function_type
+            and isinstance(value, BuiltinFunctionType)
+        ):
             wrapped = unimplemented(value, mod_name, attr, reporting=reporting)
             new_globals[attr] = wrapped
         else:

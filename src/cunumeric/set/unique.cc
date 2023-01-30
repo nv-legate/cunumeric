@@ -26,13 +26,14 @@ template <LegateTypeCode CODE, int32_t DIM>
 struct UniqueImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
-  std::pair<Buffer<VAL>, size_t> operator()(const AccessorRO<VAL, DIM>& in,
-                                            const Pitches<DIM - 1>& pitches,
-                                            const Rect<DIM>& rect,
-                                            const size_t volume,
-                                            const std::vector<comm::Communicator>& comms,
-                                            const DomainPoint& point,
-                                            const Domain& launch_domain)
+  void operator()(Array& output,
+                  const AccessorRO<VAL, DIM>& in,
+                  const Pitches<DIM - 1>& pitches,
+                  const Rect<DIM>& rect,
+                  const size_t volume,
+                  const std::vector<comm::Communicator>& comms,
+                  const DomainPoint& point,
+                  const Domain& launch_domain)
   {
     std::set<VAL> dedup_set;
 
@@ -41,13 +42,9 @@ struct UniqueImplBody<VariantKind::CPU, CODE, DIM> {
       dedup_set.insert(in[p]);
     }
 
-    size_t size = dedup_set.size();
+    auto result = output.create_output_buffer<VAL, 1>(dedup_set.size(), true);
     size_t pos  = 0;
-    auto result = create_buffer<VAL>(size);
-
     for (auto e : dedup_set) result[pos++] = e;
-
-    return std::make_pair(result, size);
   }
 };
 
@@ -58,7 +55,11 @@ struct UniqueImplBody<VariantKind::CPU, CODE, DIM> {
 
 namespace  // unnamed
 {
-static void __attribute__((constructor)) register_tasks(void) { UniqueTask::register_variants(); }
+static void __attribute__((constructor)) register_tasks(void)
+{
+  UniqueTask::register_variants(
+    {{LEGATE_GPU_VARIANT, legate::VariantOptions{}.with_concurrent(true)}});
+}
 }  // namespace
 
 }  // namespace cunumeric

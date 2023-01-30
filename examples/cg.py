@@ -17,15 +17,7 @@
 
 import argparse
 
-from benchmark import run_benchmark
-
-try:
-    from legate.timing import time
-except (ImportError, RuntimeError):
-    from time import perf_counter_ns
-
-    def time():
-        return perf_counter_ns() / 1000.0
+from benchmark import parse_args, run_benchmark
 
 
 # This is technically dead code right now, but we'll keep it around in
@@ -75,92 +67,6 @@ def generate_2D(N, corners):
     return A, b
 
 
-def solve(A, b, conv_iters, max_iters, conv_threshold, verbose):
-    print("Solving system...")
-    x = np.zeros(A.shape[1])
-    r = b - A.dot(x)
-    p = r
-    rsold = r.dot(r)
-    converged = -1
-    # Should always converge in fewer iterations than this
-    max_iters = (
-        min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
-    )
-    for i in range(max_iters):
-        Ap = A.dot(p)
-        alpha = rsold / (p.dot(Ap))
-        x = x + alpha * p
-        r = r - alpha * Ap
-        rsnew = r.dot(r)
-        # We only do the convergence test every conv_iters or on the last
-        # iteration
-        if (i % conv_iters == 0 or i == (max_iters - 1)) and np.sqrt(
-            rsnew
-        ) < conv_threshold:
-            converged = i
-            break
-        if verbose:
-            print("Residual: " + str(rsnew))
-        beta = rsnew / rsold
-        p = r + beta * p
-        rsold = rsnew
-    if converged < 0:
-        print("Convergence FAILURE!")
-    else:
-        print("Converged in %d iterations" % (converged))
-    return x
-
-
-def precondition(A, N, corners):
-    if corners:
-        d = 8 * (N**2)
-    else:
-        d = 4 * (N**2)
-    M = np.diag(np.full(N**2, 1.0 / d))
-    return M
-
-
-def preconditioned_solve(
-    A, M, b, conv_iters, max_iters, conv_threshold, verbose
-):
-    print("Solving system with preconditioner...")
-    x = np.zeros(A.shape[1])
-    r = b - A.dot(x)
-    z = M.dot(r)
-    p = z
-    rzold = r.dot(z)
-    converged = -1
-    # Should always converge in fewer iterations than this
-    max_iters = (
-        min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
-    )
-    for i in range(max_iters):
-        Ap = A.dot(p)
-        alpha = rzold / (p.dot(Ap))
-        x = x + alpha * p
-        r = r - alpha * Ap
-        rznew = r.dot(r)
-        # We only do the convergence test every conv_iters or on the
-        # last iteration
-        if (i % conv_iters == 0 or i == (max_iters - 1)) and np.sqrt(
-            rznew
-        ) < conv_threshold:
-            converged = i
-            break
-        if verbose:
-            print("Residual: " + str(rznew))
-        z = M.dot(r)
-        rznew = r.dot(z)
-        beta = rznew / rzold
-        p = z + beta * p
-        rzold = rznew
-    if converged < 0:
-        print("Convergence FAILURE!")
-    else:
-        print("Converged in %d iterations" % (converged))
-    return x
-
-
 def check(A, x, b):
     print("Checking result...")
     if np.allclose(A.dot(x), b):
@@ -172,9 +78,9 @@ def check(A, x, b):
 def run_cg(
     N,
     corners,
-    preconditioner,
     conv_iters,
     max_iters,
+    warmup,
     conv_threshold,
     perform_check,
     timing,
@@ -182,18 +88,125 @@ def run_cg(
 ):
     # A, b = generate_random(N)
     A, b = generate_2D(N, corners)
-    start = time()
-    if preconditioner:
-        M = precondition(A, N, corners)
-        x = preconditioned_solve(
-            A, M, b, conv_iters, max_iters, conv_threshold, verbose
-        )
+
+    print("Solving system...")
+    x = np.zeros(A.shape[1])
+    r = b - A.dot(x)
+    p = r
+    rsold = r.dot(r)
+    converged = -1
+    # Should always converge in fewer iterations than this
+    max_iters = (
+        min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
+    )
+
+    timer.start()
+    for i in range(-warmup, max_iters):
+        if i == 0:
+            timer.start()
+        Ap = A.dot(p)
+        alpha = rsold / (p.dot(Ap))
+        x = x + alpha * p
+        r = r - alpha * Ap
+        rsnew = r.dot(r)
+        # We only do the convergence test every conv_iters or on the last
+        # iteration
+        if (
+            i >= 0
+            and (i % conv_iters == 0 or i == (max_iters - 1))
+            and np.sqrt(rsnew) < conv_threshold
+        ):
+            converged = i
+            break
+        if verbose:
+            print("Residual: " + str(rsnew))
+        beta = rsnew / rsold
+        p = r + beta * p
+        rsold = rsnew
+    total = timer.stop()
+
+    if converged < 0:
+        print("Convergence FAILURE!")
     else:
-        x = solve(A, b, conv_iters, max_iters, conv_threshold, verbose)
+        print("Converged in %d iterations" % (converged))
     if perform_check:
         check(A, x, b)
-    stop = time()
-    total = (stop - start) / 1000.0
+
+    if timing:
+        print(f"Elapsed Time: {total} ms")
+    return total
+
+
+def precondition(A, N, corners):
+    if corners:
+        d = 8 * (N**2)
+    else:
+        d = 4 * (N**2)
+    M = np.diag(np.full(N**2, 1.0 / d))
+    return M
+
+
+def run_preconditioned_cg(
+    N,
+    corners,
+    conv_iters,
+    max_iters,
+    warmup,
+    conv_threshold,
+    perform_check,
+    timing,
+    verbose,
+):
+    print("Solving system with preconditioner...")
+    # A, b = generate_random(N)
+    A, b = generate_2D(N, corners)
+    M = precondition(A, N, corners)
+
+    x = np.zeros(A.shape[1])
+    r = b - A.dot(x)
+    z = M.dot(r)
+    p = z
+    rzold = r.dot(z)
+    converged = -1
+    # Should always converge in fewer iterations than this
+    max_iters = (
+        min(max_iters, b.shape[0]) if max_iters is not None else b.shape[0]
+    )
+
+    timer.start()
+    for i in range(-warmup, max_iters):
+        if i == 0:
+            timer.start()
+        Ap = A.dot(p)
+        alpha = rzold / (p.dot(Ap))
+        x = x + alpha * p
+        r = r - alpha * Ap
+        rznew = r.dot(r)
+        # We only do the convergence test every conv_iters or on the
+        # last iteration
+        if (
+            i >= 0
+            and (i % conv_iters == 0 or i == (max_iters - 1))
+            and np.sqrt(rznew) < conv_threshold
+        ):
+            converged = i
+            break
+        if verbose:
+            print("Residual: " + str(rznew))
+        z = M.dot(r)
+        rznew = r.dot(z)
+        beta = rznew / rzold
+        p = z + beta * p
+        rzold = rznew
+    total = timer.stop()
+
+    if converged < 0:
+        print("Convergence FAILURE!")
+    else:
+        print("Converged in %d iterations" % (converged))
+    if perform_check:
+        check(A, x, b)
+
     if timing:
         print(f"Elapsed Time: {total} ms")
     return total
@@ -238,6 +251,14 @@ if __name__ == "__main__":
         help="bound the maximum number of iterations",
     )
     parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
+    )
+    parser.add_argument(
         "-n",
         "--num",
         type=int,
@@ -260,66 +281,25 @@ if __name__ == "__main__":
         help="print verbose output",
     )
     parser.add_argument(
-        "-b",
-        "--benchmark",
-        type=int,
-        default=1,
-        dest="benchmark",
-        help="number of times to benchmark this application (default 1 - "
-        "normal execution)",
-    )
-    parser.add_argument(
         "--threshold",
         type=float,
         default=1e-10,
         dest="conv_threshold",
         help="convergence check threshold",
     )
-    parser.add_argument(
-        "--package",
-        dest="package",
-        choices=["legate", "numpy", "cupy"],
-        type=str,
-        default="legate",
-        help="NumPy package to use (legate, numpy, or cupy)",
-    )
-    parser.add_argument(
-        "--cupy-allocator",
-        dest="cupy_allocator",
-        choices=["default", "off", "managed"],
-        type=str,
-        default="default",
-        help="cupy allocator to use (default, off, or managed)",
-    )
 
-    args, _ = parser.parse_known_args()
-
-    if args.package == "legate":
-        import cunumeric as np
-    elif args.package == "cupy":
-        import cupy as np
-
-        if args.cupy_allocator == "off":
-            np.cuda.set_allocator(None)
-            print("Turning off memory pool")
-        elif args.cupy_allocator == "managed":
-            np.cuda.set_allocator(
-                np.cuda.MemoryPool(np.cuda.malloc_managed).malloc
-            )
-            print("Using managed memory pool")
-    elif args.package == "numpy":
-        import numpy as np
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
-        run_cg,
+        run_preconditioned_cg if args.precondition else run_cg,
         args.benchmark,
         "PreCG" if args.precondition else "CG",
         (
             args.N,
             args.corners,
-            args.precondition,
             args.conv_iters,
             args.max_iters,
+            args.warmup,
             args.conv_threshold,
             args.check,
             args.timing,

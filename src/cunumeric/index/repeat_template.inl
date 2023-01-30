@@ -38,9 +38,7 @@ struct RepeatImpl {
     auto input_arr  = args.input.read_accessor<VAL, DIM>(input_rect);
 
     if (input_rect.empty()) {
-      auto extents = Point<DIM>::ZEROES();
-      auto buffer  = create_buffer<VAL, DIM>(extents);
-      args.output.return_data(buffer, extents);
+      args.output.make_empty();
       return;
     }
 

@@ -24,14 +24,6 @@ namespace cunumeric {
 
 using namespace Legion;
 
-float* allocate_buffer_omp(size_t size)
-{
-  Memory::Kind kind = CuNumeric::has_numamem ? Memory::Kind::SOCKET_MEM : Memory::Kind::SYSTEM_MEM;
-  // We will not call this function on GPUs
-  auto buffer = legate::create_buffer<float, 1>(size, kind);
-  return buffer.ptr(0);
-}
-
 void half_vector_to_float_omp(float* out, const __half* ptr, size_t n)
 {
 #pragma omp parallel for schedule(static)

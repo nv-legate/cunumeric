@@ -215,7 +215,7 @@ def test_log_ops(op):
     check_op_input(op, astype="F", out_dtype="D")
 
     check_op_input(op, randint=True, a_min=3, a_max=10)
-    check_op_input(op, shape=(1,), offset=3)
+    check_op_input(op, shape=(1,), a_min=0.1, offset=3)
 
 
 even_root_ops = ("sqrt",)
@@ -231,7 +231,7 @@ def test_even_root_ops(op):
     # Complex inputs can be negative
     check_op_input(op, astype="F", out_dtype="D")
     check_op_input(op, randint=True, a_min=3, a_max=10)
-    check_op_input(op, shape=(1,), offset=3)
+    check_op_input(op, shape=(1,), a_min=0.1, offset=3)
 
 
 odd_root_ops = ("cbrt",)

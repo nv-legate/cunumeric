@@ -12,19 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+from functools import reduce
+
 import pytest
+from utils.generators import mk_seq_array
 
 import cunumeric as num
 
+DIM = 128
+NO_EMPTY_SIZES = [
+    (DIM,),
+    (1, DIM),
+    (DIM, 1),
+    (DIM, DIM),
+    (DIM, 1, 1),
+    (1, DIM, 1),
+    (1, 1, DIM),
+    (DIM, DIM, DIM),
+]
 
-def test_True():
-    x = num.array([1, 2, 3, 4, 5])
-    assert 4 in x
+
+@pytest.mark.parametrize("size", NO_EMPTY_SIZES)
+def test_int(size):
+    arr = mk_seq_array(num, shape=size)
+    max_data = reduce(lambda x, y: x * y, size)
+    assert -1 not in arr
+    assert 0 not in arr
+    assert 1 in arr
+    assert max_data // 2 in arr
+    assert max_data in arr
+    assert max_data + 1 not in arr
 
 
-def test_False():
-    x = num.array([1, 2, 3, 4, 5])
-    assert 6 not in x
+@pytest.mark.parametrize("size", NO_EMPTY_SIZES)
+def test_complex(size):
+    arr = mk_seq_array(num, shape=size) + mk_seq_array(num, shape=size) * 1.0j
+    max_data = reduce(lambda x, y: x * y, size)
+    assert -1 not in arr
+    assert 0 not in arr
+    assert 1 + 1.0j in arr
+    assert (max_data // 2) + (max_data // 2) * 1.0j in arr
+    assert max_data + max_data * 1.0j in arr
+    assert (max_data + 1) + (max_data + 1) * 1.0j not in arr
 
 
 if __name__ == "__main__":

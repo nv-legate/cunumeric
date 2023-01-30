@@ -13,39 +13,143 @@
 # limitations under the License.
 #
 
+import numpy as np
 import pytest
 
-import cunumeric as np
+import cunumeric as num
 
-x = np.array([[[1, 2, 3]]])
+DIM = 5
+SIZES = [
+    (0,),
+    (1),
+    (DIM),
+    (0, 1),
+    (1, 0),
+    (1, 1),
+    (1, DIM),
+    (DIM, 1),
+    (DIM, DIM),
+    (1, 0, 0),
+    (1, 1, 0),
+    (1, 0, 1),
+    (1, 1, 1),
+    (DIM, 1, 1),
+    (1, DIM, 1),
+    (1, 1, DIM),
+    (DIM, DIM, DIM),
+]
 
 
-def test_default():
-    y = x.squeeze()
-
-    assert np.array_equal(y, [1, 2, 3])
-
-
-def test_axis_1d():
-    y = x.squeeze(axis=1)
-
-    assert np.array_equal(y, [[1, 2, 3]])
+@pytest.mark.xfail
+def test_none_array_compare():
+    res_num = num.squeeze(None)  # AttributeError: 'NoneType'
+    res_np = np.squeeze(None)  # return None
+    assert np.array_equal(res_num, res_np, equal_nan=True)
 
 
-def test_axis_2d():
-    x = np.array([[[1], [2], [3]]])
+def test_none_array():
+    # numpy returned None
+    msg = r"NoneType"
+    with pytest.raises(AttributeError, match=msg):
+        num.squeeze(None)
 
-    y = x.squeeze(axis=(0, 2))
 
-    assert np.array_equal(y, [1, 2, 3])
+def test_num_invalid_axis():
+    size = (1, 2, 1)
+    a = num.random.randint(low=-10, high=10, size=size)
+    msg = r"one"
+    with pytest.raises(ValueError, match=msg):
+        num.squeeze(a, axis=1)
 
 
-def test_idempotent():
-    x = np.array([1, 2, 3])
+def test_array_invalid_axis():
+    size = (1, 2, 1)
+    a = num.random.randint(low=-10, high=10, size=size)
+    msg = r"one"
+    with pytest.raises(ValueError, match=msg):
+        a.squeeze(axis=1)
 
-    y = x.squeeze()
 
-    assert x is y
+def test_num_axis_out_bound():
+    size = (1, 2, 1)
+    a = num.random.randint(low=-10, high=10, size=size)
+    msg = r"bounds"
+    with pytest.raises(np.AxisError, match=msg):
+        num.squeeze(a, axis=3)
+
+
+def test_array_axis_out_bound():
+    size = (1, 2, 1)
+    a = num.random.randint(-10, 10, size=size)
+    msg = r"bounds"
+    with pytest.raises(np.AxisError, match=msg):
+        a.squeeze(axis=3)
+
+
+@pytest.mark.parametrize("axes", (-1, -3))
+def test_num_axis_negative(axes):
+    size = (1, 2, 1)
+    a = np.random.randint(low=-10, high=10, size=size)
+    b = num.array(a)
+    res_np = np.squeeze(a, axis=axes)
+    res_num = num.squeeze(b, axis=axes)
+    assert np.array_equal(res_num, res_np)
+
+
+@pytest.mark.parametrize("axes", (-1, -3))
+def test_array_axis_negative(axes):
+    size = (1, 2, 1)
+    a = np.random.randint(low=-10, high=10, size=size)
+    b = num.array(a)
+    res_np = a.squeeze(axis=axes)
+    res_num = b.squeeze(axis=axes)
+    assert np.array_equal(res_num, res_np)
+
+
+@pytest.mark.parametrize("size", SIZES, ids=str)
+def test_num_basic(size):
+    a = np.random.randint(low=-10, high=10, size=size)
+    b = num.array(a)
+    res_np = np.squeeze(a)
+    res_num = num.squeeze(b)
+    assert np.array_equal(res_num, res_np)
+
+
+@pytest.mark.parametrize("size", SIZES, ids=str)
+def test_array_basic(size):
+    a = np.random.randint(low=-10, high=10, size=size)
+    b = num.array(a)
+    res_np = a.squeeze()
+    res_num = b.squeeze()
+    assert np.array_equal(res_num, res_np)
+
+
+@pytest.mark.parametrize(
+    "size", (s for s in SIZES if type(s) == tuple if 1 in s), ids=str
+)
+def test_num_axis(size):
+    a = np.random.randint(low=-10, high=10, size=size)
+    b = num.array(a)
+
+    for k, axis in enumerate(a.shape):
+        if axis == 1:
+            res_np = np.squeeze(a, axis=k)
+            res_num = num.squeeze(b, axis=k)
+            assert np.array_equal(res_num, res_np)
+
+
+@pytest.mark.parametrize(
+    "size", (s for s in SIZES if type(s) == tuple if 1 in s), ids=str
+)
+def test_array_axis(size):
+    a = np.random.randint(low=-10, high=10, size=size)
+    b = num.array(a)
+
+    for k, axis in enumerate(a.shape):
+        if axis == 1:
+            res_np = a.squeeze(axis=k)
+            res_num = b.squeeze(axis=k)
+            assert np.array_equal(res_num, res_np)
 
 
 if __name__ == "__main__":

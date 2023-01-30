@@ -26,8 +26,7 @@ using namespace Legion;
 namespace {  // anonymous
 
 template <typename T>
-struct contract_helper {
-};
+struct contract_helper {};
 
 template <>
 struct contract_helper<__half> {

@@ -15,89 +15,36 @@ limitations under the License.
 
 -->
 
-# Overview
+# Basic build
 
-The build system is designed to enable two different modes of use:
-1. Simple `pip install` for users
-2. Highly customizable incremental builds for developers
+Users must have a working installation of the
+[Legate Core](https://github.com/nv-legate/legate.core)
+library prior to installing cuNumeric. **Installing cuNumeric by itself will not
+automatically install Legate Core.**
 
-We review each of these modes with examples.
+As for other dependencies, the Dependencies section on the
+[Legate Core build instructions](https://github.com/nv-legate/legate.core/blob/HEAD/BUILD.md)
+also covers cuNumeric, so no additional packages are required.
 
+Once Legate Core is installed, you can simply invoke `./install.py` from the
+cuNumeric top-level directory. The build will automatically pick up the
+configuration used when building Legate Core (e.g. the CUDA Toolkit directory).
 
-# Building for Users
+# Advanced topics
 
-## Using install.py
+## Building through pip & cmake
 
-For releases <= 22.07, the main method for building cuNumeric was the `install.py` script.
-Although the underlying implementation has significantly changed, `install.py` still supports the
-same usage and same set of flags. For a full list of flags, users can run:
+cuNumeric uses the same cmake/scikit-build-based build workflow as Legate Core.
+See the
+[Legate Core build instructions](https://github.com/nv-legate/legate.core/blob/HEAD/BUILD.md)
+for an overview.
 
-```
-$ ./install.py --help
-```
+There are several examples in the `scripts` folder. We walk through the steps in
+`build-with-legate-separately-no-install.sh` here.
 
-## Using Conda
- 
-cuNumeric can be installed using Conda by pointing to the required channels (`-c`):
+We assume a pre-existing Legate Core build. For details on building Legate Core,
+consult the [Legate Core repository](https://github.com/nv-legate/legate.core).
 
-```
-conda install -c nvidia -c conda-forge -c legate legate-core
-```
-
-## Using pip
-
-cuNumeric is not yet registered in a standard pip repository. However, users can still use the 
-pip installer to build and install cuNumeric. After downloading or cloning the cunumeric source,
-users can run the following in the cunumeric folder:
-
-```
-$ pip install .
-```
-or
-```
-$ python3 -m pip install .
-```
-
-This will install cuNumeric in the standard packages directory for the environment Python.
-Note: This is currently not sufficient for running cuNumeric programs. cuNumeric relies
-on the `legate` launcher from Legate core, which must be installed separately.
-For details on installing Legate, consult the [Legate repository](https://github.com/nv-legate/legate.core).
-
-### Advanced Customization
-
-If users need to customize details of the underlying CMake build, they can pass
-CMake flags through the `SKBUILD_CONFIGURE_OPTIONS` environment variable:
-
-```
-$ SKBUILD_CONFIGURE_OPTIONS="-D Legion_USE_CUDA:BOOL=ON" \
-  pip install .
-```
-An alternative syntax using `setup.py` with `scikit-build` is
-```
-$ python setup.py install -- -DLegion_USE_CUDA:BOOL=ON
-```
-
-# Building for Developers
-
-## Overview
-
-pip uses [scikit-build](https://scikit-build.readthedocs.io/en/latest/)
-in `setup.py` to drive the build and installation.  A `pip install` will trigger three general actions:
-
-1. CMake build and installation of C++ libraries
-2. CMake generation of configuration files and build-dependent Python files
-3. pip installation of Python files
-
-The CMake build can be configured independently of `pip`, allowing incremental C++ builds directly through CMake.
-This simplifies rebuilding `libcunumeric.so` either via command-line or via IDE.
-After building the C++ libraries, the `pip install` can be done in "editable" mode using the `-e` flag.
-This configures the Python site packages to import the Python source tree directly.
-The Python source can then be edited and used directly for testing without requiring a `pip install`.
-
-## Example
-
-There are several examples in the `scripts` folder. We walk through the steps in the `build-with-legate-separately-no-install.sh` here.
-We assume a pre-existing Legate CUDA build. For details on building Legate, consult the [Legate repository](https://github.com/nv-legate/legate.core).
 First, the CMake build needs to be configured:
 
 ```
@@ -106,6 +53,7 @@ $ cmake -S . -B build -GNinja -D legate_core_ROOT:STRING=path/to/legate/build
 
 We point cuNumeric to the Legate *build* tree, not an installation.
 This generates all build-dependent headers and Python files.
+
 Once configured, we can build the C++ libraries:
 
 ```
@@ -118,14 +66,12 @@ Once the C++ libraries are available, we can do an editable (development) pip in
 ```
 $ SKBUILD_BUILD_OPTIONS="-D FIND_CUNUMERIC_CPP=ON -D cunumeric_ROOT=$(pwd)/build" \
   python3 -m pip install \
-  --root / --no-deps --no-build-isolation 
+  --root / --no-deps --no-build-isolation
   --editable .
 ```
 
-The Python source tree and CMake build tree are now available with the environment Python 
-for running cuNumeric programs. The diagram below illustrates the 
+The Python source tree and CMake build tree are now available with the environment Python
+for running cuNumeric programs. The diagram below illustrates the
 complete workflow for building both Legate core and cuNumeric.
 
 <img src="docs/figures/developer-build.png" alt="drawing" width="600"/>
-
-

@@ -39,7 +39,7 @@ def compare_array_and_print_results(a, b, print_msg, check_type=True):
     """
     Compare two arrays and print results.
     """
-    if isinstance(a, list):
+    if isinstance(a, list) or isinstance(a, tuple):
         is_equal, err_arr = compare_array(a, b, check_type=False)
         assert is_equal, (
             f"Failed, {print_msg}\n"

@@ -36,14 +36,11 @@ enum class UnaryRedCode : int {
 };
 
 template <UnaryRedCode OP_CODE>
-struct is_arg_reduce : std::false_type {
-};
+struct is_arg_reduce : std::false_type {};
 template <>
-struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {
-};
+struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {};
 template <>
-struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {
-};
+struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {};
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&... args)
@@ -151,7 +148,7 @@ struct UnaryRedOp<UnaryRedCode::COUNT_NONZERO, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
-  static constexpr bool valid = !legate::is_complex<legate::legate_type_of<TYPE_CODE>>::value;
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -174,7 +171,7 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
-  static constexpr bool valid = !legate::is_complex<legate::legate_type_of<TYPE_CODE>>::value;
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -243,7 +240,7 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
-  static constexpr bool valid = !legate::is_complex<legate::legate_type_of<TYPE_CODE>>::value;
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = Argval<RHS>;
@@ -276,7 +273,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
 
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
-  static constexpr bool valid = !legate::is_complex<legate::legate_type_of<TYPE_CODE>>::value;
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = Argval<RHS>;

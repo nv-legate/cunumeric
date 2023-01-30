@@ -13,10 +13,10 @@ source ./scripts/util/uninstall-global-legion-legate-core-and-cunumeric.sh
 rm -rf ./{build,_skbuild,dist,cunumeric.egg-info}
 
 # Define CMake configuration arguments
-cmake_args=
+cmake_args="${CMAKE_ARGS:-}"
 
 # Use ninja-build if installed
-if [[ -n "$(which ninja)" ]]; then cmake_args+="-GNinja"; fi
+if [[ -n "$(which ninja)" ]]; then cmake_args+=" -GNinja"; fi
 
 # Add other build options here as desired
 cmake_args+="
@@ -29,7 +29,7 @@ ninja_args="-j$(nproc --ignore=2)"
 
 # Build cunumeric + cunumeric_python and install into the current Python environment
 SKBUILD_BUILD_OPTIONS="$ninja_args"       \
-SKBUILD_CONFIGURE_OPTIONS="$cmake_args"   \
+CMAKE_ARGS="$cmake_args"                  \
     python -m pip install                 \
         --root / --prefix "$CONDA_PREFIX" \
         --no-deps --no-build-isolation    \
