@@ -13,7 +13,7 @@ if [ -z "$CPU_ONLY" ]; then
   # cutensor, relying on the conda cutensor package
   CMAKE_ARGS+="
 -Dcutensor_DIR=$PREFIX
--DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;90
+-DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;86
 "
 else
   # When we build without cuda, we need to provide the location of curand
