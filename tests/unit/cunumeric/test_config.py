@@ -113,7 +113,7 @@ class TestCuNumericLib:
         lib.initialize(_FakeSO)
         lib.set_runtime(runtime)
         lib.destroy()
-        assert mock_destroy.called_once_with()
+        mock_destroy.assert_called_once_with()
 
 
 def test_CUNUMERIC_LIB_NAME() -> None:

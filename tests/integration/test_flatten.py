@@ -44,7 +44,7 @@ def test_basic(order, size):
 
 
 class TestNdarrayFlattenErrors:
-    def setup(self):
+    def setup_method(self):
         size_a = (1, DIM)
         anp = np.random.randint(low=0, high=100, size=size_a)
         self.anum = num.array(anp)
