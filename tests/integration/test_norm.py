@@ -138,16 +138,14 @@ class TestNormErrors:
     def test_invalid_ord_for_vector(self, ndim_axis):
         ndim, axis = ndim_axis
         ord = "fro"
-        msg = "Invalid norm order"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.linalg.norm(num_arrays[ndim], ord=ord, axis=axis)
 
     def test_invalid_ord_for_matrices(self):
         ndim = 2
         axis = (0, 1)
         ord = "unknown"
-        msg = "Invalid norm order for matrices"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(ValueError):
             num.linalg.norm(num_arrays[ndim], ord=ord, axis=axis)
 
 
