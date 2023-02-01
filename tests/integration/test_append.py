@@ -59,7 +59,7 @@ def test_append_axis_none(size_a, size_b):
 
 
 class TestAppendErrors:
-    def setup(self):
+    def setup_method(self):
         size_a = (1, DIM)
         self.a = np.random.randint(low=0, high=100, size=size_a)
 
