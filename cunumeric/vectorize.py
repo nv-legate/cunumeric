@@ -17,15 +17,18 @@ import inspect
 import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
-# numba doesn't seem to include type hints
-import numba.cuda  # type: ignore
-import numba.types  # type: ignore
+import legate.core.types as ty
+import numba.cuda
+import numba.types
+
+# import numba
 import numpy as np
 import six
 
 from cunumeric.runtime import runtime
 
 from .array import convert_to_cunumeric_ndarray
+from .config import CuNumericOpCode
 
 _EXTERNAL_REFERENCE_PREFIX = "__extern_ref__"
 _MASK_VAR = "__mask__"
@@ -98,11 +101,15 @@ class vectorize:
     ) -> None:
         self._pyfunc = pyfunc
         self._numba_func: Optional[Callable[[Any], Any]] = None
-        self._device_func: Optional[Callable[[Any], Any]] = None
+        self._cpu_func: numba.types.CPointer = numba.types.CPointer(int)
+        self._gpu_func: tuple[Any] = (0,)
         self._otypes = None
         self._result = None
         self._args: List[Any] = []
         self._kwargs: List[Any] = []
+        self._context = runtime.legate_context
+
+        print("IRINA DEBUG initialization")
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -247,7 +254,7 @@ class vectorize:
             types.append(ty)
         return types
 
-    def _compile_func_gpu(self) -> Callable[[Any], Any]:
+    def _compile_func_gpu(self) -> tuple[Any]:
         types = self._get_numba_types()
         arg_types = types + [numba.types.uint64]
         sig = (*arg_types,)
@@ -255,30 +262,41 @@ class vectorize:
         cuda_arch = numba.cuda.get_current_device().compute_capability
         return numba.cuda.compile_ptx(self._numba_func, sig, cc=cuda_arch)
 
-    def _compile_func_cpu(self) -> Any:
+    def _compile_func_cpu(self) -> numba.types.CPointer:
         sig = numba.types.void(
             numba.types.CPointer(numba.types.voidptr), numba.types.uint64
         )
 
         return numba.cfunc(sig)(self._numba_func)
 
-    #     def _execute_gpu(self):
-    #        task = self.context.create_auto_task(CuNumericOpCode.LOAD_PTX)
-    #        task..add_future(
-    #            self._runtime.create_future_from_string(self._device_func)
-    #        )
-    #        kernel_fun = task.execute()
+    def _execute_gpu(self) -> None:
+        print("IRINA DEBUG executing GPU function")
+        # task = self._context.create_auto_task(CuNumericOpCode.LOAD_PTX)
+        # task.add_future(
+        #    self._runtime.create_future_from_string(self._device_func)
+        # )
+        # task.execute()
 
-    #        task = self.context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-    # This will be ignored
-    #        task.add_scalar_arg(0, ty.uint64)
-    #        task.add_future_map(kernel_fun)
-    #        task.execute()
+        # task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
+        # This will be ignored
+        # task.add_scalar_arg(0, ty.uint64)
+        # task.add_future_map(kernel_fun)
+        # task.execute()
 
-    #     def _execute_cpu(self):
-
-    #        task = self.context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-    #        task.add_scalar_arg(self._device_func.address, ty.uint64)
+    def _execute_cpu(self) -> None:
+        task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
+        task.add_scalar_arg(self._cpu_func.address, ty.uint64)
+        idx = 0
+        a0 = self._args[0]._thunk
+        a0 = runtime.to_deferred_array(a0)
+        for a in self._args:
+            a_tmp = runtime.to_deferred_array(a._thunk)
+            task.add_input(a_tmp.base)
+            task.add_output(a_tmp.base)
+            if idx != 0:
+                task.add_alignment(a0.base, a_tmp.base)
+            idx += 1
+        task.execute()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
         """
@@ -296,6 +314,25 @@ class vectorize:
                     "passed to cunumeric.vectorize"
                 )
 
+        #        #FIXME: comment out when brodcast PR is merged
+        #        #bring all argumants to the same shape and type:
+        #        if len(self._args)>0:
+        #             ty = self._args[0].dtype
+        #             #FIXME: should we bring them all to the same type?
+        #             for a in self._args:
+        #                 if a.dtype != ty:
+        #                    return TypeError("all arguments of "
+        #                         "user defined function "
+        #                      "should have the same type")
+
+        #    shapes = tuple(a.shape for a in self._args)
+        #    shape = broadcast_shapes(shapes)
+        #    new_args = tuple()
+        #    for a in self._args:
+        #        a_new = a.broadcast_to(shape)
+        #        new_args +=(a_new,)
+        #    self._args = new_args
+
         self._kwargs = list(kwargs)
         if len(self._kwargs) > 1:
             raise NotImplementedError(
@@ -304,11 +341,9 @@ class vectorize:
 
         if runtime.num_gpus > 0:
             self._numba_func = self._build_gpu_function()
-            self._device_func = self._compile_func_gpu()
-        #            self._execute_gpu()
+            self._gpu_func = self._compile_func_gpu()
+            self._execute_gpu()
         else:
             self._numba_func = self._build_cpu_function()
-            self._device_func = self._compile_func_cpu()
-        #            self._execute_cpu()
-
-        return self._result
+            self._cpu_func = self._compile_func_cpu()
+            self._execute_cpu()

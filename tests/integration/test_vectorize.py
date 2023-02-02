@@ -27,9 +27,12 @@ def my_func(a, b):
 
 def test_vectorize():
     func = num.vectorize(my_func)
-    a = 1
-    b = 2
+    a = num.arange(5)
+    b = num.zeros((5,))
+    # b = 2
     func(a, b)
+    # assert(a==12)
+    print("IRINA DEBUG:")
     print(a)
 
 
