@@ -23,9 +23,10 @@ import legate.core.types as ty
 import numpy as np
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 from legate.core.context import Context as LegateContext
-from legate.util.args import ArgSpec, Argument, parse_library_command_args
+from legate.util.args import parse_library_command_args
 from typing_extensions import TypeGuard
 
+from .args import ARGS
 from .config import (
     _CUNUMERIC_DTYPES,
     BitGeneratorOperation,
@@ -52,65 +53,6 @@ if TYPE_CHECKING:
     from legate.core.operation import AutoTask, ManualTask
 
     from .array import ndarray
-
-ARGS = [
-    Argument(
-        "test",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="test_mode",
-            help="Enable test mode. In test mode, all cuNumeric ndarrays are managed by the distributed runtime and the NumPy fallback for small arrays is turned off.",  # noqa E501
-        ),
-    ),
-    Argument(
-        "preload-cudalibs",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="preload_cudalibs",
-            help="Preload and initialize handles of all CUDA libraries (cuBLAS, cuSOLVER, etc.) used in cuNumericLoad CUDA libs early",  # noqa E501
-        ),
-    ),
-    Argument(
-        "warn",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="warning",
-            help="Turn on warnings",
-        ),
-    ),
-    Argument(
-        "report:coverage",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="report_coverage",
-            help="Print an overall percentage of cunumeric coverage",
-        ),
-    ),
-    Argument(
-        "report:dump-callstack",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="report_dump_callstack",
-            help="Print an overall percentage of cunumeric coverage with call stack details",  # noqa E501
-        ),
-    ),
-    Argument(
-        "report:dump-csv",
-        ArgSpec(
-            action="store",
-            type=str,
-            nargs="?",
-            default=None,
-            dest="report_dump_csv",
-            help="Save a coverage report to a specified CSV file",
-        ),
-    ),
-]
 
 
 class Runtime(object):
