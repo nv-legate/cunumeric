@@ -54,11 +54,16 @@ class TestMatmulErrors:
         ids=lambda shapesAB: f"(shapesAB={shapesAB})",
     )
     def test_invalid_shape_dim_greater_than_one(self, shapesAB):
+        expected_exc = ValueError
         shapeA, shapeB = shapesAB
-        A = num.ones(shapeA)
-        B = num.ones(shapeB)
-        with pytest.raises(ValueError):
-            num.matmul(A, B)
+        A_np = np.ones(shapeA)
+        B_np = np.ones(shapeB)
+        A_num = num.ones(shapeA)
+        B_num = num.ones(shapeB)
+        with pytest.raises(expected_exc):
+            np.matmul(A_np, B_np)
+        with pytest.raises(expected_exc):
+            num.matmul(A_num, B_num)
 
     @pytest.mark.parametrize(
         "shapesAB",
@@ -78,35 +83,59 @@ class TestMatmulErrors:
         # For ((4, 1), (3,)), ((3,), (1, 4)), ((3,), (1,)),
         # In Numpy, raise ValueError
         # In cuNumeric, broadcast 1 to 3 and pass
+        expected_exc = ValueError
         shapeA, shapeB = shapesAB
-        A = num.ones(shapeA)
-        B = num.ones(shapeB)
-        with pytest.raises(ValueError):
-            num.matmul(A, B)
+        A_np = np.ones(shapeA)
+        B_np = np.ones(shapeB)
+        A_num = num.ones(shapeA)
+        B_num = num.ones(shapeB)
+        with pytest.raises(expected_exc):
+            np.matmul(A_np, B_np)
+        with pytest.raises(expected_exc):
+            num.matmul(A_num, B_num)
 
     def test_invalid_shape_with_scalar(self):
-        with pytest.raises(ValueError):
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            np.matmul(3, 3)
+        with pytest.raises(expected_exc):
             num.matmul(3, 3)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(expected_exc):
+            np.matmul(3, np.ones((1,)))
+        with pytest.raises(expected_exc):
             num.matmul(3, num.ones((1,)))
-        with pytest.raises(ValueError):
+
+        with pytest.raises(expected_exc):
+            np.matmul(np.ones((1,)), 3)
+        with pytest.raises(expected_exc):
             num.matmul(num.ones((1,)), 3)
 
-        with pytest.raises(ValueError):
+        with pytest.raises(expected_exc):
+            np.matmul(3, np.ones((1, 1)))
+        with pytest.raises(expected_exc):
             num.matmul(3, num.ones((1, 1)))
-        with pytest.raises(ValueError):
+
+        with pytest.raises(expected_exc):
+            np.matmul(np.ones((1, 1)), 3)
+        with pytest.raises(expected_exc):
             num.matmul(num.ones((1, 1)), 3)
 
     @pytest.mark.parametrize(
         "shape", ((2, 3), (3, 4, 3)), ids=lambda shape: f"(shape={shape})"
     )
     def test_out_invalid_shape(self, shape):
-        A = num.ones((3, 2, 4))
-        B = num.ones((3, 4, 3))
-        out = num.zeros(shape)
-        with pytest.raises(ValueError):
-            num.matmul(A, B, out=out)
+        expected_exc = ValueError
+        A_np = np.ones((3, 2, 4))
+        B_np = np.ones((3, 4, 3))
+        out_np = np.zeros(shape)
+        A_num = num.ones((3, 2, 4))
+        B_num = num.ones((3, 4, 3))
+        out_num = num.zeros(shape)
+        with pytest.raises(expected_exc):
+            np.matmul(A_np, B_np, out=out_np)
+        with pytest.raises(expected_exc):
+            num.matmul(A_num, B_num, out=out_num)
 
     @pytest.mark.xfail
     def test_out_invalid_shape_DIVERGENCE(self):
@@ -119,12 +148,18 @@ class TestMatmulErrors:
         num.matmul(A, B, out=out)
 
     def test_out_invalid_dtype(self):
-        A = num.ones((3, 2, 4))
-        B = num.ones((3, 4, 3))
+        expected_exc = TypeError
+        A_np = num.ones((3, 2, 4))
+        B_np = num.ones((3, 4, 3))
+        A_num = num.ones((3, 2, 4))
+        B_num = num.ones((3, 4, 3))
         dtype = np.int64
-        out = num.zeros((3, 2, 3), dtype=dtype)
-        with pytest.raises(TypeError):
-            num.matmul(A, B, out=out)
+        out_np = np.zeros((3, 2, 3), dtype=dtype)
+        out_num = num.zeros((3, 2, 3), dtype=dtype)
+        with pytest.raises(expected_exc):
+            np.matmul(A_np, B_np, out=out_np)
+        with pytest.raises(expected_exc):
+            num.matmul(A_num, B_num, out=out_num)
 
     @pytest.mark.parametrize(
         "casting_dtype",
@@ -137,23 +172,31 @@ class TestMatmulErrors:
         ids=lambda casting_dtype: f"(casting_dtype={casting_dtype})",
     )
     def test_invalid_casting_dtype(self, casting_dtype):
-        # In Nmupy, it raises numpy.core._exceptions.UFuncTypeError
-        # In cuNumeric, it raises TypeError
+        expected_exc = TypeError
         casting, dtype = casting_dtype
-        A = num.ones((2, 4))
-        B = num.ones((4, 3))
-        with pytest.raises(TypeError):
-            num.matmul(A, B, casting=casting, dtype=dtype)
+        A_np = np.ones((2, 4))
+        B_np = np.ones((4, 3))
+        A_num = num.ones((2, 4))
+        B_num = num.ones((4, 3))
+        with pytest.raises(expected_exc):
+            np.matmul(A_np, B_np, casting=casting, dtype=dtype)
+        with pytest.raises(expected_exc):
+            num.matmul(A_num, B_num, casting=casting, dtype=dtype)
 
     @pytest.mark.xfail
     def test_invalid_casting(self):
         # In Numpy, raise ValueError
         # In cuNumeric, pass
+        expected_exc = ValueError
         casting = "unknown"
-        A = num.ones((2, 4))
-        B = num.ones((4, 3))
-        with pytest.raises(ValueError):
-            num.matmul(A, B, casting=casting)
+        A_np = np.ones((2, 4))
+        B_np = np.ones((4, 3))
+        A_num = num.ones((2, 4))
+        B_num = num.ones((4, 3))
+        with pytest.raises(expected_exc):
+            np.matmul(A_np, B_np, casting=casting)
+        with pytest.raises(expected_exc):
+            num.matmul(A_num, B_num, casting=casting)
 
 
 if __name__ == "__main__":

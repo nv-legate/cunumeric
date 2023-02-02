@@ -114,10 +114,16 @@ def test_axis_2d(ndim, ord, keepdims, axis):
 class TestNormErrors:
     def test_axis_invalid_type(self):
         # In cuNumeric, raises error in normalize_axis_tuple
-        x = num.array([1, 2, 3])
+        expected_exc = TypeError
+        x_np = np.array([1, 2, 3])
+        x_num = num.array([1, 2, 3])
         axis = "string"
-        with pytest.raises(TypeError):
-            num.linalg.norm(x, axis=axis)
+
+        with pytest.raises(expected_exc):
+            np.linalg.norm(x_np, axis=axis)
+
+        with pytest.raises(expected_exc):
+            num.linalg.norm(x_num, axis=axis)
 
     @pytest.mark.parametrize(
         "axis",
@@ -126,8 +132,13 @@ class TestNormErrors:
     )
     def test_axis_invalid_value(self, axis):
         # for (1, 1), In cuNumeric, raises error in normalize_axis_tuple
+        expected_exc = ValueError
         ndim = 2
-        with pytest.raises(ValueError):
+
+        with pytest.raises(expected_exc):
+            np.linalg.norm(np_arrays[ndim], axis=axis)
+
+        with pytest.raises(expected_exc):
             num.linalg.norm(num_arrays[ndim], axis=axis)
 
     @pytest.mark.parametrize(
@@ -136,16 +147,26 @@ class TestNormErrors:
         ids=lambda ndim_axis: f"(ndim_axis={ndim_axis})",
     )
     def test_invalid_ord_for_vector(self, ndim_axis):
+        expected_exc = ValueError
         ndim, axis = ndim_axis
         ord = "fro"
-        with pytest.raises(ValueError):
+
+        with pytest.raises(expected_exc):
+            np.linalg.norm(np_arrays[ndim], ord=ord, axis=axis)
+
+        with pytest.raises(expected_exc):
             num.linalg.norm(num_arrays[ndim], ord=ord, axis=axis)
 
     def test_invalid_ord_for_matrices(self):
+        expected_exc = ValueError
         ndim = 2
         axis = (0, 1)
         ord = "unknown"
-        with pytest.raises(ValueError):
+
+        with pytest.raises(expected_exc):
+            np.linalg.norm(np_arrays[ndim], ord=ord, axis=axis)
+
+        with pytest.raises(expected_exc):
             num.linalg.norm(num_arrays[ndim], ord=ord, axis=axis)
 
 
