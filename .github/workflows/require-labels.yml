@@ -6,10 +6,6 @@ jobs:
   label:
     runs-on: ubuntu-latest
     steps:
-      - name: Delay checking labels if PR is just created
-        if: ${{ github.event.action == 'opened' }}
-        run: sleep 300s
-        shell: bash
       - name: Check Labels
         uses: mheap/github-action-required-labels@v2
         with:
