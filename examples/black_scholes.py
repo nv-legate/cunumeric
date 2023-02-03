@@ -17,7 +17,7 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def generate_random(N, min, max, D):
@@ -71,11 +71,10 @@ def black_scholes(S, X, T, R, V):
 def run_black_scholes(N, D):
     print("Running black scholes on %dK options..." % N)
     N *= 1000
-    start = time()
+    timer.start()
     S, X, T, R, V = initialize(N, D)
     _, _ = black_scholes(S, X, T, R, V)
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     print("Elapsed Time: " + str(total) + " ms")
     return total
 
@@ -99,7 +98,7 @@ if __name__ == "__main__":
         help="precision of the computation in bits",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     if args.P == 16:
         run_benchmark(

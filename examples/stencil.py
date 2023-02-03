@@ -17,7 +17,7 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(N):
@@ -40,16 +40,15 @@ def run_stencil(N, I, warmup, timing):  # noqa: E741
     west = grid[1:-1, 0:-2]
     south = grid[2:, 1:-1]
 
-    start = time()
+    timer.start()
     for i in range(I + warmup):
         if i == warmup:
-            start = time()
+            timer.start()
         average = center + north + east + west + south
         work = 0.2 * average
         center[:] = work
-    stop = time()
+    total = timer.stop()
 
-    total = (stop - start) / 1000.0
     if timing:
         print(f"Elapsed Time: {total} ms")
     return total
@@ -89,7 +88,7 @@ if __name__ == "__main__":
         help="perform timing",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_stencil,

@@ -19,7 +19,7 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 def initialize(N, D, C, T):
@@ -77,7 +77,7 @@ def run_kmeans(C, D, T, I, N, S, benchmarking):  # noqa: E741
     print("Number of dimensions: " + str(D))
     print("Number of centroids: " + str(C))
     print("Max iterations: " + str(I))
-    start = time()
+    timer.start()
     data, centroids = initialize(N, D, C, T)
 
     data_dots = np.square(np.linalg.norm(data, ord=2, axis=1))
@@ -125,8 +125,7 @@ def run_kmeans(C, D, T, I, N, S, benchmarking):  # noqa: E741
         + ": "
         + str(prior_distance_sum)
     )
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     print("Elapsed Time: " + str(total) + " ms")
     return total
 
@@ -181,7 +180,7 @@ if __name__ == "__main__":
         help="number of iterations between sampling the log likelihood",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     if args.P == 16:
         run_benchmark(
