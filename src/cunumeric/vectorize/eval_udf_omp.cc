@@ -21,7 +21,6 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-
 /*static*/ void EvalUdfTask::omp_variant(TaskContext& context)
 {
   EvalUdfTask::cpu_variant(context);
