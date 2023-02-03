@@ -15,21 +15,39 @@
  */
 
 #include "cunumeric/vectorize/eval_udf.h"
-#include "cunumeric/vectorize/eval_udf_template.inl"
 
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM>
-struct EvalUdfImplBody<VariantKind::CPU, CODE, DIM> {
-  using VAL = legate_type_of<CODE>;
+struct EvalUdfCPU {
+  template <LegateTypeCode CODE, int DIM>
+  void operator()(EvalUdfArgs& args) const
+  {
+    std::cout <<"IRINA DEBUG in CPU task 2"<<std::endl;
+    using UDF = void(void**, size_t);
+    auto udf  = reinterpret_cast<UDF*>(args.cpu_func_ptr);
+    std::vector<void*> udf_args;
+    using VAL = legate_type_of<CODE>;
+    auto rect = args.args[0].shape<DIM>();
+
+    if (rect.empty()) return;
+    for (size_t i = 0; i < args.args.size(); i++) {
+      auto out = args.args[i].write_accessor<VAL, DIM>(rect);
+      udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect)));
+    }
+
+    udf(udf_args.data(), rect.volume());
+  }
 };
 
 /*static*/ void EvalUdfTask::cpu_variant(TaskContext& context)
 {
-  eval_udf_template<VariantKind::CPU>(context);
+  std::cout <<"IRINA DEBUG in CPU task"<<std::endl;
+  EvalUdfArgs args{context.scalars()[0].value<uint64_t>(), context.outputs()};
+  size_t dim = args.args[0].dim() == 0 ? 1 : args.args[0].dim();
+  double_dispatch(dim, args.args[0].code(), EvalUdfCPU{}, args);
 }
 
 namespace  // unnamed

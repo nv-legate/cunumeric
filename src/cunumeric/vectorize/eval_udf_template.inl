@@ -39,10 +39,8 @@ struct EvalUdfImpl {
     using VAL = legate_type_of<CODE>;
     auto rect = args.args[0].shape<DIM>();
 
-    std::cout << "IRINA DEBUG size = " << args.args.size() << " , rect = " << rect << std::endl;
-
     if (rect.empty()) return;
-
+    EvalUdfImplBody<KIND,CODE,DIM>();
     for (size_t i = 0; i < args.args.size(); i++) {
       auto out = args.args[i].write_accessor<VAL, DIM>(rect);
       udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect)));
@@ -55,8 +53,12 @@ struct EvalUdfImpl {
 template <VariantKind KIND>
 static void eval_udf_template(TaskContext& context)
 {
-  std::cout << "IRINA DEBUG inside eval_udf_template" << std::endl;
-  EvalUdfArgs args{context.scalars()[0].value<uint64_t>(), context.outputs()};
+  is_gpus = context.scalars()[0].value<bool>();
+  if (is_gpus)
+      std::cout <<"IRINA DEBUG size of the scalars = "<<context.scalars().size()<<std::endl;
+      EvalUdfArgs args{0,context.scalars()[1].value<char*>(), context.outputs()};
+  else
+      EvalUdfArgs args{context.scalars()[1].value<uint64_t>(),'', context.outputs()};
   size_t dim = args.args[0].dim() == 0 ? 1 : args.args[0].dim();
   double_dispatch(dim, args.args[0].code(), EvalUdfImpl<KIND>{}, args);
 }

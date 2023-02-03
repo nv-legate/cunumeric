@@ -18,8 +18,8 @@ import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import legate.core.types as ty
-import numba.cuda
-import numba.types
+import numba.cuda # type: ignore
+import numba.types # type: ignore
 
 # import numba
 import numpy as np
@@ -109,7 +109,6 @@ class vectorize:
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
 
-        print("IRINA DEBUG initialization")
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -155,7 +154,7 @@ class vectorize:
             return_lines.append(lines[i].rstrip())
         return return_lines
 
-    def _build_gpu_function(self) -> Callable[[Any], Any]:
+    def _build_gpu_function(self) -> Any:
 
         funcid = "vectorized_{}".format(self._pyfunc.__name__)
 
@@ -270,18 +269,20 @@ class vectorize:
         return numba.cfunc(sig)(self._numba_func)
 
     def _execute_gpu(self) -> None:
-        print("IRINA DEBUG executing GPU function")
-        # task = self._context.create_auto_task(CuNumericOpCode.LOAD_PTX)
-        # task.add_future(
-        #    self._runtime.create_future_from_string(self._device_func)
-        # )
-        # task.execute()
-
-        # task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-        # This will be ignored
-        # task.add_scalar_arg(0, ty.uint64)
-        # task.add_future_map(kernel_fun)
-        # task.execute()
+        print("IRINA DEBUG executing GPU function", type(self._gpu_func[0]))
+        task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
+        task.add_scalar_arg(self._gpu_func[0], ty.string)
+        idx = 0
+        a0 = self._args[0]._thunk
+        a0 = runtime.to_deferred_array(a0)
+        for a in self._args:
+            a_tmp = runtime.to_deferred_array(a._thunk)
+            task.add_input(a_tmp.base)
+            task.add_output(a_tmp.base)
+            if idx != 0:
+                task.add_alignment(a0.base, a_tmp.base)
+            idx += 1
+        task.execute()
 
     def _execute_cpu(self) -> None:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)

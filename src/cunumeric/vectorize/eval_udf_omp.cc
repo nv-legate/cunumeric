@@ -15,21 +15,16 @@
  */
 
 #include "cunumeric/vectorize/eval_udf.h"
-#include "cunumeric/vectorize/eval_udf_template.inl"
 
 namespace cunumeric {
 
 using namespace Legion;
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM>
-struct EvalUdfImplBody<VariantKind::OMP, CODE, DIM> {
-  using VAL = legate_type_of<CODE>;
-};
 
 /*static*/ void EvalUdfTask::omp_variant(TaskContext& context)
 {
-  eval_udf_template<VariantKind::OMP>(context);
+  EvalUdfTask::cpu_variant(context);
 }
 
 }  // namespace cunumeric

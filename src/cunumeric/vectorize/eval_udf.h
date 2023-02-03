@@ -21,8 +21,9 @@
 namespace cunumeric {
 
 struct EvalUdfArgs {
-  uint64_t func_ptr;
+  uint64_t cpu_func_ptr;
   std::vector<Array>& args;
+  std::string ptx = "";
 };
 
 class EvalUdfTask : public CuNumericTask<EvalUdfTask> {
