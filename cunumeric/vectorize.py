@@ -18,10 +18,7 @@ import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import legate.core.types as ty
-import numba.cuda # type: ignore
-import numba.types # type: ignore
-
-# import numba
+import numba
 import numpy as np
 import six
 
@@ -29,6 +26,10 @@ from cunumeric.runtime import runtime
 
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
+
+# import numba.cuda
+# import numba.types
+
 
 _EXTERNAL_REFERENCE_PREFIX = "__extern_ref__"
 _MASK_VAR = "__mask__"
@@ -100,15 +101,14 @@ class vectorize:
         signature: Optional[str] = None,
     ) -> None:
         self._pyfunc = pyfunc
-        self._numba_func: Optional[Callable[[Any], Any]] = None
-        self._cpu_func: numba.types.CPointer = numba.types.CPointer(int)
-        self._gpu_func: tuple[Any] = (0,)
+        self._numba_func: Callable[[Any], Any]
+        self._cpu_func: numba.core.ccallback.CFunc
+        self._gpu_func: tuple[Any]
         self._otypes = None
         self._result = None
         self._args: List[Any] = []
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
-
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -248,28 +248,27 @@ class vectorize:
         for arg in self._args:
             ty = arg.dtype
             ty = str(ty) if ty != bool else "int8"
-            ty = getattr(numba.types, ty)
-            ty = numba.types.CPointer(ty)
+            ty = getattr(numba.core.types, ty)
+            ty = numba.core.types.CPointer(ty)
             types.append(ty)
         return types
 
     def _compile_func_gpu(self) -> tuple[Any]:
         types = self._get_numba_types()
-        arg_types = types + [numba.types.uint64]
+        arg_types = types + [numba.core.types.uint64]
         sig = (*arg_types,)
 
         cuda_arch = numba.cuda.get_current_device().compute_capability
         return numba.cuda.compile_ptx(self._numba_func, sig, cc=cuda_arch)
 
-    def _compile_func_cpu(self) -> numba.types.CPointer:
-        sig = numba.types.void(
-            numba.types.CPointer(numba.types.voidptr), numba.types.uint64
-        )
+    def _compile_func_cpu(self) -> numba.core.ccallback.CFunc:
+        sig = numba.core.types.void(
+            numba.types.CPointer(numba.types.voidptr), numba.core.types.uint64
+        )  # type: ignore
 
         return numba.cfunc(sig)(self._numba_func)
 
     def _execute_gpu(self) -> None:
-        print("IRINA DEBUG executing GPU function", type(self._gpu_func[0]))
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._gpu_func[0], ty.string)
         idx = 0
@@ -286,7 +285,7 @@ class vectorize:
 
     def _execute_cpu(self) -> None:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-        task.add_scalar_arg(self._cpu_func.address, ty.uint64)
+        task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
         idx = 0
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
