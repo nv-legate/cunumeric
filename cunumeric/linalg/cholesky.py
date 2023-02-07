@@ -204,7 +204,6 @@ def tril(context: Context, p_output: StorePartition, n: int) -> None:
 def cholesky(
     output: DeferredArray, input: DeferredArray, no_tril: bool
 ) -> None:
-
     runtime = output.runtime
     context = output.context
 

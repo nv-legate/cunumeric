@@ -19,7 +19,6 @@ import cunumeric as num
 
 
 def testtion():
-
     word_size = 10
     hidden_size = 10
     sentence_length = 5

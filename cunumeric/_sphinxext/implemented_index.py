@@ -46,13 +46,11 @@ namespaces = (
 
 
 class ImplementedIndex(CunumericDirective):
-
     has_content = False
     required_arguments = 0
     optional_arguments = 0
 
     def run(self) -> nodes.Node:
-
         refs: list[str] = []
         for ns in namespaces:
             refs += [
