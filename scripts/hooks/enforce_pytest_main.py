@@ -24,10 +24,8 @@ TEST_DIRS = (TESTS_TOP / "unit", TESTS_TOP / "integration")
 
 
 def enforce_pytest_main() -> NoReturn:
-
     for dir in TEST_DIRS:
         for path in dir.rglob("*.py"):
-
             if not path.is_file() or not path.name.startswith("test_"):
                 continue
 

@@ -29,7 +29,6 @@ log = getLogger(__name__)
 
 
 class ComparisonTable(CunumericDirective):
-
     has_content = False
     required_arguments = 0
     optional_arguments = 1

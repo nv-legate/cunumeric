@@ -58,7 +58,6 @@ def generate_random(volume, datatype):
 
 
 def check_api(a, dtype2=None, v=None):
-
     a_sorted = np.sort(a)
     a_argsorted = np.argsort(a)
     if v is None:
