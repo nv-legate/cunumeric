@@ -15,7 +15,6 @@
 
 import numpy as np
 import pytest
-from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -63,7 +62,7 @@ class TestSort(object):
     def test_arr_empty(self, arr):
         res_np = np.sort(arr)
         res_num = num.sort(arr)
-        assert allclose(res_num, res_np)
+        assert np.array_equal(res_num, res_np)
 
     def test_structured_array_order(self):
         dtype = [("name", "S10"), ("height", float), ("age", int)]
@@ -156,7 +155,7 @@ class TestSort(object):
             arr_num_copy = arr_num
             res_num = num.sort(arr_num_copy, axis=axis)
             arr_num_copy.sort(axis=axis)
-            assert allclose(res_num, arr_num_copy)
+            assert np.array_equal(res_num, arr_num_copy)
 
     @pytest.mark.skip
     @pytest.mark.parametrize("size", SIZES)
@@ -168,7 +167,7 @@ class TestSort(object):
             arr_num_copy = arr_num
             res_num = num.sort(arr_num_copy, axis=axis, kind=sort_type)
             arr_num_copy.sort(axis=axis, kind=sort_type)
-            assert allclose(res_num, arr_num_copy)
+            assert np.array_equal(res_num, arr_num_copy)
 
     @pytest.mark.parametrize("size", SIZES)
     def test_basic_complex_axis(self, size):
@@ -209,7 +208,7 @@ class TestSort(object):
             arr_num_copy = arr_num
             res_num = num.sort(arr_num_copy, axis=axis, kind=sort_type)
             arr_num_copy.sort(axis=axis, kind=sort_type)
-            assert allclose(res_num, arr_num_copy)
+            assert np.array_equal(res_num, arr_num_copy)
 
 
 if __name__ == "__main__":

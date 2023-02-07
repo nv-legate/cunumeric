@@ -15,7 +15,6 @@
 
 import numpy as np
 import pytest
-from utils.comparisons import allclose
 
 import cunumeric as num
 
@@ -78,7 +77,7 @@ class TestArgSort(object):
     def test_arr_empty(self, arr):
         res_np = np.argsort(arr)
         res_num = num.argsort(arr)
-        assert allclose(res_num, res_np)
+        assert np.array_equal(res_num, res_np)
 
     @pytest.mark.xfail
     def test_structured_array_order(self):
@@ -126,7 +125,7 @@ class TestArgSort(object):
         # 'heap', or 'stable' (got 'negative')"
         # cuNumeric passed. The code basically supports ‘stable’
         # or not ‘stable’.
-        assert allclose(res_num, res_np)
+        assert np.array_equal(res_num, res_np)
 
     @pytest.mark.parametrize("size", SIZES)
     def test_basic_axis(self, size):
@@ -135,7 +134,7 @@ class TestArgSort(object):
         for axis in range(-arr_np.ndim + 1, arr_np.ndim):
             res_np = np.argsort(arr_np, axis=axis)
             res_num = num.argsort(arr_num, axis=axis)
-            assert allclose(res_num, res_np)
+            assert np.array_equal(res_num, res_np)
 
     @pytest.mark.parametrize("size", SIZES)
     @pytest.mark.parametrize("sort_type", SORT_TYPES)
