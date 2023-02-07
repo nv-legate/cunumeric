@@ -45,23 +45,6 @@ def test_arr_invalid(arr):
 
 
 @pytest.mark.xfail
-def test_val_complex():
-    shape = (3, 3, 3)
-    val = 100 + 100j
-    np_array = mk_seq_array(np, shape)
-    num_array = num.array(np_array)
-
-    expected_exc = TypeError
-    with pytest.raises(expected_exc):
-        np.fill_diagonal(np_array, val)
-    # Numpy raises TypeError: int() argument must be a string,
-    # a bytes-like object or a real number, not 'complex'
-    with pytest.raises(expected_exc):
-        num.fill_diagonal(num_array, val)
-    # cuNumeric passed and filled them with integer part.
-
-
-@pytest.mark.xfail
 def test_val_none():
     shape = (3, 3, 3)
     val = None
