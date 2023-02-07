@@ -67,9 +67,9 @@ class TestDotErrors:
         # In cuNumeric,
         # for np.float32, it pass
         # for np.int64, it raises TypeError: Unsupported type: int64
-        out = np.zeros((5, 2), dtype=dtype)
+        out = num.zeros((5, 2), dtype=dtype)
         with pytest.raises(ValueError):
-            np.dot(self.A, self.B, out=out)
+            num.dot(self.A, self.B, out=out)
 
 
 if __name__ == "__main__":

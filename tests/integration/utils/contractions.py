@@ -48,7 +48,7 @@ def gen_inputs_of_various_shapes(lib, modes):
     # 5x5x...x5, with up to one dimension set to 1
     # making sure common modes appear with the same extent on both arrays
     (a_modes, b_modes, out_modes) = modes
-    for (a_shape, b_shape) in gen_shapes(a_modes, b_modes):
+    for a_shape, b_shape in gen_shapes(a_modes, b_modes):
         if lib == num:
             print(f"  {a_shape} x {b_shape}")
         yield (mk_0to1_array(lib, a_shape), mk_0to1_array(lib, b_shape))
@@ -79,7 +79,7 @@ def gen_inputs_of_various_types(lib, modes):
     (a_modes, b_modes, out_modes) = modes
     a_shape = (5,) * len(a_modes)
     b_shape = (5,) * len(b_modes)
-    for (a_dtype, b_dtype) in [
+    for a_dtype, b_dtype in [
         (np.float16, np.float16),
         (np.float16, np.float32),
         (np.float32, np.float32),
@@ -109,7 +109,7 @@ def _test(name, modes, operation, gen_inputs, gen_output=None, **kwargs):
         # because we may need to promote arrays so that one includes all modes.
         return
     print(name)
-    for (np_inputs, num_inputs) in zip(
+    for np_inputs, num_inputs in zip(
         gen_inputs(np, modes), gen_inputs(num, modes)
     ):
         np_res = operation(np, *np_inputs, **kwargs)

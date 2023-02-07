@@ -17,7 +17,7 @@
 
 import argparse
 
-from benchmark import parse_args, run_benchmark, time
+from benchmark import parse_args, run_benchmark
 
 
 class Param:
@@ -121,7 +121,6 @@ def backward(
     y,
     p,
 ):
-
     assert z.shape == (X_size + H_size, 1)
     assert v.shape == (X_size, 1)
     assert y.shape == (X_size, 1)
@@ -185,7 +184,12 @@ def forward_backward(
     inputs, targets, h_prev, C_prev, T_steps, H_size, X_size, parameters
 ):
     # To store the values for each time step
-    x_s, z_s, f_s, i_s, = (
+    (
+        x_s,
+        z_s,
+        f_s,
+        i_s,
+    ) = (
         {},
         {},
         {},
@@ -290,7 +294,7 @@ def run_lstm(
 
     pointer = 0
 
-    start = time()
+    timer.start()
 
     for iteration in range(max_iters):
         # Reset
@@ -325,8 +329,7 @@ def run_lstm(
         pointer += T_steps
     update_status(max_iters, smooth_loss)
 
-    stop = time()
-    total = (stop - start) / 1000.0
+    total = timer.stop()
     if timing:
         print("Elapsed Time: " + str(total) + " ms")
     return total
@@ -397,7 +400,7 @@ if __name__ == "__main__":
         help="standard deviation of weights for initialization",
     )
 
-    args, np = parse_args(parser)
+    args, np, timer = parse_args(parser)
 
     run_benchmark(
         run_lstm,

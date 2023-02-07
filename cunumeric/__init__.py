@@ -24,21 +24,30 @@ with GPU acceleration.
 """
 from __future__ import annotations
 
-import numpy as _np
+import os
 
-from cunumeric import linalg, random, fft
-from cunumeric.array import ndarray
-from cunumeric.bits import packbits, unpackbits
-from cunumeric.module import *
-from cunumeric._ufunc import *
-from cunumeric.logic import *
-from cunumeric.window import bartlett, blackman, hamming, hanning, kaiser
-from cunumeric.coverage import clone_module
+# This is somewhat ugly, but it is to allow the legate driver to access
+# cunumeric's library-specific arguments, so that better help information
+# can be provided to users.
+if os.environ.get("_LEGATE_PROJECT_HELP_ARGS_") == "1":
+    from .args import ARGS
 
-clone_module(_np, globals())
+else:
+    import numpy as _np
 
-del clone_module
-del _np
+    from cunumeric import linalg, random, fft
+    from cunumeric.array import ndarray
+    from cunumeric.bits import packbits, unpackbits
+    from cunumeric.module import *
+    from cunumeric._ufunc import *
+    from cunumeric.logic import *
+    from cunumeric.window import bartlett, blackman, hamming, hanning, kaiser
+    from cunumeric.coverage import clone_module
+
+    clone_module(_np, globals())
+
+    del clone_module
+    del _np
 
 from . import _version
 

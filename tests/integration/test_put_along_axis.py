@@ -121,7 +121,7 @@ def test_empty_indice():
 
 
 class TestPutAlongAxisErrors:
-    def setup(self):
+    def setup_method(self):
         self.a = num.ones((3, 3))
         self.ai = num.ones((3, 3), dtype=int)
 

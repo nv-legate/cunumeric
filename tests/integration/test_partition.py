@@ -23,7 +23,6 @@ np.random.seed(42)
 
 
 def assert_partition(a_num, kth, axis):
-
     # compute volume
     shape = a_num.shape
     volume = 1
