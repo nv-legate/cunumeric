@@ -1,0 +1,13 @@
+{
+  "folders": [
+    { "path": "cunumeric" },
+    { "path": "legate" },
+    { "path": "legion" },
+    { "path": ".conda" },
+    { "path": ".cache" },
+    { "path": ".cargo" },
+  ],
+  "settings": {
+    "terminal.integrated.cwd": ""
+  }
+}
