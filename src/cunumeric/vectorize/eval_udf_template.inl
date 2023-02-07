@@ -55,7 +55,6 @@ static void eval_udf_template(TaskContext& context)
 {
   is_gpus = context.scalars()[0].value<bool>();
   if (is_gpus)
-    std::cout << "IRINA DEBUG size of the scalars = " << context.scalars().size() << std::endl;
   EvalUdfArgs args{0, context.scalars()[1].value<char*>(), context.outputs()};
   else EvalUdfArgs args{context.scalars()[1].value<uint64_t>(),'', context.outputs()};
   size_t dim = args.args[0].dim() == 0 ? 1 : args.args[0].dim();

@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,23 +18,26 @@
 import pytest
 
 import cunumeric as num
+import numpy as np
 
 
 def my_func(a, b):
     a = a * 2 + b
-    a = a * 3
 
 
 def test_vectorize():
     func = num.vectorize(my_func)
     a = num.arange(5)
-    b = num.zeros((5,))
-    # b = 2
+    b = num.ones((5,))
     func(a, b)
-    # assert(a==12)
-    print("IRINA DEBUG:")
-    print(a)
+    assert(np.array_equal(a, [1,3,5,7,9]))
 
+#FIXME uncomment once broadcast routines are merged
+#    a= num.arange(5)
+#    b=2
+#    func(a,b)
+#    assert(np.array_equal(a, [2,4,6,8,10]))
+    
 
 if __name__ == "__main__":
     import sys

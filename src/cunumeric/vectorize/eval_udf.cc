@@ -25,7 +25,8 @@ struct EvalUdfCPU {
   template <LegateTypeCode CODE, int DIM>
   void operator()(EvalUdfArgs& args) const
   {
-    std::cout << "IRINA DEBUG in CPU task 2" << std::endl;
+    //In the case of CPU, we pack arguments in a vector and pass them to the
+    //function (through the function pointer geenrated by numba)
     using UDF = void(void**, size_t);
     auto udf  = reinterpret_cast<UDF*>(args.cpu_func_ptr);
     std::vector<void*> udf_args;
@@ -37,14 +38,12 @@ struct EvalUdfCPU {
       auto out = args.args[i].write_accessor<VAL, DIM>(rect);
       udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect)));
     }
-
     udf(udf_args.data(), rect.volume());
   }
 };
 
 /*static*/ void EvalUdfTask::cpu_variant(TaskContext& context)
 {
-  std::cout << "IRINA DEBUG in CPU task" << std::endl;
   EvalUdfArgs args{context.scalars()[0].value<uint64_t>(), context.outputs()};
   size_t dim = args.args[0].dim() == 0 ? 1 : args.args[0].dim();
   double_dispatch(dim, args.args[0].code(), EvalUdfCPU{}, args);

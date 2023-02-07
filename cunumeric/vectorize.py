@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import legate.core.types as ty
 import numba
+import numba.core.ccallback 
 import numpy as np
 import six
 
@@ -115,16 +116,20 @@ class vectorize:
         else:
             self.__doc__ = doc
 
+        #FIXME
         if otypes is not None:
             raise NotImplementedError("Otypes variables are not supported yet")
 
+        #FIXME
         if excluded is not None:
             raise NotImplementedError(
                 "excluded variables are not supported yet"
             )
+        #FIXME
         if cache:
             raise NotImplementedError("cache variable is not supported yet")
 
+        #FIXME
         if signature is not None:
             raise NotImplementedError(
                 "signature variable is not supported yet"

@@ -32,6 +32,8 @@ struct EvalUdfGPU {
     auto rect = args.args[0].shape<DIM>();
     if (rect.empty()) return;
 
+
+    // 1: we need to vreate a function from the ptx generated y numba
     const unsigned num_options   = 4;
     const size_t log_buffer_size = 16384;
     std::vector<char> log_info_buffer(log_buffer_size);
@@ -78,7 +80,7 @@ struct EvalUdfGPU {
     std::cmatch line_match;
     bool match =
       std::regex_search(args.ptx.data(), line_match, std::regex(".visible .entry [_a-zA-Z0-9$]+"));
-#ifdef DEBUG_PANDAS
+#ifdef DEBUG_CUNUMERIC
     assert(match);
 #endif
     const auto& matched_line = line_match.begin()->str();
@@ -86,9 +88,13 @@ struct EvalUdfGPU {
 
     CUfunction func;
     result = cuModuleGetFunction(&func, module, fun_name.c_str());
+#ifdef DEBUG_CUNUMERIC
     assert(result == CUDA_SUCCESS);
+#endif
 
-    // ececuting user function:
+    //2: after fucntion is generated, we can execute it:
+
+    //Filling up the bugger with arguments
     size_t buffer_size = (args.args.size()) * sizeof(void*);
     buffer_size += sizeof(size_t);
 
@@ -123,6 +129,7 @@ struct EvalUdfGPU {
 
     auto stream = get_cached_stream();
 
+    //executing the function
     CUresult status = cuLaunchKernel(
       func, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, 0, stream, NULL, config);
     if (status != CUDA_SUCCESS) {
@@ -136,8 +143,6 @@ struct EvalUdfGPU {
 
 /*static*/ void EvalUdfTask::gpu_variant(TaskContext& context)
 {
-  // std::cout <<"IRINA DEBUG size of the scalars =
-  // "<<context.scalars()[0].value<std::string>()<<std::endl;
   EvalUdfArgs args{0, context.outputs(), context.scalars()[0].value<std::string>()};
   size_t dim = args.args[0].dim() == 0 ? 1 : args.args[0].dim();
   double_dispatch(dim, args.args[0].code(), EvalUdfGPU{}, args);
