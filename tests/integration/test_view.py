@@ -18,8 +18,6 @@ import pytest
 
 import cunumeric as num
 
-num.random.seed(10)
-
 
 def test_update_orig():
     orig = num.random.randn(2, 3, 4)

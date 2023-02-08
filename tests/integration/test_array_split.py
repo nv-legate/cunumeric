@@ -21,9 +21,6 @@ from utils.utils import check_module_function
 
 import cunumeric as num
 
-# Seed the random generator with a random number
-np.random.seed(416)
-
 DIM = 20
 
 # test the array_split routines on empty, singleton, 2D and 3D arrays

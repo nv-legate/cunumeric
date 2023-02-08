@@ -19,8 +19,6 @@ from utils.generators import mk_seq_array
 
 import cunumeric as num
 
-np.random.seed(12345)
-
 
 @pytest.mark.parametrize(
     "array", (None, [], 4, [2, 3], mk_seq_array(num, (3, 4, 2)))

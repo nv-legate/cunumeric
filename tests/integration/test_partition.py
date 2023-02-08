@@ -19,8 +19,6 @@ from utils.comparisons import allclose
 
 import cunumeric as num
 
-np.random.seed(42)
-
 
 def assert_partition(a_num, kth, axis):
     # compute volume

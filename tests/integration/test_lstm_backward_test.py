@@ -26,8 +26,6 @@ def test_basic():
     sentence_length = 5
     batch_size = 3
 
-    np.random.seed(42)
-
     WLSTM_np = np.random.randn(
         word_size + hidden_size, 4 * hidden_size
     ) / np.sqrt(word_size + hidden_size)

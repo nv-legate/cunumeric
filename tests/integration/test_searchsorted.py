@@ -19,8 +19,6 @@ from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
 
-np.random.seed(42)
-
 
 def compare_assert(a_np, a_num):
     if not num.array_equal(a_np, a_num):

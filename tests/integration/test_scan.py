@@ -19,8 +19,6 @@ import pytest
 
 import cunumeric as num
 
-np.random.seed(12345)
-
 
 def _gen_array(n0, shape, dt, axis, outtype):
     range_lower = 0

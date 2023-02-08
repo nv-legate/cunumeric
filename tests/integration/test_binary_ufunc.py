@@ -74,8 +74,6 @@ def test_all():
     # for some boring inputs. For some of these, we will want to
     # test corner cases in the future.
 
-    np.random.seed(12345)
-
     # Math operations
     ops = [
         "add",
