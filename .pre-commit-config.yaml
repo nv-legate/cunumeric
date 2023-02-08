@@ -26,10 +26,10 @@ repos:
           types_or: []
     - repo: local
       hooks:
-        - id: enforce-pytest-main
-          name: Enforce pytest.main
-          description: Make sure tests use sys.ext(pytest.main(...))
-          entry: python scripts/hooks/enforce_pytest_main.py
+        - id: enforce-boilerplate
+          name: Enforce boilerplate
+          description: Make sure tests include required boilerplate
+          entry: python scripts/hooks/enforce_boilerplate.py
           language: python
           pass_filenames: false
 
