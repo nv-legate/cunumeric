@@ -24,7 +24,7 @@ def test_randn():
     # We cannot expect that random generation will match with NumPy's,
     # even if initialized with the same seed, so all we can do to verify
     # the results is check that they have the expected distribution.
-    a_num = num.random.randn(1000)
+    a_num = num.random.randn(10000)
     assert_distribution(a_num, 0.0, 1.0)
 
 
