@@ -286,6 +286,9 @@ class vectorize:
             if idx != 0:
                 task.add_alignment(a0.base, a_tmp.base)
             idx += 1
+            task.add_broadcast(
+                a_tmp.base, axes=tuple(range(1, len(a_tmp.base.shape)))
+            )
         task.execute()
 
     def _execute_cpu(self) -> None:
@@ -301,6 +304,9 @@ class vectorize:
             if idx != 0:
                 task.add_alignment(a0.base, a_tmp.base)
             idx += 1
+            task.add_broadcast(
+                a_tmp.base, axes=tuple(range(1, len(a_tmp.base.shape)))
+            )
         task.execute()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
