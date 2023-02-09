@@ -28,6 +28,7 @@ from cunumeric.runtime import runtime
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
 
+from legate.timing import time
 # import numba.cuda
 # import numba.types
 
@@ -110,6 +111,8 @@ class vectorize:
         self._args: List[Any] = []
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
+        self._created: bool = False
+        self._cache: bool = cache
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -125,9 +128,6 @@ class vectorize:
             raise NotImplementedError(
                 "excluded variables are not supported yet"
             )
-        #FIXME
-        if cache:
-            raise NotImplementedError("cache variable is not supported yet")
 
         #FIXME
         if signature is not None:
@@ -351,10 +351,16 @@ class vectorize:
             )
 
         if runtime.num_gpus > 0:
-            self._numba_func = self._build_gpu_function()
-            self._gpu_func = self._compile_func_gpu()
+            if not self._created:
+                self._numba_func = self._build_gpu_function()
+                self._gpu_func = self._compile_func_gpu()
+                if self._cache:
+                    self._created = True
             self._execute_gpu()
         else:
-            self._numba_func = self._build_cpu_function()
-            self._cpu_func = self._compile_func_cpu()
+            if not self._created:
+                self._numba_func = self._build_cpu_function()
+                self._cpu_func = self._compile_func_cpu()
+                if self._cache:
+                    self._created = True
             self._execute_cpu()
