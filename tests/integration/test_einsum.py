@@ -220,7 +220,7 @@ def check_np_vs_num(expr, mk_input, mk_output=None, **kwargs):
         tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in op) for op in opers
     ]
     out_shape = tuple(BASE_DIM_LEN + ord(m) - ord("a") for m in rhs)
-    for (np_inputs, num_inputs) in zip(
+    for np_inputs, num_inputs in zip(
         product(*(mk_input(np, sh) for sh in in_shapes)),
         product(*(mk_input(num, sh) for sh in in_shapes)),
     ):

@@ -164,7 +164,7 @@ class Runtime(object):
         if self.args.report_dump_csv is not None:
             with open(self.args.report_dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
-                for (func_name, loc, impl) in self.api_calls:
+                for func_name, loc, impl in self.api_calls:
                     print(f"{func_name},{loc},{impl}", file=f)
 
     def destroy(self) -> None:

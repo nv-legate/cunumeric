@@ -178,7 +178,6 @@ def to_dtypes(chars: str) -> tuple[np.dtype[Any], ...]:
 
 
 class ufunc:
-
     _types: Dict[Any, str]
     _nin: int
     _nout: int

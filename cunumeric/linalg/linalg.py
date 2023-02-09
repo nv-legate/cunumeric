@@ -492,7 +492,6 @@ def norm(
             or (ord in ("f", "fro") and ndim == 2)
             or (ord == 2 and ndim == 1)
         ):
-
             x = x.ravel()
             if x.dtype.kind == "c":
                 x_real = x.real
