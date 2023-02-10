@@ -98,7 +98,7 @@ def test_side_invalid():
         # (got 'hi')
     with pytest.raises(expected_exc):
         num.searchsorted(arr, 10, "hi")
-        # cuNumeric passed.
+        # cuNumeric passed, and the result is the same as that of 'right'.
 
 
 def generate_random(volume, datatype):
@@ -122,7 +122,6 @@ def generate_random(volume, datatype):
             dtype=datatype,
         )
     else:
-        # print(f"UNKNOWN type {datatype}")
         assert False
     return a_np
 
