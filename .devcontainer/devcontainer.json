@@ -3,8 +3,7 @@
     "context": ".",
     "dockerfile": "./Dockerfile",
     "args": {
-      "CUDA": "11.8",
-      "BUILDKIT_INLINE_CACHE": "0"
+      "CUDA": "11.8"
     }
   },
 
