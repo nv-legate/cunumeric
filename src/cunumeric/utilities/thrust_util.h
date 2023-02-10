@@ -1,4 +1,4 @@
-/* Copyright 2022 NVIDIA Corporation
+/* Copyright 2023 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@
 #include <thrust/version.h>
 #include <thrust/execution_policy.h>
 
-#if (THRUST_MAJOR_VERSION >= 1) && (THRUST_MINOR_VERSION >= 16)
+#if THRUST_VERSION >= 101600
 #define DEFAULT_POLICY thrust::cuda::par_nosync
 #else
 #define DEFAULT_POLICY thrust::cuda::par
