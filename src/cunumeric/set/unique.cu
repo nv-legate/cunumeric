@@ -172,8 +172,8 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
       CHECK_CUDA_STREAM(stream);
 
       // Find unique values
-      thrust::sort(thrust::cuda::par.on(stream), ptr, ptr + volume);
-      end = thrust::unique(thrust::cuda::par.on(stream), ptr, ptr + volume);
+      thrust::sort(DEFAULT_POLICY.on(stream), ptr, ptr + volume);
+      end = thrust::unique(DEFAULT_POLICY.on(stream), ptr, ptr + volume);
     }
 
     Piece<VAL> result;
