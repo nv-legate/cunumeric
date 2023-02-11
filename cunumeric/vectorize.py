@@ -246,6 +246,20 @@ class vectorize:
             name = m.group(0)
             if name in argnames:
                 return "{}[{}]".format(name, _LOOP_VAR)
+            elif name == "if":
+                return "if "
+            elif name == "return":
+                return "return "
+            elif name == "or":
+                return "or "
+            elif name == "and":
+                return "and "
+            elif name == "not":
+                return "not "
+            elif name == "min":
+                return "min"
+            elif name == "max":
+                return "max"
             else:
                 return "{}[0]".format(name)
 
@@ -253,6 +267,9 @@ class vectorize:
         for line in lines_old:
             l_new = re.sub(r"[_a-z]\w*", _lift_to_array_access, line)
             lines.append("        " + l_new)
+
+        print("IRINA DEBUG CPU function")
+        print(lines)
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
