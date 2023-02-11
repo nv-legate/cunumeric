@@ -29,9 +29,8 @@ struct EvalUdfGPU {
   void operator()(EvalUdfArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
-    auto rect = args.args[0].shape<DIM>();
+    auto rect = args.inputs[0].shape<DIM>();
     if (rect.empty()) return;
-
 
     // 1: we need to vreate a function from the ptx generated y numba
     const unsigned num_options   = 4;
@@ -92,10 +91,10 @@ struct EvalUdfGPU {
     assert(result == CUDA_SUCCESS);
 #endif
 
-    //2: after fucntion is generated, we can execute it:
+    // 2: after fucntion is generated, we can execute it:
 
-    //Filling up the bugger with arguments
-    size_t buffer_size = (args.args.size()) * sizeof(void*);
+    // Filling up the bugger with arguments
+    size_t buffer_size = (args.inputs.size()) * sizeof(void*);
     buffer_size += sizeof(size_t);
 
     std::vector<char> arg_buffer(buffer_size);
@@ -103,9 +102,14 @@ struct EvalUdfGPU {
 
     auto p = raw_arg_buffer;
 
-    for (auto& arg : args.args) {
-      auto out                           = arg.write_accessor<VAL, DIM>(rect);
-      *reinterpret_cast<const void**>(p) = out.ptr(rect);
+    for (size_t i = 0; i < args.inputs.size(); i++) {
+      if (i < args.num_outputs) {
+        auto out                           = args.outputs[i].write_accessor<VAL, DIM>(rect);
+        *reinterpret_cast<const void**>(p) = out.ptr(rect);
+      } else {
+        auto in                            = args.inputs[i].read_accessor<VAL, DIM>(rect);
+        *reinterpret_cast<const void**>(p) = in.ptr(rect);
+      }
       p += sizeof(void*);
     }
     auto size = rect.volume();
@@ -129,7 +133,7 @@ struct EvalUdfGPU {
 
     auto stream = get_cached_stream();
 
-    //executing the function
+    // executing the function
     CUresult status = cuLaunchKernel(
       func, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, 0, stream, NULL, config);
     if (status != CUDA_SUCCESS) {
@@ -143,8 +147,12 @@ struct EvalUdfGPU {
 
 /*static*/ void EvalUdfTask::gpu_variant(TaskContext& context)
 {
-  EvalUdfArgs args{0, context.outputs(), context.scalars()[0].value<std::string>()};
-  size_t dim = args.args[0].dim() == 0 ? 1 : args.args[0].dim();
-  double_dispatch(dim, args.args[0].code(), EvalUdfGPU{}, args);
+  EvalUdfArgs args{0,
+                   context.inputs(),
+                   context.outputs(),
+                   context.scalars()[0].value<std::string>(),
+                   context.scalars()[1].value<uint32_t>()};
+  size_t dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
+  double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
 }
 }  // namespace cunumeric

@@ -19,7 +19,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import legate.core.types as ty
 import numba
-import numba.core.ccallback 
+import numba.core.ccallback
 import numpy as np
 import six
 
@@ -28,7 +28,9 @@ from cunumeric.runtime import runtime
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
 
-from legate.timing import time
+# from legate.timing import time
+
+
 # import numba.cuda
 # import numba.types
 
@@ -99,37 +101,47 @@ class vectorize:
         otypes: Optional[Union[str, list[Any]]] = None,
         doc: Optional[str] = None,
         excluded: Optional[set[Any]] = None,
-        cache: Optional[bool] = False,
+        cache: bool = False,
         signature: Optional[str] = None,
     ) -> None:
         self._pyfunc = pyfunc
         self._numba_func: Callable[[Any], Any]
         self._cpu_func: numba.core.ccallback.CFunc
         self._gpu_func: tuple[Any]
-        self._otypes = None
+        self._otypes: Optional[tuple[Any]] = None
         self._result = None
         self._args: List[Any] = []
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
         self._created: bool = False
         self._cache: bool = cache
+        self._num_outputs = 1  # there is at least 1 output
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
         else:
             self.__doc__ = doc
 
-        #FIXME
         if otypes is not None:
-            raise NotImplementedError("Otypes variables are not supported yet")
+            self._num_outputs = len(otypes)
+            if len(otypes) == 0:
+                raise ValueError(
+                    "There should be at least 1 type specified in otypes"
+                )
+            ty = otypes[0]
+            for t in otypes:
+                if t != ty:
+                    raise NotImplementedError(
+                        "cuNumeric doesn't support variable types in otypes"
+                    )
 
-        #FIXME
+        # FIXME
         if excluded is not None:
             raise NotImplementedError(
                 "excluded variables are not supported yet"
             )
 
-        #FIXME
+        # FIXME
         if signature is not None:
             raise NotImplementedError(
                 "signature variable is not supported yet"
@@ -276,13 +288,15 @@ class vectorize:
     def _execute_gpu(self) -> None:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._gpu_func[0], ty.string)
+        task.add_scalar_arg(self._num_outputs, ty.uint32)
         idx = 0
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
-        for a in self._args:
+        for count, a in enumerate(self._args):
             a_tmp = runtime.to_deferred_array(a._thunk)
             task.add_input(a_tmp.base)
-            task.add_output(a_tmp.base)
+            if count < self._num_outputs:
+                task.add_output(a_tmp.base)
             if idx != 0:
                 task.add_alignment(a0.base, a_tmp.base)
             idx += 1
@@ -294,13 +308,15 @@ class vectorize:
     def _execute_cpu(self) -> None:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
+        task.add_scalar_arg(self._num_outputs, ty.uint32)
         idx = 0
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
-        for a in self._args:
+        for count, a in enumerate(self._args):
             a_tmp = runtime.to_deferred_array(a._thunk)
             task.add_input(a_tmp.base)
-            task.add_output(a_tmp.base)
+            if count < self._num_outputs:
+                task.add_output(a_tmp.base)
             if idx != 0:
                 task.add_alignment(a0.base, a_tmp.base)
             idx += 1

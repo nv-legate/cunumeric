@@ -55,8 +55,9 @@ static void eval_udf_template(TaskContext& context)
 {
   is_gpus = context.scalars()[0].value<bool>();
   if (is_gpus)
-  EvalUdfArgs args{0, context.scalars()[1].value<char*>(), context.outputs()};
-  else EvalUdfArgs args{context.scalars()[1].value<uint64_t>(),'', context.outputs()};
+    EvalUdfArgs args{0, context.scalars()[1].value<char*>(), context.outputs()};
+  else
+    EvalUdfArgs args{context.scalars()[1].value<uint64_t>(),'', context.outputs()};
   size_t dim = args.args[0].dim() == 0 ? 1 : args.args[0].dim();
   double_dispatch(dim, args.args[0].code(), EvalUdfImpl<KIND>{}, args);
 }

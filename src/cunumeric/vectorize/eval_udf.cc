@@ -25,18 +25,23 @@ struct EvalUdfCPU {
   template <LegateTypeCode CODE, int DIM>
   void operator()(EvalUdfArgs& args) const
   {
-    //In the case of CPU, we pack arguments in a vector and pass them to the
-    //function (through the function pointer geenrated by numba)
+    // In the case of CPU, we pack arguments in a vector and pass them to the
+    // function (through the function pointer geenrated by numba)
     using UDF = void(void**, size_t);
     auto udf  = reinterpret_cast<UDF*>(args.cpu_func_ptr);
     std::vector<void*> udf_args;
     using VAL = legate_type_of<CODE>;
-    auto rect = args.args[0].shape<DIM>();
+    auto rect = args.inputs[0].shape<DIM>();
 
     if (rect.empty()) return;
-    for (size_t i = 0; i < args.args.size(); i++) {
-      auto out = args.args[i].write_accessor<VAL, DIM>(rect);
-      udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect)));
+    for (size_t i = 0; i < args.inputs.size(); i++) {
+      if (i < args.num_outputs) {
+        auto out = args.outputs[i].write_accessor<VAL, DIM>(rect);
+        udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect)));
+      } else {
+        auto out = args.inputs[i].read_accessor<VAL, DIM>(rect);
+        udf_args.push_back(reinterpret_cast<void*>(const_cast<VAL*>(out.ptr(rect))));
+      }
     }
     udf(udf_args.data(), rect.volume());
   }
@@ -44,9 +49,14 @@ struct EvalUdfCPU {
 
 /*static*/ void EvalUdfTask::cpu_variant(TaskContext& context)
 {
-  EvalUdfArgs args{context.scalars()[0].value<uint64_t>(), context.outputs()};
-  size_t dim = args.args[0].dim() == 0 ? 1 : args.args[0].dim();
-  double_dispatch(dim, args.args[0].code(), EvalUdfCPU{}, args);
+  std::string tmp("tmp");
+  EvalUdfArgs args{context.scalars()[0].value<uint64_t>(),
+                   context.inputs(),
+                   context.outputs(),
+                   tmp,
+                   context.scalars()[1].value<uint32_t>()};
+  size_t dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
+  double_dispatch(dim, args.inputs[0].code(), EvalUdfCPU{}, args);
 }
 
 namespace  // unnamed
