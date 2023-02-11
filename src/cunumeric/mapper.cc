@@ -222,6 +222,22 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       }
       return std::move(mappings);
     }
+    case CUNUMERIC_EVAL_UDF: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        // mappings.back().policy.ordering.c_order();
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        // mappings.back().policy.ordering.c_order();
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
+    }
     default: {
       return {};
     }
