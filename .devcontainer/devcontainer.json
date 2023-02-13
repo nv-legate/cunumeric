@@ -130,5 +130,15 @@
         }
       }
     }
-  }
+  },
+
+  // This is defined in the base image already, but we
+  // need to define it again to work around codespaces bug
+  "postAttachCommand": [
+    "bash",
+    "-li",
+    "+o",
+    "history",
+    "/opt/devcontainer/bin/post-attach-command.sh"
+  ]
 }
