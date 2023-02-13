@@ -17,7 +17,7 @@
     "gpu": true
   },
 
-  "initializeCommand": "mkdir -p ../.cache ../.cargo ../.conda ../legion ../legate",
+  "initializeCommand": "mkdir -p ../.aws ../.cache ../.cargo ../.conda ../.config ../legion ../legate",
 
   "containerEnv": {
     "DEFAULT_CONDA_ENV": "legate",
@@ -28,6 +28,11 @@
   "workspaceFolder": "/home/coder",
   "workspaceMount": "source=${localWorkspaceFolder},target=/home/coder/cunumeric,type=bind",
   "mounts": [
+    {
+      "type": "bind",
+      "target": "/home/coder/.aws",
+      "source": "${localWorkspaceFolder}/../.aws"
+    },
     {
       "type": "bind",
       "target": "/home/coder/.cache",
@@ -42,6 +47,11 @@
       "type": "bind",
       "target": "/home/coder/.conda",
       "source": "${localWorkspaceFolder}/../.conda"
+    },
+    {
+      "type": "bind",
+      "target": "/home/coder/.config",
+      "source": "${localWorkspaceFolder}/../.config"
     },
     {
       "type": "bind",
