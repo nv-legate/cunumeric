@@ -171,6 +171,27 @@ class vectorize:
             return_lines.append(lines[i].rstrip())
         return return_lines
 
+    def _replace_name(self, name: str,argnames:list[str], _LOOP_VAR:str) -> str:
+        if name in argnames:
+            return "{}[{}]".format(name, _LOOP_VAR)
+        elif name == "if":
+            return "if "
+        elif name == "return":
+            return "return "
+        elif name == "or":
+            return "or "
+        elif name == "and":
+            return "and "
+        elif name == "not":
+            return "not "
+        elif name == "min":
+            return "min"
+        elif name == "max":
+            return "max"
+        else:
+            return "{}".format(name)
+
+
     def _build_gpu_function(self) -> Any:
 
         funcid = "vectorized_{}".format(self._pyfunc.__name__)
@@ -191,11 +212,7 @@ class vectorize:
 
         # Kernel body
         def _lift_to_array_access(m: Any) -> str:
-            name = m.group(0)
-            if name in argnames:
-                return "{}[{}]".format(name, _LOOP_VAR)
-            else:
-                return "{}".format(name)
+            return self._replace_name(m.group(0), argnames, _LOOP_VAR)
 
         # kernel body
         lines_old = self._get_func_body(self._pyfunc)
@@ -242,34 +259,17 @@ class vectorize:
 
         lines_old = self._get_func_body(self._pyfunc)
 
+        # Kernel body
         def _lift_to_array_access(m: Any) -> str:
-            name = m.group(0)
-            if name in argnames:
-                return "{}[{}]".format(name, _LOOP_VAR)
-            elif name == "if":
-                return "if "
-            elif name == "return":
-                return "return "
-            elif name == "or":
-                return "or "
-            elif name == "and":
-                return "and "
-            elif name == "not":
-                return "not "
-            elif name == "min":
-                return "min"
-            elif name == "max":
-                return "max"
-            else:
-                return "{}[0]".format(name)
+            return self._replace_name(m.group(0), argnames, _LOOP_VAR)
 
         # lines_new = []
         for line in lines_old:
             l_new = re.sub(r"[_a-z]\w*", _lift_to_array_access, line)
             lines.append("        " + l_new)
 
-        print("IRINA DEBUG CPU function")
-        print(lines)
+        #print("IRINA DEBUG CPU function")
+        #print(lines)
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
@@ -306,40 +306,32 @@ class vectorize:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._gpu_func[0], ty.string)
         task.add_scalar_arg(self._num_outputs, ty.uint32)
-        idx = 0
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
         for count, a in enumerate(self._args):
             a_tmp = runtime.to_deferred_array(a._thunk)
-            task.add_input(a_tmp.base)
+            a_tmp=a_tmp.base
+            task.add_input(a_tmp)
             if count < self._num_outputs:
-                task.add_output(a_tmp.base)
-            if idx != 0:
-                task.add_alignment(a0.base, a_tmp.base)
-            idx += 1
-            # task.add_broadcast(
-            #    a_tmp.base, axes=tuple(range(1, len(a_tmp.base.shape)))
-            # )
+                task.add_output(a_tmp)
+            if count != 0:
+                task.add_alignment(a0.base, a_tmp)
         task.execute()
 
     def _execute_cpu(self) -> None:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
         task.add_scalar_arg(self._num_outputs, ty.uint32)
-        idx = 0
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
         for count, a in enumerate(self._args):
             a_tmp = runtime.to_deferred_array(a._thunk)
-            task.add_input(a_tmp.base)
+            a_tmp=a_tmp.base
+            task.add_input(a_tmp)
             if count < self._num_outputs:
-                task.add_output(a_tmp.base)
-            if idx != 0:
-                task.add_alignment(a0.base, a_tmp.base)
-            idx += 1
-            # task.add_broadcast(
-            #    a_tmp.base, axes=tuple(range(1, len(a_tmp.base.shape)))
-            # )
+                task.add_output(a_tmp)
+            if count != 0:
+                task.add_alignment(a0.base, a_tmp)
         task.execute()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
@@ -358,24 +350,30 @@ class vectorize:
                     "passed to cunumeric.vectorize"
                 )
 
-        #        #FIXME: comment out when brodcast PR is merged
-        #        #bring all argumants to the same shape and type:
-        #        if len(self._args)>0:
-        #             ty = self._args[0].dtype
-        #             #FIXME: should we bring them all to the same type?
-        #             for a in self._args:
-        #                 if a.dtype != ty:
-        #                    return TypeError("all arguments of "
-        #                         "user defined function "
-        #                      "should have the same type")
-
-        #    shapes = tuple(a.shape for a in self._args)
-        #    shape = broadcast_shapes(shapes)
-        #    new_args = tuple()
-        #    for a in self._args:
-        #        a_new = a.broadcast_to(shape)
-        #        new_args +=(a_new,)
-        #    self._args = new_args
+        #all output arrays should have the same type
+        if len(self._args)>0:
+            ty = self._args[0].dtype
+            shape = self._args[0].shape
+            for i in range (1, self._num_outputs):
+                if ty!=self._args[i].dtype:
+                    raise TypeError("cuNumeric doesnt support "
+                        "different types for output data in "
+                        "user function passed to vectorize")
+                if shape != self._args[i].shape:
+                    raise TypeError("cuNumeric doesnt support "
+                        "different shapes for output data in "
+                        "user function passed to vectorize")
+            for i in range (self._num_outputs, len(self._args)):
+                if ty!=self._args[i].dtype:
+                    runtime.warn(
+                        "converting input array to output types in user func ",
+                        category=RuntimeWarning,
+                    )
+                    self._args[i] = self._args[i].astype(ty)
+                if shape !=self._args[i].shape:
+                     raise TypeError("cuNumeric doesnt support "
+                        "different shapes for arrays in "
+                        "user function passed to vectorize")
 
         self._kwargs = list(kwargs)
         if len(self._kwargs) > 1:
