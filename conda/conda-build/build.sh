@@ -32,7 +32,7 @@ export CUDAHOSTCXX=${CXX}
 
 echo "Build starting on $(date)"
 
-cmake -S . -B build ${CMAKE_ARGS}
+cmake -S . -B build ${CMAKE_ARGS} -DCMAKE_BUILD_PARALLEL_LEVEL=$CPU_COUNT
 cmake --build build -j$CPU_COUNT
 cmake --install build
 
