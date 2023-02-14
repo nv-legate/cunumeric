@@ -17,9 +17,9 @@
 #include "cunumeric/scan/scan_local.h"
 #include "cunumeric/scan/scan_local_template.inl"
 #include "cunumeric/unary/isnan.h"
+#include "cunumeric/utilities/thrust_util.h"
 
 #include <thrust/scan.h>
-#include <thrust/execution_policy.h>
 #include <thrust/iterator/transform_iterator.h>
 
 #include "cunumeric/cuda_help.h"
@@ -65,7 +65,7 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     for (uint64_t index = 0; index < volume; index += stride) {
       thrust::inclusive_scan(
-        thrust::cuda::par.on(stream), inptr + index, inptr + index + stride, outptr + index, func);
+        DEFAULT_POLICY.on(stream), inptr + index, inptr + index + stride, outptr + index, func);
       // get the corresponding ND index with base zero to use for sum_val
       auto sum_valp = pitches.unflatten(index, Point<DIM>::ZEROES());
       // only one element on scan axis
@@ -112,7 +112,7 @@ struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     for (uint64_t index = 0; index < volume; index += stride) {
       thrust::inclusive_scan(
-        thrust::cuda::par.on(stream),
+        DEFAULT_POLICY.on(stream),
         thrust::make_transform_iterator(inptr + index, convert_nan_func()),
         thrust::make_transform_iterator(inptr + index + stride, convert_nan_func()),
         outptr + index,
