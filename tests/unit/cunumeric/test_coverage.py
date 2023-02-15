@@ -21,6 +21,7 @@ from mock import MagicMock, patch
 
 import cunumeric
 import cunumeric.coverage as m  # module under test
+from cunumeric.settings import settings
 
 
 def test_FALLBACK_WARNING() -> None:
@@ -342,9 +343,8 @@ attr2 = 30
 
 
 class Test_clone_module:
-    @patch.object(cunumeric.runtime.args, "report_coverage", True)
     def test_report_coverage_True(self) -> None:
-        assert cunumeric.runtime.args.report_coverage
+        settings.report_coverage = True
 
         _Dest = ModuleType("dest")
         exec(_DestCode, _Dest.__dict__)
@@ -367,9 +367,10 @@ class Test_clone_module:
 
         assert not hasattr(_Dest.extra, "_cunumeric")
 
-    @patch.object(cunumeric.runtime.args, "report_coverage", False)
+        settings.report_coverage.unset_value()
+
     def test_report_coverage_False(self) -> None:
-        assert not cunumeric.runtime.args.report_coverage
+        settings.report_coverage = True
 
         _Dest = ModuleType("dest")
         exec(_DestCode, _Dest.__dict__)
@@ -391,6 +392,8 @@ class Test_clone_module:
         assert _Dest.function2._cunumeric.implemented
 
         assert not hasattr(_Dest.extra, "_cunumeric")
+
+        settings.report_coverage.unset_value()
 
 
 @m.clone_np_ndarray
@@ -409,9 +412,8 @@ class _Test_ndarray:
 
 
 class Test_clone_np_ndarray:
-    @patch.object(cunumeric.runtime.args, "report_coverage", True)
     def test_report_coverage_True(self) -> None:
-        assert cunumeric.runtime.args.report_coverage
+        settings.report_coverage = True
 
         for name in m.NDARRAY_INTERNAL:
             assert name not in _Test_ndarray.__dict__
@@ -427,9 +429,10 @@ class Test_clone_np_ndarray:
 
         assert not hasattr(_Test_ndarray.extra, "_cunumeric")
 
-    @patch.object(cunumeric.runtime.args, "report_coverage", False)
+        settings.report_coverage.unset_value()
+
     def test_report_coverage_False(self) -> None:
-        assert not cunumeric.runtime.args.report_coverage
+        settings.report_coverage = False
 
         for name in m.NDARRAY_INTERNAL:
             assert name not in _Test_ndarray.__dict__
@@ -444,6 +447,8 @@ class Test_clone_np_ndarray:
         assert _Test_ndarray.conjugate._cunumeric.implemented
 
         assert not hasattr(_Test_ndarray.extra, "_cunumeric")
+
+        settings.report_coverage.unset_value()
 
     # TODO (bev) Not sure how to unit test this. Try to use a toy ndarray class
     # (as above) for testing, and numpy gets unhappy. On the other hand, if we
