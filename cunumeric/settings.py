@@ -39,7 +39,7 @@ class CunumericRuntimeSettings(Settings):
         convert=convert_bool,
         help="""
         Preload and initialize handles of all CUDA libraries (cuBLAS, cuSOLVER,
-        etc.) used in cuNumericLoad CUDA libs early
+        etc.) used in cuNumeric
         """,
     )
 
