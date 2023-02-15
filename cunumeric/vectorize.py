@@ -27,6 +27,7 @@ from cunumeric.runtime import runtime
 
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
+from .utils import convert_to_cunumeric_dtype
 
 # from legate.timing import time
 
@@ -111,6 +112,10 @@ class vectorize:
         self._otypes: Optional[tuple[Any]] = None
         self._result = None
         self._args: List[Any] = []
+        self._scalar_args: List[Any]=[]
+        self._scalar_idxs:List[int]=[]
+        self._scalar_names:List[str]=[]
+        self._argnames:List[str]=[]
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
         self._created: bool = False
@@ -171,8 +176,8 @@ class vectorize:
             return_lines.append(lines[i].rstrip())
         return return_lines
 
-    def _replace_name(self, name: str,argnames:list[str], _LOOP_VAR:str) -> str:
-        if name in argnames:
+    def _replace_name(self, name: str, _LOOP_VAR:str, is_gpu:bool=False) -> str:
+        if name in self._argnames and not(name in self._scalar_names) :
             return "{}[{}]".format(name, _LOOP_VAR)
         elif name == "if":
             return "if "
@@ -188,8 +193,10 @@ class vectorize:
             return "min"
         elif name == "max":
             return "max"
-        else:
+        elif is_gpu:
             return "{}".format(name)
+        else:
+            return "{}[0]".format(name)
 
 
     def _build_gpu_function(self) -> Any:
@@ -200,8 +207,8 @@ class vectorize:
         lines = ["from numba import cuda"]
 
         # Signature
-        argnames = list(k for k in inspect.signature(self._pyfunc).parameters)
-        args = argnames + [_SIZE_VAR]
+        args = self._argnames + [_SIZE_VAR]
+
         lines.append("def {}({}):".format(funcid, ",".join(args)))
 
         # Initialize the index variable and return immediately
@@ -212,7 +219,7 @@ class vectorize:
 
         # Kernel body
         def _lift_to_array_access(m: Any) -> str:
-            return self._replace_name(m.group(0), argnames, _LOOP_VAR)
+            return self._replace_name(m.group(0), _LOOP_VAR, True)
 
         # kernel body
         lines_old = self._get_func_body(self._pyfunc)
@@ -247,12 +254,16 @@ class vectorize:
             )
 
         # get names of arguments
-        argnames = list(k for k in inspect.signature(self._pyfunc).parameters)
         arg_idx = 0
         for a in self._args:
             ty = a.dtype
-            _emit_assignment(argnames[arg_idx], arg_idx, _SIZE_VAR, ty)
+            _emit_assignment(self._argnames[arg_idx], arg_idx, _SIZE_VAR, ty)
             arg_idx += 1
+        for a in self._scalar_args:
+            scalar_type = np.dtype(type(a).__name__)
+            _emit_assignment(self._argnames[arg_idx], arg_idx, _SIZE_VAR, scalar_type)
+            arg_idx += 1
+
 
         # Main loop
         lines.append("    for {} in range({}):".format(_LOOP_VAR, _SIZE_VAR))
@@ -261,15 +272,12 @@ class vectorize:
 
         # Kernel body
         def _lift_to_array_access(m: Any) -> str:
-            return self._replace_name(m.group(0), argnames, _LOOP_VAR)
+            return self._replace_name(m.group(0), _LOOP_VAR)
 
         # lines_new = []
         for line in lines_old:
             l_new = re.sub(r"[_a-z]\w*", _lift_to_array_access, line)
             lines.append("        " + l_new)
-
-        #print("IRINA DEBUG CPU function")
-        #print(lines)
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
@@ -284,6 +292,11 @@ class vectorize:
             ty = str(ty) if ty != bool else "int8"
             ty = getattr(numba.core.types, ty)
             ty = numba.core.types.CPointer(ty)
+            types.append(ty)
+        for arg in self._scalar_args:
+            ty = np.dtype(type(arg).__name__)
+            ty = str(ty) if ty != bool else "int8"
+            ty = getattr(numba.core.types, ty)
             types.append(ty)
         return types
 
@@ -302,26 +315,18 @@ class vectorize:
 
         return numba.cfunc(sig)(self._numba_func)
 
-    def _execute_gpu(self) -> None:
+    def _execute(self, is_gpu:bool) -> None:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-        task.add_scalar_arg(self._gpu_func[0], ty.string)
-        task.add_scalar_arg(self._num_outputs, ty.uint32)
-        a0 = self._args[0]._thunk
-        a0 = runtime.to_deferred_array(a0)
-        for count, a in enumerate(self._args):
-            a_tmp = runtime.to_deferred_array(a._thunk)
-            a_tmp=a_tmp.base
-            task.add_input(a_tmp)
-            if count < self._num_outputs:
-                task.add_output(a_tmp)
-            if count != 0:
-                task.add_alignment(a0.base, a_tmp)
-        task.execute()
+        if is_gpu:
+            task.add_scalar_arg(self._gpu_func[0], ty.string)
+            task.add_scalar_arg(self._num_outputs, ty.uint32)
+        else:
+            task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
+            task.add_scalar_arg(self._num_outputs, ty.uint32)
+        for a in self._scalar_args:
+            dtype = convert_to_cunumeric_dtype(type(a).__name__)
+            task.add_scalar_arg(a,dtype)
 
-    def _execute_cpu(self) -> None:
-        task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-        task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
-        task.add_scalar_arg(self._num_outputs, ty.uint32)
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
         for count, a in enumerate(self._args):
@@ -339,16 +344,31 @@ class vectorize:
         Return arrays with the results of `pyfunc` broadcast (vectorized) over
         `args` and `kwargs` not in `excluded`.
         """
-        self._args = list(
-            convert_to_cunumeric_ndarray(arg) if arg is not None else arg
-            for (idx, arg) in enumerate(args)
-        )
-        for arg in self._args:
+        #self._args = list(
+        #    convert_to_cunumeric_ndarray(arg) if (arg is not None and np.ndim(Arg)>0)
+        #    for (idx, arg) in enumerate(args)
+        #)
+        for i,arg in enumerate(args):
             if arg is None:
                 raise ValueError(
                     "None is not supported in user function "
                     "passed to cunumeric.vectorize"
                 )
+            elif np.ndim(arg)==0:
+                self._scalar_args.append(arg)
+                self._scalar_idxs.append(i)
+            else:
+                self._args.append(convert_to_cunumeric_ndarray(arg))
+
+        #first fill arrays to argnames, then scalars:
+        for i,k in enumerate(inspect.signature(self._pyfunc).parameters):
+            if not(i in self._scalar_idxs):
+                self._argnames.append(k)
+
+        for i,k in enumerate(inspect.signature(self._pyfunc).parameters):
+            if i in self._scalar_idxs:
+                self._scalar_names.append(k)
+                self._argnames.append(k)
 
         #all output arrays should have the same type
         if len(self._args)>0:
@@ -370,7 +390,7 @@ class vectorize:
                         category=RuntimeWarning,
                     )
                     self._args[i] = self._args[i].astype(ty)
-                if shape !=self._args[i].shape:
+                if shape !=self._args[i].shape and np.ndim(self._args[i])>0:
                      raise TypeError("cuNumeric doesnt support "
                         "different shapes for arrays in "
                         "user function passed to vectorize")
@@ -387,11 +407,17 @@ class vectorize:
                 self._gpu_func = self._compile_func_gpu()
                 if self._cache:
                     self._created = True
-            self._execute_gpu()
+            self._execute(True)
         else:
             if not self._created:
                 self._numba_func = self._build_cpu_function()
                 self._cpu_func = self._compile_func_cpu()
                 if self._cache:
                     self._created = True
-            self._execute_cpu()
+            self._execute(False)
+
+        self._args.clear()
+        self._scalar_args.clear()
+        self._scalar_idxs.clear()
+        self._argnames.clear()
+        self._scalar_names.clear()

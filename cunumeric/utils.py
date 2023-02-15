@@ -45,6 +45,25 @@ SUPPORTED_DTYPES = {
     np.complex128: ty.complex128,
 }
 
+CUNUMERIC_TYPE_MAP = {
+    "bool": ty.bool_,
+    "int8": ty.int8,
+    "int16": ty.int16,
+    "int32": ty.int32,
+    "int": ty.int64,  # np.int is int
+    "int64": ty.int64, 
+    "uint8": ty.uint8,
+    "uint16": ty.uint16,
+    "uint32": ty.uint32,
+    "uint64": ty.uint64,  # np.uint is np.uint64
+    "float16": ty.float16,
+    "float32": ty.float32,
+    "float": ty.float64,
+    "float64": ty.float64,
+    "complex64": ty.complex64,
+    "complex128": ty.complex128,
+}
+
 
 def is_advanced_indexing(key: Any) -> bool:
     if key is Ellipsis or key is None:  # np.newdim case
@@ -97,6 +116,12 @@ def is_supported_dtype(dtype: Any) -> bool:
     if not isinstance(dtype, np.dtype):
         raise TypeError("expected a NumPy dtype")
     return dtype.type in SUPPORTED_DTYPES
+
+def convert_to_cunumeric_dtype(dtype: str) ->Any:
+    if dtype in CUNUMERIC_TYPE_MAP:
+        return CUNUMERIC_TYPE_MAP[dtype]
+    else:
+        raise TypeError("dtype is not supported")
 
 
 def calculate_volume(shape: NdShape) -> int:

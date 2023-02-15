@@ -29,8 +29,8 @@ struct EvalUdfGPU {
   void operator()(EvalUdfArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
-    auto rect = args.inputs[0].shape<DIM>();
-    if (rect.empty()) return;
+    //auto rect = args.inputs[0].shape<DIM>();
+    //if (rect.empty()) return;
 
     // 1: we need to vreate a function from the ptx generated y numba
     const unsigned num_options   = 4;
@@ -93,8 +93,8 @@ struct EvalUdfGPU {
 
     // 2: after fucntion is generated, we can execute it:
 
-    // Filling up the bugger with arguments
-    size_t buffer_size = (args.inputs.size()) * sizeof(void*);
+    // Filling up the buffer with arguments
+    size_t buffer_size = (args.inputs.size()+args.scalars.size()) * sizeof(void*);
     buffer_size += sizeof(size_t);
 
     std::vector<char> arg_buffer(buffer_size);
@@ -102,17 +102,27 @@ struct EvalUdfGPU {
 
     auto p = raw_arg_buffer;
 
-    for (size_t i = 0; i < args.inputs.size(); i++) {
-      if (i < args.num_outputs) {
-        auto out                           = args.outputs[i].write_accessor<VAL, DIM>(rect);
-        *reinterpret_cast<const void**>(p) = out.ptr(rect);
-      } else {
-        auto in                            = args.inputs[i].read_accessor<VAL, DIM>(rect);
-        *reinterpret_cast<const void**>(p) = in.ptr(rect);
+    size_t size =1;
+    if (args.inputs.size()>0){
+      auto rect = args.inputs[0].shape<DIM>();
+      size = rect.volume();
+      for (size_t i = 0; i < args.inputs.size(); i++) {
+        if (i < args.num_outputs) {
+          auto out                           = args.outputs[i].write_accessor<VAL, DIM>(rect);
+          *reinterpret_cast<const void**>(p) = out.ptr(rect);
+        } else {
+          auto in                            = args.inputs[i].read_accessor<VAL, DIM>(rect);
+          *reinterpret_cast<const void**>(p) = in.ptr(rect);
+        }
+        p += sizeof(void*);
       }
-      p += sizeof(void*);
     }
-    auto size = rect.volume();
+    for (auto scalar: args.scalars){
+        memcpy(p, scalar.ptr(), scalar.size());
+        p += scalar.size();
+       // *reinterpret_cast<const void**>(p) =s;
+        //p += sizeof(void*);
+      }
     memcpy(p, &size, sizeof(size_t));
 
     void* config[] = {
@@ -147,12 +157,24 @@ struct EvalUdfGPU {
 
 /*static*/ void EvalUdfTask::gpu_variant(TaskContext& context)
 {
+  std::vector<Scalar>scalars;
+  for (size_t i=2; i<context.scalars().size(); i++)
+      scalars.push_back(context.scalars()[i]);
+
   EvalUdfArgs args{0,
                    context.inputs(),
                    context.outputs(),
+                   scalars,
                    context.scalars()[0].value<std::string>(),
                    context.scalars()[1].value<uint32_t>()};
-  size_t dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
-  double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
+  size_t dim=1;
+  if (args.inputs.size()>0){
+    dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
+    double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
+  }
+  else{
+    double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
+    //double_dispatch(dim, 0 , EvalUdfGPU{}, args);
+  }
 }
 }  // namespace cunumeric

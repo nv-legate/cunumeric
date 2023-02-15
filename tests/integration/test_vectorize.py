@@ -32,11 +32,10 @@ def test_vectorize():
     func(a, b)
     assert(np.array_equal(a, [1,3,5,7,9]))
 
-#FIXME uncomment once broadcast routines are merged
-#    a= num.arange(5)
-#    b=2
-#    func(a,b)
-#    assert(np.array_equal(a, [2,4,6,8,10]))
+    a= num.arange(5)
+    b=2
+    func(a,b)
+    assert(np.array_equal(a, [2,4,6,8,10]))
     
 
 if __name__ == "__main__":

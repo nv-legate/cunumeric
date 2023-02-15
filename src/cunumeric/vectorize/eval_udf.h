@@ -17,6 +17,7 @@
 #pragma once
 
 #include "cunumeric/cunumeric.h"
+#include "core/data/scalar.h"
 
 namespace cunumeric {
 
@@ -24,6 +25,7 @@ struct EvalUdfArgs {
   uint64_t cpu_func_ptr;
   std::vector<Array>& inputs;
   std::vector<Array>& outputs;
+  std::vector<legate::Scalar>scalars;
   std::string ptx = "";
   uint32_t num_outputs;
 };
