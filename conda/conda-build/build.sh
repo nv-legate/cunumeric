@@ -14,6 +14,7 @@ if [ -z "$CPU_ONLY" ]; then
   CMAKE_ARGS+="
 -Dcutensor_DIR=$PREFIX
 -DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;90
+-DBUILD_MARCH=haswell
 "
 else
   # When we build without cuda, we need to provide the location of curand
