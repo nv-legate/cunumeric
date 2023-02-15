@@ -33,7 +33,6 @@ if os.environ.get("_LEGATE_PROJECT_HELP_ARGS_") == "1":
     from .args import ARGS
 
 else:
-
     import numpy as _np
 
     from cunumeric import linalg, random, fft

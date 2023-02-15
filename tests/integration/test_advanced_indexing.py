@@ -230,7 +230,6 @@ def test_future_stores():
 
 
 def test():
-
     # tests on 1D input array:
     print("advanced indexing test 1")
 
