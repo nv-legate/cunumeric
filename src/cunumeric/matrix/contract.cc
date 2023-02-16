@@ -49,7 +49,8 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::FLOAT_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_readable)
   {
     tblis_tensor lhs;
     tblis_init_tensor_s(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
@@ -80,7 +81,8 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::DOUBLE_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_readable)
   {
     tblis_tensor lhs;
     tblis_init_tensor_d(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
@@ -111,7 +113,8 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_readable)
   {
     // TBLIS doesn't handle half-precision floating point directly, so we have to go through a
     // conversion to single-precision.
@@ -145,7 +148,8 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::HALF_LT> {
                                                                    rhs2_ndim,
                                                                    rhs2_shape,
                                                                    rhs2_copy_strides.data(),
-                                                                   rhs2_modes);
+                                                                   rhs2_modes,
+                                                                   lhs_readable);
 
     float_tensor_to_half(lhs_data, lhs_copy_data, lhs_ndim, lhs_shape, lhs_strides);
   }
@@ -167,7 +171,8 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX64_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_readable)
   {
     tblis_tensor lhs;
     tblis_init_tensor_c(
@@ -209,7 +214,8 @@ struct ContractImplBody<VariantKind::CPU, LegateTypeCode::COMPLEX128_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_readable)
   {
     tblis_tensor lhs;
     tblis_init_tensor_z(
