@@ -22,7 +22,7 @@ Using cuNumeric you do things like run the final example of the
 
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`search`

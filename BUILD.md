@@ -15,6 +15,7 @@ limitations under the License.
 
 -->
 
+(building-from-source)=
 # Building from source
 
 ## Basic build
