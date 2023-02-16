@@ -22,7 +22,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "cunumeric"
-copyright = "2021-2022, NVIDIA"
+copyright = "2021-2023, NVIDIA"
 author = "NVIDIA"
 
 # -- General configuration ---------------------------------------------------
