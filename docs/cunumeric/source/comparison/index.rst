@@ -1,5 +1,5 @@
-Comparison Table
-================
+Project comparisons
+===================
 
 Here is a list of NumPy APIs and corresponding cuNumeric implementations.
 
