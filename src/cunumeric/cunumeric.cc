@@ -25,9 +25,9 @@ namespace cunumeric {
 
 static const char* const cunumeric_library_name = "cunumeric";
 
-/*static*/ LegateTaskRegistrar& CuNumeric::get_registrar()
+/*static*/ TaskRegistrar& CuNumeric::get_registrar()
 {
-  static LegateTaskRegistrar registrar;
+  static TaskRegistrar registrar;
   return registrar;
 }
 
