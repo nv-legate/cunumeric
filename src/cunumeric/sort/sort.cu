@@ -19,6 +19,7 @@
 #include "cunumeric/sort/cub_sort.h"
 #include "cunumeric/sort/thrust_sort.h"
 #include "cunumeric/utilities/thrust_allocator.h"
+#include "cunumeric/utilities/thrust_util.h"
 
 #include <thrust/scan.h>
 #include <thrust/sort.h>
@@ -643,7 +644,7 @@ SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
     return result;
   } else {
     // maybe k-way merge is more efficient here...
-    auto exec_policy      = thrust::cuda::par(alloc).on(stream);
+    auto exec_policy      = DEFAULT_POLICY(alloc).on(stream);
     size_t num_sort_ranks = merge_buffers.size();
     std::vector<SegmentMergePiece<VAL>> destroy_queue;
     for (size_t stride = 1; stride < num_sort_ranks; stride *= 2) {
@@ -774,7 +775,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
     output_values = static_cast<VAL*>(output_ptr);
   }
 
-  auto exec_policy = thrust::cuda::par(alloc).on(stream);
+  auto exec_policy = DEFAULT_POLICY(alloc).on(stream);
 
   {
     // compute diff for each segment
@@ -1334,7 +1335,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
 
   // sort samples on device
   auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
-  auto exec_policy = thrust::cuda::par(alloc).on(stream);
+  auto exec_policy = DEFAULT_POLICY(alloc).on(stream);
   thrust::stable_sort(
     exec_policy, samples.ptr(0), samples.ptr(0) + num_samples_g, SegmentSampleComparator<VAL>());
 
@@ -1706,9 +1707,9 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
       size_t offset = rect.lo[DIM - 1];
       if (volume > 0) {
         if (DIM == 1) {
-          thrust::sequence(thrust::cuda::par.on(stream), indices_ptr, indices_ptr + volume, offset);
+          thrust::sequence(DEFAULT_POLICY.on(stream), indices_ptr, indices_ptr + volume, offset);
         } else {
-          thrust::transform(thrust::cuda::par.on(stream),
+          thrust::transform(DEFAULT_POLICY.on(stream),
                             thrust::make_counting_iterator<int64_t>(0),
                             thrust::make_counting_iterator<int64_t>(volume),
                             thrust::make_constant_iterator<int64_t>(segment_size_l),

@@ -31,6 +31,7 @@ from legate.core import track_provenance
 from typing_extensions import Protocol
 
 from .runtime import runtime
+from .settings import settings
 from .utils import find_last_user_frames, find_last_user_stacklevel
 
 __all__ = ("clone_module", "clone_np_ndarray")
@@ -102,7 +103,7 @@ def implemented(
         @track_provenance(runtime.legate_context)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(
-                not runtime.args.report_dump_callstack
+                not settings.report_dump_callstack()
             )
             runtime.record_api_call(
                 name=name,
@@ -167,7 +168,7 @@ def unimplemented(
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(
-                not runtime.args.report_dump_callstack
+                not settings.report_dump_callstack()
             )
             runtime.record_api_call(
                 name=name,
@@ -230,7 +231,7 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
-    reporting = runtime.args.report_coverage
+    reporting = settings.report_coverage()
 
     from ._ufunc.ufunc import ufunc as lgufunc
 
@@ -284,7 +285,7 @@ def clone_np_ndarray(cls: type) -> type:
         omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
     )
 
-    reporting = runtime.args.report_coverage
+    reporting = settings.report_coverage()
 
     for attr, value in cls.__dict__.items():
         # Only need to wrap things that are in the origin class to begin with
