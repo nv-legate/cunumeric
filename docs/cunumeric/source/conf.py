@@ -28,7 +28,9 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx_copybutton",
+    "IPython.sphinxext.ipython_console_highlighting",
     "myst_parser",
+    "nbsphinx",
     "cunumeric._sphinxext.comparison_table",
     "cunumeric._sphinxext.implemented_index",
     "cunumeric._sphinxext.missing_refs",
@@ -77,6 +79,8 @@ intersphinx_mapping = {
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 napoleon_custom_sections = [("Availability", "returns_style")]
+
+nbsphinx_execute = "never"
 
 pygments_style = "sphinx"
 
