@@ -21,12 +21,12 @@ be used to generate coverage reports.
 Overall coverage report
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The command line flag ``-cunumeric:report:coverage`` may be added to print an
+The environment variable ``CUNUMERIC_REPORT_COVERAGE`` may be used to print an
 overall percentage of cunumeric coverage:
 
 .. code-block:: sh
 
-    legate test.py -cunumeric:report:coverage
+    CUNUMERIC_REPORT_COVERAGE=1 legate test.py
 
 After execution completes, the percentage of NumPy API calls that were handled
 by cunumeric is printed:
@@ -38,12 +38,12 @@ by cunumeric is printed:
 Detailed coverage report
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The command line flag ``-cunumeric:report:dump-csv`` may be added to save a
+The environment variable ``CUNUMERIC_REPORT_DUMP_CSV`` may be used to save a
 detailed coverage report:
 
 .. code-block:: sh
 
-    legate test.py -cunumeric:report:dump-csv out.csv
+    CUNUMERIC_REPORT_COVERAGE=1 CUNUMERIC_REPORT_DUMP_CSV="out.csv" legate test.py
 
 After execution completes, a CSV file will be saved to the specified location
 (in this case ``out.csv``). The file shows exactly what NumPy API functions
@@ -65,12 +65,12 @@ the call site:
 Call stack reporting
 ~~~~~~~~~~~~~~~~~~~~
 
-The command line flag ``-cunumeric:report:dump-callstack`` may be added to
+The environment variable ``CUNUMERIC_REPORT_DUMP_CALLSTACK`` may be added to
 include full call stack information in a CSV report:
 
 .. code-block:: sh
 
-    legate test.py -cunumeric:report:dump-callstack -cunumeric:report:dump-csv out.csv
+   CUNUMERIC_REPORT_COVERAGE=1 CUNUMERIC_REPORT_DUMP_CALLSTACK=1 CUNUMERIC_REPORT_DUMP_CALLSTACK=1 legate test.py
 
 After execution completes, the CSV output file have full call stack
 information in the location column, with individual stack frames separated
@@ -107,5 +107,5 @@ instead, without any changes to the original source code. Any standard
 
 .. code-block:: sh
 
-    $ lgpatch test.py -patch numpy -cunumeric:report:coverage
+    $ CUNUMERIC_REPORT_COVERAGE=1 lgpatch test.py -patch numpy
     cuNumeric API coverage: 4/4 (100.0%)

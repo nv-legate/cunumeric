@@ -159,6 +159,7 @@ class Runtime(object):
                 f"cuNumeric API coverage: {implemented}/{total} "
                 f"({implemented / total * 100}%)"
             )
+
         if (dump_csv := settings.report_dump_csv()) is not None:
             with open(dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
@@ -169,7 +170,7 @@ class Runtime(object):
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
-        if hasattr(self, "args") and settings.report_coverage():
+        if settings.report_coverage():
             self._report_coverage()
         self.destroyed = True
 
