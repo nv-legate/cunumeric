@@ -16,6 +16,7 @@
 
 #include "cunumeric/vectorize/eval_udf.h"
 #include "cunumeric/cuda_help.h"
+#include "cunumeric/pitches.h"
 #include <regex>
 #include <cuda.h>
 
@@ -29,8 +30,7 @@ struct EvalUdfGPU {
   void operator()(EvalUdfArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
-    //auto rect = args.inputs[0].shape<DIM>();
-    //if (rect.empty()) return;
+    Rect<DIM> rect;
 
     // 1: we need to vreate a function from the ptx generated y numba
     const unsigned num_options   = 4;
@@ -95,7 +95,10 @@ struct EvalUdfGPU {
 
     // Filling up the buffer with arguments
     size_t buffer_size = (args.inputs.size()+args.scalars.size()) * sizeof(void*);
-    buffer_size += sizeof(size_t);
+    buffer_size +=sizeof(size_t);//size
+    buffer_size += sizeof(size_t);//dim
+    buffer_size += sizeof(void*);//pitches
+    buffer_size += sizeof(void*);//lo_point
 
     std::vector<char> arg_buffer(buffer_size);
     char* raw_arg_buffer = arg_buffer.data();
@@ -104,7 +107,7 @@ struct EvalUdfGPU {
 
     size_t size =1;
     if (args.inputs.size()>0){
-      auto rect = args.inputs[0].shape<DIM>();
+      rect = args.inputs[0].shape<DIM>();
       size = rect.volume();
       for (size_t i = 0; i < args.inputs.size(); i++) {
         if (i < args.num_outputs) {
@@ -124,6 +127,17 @@ struct EvalUdfGPU {
         //p += sizeof(void*);
       }
     memcpy(p, &size, sizeof(size_t));
+    size_t dim=DIM;
+    p += sizeof(size_t);
+    memcpy(p, &dim, sizeof(size_t));
+    p += sizeof(size_t);
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(rect);
+    *reinterpret_cast<const void**>(p) =pitches.data();
+    p += sizeof(void*);
+    *reinterpret_cast<const void**>(p) =&rect.lo[0];
+//    p += sizeof(void*);
+    
 
     void* config[] = {
       CU_LAUNCH_PARAM_BUFFER_POINTER,

@@ -38,12 +38,16 @@ struct EvalUdfImpl {
     std::vector<void*> udf_args;
     using VAL = legate_type_of<CODE>;
     auto rect = args.args[0].shape<DIM>();
+   
+    size_t strides[DIM];
 
     if (rect.empty()) return;
     EvalUdfImplBody<KIND, CODE, DIM>();
     for (size_t i = 0; i < args.args.size(); i++) {
       auto out = args.args[i].write_accessor<VAL, DIM>(rect);
-      udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect)));
+      udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect, strides)));
+      for (size_t i=0; i<DIM;i++)
+          std::cout<<"IRINA DEBUG strides = "<<strides[i]<<std::endl;
     }
 
     udf(udf_args.data(), rect.volume());

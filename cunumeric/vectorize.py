@@ -41,6 +41,10 @@ _MASK_VAR = "__mask__"
 _SIZE_VAR = "__size__"
 _LOOP_VAR = "__i__"
 _ARGS_VAR = "__args__"
+_DIM_VAR = "__dim__"
+_POINT_VAR = "__point__"
+_LO_POINT_VAR = "__lo_point__"
+_PITCHES_VAR = "__pitches__"
 
 
 class vectorize:
@@ -207,7 +211,7 @@ class vectorize:
         lines = ["from numba import cuda"]
 
         # Signature
-        args = self._argnames + [_SIZE_VAR]
+        args = self._argnames + [_SIZE_VAR]+[_DIM_VAR]+[_PITCHES_VAR]+[_LO_POINT_VAR]
 
         lines.append("def {}({}):".format(funcid, ",".join(args)))
 
@@ -216,16 +220,24 @@ class vectorize:
         lines.append("    {} = cuda.grid(1)".format(_LOOP_VAR))
         lines.append("    if {} >= {}:".format(_LOOP_VAR, _SIZE_VAR))
         lines.append("        return")
+        lines.append("    {}={}".format(_POINT_VAR, _LO_POINT_VAR))
+        lines.append("    for p in range({}-1):".format(_DIM_VAR))
+        
+        lines.append("        {}[p]+={}/int({}[p])".format(_POINT_VAR,_LOOP_VAR, _PITCHES_VAR))
+        lines.append("        {}={}%int({})".format(_LOOP_VAR,_LOOP_VAR,_PITCHES_VAR))
+        lines.append("    {}[{}-1]+={}".format(_POINT_VAR, _DIM_VAR, _LOOP_VAR))
 
         # Kernel body
         def _lift_to_array_access(m: Any) -> str:
-            return self._replace_name(m.group(0), _LOOP_VAR, True)
+            return self._replace_name(m.group(0), _POINT_VAR, True)
 
         # kernel body
         lines_old = self._get_func_body(self._pyfunc)
         for line in lines_old:
             l_new = re.sub(r"[_a-z]\w*", _lift_to_array_access, line)
             lines.append(l_new)
+   
+        print("IRINA DEBUG GPU function",lines)
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
@@ -302,7 +314,7 @@ class vectorize:
 
     def _compile_func_gpu(self) -> tuple[Any]:
         types = self._get_numba_types()
-        arg_types = types + [numba.core.types.uint64]
+        arg_types = types + [numba.core.types.uint64] + [numba.core.types.uint64]+[numba.core.types.CPointer(numba.core.types.uint64)]+ [numba.core.types.CPointer(numba.core.types.uint64)]
         sig = (*arg_types,)
 
         cuda_arch = numba.cuda.get_current_device().compute_capability

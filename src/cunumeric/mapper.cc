@@ -222,6 +222,7 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       }
       return std::move(mappings);
     }
+#if 0
     case CUNUMERIC_EVAL_UDF: {
       std::vector<StoreMapping> mappings;
       auto& inputs  = task.inputs();
@@ -238,6 +239,7 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       }
       return std::move(mappings);
     }
+#endif
     default: {
       return {};
     }

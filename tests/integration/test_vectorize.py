@@ -36,7 +36,11 @@ def test_vectorize():
     b=2
     func(a,b)
     assert(np.array_equal(a, [2,4,6,8,10]))
-    
+   
+    a=num.array([[1,2,3],[4,5,6],[7,8,9]])
+    b=num.array([[10,11,12],[13,14,15],[16,17,18]])
+    func(a[:2],b[:2])
+    print(a)
 
 if __name__ == "__main__":
     import sys
