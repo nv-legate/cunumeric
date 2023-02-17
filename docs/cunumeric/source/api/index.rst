@@ -8,3 +8,4 @@ API Reference
 
    classes
    routines
+   settings

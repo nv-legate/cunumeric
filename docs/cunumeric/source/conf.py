@@ -31,6 +31,7 @@ extensions = [
     "IPython.sphinxext.ipython_console_highlighting",
     "myst_parser",
     "nbsphinx",
+    "legate._sphinxext.settings",
     "cunumeric._sphinxext.comparison_table",
     "cunumeric._sphinxext.implemented_index",
     "cunumeric._sphinxext.missing_refs",
