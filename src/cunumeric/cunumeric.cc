@@ -37,17 +37,18 @@ extern void register_gpu_reduction_operators(LibraryContext& context);
 extern void register_cpu_reduction_operators(LibraryContext& context);
 #endif
 
-void registration_callback(Machine machine,
-                           Runtime* runtime,
-                           const std::set<Processor>& local_procs)
+void registration_callback()
 {
+  Legion::Runtime* runtime = Legion::Runtime::get_runtime();
+  Realm::Machine machine   = Realm::Machine::get_machine();
+
   ResourceConfig config;
   config.max_mappers       = CUNUMERIC_MAX_MAPPERS;
   config.max_tasks         = CUNUMERIC_MAX_TASKS;
   config.max_reduction_ops = CUNUMERIC_MAX_REDOPS;
   LibraryContext context(runtime, cunumeric_library_name, config);
 
-  CuNumeric::get_registrar().register_all_tasks(runtime, context);
+  CuNumeric::get_registrar().register_all_tasks(context);
 
   // Register our special reduction functions
 #ifdef LEGATE_USE_CUDA
@@ -57,7 +58,7 @@ void registration_callback(Machine machine,
 #endif
 
   // Now we can register our mapper with the runtime
-  context.register_mapper(new CuNumericMapper(runtime, machine, context), 0);
+  context.register_mapper(std::make_unique<CuNumericMapper>(), 0);
 }
 
 }  // namespace cunumeric
@@ -66,10 +67,7 @@ extern "C" {
 
 void cunumeric_perform_registration(void)
 {
-  // Tell the runtime about our registration callback so we hook it
-  // in before the runtime starts and make it global so that we know
-  // that this call back is invoked everywhere across all nodes
-  Runtime::perform_registration_callback(cunumeric::registration_callback, true /*global*/);
+  legate::Core::perform_registration(cunumeric::registration_callback);
 }
 
 bool cunumeric_has_curand()
