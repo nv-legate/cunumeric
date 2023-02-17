@@ -80,8 +80,9 @@ users can supply the `--nodes` option. For execution with GPUs, users can use th
 to familiarize themselves with these resource flags as described in the Legate Core
 documentation or simply by passing `--help` to the `legate` driver script.
 
-You can use `test.py` to run the test suite. This script will invoke the `legate`
-driver script automatically. Check out `test.py --help` for further options.
+You can use `test.py` to run the test suite. Invoke the script directly or through
+standard `python`; the script will invoke the `legate` driver script internally.
+Check out `test.py --help` for further options.
 
 ## Supported and Planned Features
 

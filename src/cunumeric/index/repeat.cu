@@ -16,10 +16,10 @@
 
 #include "cunumeric/index/repeat.h"
 #include "cunumeric/index/repeat_template.inl"
+#include "cunumeric/utilities/thrust_util.h"
 #include "cunumeric/cuda_help.h"
 
 #include <thrust/scan.h>
-#include <thrust/execution_policy.h>
 
 namespace cunumeric {
 
@@ -157,7 +157,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     auto out = out_array.create_output_buffer<VAL, DIM>(out_extents, true);
 
     auto p_offsets = offsets.ptr(0);
-    thrust::exclusive_scan(thrust::cuda::par.on(stream), p_offsets, p_offsets + extent, p_offsets);
+    thrust::exclusive_scan(DEFAULT_POLICY.on(stream), p_offsets, p_offsets + extent, p_offsets);
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     repeat_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(

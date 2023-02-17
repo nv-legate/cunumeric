@@ -72,7 +72,6 @@ class TestArraySplitErrors:
 
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_array_split(size):
-
     a = np.random.randint(low=0, high=100, size=size)
     axis_list = list(range(a.ndim))
     axis_list.append(-1)

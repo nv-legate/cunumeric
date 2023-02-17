@@ -115,7 +115,7 @@ def add_boilerplate(
         params = signature(func).parameters
         extra = keys - set(params)
         assert len(extra) == 0, f"unknown parameter(s): {extra}"
-        for (idx, param) in enumerate(params):
+        for idx, param in enumerate(params):
             if param == "where":
                 where_idx = idx
             elif param == "out":
@@ -136,7 +136,7 @@ def add_boilerplate(
                 else arg
                 for (idx, arg) in enumerate(args)
             )
-            for (k, v) in kwargs.items():
+            for k, v in kwargs.items():
                 if v is None:
                     continue
                 elif k == "where":
