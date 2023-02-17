@@ -32,15 +32,15 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   const float* vec,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto cublas_handle = get_cublas();
     auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.0;
-    // lhs_readable being true means that the matvecmul tasks can overwrite the lhs
-    const float beta = lhs_readable ? 0.0 : 1.0;
+    // lhs_overwritable being true means that the matvecmul tasks can overwrite the lhs
+    const float beta = lhs_overwritable ? 0.0 : 1.0;
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
 
@@ -85,14 +85,14 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   const double* vec,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto cublas_handle = get_cublas();
     auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const double alpha = 1.0;
-    const double beta  = lhs_readable ? 0.0 : 1.0;
+    const double beta  = lhs_overwritable ? 0.0 : 1.0;
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
 
@@ -132,14 +132,14 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   const __half* vec,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto cublas_handle = get_cublas();
     auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.0;
-    const float beta  = lhs_readable ? 0.0 : 1.0;
+    const float beta  = lhs_overwritable ? 0.0 : 1.0;
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
     // Use SgemmEx here since there is no half precision gemv yet
@@ -174,7 +174,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
                   const complex<float>* vec_,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     cuComplex* lhs       = reinterpret_cast<cuComplex*>(lhs_);
     const cuComplex* mat = reinterpret_cast<const cuComplex*>(mat_);
@@ -185,7 +185,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const cuComplex alpha = make_float2(1.0, 0.0);
-    const cuComplex beta  = make_float2(lhs_readable ? 0.0 : 1.0, 0.0);
+    const cuComplex beta  = make_float2(lhs_overwritable ? 0.0 : 1.0, 0.0);
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
 
@@ -228,7 +228,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
                   const complex<double>* vec_,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     cuDoubleComplex* lhs       = reinterpret_cast<cuDoubleComplex*>(lhs_);
     const cuDoubleComplex* mat = reinterpret_cast<const cuDoubleComplex*>(mat_);
@@ -239,7 +239,7 @@ struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const cuDoubleComplex alpha = make_double2(1.0, 0.0);
-    const cuDoubleComplex beta  = make_double2(lhs_readable ? 0.0 : 1.0, 0.0);
+    const cuDoubleComplex beta  = make_double2(lhs_overwritable ? 0.0 : 1.0, 0.0);
 
     auto trans = transpose_mat ? CUBLAS_OP_N : CUBLAS_OP_T;
 

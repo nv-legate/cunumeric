@@ -42,15 +42,15 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto cublas_handle = get_cublas();
     auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.0;
-    // lhs_readable being true means that the matmul tasks can overwrite the lhs
-    const float beta = lhs_readable ? 0.0 : 1.0;
+    // lhs_overwritable being true means that the matmul tasks can overwrite the lhs
+    const float beta = lhs_overwritable ? 0.0 : 1.0;
 
     CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
                                rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -87,14 +87,14 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto cublas_handle = get_cublas();
     auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const double alpha = 1.0;
-    const double beta  = lhs_readable ? 0.0 : 1.0;
+    const double beta  = lhs_overwritable ? 0.0 : 1.0;
 
     CHECK_CUBLAS(cublasDgemm(cublas_handle,
                              rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -128,14 +128,14 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto cublas_handle = get_cublas();
     auto task_stream   = get_cached_stream();
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const float alpha = 1.0;
-    const float beta  = lhs_readable ? 0.0 : 1.0;
+    const float beta  = lhs_overwritable ? 0.0 : 1.0;
 
     CHECK_CUBLAS(cublasSgemmEx(cublas_handle,
                                rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -172,7 +172,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     cuComplex* lhs        = reinterpret_cast<cuComplex*>(lhs_);
     const cuComplex* rhs1 = reinterpret_cast<const cuComplex*>(rhs1_);
@@ -183,7 +183,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const cuComplex alpha = make_float2(1.0, 0.0);
-    const cuComplex beta  = make_float2(lhs_readable ? 0.0 : 1.0, 0.0);
+    const cuComplex beta  = make_float2(lhs_overwritable ? 0.0 : 1.0, 0.0);
 
     CHECK_CUBLAS(cublasCgemmEx(cublas_handle,
                                rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,
@@ -220,7 +220,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     cuDoubleComplex* lhs        = reinterpret_cast<cuDoubleComplex*>(lhs_);
     const cuDoubleComplex* rhs1 = reinterpret_cast<const cuDoubleComplex*>(rhs1_);
@@ -231,7 +231,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
     CHECK_CUBLAS(cublasSetStream(cublas_handle, task_stream));
 
     const cuDoubleComplex alpha = make_double2(1.0, 0.0);
-    const cuDoubleComplex beta  = make_double2(lhs_readable ? 0.0 : 1.0, 0.0);
+    const cuDoubleComplex beta  = make_double2(lhs_overwritable ? 0.0 : 1.0, 0.0);
 
     CHECK_CUBLAS(cublasZgemm(cublas_handle,
                              rhs2_transposed ? CUBLAS_OP_T : CUBLAS_OP_N,

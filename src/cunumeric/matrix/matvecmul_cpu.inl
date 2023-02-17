@@ -36,11 +36,11 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::FLOAT_LT> {
                   const float* vec,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
-    // lhs_readable being true means that the matvecmul tasks can overwrite the lhs
-    float beta = lhs_readable ? 0.0 : 1.0;
+    // lhs_overwritable being true means that the matvecmul tasks can overwrite the lhs
+    float beta = lhs_overwritable ? 0.0 : 1.0;
     cblas_sgemv(CblasRowMajor, trans, m, n, 1, mat, mat_stride, vec, 1, beta, lhs, 1);
   }
 };
@@ -54,10 +54,10 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
                   const double* vec,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto trans  = transpose_mat ? CblasTrans : CblasNoTrans;
-    double beta = lhs_readable ? 0.0 : 1.0;
+    double beta = lhs_overwritable ? 0.0 : 1.0;
     cblas_dgemv(CblasRowMajor, trans, m, n, 1, mat, mat_stride, vec, 1, beta, lhs, 1);
   }
 };
@@ -71,7 +71,7 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::HALF_LT> {
                   const __half* vec,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto vec_size = transpose_mat ? m : n;
 
@@ -82,7 +82,7 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::HALF_LT> {
     half_vector_to_float(vec_copy, vec, vec_size);
 
     MatVecMulImplBody<KIND, LegateTypeCode::FLOAT_LT>{}(
-      m, n, lhs, mat_copy, vec_copy, n, transpose_mat, lhs_readable);
+      m, n, lhs, mat_copy, vec_copy, n, transpose_mat, lhs_overwritable);
   }
 };
 
@@ -95,13 +95,13 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
                   const complex<float>* vec_,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     __complex__ float* lhs       = reinterpret_cast<__complex__ float*>(lhs_);
     const __complex__ float* mat = reinterpret_cast<const __complex__ float*>(mat_);
     const __complex__ float* vec = reinterpret_cast<const __complex__ float*>(vec_);
     __complex__ float alpha      = 1.0;
-    __complex__ float beta       = lhs_readable ? 0.0 : 1.0;
+    __complex__ float beta       = lhs_overwritable ? 0.0 : 1.0;
 
     auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
     cblas_cgemv(CblasRowMajor, trans, m, n, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1);
@@ -117,13 +117,13 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::COMPLEX128_LT> {
                   const complex<double>* vec_,
                   size_t mat_stride,
                   bool transpose_mat,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     __complex__ double* lhs       = reinterpret_cast<__complex__ double*>(lhs_);
     const __complex__ double* mat = reinterpret_cast<const __complex__ double*>(mat_);
     const __complex__ double* vec = reinterpret_cast<const __complex__ double*>(vec_);
     __complex__ double alpha      = 1.0;
-    __complex__ double beta       = lhs_readable ? 0.0 : 1.0;
+    __complex__ double beta       = lhs_overwritable ? 0.0 : 1.0;
 
     auto trans = transpose_mat ? CblasTrans : CblasNoTrans;
     cblas_zgemv(CblasRowMajor, trans, m, n, &alpha, mat, mat_stride, vec, 1, &beta, lhs, 1);

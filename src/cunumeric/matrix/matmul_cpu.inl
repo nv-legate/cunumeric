@@ -40,7 +40,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::FLOAT_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     cblas_sgemm(CblasRowMajor,
                 rhs1_transposed ? CblasTrans : CblasNoTrans,
@@ -53,8 +53,8 @@ struct MatMulImplBody<KIND, LegateTypeCode::FLOAT_LT> {
                 rhs1_stride,
                 rhs2,
                 rhs2_stride,
-                // lhs_readable being true means that the matmul tasks can overwrite the lhs
-                lhs_readable ? 0 : 1,
+                // lhs_overwritable being true means that the matmul tasks can overwrite the lhs
+                lhs_overwritable ? 0 : 1,
                 lhs,
                 lhs_stride);
   }
@@ -73,7 +73,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     cblas_dgemm(CblasRowMajor,
                 rhs1_transposed ? CblasTrans : CblasNoTrans,
@@ -86,7 +86,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
                 rhs1_stride,
                 rhs2,
                 rhs2_stride,
-                lhs_readable ? 0 : 1,
+                lhs_overwritable ? 0 : 1,
                 lhs,
                 lhs_stride);
   }
@@ -105,7 +105,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::HALF_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     auto rhs1_copy = allocate_buffer(m * k);
     auto rhs2_copy = allocate_buffer(k * n);
@@ -131,7 +131,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::HALF_LT> {
                 rhs1_transposed ? m : k,
                 rhs2_copy,
                 rhs2_transposed ? k : n,
-                lhs_readable ? 0 : 1,
+                lhs_overwritable ? 0 : 1,
                 lhs,
                 lhs_stride);
   }
@@ -150,13 +150,13 @@ struct MatMulImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     __complex__ float* lhs        = reinterpret_cast<__complex__ float*>(lhs_);
     const __complex__ float* rhs1 = reinterpret_cast<const __complex__ float*>(rhs1_);
     const __complex__ float* rhs2 = reinterpret_cast<const __complex__ float*>(rhs2_);
     __complex__ float alpha       = 1.0;
-    __complex__ float beta        = lhs_readable ? 0.0 : 1.0;
+    __complex__ float beta        = lhs_overwritable ? 0.0 : 1.0;
 
     cblas_cgemm(CblasRowMajor,
                 rhs1_transposed ? CblasTrans : CblasNoTrans,
@@ -188,13 +188,13 @@ struct MatMulImplBody<KIND, LegateTypeCode::COMPLEX128_LT> {
                   size_t rhs2_stride,
                   bool rhs1_transposed,
                   bool rhs2_transposed,
-                  bool lhs_readable)
+                  bool lhs_overwritable)
   {
     __complex__ double* lhs        = reinterpret_cast<__complex__ double*>(lhs_);
     const __complex__ double* rhs1 = reinterpret_cast<const __complex__ double*>(rhs1_);
     const __complex__ double* rhs2 = reinterpret_cast<const __complex__ double*>(rhs2_);
     __complex__ double alpha       = 1.0;
-    __complex__ double beta        = lhs_readable ? 0.0 : 1.0;
+    __complex__ double beta        = lhs_overwritable ? 0.0 : 1.0;
 
     cblas_zgemm(CblasRowMajor,
                 rhs1_transposed ? CblasTrans : CblasNoTrans,
