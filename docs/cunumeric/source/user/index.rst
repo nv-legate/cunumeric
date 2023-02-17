@@ -6,4 +6,5 @@ User guide
 
   installation
   usage
+  configuration
   notebooks
