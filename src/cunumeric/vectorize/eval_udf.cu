@@ -99,12 +99,13 @@ struct EvalUdfGPU {
     buffer_size += sizeof(size_t);//dim
     buffer_size += sizeof(void*);//pitches
     buffer_size += sizeof(void*);//lo_point
+    buffer_size += sizeof(void*);//strides
 
     std::vector<char> arg_buffer(buffer_size);
     char* raw_arg_buffer = arg_buffer.data();
 
     auto p = raw_arg_buffer;
-
+    size_t strides[DIM];
     size_t size =1;
     if (args.inputs.size()>0){
       rect = args.inputs[0].shape<DIM>();
@@ -112,10 +113,10 @@ struct EvalUdfGPU {
       for (size_t i = 0; i < args.inputs.size(); i++) {
         if (i < args.num_outputs) {
           auto out                           = args.outputs[i].write_accessor<VAL, DIM>(rect);
-          *reinterpret_cast<const void**>(p) = out.ptr(rect);
+          *reinterpret_cast<const void**>(p) = out.ptr(rect, strides);
         } else {
           auto in                            = args.inputs[i].read_accessor<VAL, DIM>(rect);
-          *reinterpret_cast<const void**>(p) = in.ptr(rect);
+          *reinterpret_cast<const void**>(p) = in.ptr(rect, strides);
         }
         p += sizeof(void*);
       }
@@ -133,10 +134,27 @@ struct EvalUdfGPU {
     p += sizeof(size_t);
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
-    *reinterpret_cast<const void**>(p) =pitches.data();
+    //create buffers for pitches, lower point and strides since
+    //we need to pass pointer to device memory
+    auto device_pitches   = create_buffer<int64_t>(Point<1>(DIM-1), Memory::Kind::Z_COPY_MEM);
+    auto device_lo   = create_buffer<int64_t>(Point<1>(DIM), Memory::Kind::Z_COPY_MEM);
+    auto device_strides   = create_buffer<int64_t>(Point<1>(DIM), Memory::Kind::Z_COPY_MEM);
+    //std::cout<<"IRINA DEBUG"<<std::endl;
+    for (size_t i=0; i<DIM;i++){
+      if (i!=DIM-1){
+        device_pitches[Point<1>(i)]=pitches.data()[i];
+        //std::cout<<" pitches ="<<pitches.data()[i];
+        }
+      device_lo[Point<1>(i)]=rect.lo[i];
+      device_strides[Point<1>(i)] = strides[i];
+      //std::cout<<" device_lo = " <<rect.lo[i]<< "  strides = "<<strides[i]<<std::endl;
+    }
+    *reinterpret_cast<const void**>(p) =device_pitches.ptr(Point<1>(0));
     p += sizeof(void*);
-    *reinterpret_cast<const void**>(p) =&rect.lo[0];
-//    p += sizeof(void*);
+    *reinterpret_cast<const void**>(p) =device_lo.ptr(Point<1>(0));
+    p += sizeof(void*);
+    *reinterpret_cast<const void**>(p) =device_strides.ptr(Point<1>(0));
+    p += sizeof(void*);
     
 
     void* config[] = {
