@@ -12,3 +12,4 @@ jobs:
           mode: exactly
           count: 1
           labels: "category:new-feature, category:improvement, category:bug-fix, category:task, category:documentation"
+          
