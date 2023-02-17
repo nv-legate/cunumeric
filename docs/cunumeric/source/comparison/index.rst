@@ -11,6 +11,7 @@ NumPy vs cuNumeric APIs
 
 .. comparison-table::
 
+.. _measuring api coverage:
 
 Measuring API coverage
 ----------------------
@@ -76,36 +77,3 @@ After execution completes, the CSV output file have full call stack
 information in the location column, with individual stack frames separated
 by pipe (``|``) characters:
 
-Zero code-change patching
--------------------------
-
-The ``lgpatch`` script in the same location as the ``legate`` executable) can
-help facilitate quick demonstrations of ``cunumeric`` on existing codebases
-that make use of ``numpy``.
-
-To use this tool, invoke it as shown below, with the name of the program to
-patch:
-
-.. code-block:: sh
-
-    lgpatch <program> -patch numpy
-
-For example, here is a small ``test.py`` program that imports and uses various
-``numpy`` funtions:
-
-.. code-block:: python
-
-    # test.py
-
-    import numpy as np
-    input = np.eye(10, dtype=np.float32)
-    np.linalg.cholesky(input)
-
-You can invoke ``lgpatch`` to run ``test.py`` using ``cunumeric`` functions
-instead, without any changes to the original source code. Any standard
-``cunumeric`` runtime options (e.g. for coverage reporting) may also be added:
-
-.. code-block:: sh
-
-    $ CUNUMERIC_REPORT_COVERAGE=1 lgpatch test.py -patch numpy
-    cuNumeric API coverage: 4/4 (100.0%)

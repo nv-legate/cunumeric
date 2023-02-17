@@ -60,7 +60,7 @@ html_theme_options = {
     "primary_sidebar_end": ["indices.html"],
     "secondary_sidebar_items": ["page-toc"],
     "show_nav_level": 2,
-    "show_toc_level": 1,
+    "show_toc_level": 2,
 }
 
 templates_path = ["_templates"]

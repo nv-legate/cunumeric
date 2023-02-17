@@ -5,4 +5,5 @@ User guide
   :maxdepth: 2
 
   installation
+  usage
   notebooks
