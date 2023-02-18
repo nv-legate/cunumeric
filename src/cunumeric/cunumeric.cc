@@ -31,31 +31,20 @@ static const char* const cunumeric_library_name = "cunumeric";
   return registrar;
 }
 
-#ifdef LEGATE_USE_CUDA
-extern void register_gpu_reduction_operators(LibraryContext& context);
-#else
-extern void register_cpu_reduction_operators(LibraryContext& context);
-#endif
+extern void register_reduction_operators(LibraryContext& context);
 
 void registration_callback()
 {
-  Legion::Runtime* runtime = Legion::Runtime::get_runtime();
-  Realm::Machine machine   = Realm::Machine::get_machine();
-
   ResourceConfig config;
   config.max_mappers       = CUNUMERIC_MAX_MAPPERS;
   config.max_tasks         = CUNUMERIC_MAX_TASKS;
   config.max_reduction_ops = CUNUMERIC_MAX_REDOPS;
-  LibraryContext context(runtime, cunumeric_library_name, config);
+  LibraryContext context(cunumeric_library_name, config);
 
   CuNumeric::get_registrar().register_all_tasks(context);
 
   // Register our special reduction functions
-#ifdef LEGATE_USE_CUDA
-  register_gpu_reduction_operators(context);
-#else
-  register_cpu_reduction_operators(context);
-#endif
+  register_reduction_operators(context);
 
   // Now we can register our mapper with the runtime
   context.register_mapper(std::make_unique<CuNumericMapper>(), 0);
