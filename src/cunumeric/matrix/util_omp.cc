@@ -14,15 +14,12 @@
  *
  */
 
-#include "legion.h"
 #include "core/data/buffer.h"
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/matrix/util.h"
 #include "cunumeric/matrix/util_omp.h"
 
 namespace cunumeric {
-
-using namespace Legion;
 
 void half_vector_to_float_omp(float* out, const __half* ptr, size_t n)
 {

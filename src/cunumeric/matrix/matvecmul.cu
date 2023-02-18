@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <>
 struct MatVecMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
   void operator()(size_t m,

@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 #define TILE_DIM 32
 #define BLOCK_ROWS 8
 

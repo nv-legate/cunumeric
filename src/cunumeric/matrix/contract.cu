@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 namespace {  // anonymous
 
 template <typename T>
@@ -128,7 +126,7 @@ __host__ void contract(T* lhs_data,
   uint64_t work_size = 0;
   CHECK_CUTENSOR(cutensorContractionGetWorkspace(
     handle, &desc, &find, CUTENSOR_WORKSPACE_RECOMMENDED, &work_size));
-  auto work_buf = create_buffer<int8_t>(work_size, Memory::GPU_FB_MEM);
+  auto work_buf = create_buffer<int8_t>(work_size, legate::Memory::GPU_FB_MEM);
   void* work    = work_buf.ptr(Point<1>(0));
 
   // Execute contraction

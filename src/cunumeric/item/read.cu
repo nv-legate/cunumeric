@@ -20,8 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename VAL>
 static __global__ void __launch_bounds__(1, 1)
   read_value(const AccessorWO<VAL, 1> out, const AccessorRO<VAL, 1> in)

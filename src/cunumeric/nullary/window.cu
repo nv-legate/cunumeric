@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <WindowOpCode OP_CODE>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   dense_kernel(WindowOp<OP_CODE> gen, int64_t volume, double* out, int64_t lo)

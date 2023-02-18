@@ -17,17 +17,17 @@
 #include "cunumeric/arg.h"
 #include "cunumeric/arg.inl"
 
-using namespace Legion;
-
 namespace cunumeric {
 
-#define DEFINE_ARGMAX_IDENTITY(TYPE) \
-  template <>                        \
-  const Argval<TYPE> ArgmaxReduction<TYPE>::identity = Argval<TYPE>(MaxReduction<TYPE>::identity);
+#define DEFINE_ARGMAX_IDENTITY(TYPE)                   \
+  template <>                                          \
+  const Argval<TYPE> ArgmaxReduction<TYPE>::identity = \
+    Argval<TYPE>(legate::MaxReduction<TYPE>::identity);
 
-#define DEFINE_ARGMIN_IDENTITY(TYPE) \
-  template <>                        \
-  const Argval<TYPE> ArgminReduction<TYPE>::identity = Argval<TYPE>(MinReduction<TYPE>::identity);
+#define DEFINE_ARGMIN_IDENTITY(TYPE)                   \
+  template <>                                          \
+  const Argval<TYPE> ArgminReduction<TYPE>::identity = \
+    Argval<TYPE>(legate::MinReduction<TYPE>::identity);
 
 #define DEFINE_IDENTITIES(TYPE) \
   DEFINE_ARGMAX_IDENTITY(TYPE)  \

@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace tblis;
 
 // NOTE: The TBLIS tensor constructor requires all arguments to be passed as non-const pointers,

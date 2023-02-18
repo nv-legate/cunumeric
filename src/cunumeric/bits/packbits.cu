@@ -20,7 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <typename PackOP, typename WriteAcc, typename ReadAcc, typename Pitches, typename Point>

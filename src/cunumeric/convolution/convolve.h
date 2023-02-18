@@ -33,7 +33,7 @@ struct ConvolveArgs {
   Array out;
   Array filter;
   std::vector<Array> inputs;
-  Legion::Domain root_domain;
+  legate::Domain root_domain;
 };
 
 class ConvolveTask : public CuNumericTask<ConvolveTask> {

@@ -18,7 +18,6 @@
 #include "mapper.h"
 #include "unary/unary_red_util.h"
 
-using namespace Legion;
 using namespace legate;
 
 namespace cunumeric {

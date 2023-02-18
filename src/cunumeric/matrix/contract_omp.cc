@@ -24,7 +24,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace tblis;
 
 template <>
