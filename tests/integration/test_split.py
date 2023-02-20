@@ -17,8 +17,9 @@ import math
 
 import numpy as np
 import pytest
-import cunumeric as num
 from utils.utils import compare_array
+
+import cunumeric as num
 
 # cunumeric.split(a: ndarray, indices: Union[int, ndarray], axis: int = 0)
 # → list[cunumeric.array.ndarray]
@@ -86,7 +87,7 @@ class TestSplitErrors:
             # cuNumeric raises
             # ValueError: array(()) has less dimensions than axis(0)
 
-    @pytest.mark.parametrize("indices", (-2, 0, 'hi', 1.0, None))
+    @pytest.mark.parametrize("indices", (-2, 0, "hi", 1.0, None))
     def test_indices_negative(self, indices):
         ary = num.arange(10)
         expected_exc = ValueError
@@ -132,7 +133,7 @@ class TestSplitErrors:
         with pytest.raises(expected_exc):
             func_num(None, 1)
 
-    @pytest.mark.parametrize("indices", (-2, 0, 'hi', 1.0, None))
+    @pytest.mark.parametrize("indices", (-2, 0, "hi", 1.0, None))
     @pytest.mark.parametrize("func_name", ARG_FUNCS)
     def test_indices_negative_different_split(self, func_name, indices):
         ary = num.arange(10)
@@ -341,4 +342,3 @@ if __name__ == "__main__":
     import sys
 
     sys.exit(pytest.main(sys.argv))
-
