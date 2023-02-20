@@ -76,7 +76,9 @@ struct inner_generator<gen_t, randutilimpl::execlocation::DEVICE> : basegenerato
       ::cudaDeviceGetAttribute(&multiProcessorCount, cudaDevAttrMultiProcessorCount, deviceId));
     // get number of generators
     ngenerators = blockDimX * multiProcessorCount * blocksPerMultiProcessor;
-    if (ngenerators == 0) throw(int) CURAND_STATUS_INTERNAL_ERROR;
+#ifdef DEBUG_CUNUMERIC
+    assert(ngenerators > 0);
+#endif
 
     // allocate buffer for generators state
     int driverVersion, runtimeVersion;

@@ -37,15 +37,9 @@ extern "C" curandStatus_t randutilCreateGeneratorHost(randutilGenerator_t* gener
 extern "C" curandStatus_t randutilDestroyGenerator(randutilGenerator_t generator)
 {
   randutilimpl::basegenerator* gen = (randutilimpl::basegenerator*)generator;
-  try {
-    gen->destroy();
-    delete gen;
-
-    return CURAND_STATUS_SUCCESS;
-  } catch (int errorCode) {
-    delete gen;
-    return (curandStatus_t)errorCode;
-  }
+  gen->destroy();
+  delete gen;
+  return CURAND_STATUS_SUCCESS;
 }
 
 #pragma region integers

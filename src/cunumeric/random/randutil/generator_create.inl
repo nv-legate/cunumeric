@@ -22,14 +22,10 @@ curandStatus_t randutilGenerator(randutilGenerator_t* generator,
                                  uint64_t generatorID,
                                  cudaStream_t stream = nullptr)
 {
-  try {
-    randutilimpl::inner_generator<gen_t, location>* result =
-      new randutilimpl::inner_generator<gen_t, location>(seed, generatorID, stream);
-    *generator = (randutilGenerator_t)result;
-    return CURAND_STATUS_SUCCESS;
-  } catch (int errorCode) {
-    return (curandStatus_t)errorCode;
-  }
+  randutilimpl::inner_generator<gen_t, location>* result =
+    new randutilimpl::inner_generator<gen_t, location>(seed, generatorID, stream);
+  *generator = (randutilGenerator_t)result;
+  return CURAND_STATUS_SUCCESS;
 }
 
 template <randutilimpl::execlocation location>
