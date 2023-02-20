@@ -17,7 +17,6 @@ import math
 
 import numpy as np
 import pytest
-from utils.utils import compare_array
 
 import cunumeric as num
 
