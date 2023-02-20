@@ -193,12 +193,9 @@ class TestTakeErrors:
 
     def test_invalid_indices_for_empty_array(self):
         expected_exc = IndexError
-        # A_np = mk_seq_array(np, (3, 0))
-        # A_num = mk_seq_array(num, (3, 0))
         A_np = mk_seq_array(np, (0,))
         A_num = mk_seq_array(num, (0,))
         indices = [0]
-        # axis = 1
         axis = 0
         mode = "clip"
         with pytest.raises(expected_exc):
