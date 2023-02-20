@@ -1955,12 +1955,12 @@ class ndarray:
                 if (indices < -self.shape[axis]) or (
                     indices >= self.shape[axis]
                 ):
-                    raise ValueError("invalid entry in indices array")
+                    raise IndexError("invalid entry in indices array")
             else:
                 if (indices < -self.shape[axis]).any() or (
                     indices >= self.shape[axis]
                 ).any():
-                    raise ValueError("invalid entry in indices array")
+                    raise IndexError("invalid entry in indices array")
         elif mode == "wrap":
             indices = indices % self.shape[axis]
         elif mode == "clip":
@@ -1986,7 +1986,7 @@ class ndarray:
         point_indices += (indices,)
         if out is not None:
             if out.dtype != self.dtype:
-                raise ValueError("Type mismatch: out array has the wrong type")
+                raise TypeError("Type mismatch: out array has the wrong type")
             out[:] = self[point_indices]
             return out
         else:
@@ -2538,7 +2538,7 @@ class ndarray:
         if self.shape == ():
             if mode == "raise":
                 if indices.min() < -1 or indices.max() > 0:
-                    raise ValueError("Indices out of bounds")
+                    raise IndexError("Indices out of bounds")
             if values.shape == ():
                 v = values
             else:
