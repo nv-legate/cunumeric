@@ -19,6 +19,7 @@
 #include <cstdint>
 #include <cassert>
 
+#include "legate.h"
 #include "randutil_curand.h"
 #include "randutil_impl.h"
 
@@ -104,8 +105,9 @@ curandStatus_t inner_dispatch_sample(basegenerator* gen, func_t func, size_t N, 
     case CURAND_RNG_PSEUDO_MRG32K3A:
       return static_cast<inner_generator<curandStateMRG32k3a_t, location>*>(gen)
         ->template draw<func_t, out_t>(func, N, out);
-    default: return CURAND_STATUS_INTERNAL_ERROR;
+    default: LEGATE_ABORT;
   }
+  return CURAND_STATUS_INTERNAL_ERROR;
 }
 
 // template funtion with HOST and DEVICE implementations
@@ -137,8 +139,9 @@ curandStatus_t dispatch(randutilimpl::basegenerator* gen, func_t func, size_t N,
     case randutilimpl::execlocation::DEVICE:
       return dispatcher<randutilimpl::execlocation::DEVICE, func_t, out_t>::run(gen, func, N, out);
 #endif
-    default: return CURAND_STATUS_INTERNAL_ERROR;
+    default: LEGATE_ABORT;
   }
+  return CURAND_STATUS_INTERNAL_ERROR;
 }
 
 }  // namespace randutilimpl

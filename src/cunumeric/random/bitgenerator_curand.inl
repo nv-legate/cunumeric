@@ -1740,18 +1740,12 @@ struct BitGeneratorImplBody {
               generate_distribution<uint32_t, negative_binomial_generator<uint32_t>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
-            default: {
-              randutil_log().fatal() << "unknown Distribution";
-              assert(false);
-            }
+            default: LEGATE_ABORT;
           }
         }
         break;
       }
-      default: {
-        randutil_log().fatal() << "unknown BitGenerator operation";
-        assert(false);
-      }
+      default: LEGATE_ABORT;
     }
   }
 };

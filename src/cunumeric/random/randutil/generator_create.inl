@@ -44,6 +44,7 @@ static curandStatus_t inner_randutilCreateGenerator(randutilGenerator_t* generat
     case CURAND_RNG_PSEUDO_MRG32K3A:
       return randutilGenerator<curandStateMRG32k3a_t, location>(
         generator, seed, generatorID, stream);
-    default: return CURAND_STATUS_TYPE_ERROR;
+    default: LEGATE_ABORT;
   }
+  return CURAND_STATUS_TYPE_ERROR;
 }
