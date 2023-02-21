@@ -183,7 +183,8 @@ struct ContractImpl {
                                    rhs2_shape.size(),
                                    rhs2_shape.data(),
                                    rhs2_strides.data(),
-                                   rhs2_modes.data());
+                                   rhs2_modes.data(),
+                                   args.lhs.is_readable());
 
 #if 0  // debugging output
     std::cout << "end contract kernel:" << std::endl;
