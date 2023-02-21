@@ -710,7 +710,11 @@ def linspace(
         raise ValueError("Number of samples, %s, must be non-negative." % num)
     div = (num - 1) if endpoint else num
 
-    dt = np.result_type(start, stop, float(num))
+    dt = (
+        np.complex128
+        if np.find_common_type((start.dtype, stop.dtype), ()).kind == "c"
+        else np.float64
+    )
     if dtype is None:
         dtype = dt
 
