@@ -225,12 +225,7 @@ class vectorize:
         lines.append("        x={}[p]+int(local_i/{}[p])".format(_LO_POINT_VAR,_PITCHES_VAR))
         lines.append("        local_i = local_i-{}[p]*int(local_i/{}[p])".format(_PITCHES_VAR,_PITCHES_VAR))
         lines.append("        {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR))
-        #lines.append("        print(x, {}, {}[p])".format(_LOOP_VAR, _STRIDES_VAR))
-
-        #lines.append("    print(local_i, local_i,local_i,local_i,local_i,local_i, {}[0])".format( _STRIDES_VAR))
         lines.append("    {}+=int(local_i*{}[{}-1])".format(_LOOP_VAR, _STRIDES_VAR, _DIM_VAR))
-        #lines.append("    print( local_i, local_i, local_i, {})".format(_LOOP_VAR))
-        #lines.append("    {} =local_i".format(_LOOP_VAR))
 
         # Kernel body
         def _lift_to_array_access(m: Any) -> str:
@@ -280,7 +275,6 @@ class vectorize:
             scalar_type = np.dtype(type(a).__name__)
             _emit_assignment(self._argnames[arg_idx], arg_idx, _SIZE_VAR, scalar_type)
             arg_idx += 1
-
 
         # Main loop
         lines.append("    for {} in range({}):".format(_LOOP_VAR, _SIZE_VAR))
@@ -361,31 +355,40 @@ class vectorize:
         Return arrays with the results of `pyfunc` broadcast (vectorized) over
         `args` and `kwargs` not in `excluded`.
         """
-        #self._args = list(
-        #    convert_to_cunumeric_ndarray(arg) if (arg is not None and np.ndim(Arg)>0)
-        #    for (idx, arg) in enumerate(args)
-        #)
-        for i,arg in enumerate(args):
-            if arg is None:
-                raise ValueError(
-                    "None is not supported in user function "
-                    "passed to cunumeric.vectorize"
+        if not self._created:
+            self._scalar_args.clear()
+            self._scalar_idxs.clear()
+            self._args.clear()
+            self._argnames.clear()
+            self._scalar_names.clear()
+
+            for i,arg in enumerate(args):
+                if arg is None:
+                    raise ValueError(
+                        "None is not supported in user function "
+                        "passed to cunumeric.vectorize"
+                    )
+                elif np.ndim(arg)==0:
+                    self._scalar_args.append(arg)
+                    self._scalar_idxs.append(i)
+                else:
+                    self._args.append(convert_to_cunumeric_ndarray(arg))
+
+            #first fill arrays to argnames, then scalars:
+            for i,k in enumerate(inspect.signature(self._pyfunc).parameters):
+                if not(i in self._scalar_idxs):
+                    self._argnames.append(k)
+
+            for i,k in enumerate(inspect.signature(self._pyfunc).parameters):
+                if i in self._scalar_idxs:
+                    self._scalar_names.append(k)
+                    self._argnames.append(k)
+
+            self._kwargs = list(kwargs)
+            if len(self._kwargs) > 1:
+                raise NotImplementedError(
+                    "kwargs are not supported in user functions"
                 )
-            elif np.ndim(arg)==0:
-                self._scalar_args.append(arg)
-                self._scalar_idxs.append(i)
-            else:
-                self._args.append(convert_to_cunumeric_ndarray(arg))
-
-        #first fill arrays to argnames, then scalars:
-        for i,k in enumerate(inspect.signature(self._pyfunc).parameters):
-            if not(i in self._scalar_idxs):
-                self._argnames.append(k)
-
-        for i,k in enumerate(inspect.signature(self._pyfunc).parameters):
-            if i in self._scalar_idxs:
-                self._scalar_names.append(k)
-                self._argnames.append(k)
 
         #all output arrays should have the same type
         if len(self._args)>0:
@@ -412,12 +415,6 @@ class vectorize:
                         "different shapes for arrays in "
                         "user function passed to vectorize")
 
-        self._kwargs = list(kwargs)
-        if len(self._kwargs) > 1:
-            raise NotImplementedError(
-                "kwargs are not supported in user functions"
-            )
-
         if runtime.num_gpus > 0:
             if not self._created:
                 self._numba_func = self._build_gpu_function()
@@ -433,8 +430,3 @@ class vectorize:
                     self._created = True
             self._execute(False)
 
-        self._args.clear()
-        self._scalar_args.clear()
-        self._scalar_idxs.clear()
-        self._argnames.clear()
-        self._scalar_names.clear()
