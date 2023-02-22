@@ -56,9 +56,7 @@ public:
 
   void add_jit_function(int64_t hash, CUfunction func){
     if (
-        jit_functions_.find(hash)!=jit_functions_.end())
-        //assert(false);// should never come here
-    else
+        jit_functions_.find(hash)==jit_functions_.end())
         jit_functions_.insert({hash, func});
   }
 };//class JITKernelStorage
