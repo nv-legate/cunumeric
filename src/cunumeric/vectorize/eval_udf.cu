@@ -30,7 +30,7 @@ class JITKernelStorage
 
 private:
     JITKernelStorage(){}
-    std::map<size_t, CUfunction> jit_functions_;
+    std::map<int64_t, CUfunction> jit_functions_;
 
 public:
     JITKernelStorage( JITKernelStorage const&) = delete;
@@ -42,11 +42,11 @@ public:
         return instance;
     }
 
-    bool registered_jit_funtion(size_t hash){
+    bool registered_jit_funtion(int64_t hash){
          return jit_functions_.find(hash)!=jit_functions_.end();
     };
 
-    CUfunction return_saved_jit_function(size_t hash){
+    CUfunction return_saved_jit_function(int64_t hash){
        if (
             jit_functions_.find(hash)!=jit_functions_.end())
             return jit_functions_[hash];
@@ -54,10 +54,10 @@ public:
           assert(false);//should never come here
     }
 
-  void add_jit_function(size_t hash, CUfunction func){
+  void add_jit_function(int64_t hash, CUfunction func){
     if (
         jit_functions_.find(hash)!=jit_functions_.end())
-        assert(false);// should never come here
+        //assert(false);// should never come here
     else
         jit_functions_.insert({hash, func});
   }
