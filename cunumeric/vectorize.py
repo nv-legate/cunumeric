@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+import cProfile, pstats
+
 import inspect
 import re
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -329,8 +331,15 @@ class vectorize:
     def _execute(self, is_gpu:bool) -> None:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         if is_gpu:
-            task.add_scalar_arg(self._gpu_func[0], ty.string)
+            ptx_hash = hash(self._gpu_func[0])
+            if self._created:
+                #use hashed ptx and CUfunction on the C++ side
+                str_tmp =""
+                task.add_scalar_arg(str_tmp, ty.string)
+            else:
+                task.add_scalar_arg(self._gpu_func[0], ty.string)    
             task.add_scalar_arg(self._num_outputs, ty.uint32)
+            task.add_scalar_arg(ptx_hash, ty.int64)
         else:
             task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
             task.add_scalar_arg(self._num_outputs, ty.uint32)
@@ -355,6 +364,8 @@ class vectorize:
         Return arrays with the results of `pyfunc` broadcast (vectorized) over
         `args` and `kwargs` not in `excluded`.
         """
+        #profiler = cProfile.Profile()
+        #profiler.enable()   
         if not self._created:
             self._scalar_args.clear()
             self._scalar_idxs.clear()
@@ -420,9 +431,15 @@ class vectorize:
                 #print("IRINA DEBUG ptx is not created yet")
                 self._numba_func = self._build_gpu_function()
                 self._gpu_func = self._compile_func_gpu()
+            #profiler = cProfile.Profile()
+            #profiler.enable()
+            self._execute(True)
+            if not self._created:
                 if self._cache:
                     self._created = True
-            self._execute(True)
+            #profiler.disable()
+            #stats = pstats.Stats(profiler).sort_stats('cumtime')
+            #stats.print_stats()
         else:
             if not self._created:
                 self._numba_func = self._build_cpu_function()
@@ -430,4 +447,10 @@ class vectorize:
                 if self._cache:
                     self._created = True
             self._execute(False)
+
+            
+        #profiler.disable()
+        #stats = pstats.Stats(profiler).sort_stats('cumtime')
+        #stats.print_stats()
+
 

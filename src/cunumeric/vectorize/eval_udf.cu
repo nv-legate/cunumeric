@@ -73,15 +73,15 @@ struct EvalUdfGPU {
 
   JITKernelStorage& jit_storage =JITKernelStorage::get_instance(); 
 
-  std::hash<std::string> hasher;
+  //std::hash<std::string> hasher;
   CUfunction func;
-  size_t ptx_hash = hasher(args.ptx);
+  //size_t ptx_hash = hasher(args.ptx);
   //std::cout <<"IRINA DEBUG hash = "<<ptx_hash<< " , registered = ?"<<jit_storage.registered_jit_funtion(ptx_hash)<<std::endl;
-  if (jit_storage.registered_jit_funtion(ptx_hash)){
-    func = jit_storage.return_saved_jit_function(ptx_hash);
+  if (jit_storage.registered_jit_funtion(args.hash)){
+    func = jit_storage.return_saved_jit_function(args.hash);
   }
   else{
-
+    assert(args.ptx.size()>1);// in this case PTX string shouldn't be empty
     // 1: we need to vreate a function from the ptx generated y numba
     const unsigned num_options   = 4;
     const size_t log_buffer_size = 16384;
@@ -139,7 +139,7 @@ struct EvalUdfGPU {
 #ifdef DEBUG_CUNUMERIC
     assert(result == CUDA_SUCCESS);
 #endif
-      jit_storage.add_jit_function(ptx_hash, func);
+      jit_storage.add_jit_function(args.hash, func);
    }
     // 2: after fucntion is generated, we can execute it:
 
@@ -240,7 +240,7 @@ struct EvalUdfGPU {
 /*static*/ void EvalUdfTask::gpu_variant(TaskContext& context)
 {
   std::vector<Scalar>scalars;
-  for (size_t i=2; i<context.scalars().size(); i++)
+  for (size_t i=3; i<context.scalars().size(); i++)
       scalars.push_back(context.scalars()[i]);
 
   EvalUdfArgs args{0,
@@ -248,7 +248,8 @@ struct EvalUdfGPU {
                    context.outputs(),
                    scalars,
                    context.scalars()[0].value<std::string>(),
-                   context.scalars()[1].value<uint32_t>()};
+                   context.scalars()[1].value<uint32_t>(),
+                   context.scalars()[2].value<int64_t>()};
   size_t dim=1;
   if (args.inputs.size()>0){
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
