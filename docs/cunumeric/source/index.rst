@@ -20,6 +20,11 @@ Using cuNumeric you do things like run the final example of the
   api/index
   developer/index
 
+.. toctree::
+  :maxdepth: 1
+
+  versions
+
 
 Indices and tables
 ------------------
