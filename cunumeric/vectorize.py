@@ -417,6 +417,7 @@ class vectorize:
 
         if runtime.num_gpus > 0:
             if not self._created:
+                #print("IRINA DEBUG ptx is not created yet")
                 self._numba_func = self._build_gpu_function()
                 self._gpu_func = self._compile_func_gpu()
                 if self._cache:

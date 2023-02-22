@@ -25,12 +25,62 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
+class JITKernelStorage
+{
+
+private:
+    JITKernelStorage(){}
+    std::map<size_t, CUfunction> jit_functions_;
+
+public:
+    JITKernelStorage( JITKernelStorage const&) = delete;
+
+    void operator=(JITKernelStorage const&) = delete;
+
+    static JITKernelStorage& get_instance(void){
+        static JITKernelStorage instance;
+        return instance;
+    }
+
+    bool registered_jit_funtion(size_t hash){
+         return jit_functions_.find(hash)!=jit_functions_.end();
+    };
+
+    CUfunction return_saved_jit_function(size_t hash){
+       if (
+            jit_functions_.find(hash)!=jit_functions_.end())
+            return jit_functions_[hash];
+      else 
+          assert(false);//should never come here
+    }
+
+  void add_jit_function(size_t hash, CUfunction func){
+    if (
+        jit_functions_.find(hash)!=jit_functions_.end())
+        assert(false);// should never come here
+    else
+        jit_functions_.insert({hash, func});
+  }
+};//class JITKernelStorage
+
+
 struct EvalUdfGPU {
   template <LegateTypeCode CODE, int DIM>
   void operator()(EvalUdfArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
     Rect<DIM> rect;
+
+  JITKernelStorage& jit_storage =JITKernelStorage::get_instance(); 
+
+  std::hash<std::string> hasher;
+  CUfunction func;
+  size_t ptx_hash = hasher(args.ptx);
+  //std::cout <<"IRINA DEBUG hash = "<<ptx_hash<< " , registered = ?"<<jit_storage.registered_jit_funtion(ptx_hash)<<std::endl;
+  if (jit_storage.registered_jit_funtion(ptx_hash)){
+    func = jit_storage.return_saved_jit_function(ptx_hash);
+  }
+  else{
 
     // 1: we need to vreate a function from the ptx generated y numba
     const unsigned num_options   = 4;
@@ -85,12 +135,12 @@ struct EvalUdfGPU {
     const auto& matched_line = line_match.begin()->str();
     auto fun_name = matched_line.substr(matched_line.rfind(" ") + 1, matched_line.size());
 
-    CUfunction func;
     result = cuModuleGetFunction(&func, module, fun_name.c_str());
 #ifdef DEBUG_CUNUMERIC
     assert(result == CUDA_SUCCESS);
 #endif
-
+      jit_storage.add_jit_function(ptx_hash, func);
+   }
     // 2: after fucntion is generated, we can execute it:
 
     // Filling up the buffer with arguments
