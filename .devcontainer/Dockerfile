@@ -17,9 +17,16 @@ COPY --chown=root:root opt/legate /opt/legate
 
 WORKDIR /home/coder/
 
+ENV PYTHONDONTWRITEBYTECODE="1"
+
 ENV RUSTC_WRAPPER=sccache
 ENV CMAKE_C_COMPILER_LAUNCHER=sccache
 ENV CMAKE_CXX_COMPILER_LAUNCHER=sccache
 ENV CMAKE_CUDA_COMPILER_LAUNCHER=sccache
-ENV HISTFILE=/home/coder/.cache/._bash_history
+
+ENV SCCACHE_REGION="us-east-2"
+ENV SCCACHE_BUCKET="rapids-sccache-devs"
 ENV SCCACHE_S3_KEY_PREFIX=legate-cunumeric-dev
+ENV VAULT_HOST="https://vault.ops.k8s.rapids.ai"
+
+ENV HISTFILE=/home/coder/.cache/._bash_history

@@ -17,62 +17,26 @@
     "gpu": true
   },
 
-  "initializeCommand": "mkdir -p ../.aws ../.cache ../.cargo ../.conda ../.config ../legion ../legate",
+  "initializeCommand": [
+    "/bin/bash", "-c", "mkdir -p ../.{aws,cache,cargo,conda,config} ../{legion,legate}"
+  ],
 
   "containerEnv": {
-    "DEFAULT_CONDA_ENV": "legate",
-    "PYTHONDONTWRITEBYTECODE": "1",
-    "VAULT_HOST": "https://vault.ops.k8s.rapids.ai"
+    "DEFAULT_CONDA_ENV": "legate"
   },
 
   "workspaceFolder": "/home/coder",
   "workspaceMount": "source=${localWorkspaceFolder},target=/home/coder/cunumeric,type=bind",
   "mounts": [
-    {
-      "type": "bind",
-      "target": "/home/coder/.aws",
-      "source": "${localWorkspaceFolder}/../.aws"
-    },
-    {
-      "type": "bind",
-      "target": "/home/coder/.cache",
-      "source": "${localWorkspaceFolder}/../.cache"
-    },
-    {
-      "type": "bind",
-      "target": "/home/coder/.cargo",
-      "source": "${localWorkspaceFolder}/../.cargo"
-    },
-    {
-      "type": "bind",
-      "target": "/home/coder/.conda",
-      "source": "${localWorkspaceFolder}/../.conda"
-    },
-    {
-      "type": "bind",
-      "target": "/home/coder/.config",
-      "source": "${localWorkspaceFolder}/../.config"
-    },
-    {
-      "type": "bind",
-      "target": "/home/coder/legion",
-      "source": "${localWorkspaceFolder}/../legion"
-    },
-    {
-      "type": "bind",
-      "target": "/home/coder/legate",
-      "source": "${localWorkspaceFolder}/../legate"
-    },
-    {
-      "type": "bind",
-      "target": "/opt/legate",
-      "source": "${localWorkspaceFolder}/.devcontainer/opt/legate"
-    },
-    {
-      "type": "bind",
-      "target": "/home/coder/workspace.code-workspace",
-      "source": "${localWorkspaceFolder}/.devcontainer/home/coder/workspace.code-workspace"
-    }
+    "source=${localWorkspaceFolder}/../.aws,target=/home/coder/.aws,type=bind",
+    "source=${localWorkspaceFolder}/../.cache,target=/home/coder/.cache,type=bind",
+    "source=${localWorkspaceFolder}/../.cargo,target=/home/coder/.cargo,type=bind",
+    "source=${localWorkspaceFolder}/../.conda,target=/home/coder/.conda,type=bind",
+    "source=${localWorkspaceFolder}/../.config,target=/home/coder/.config,type=bind",
+    "source=${localWorkspaceFolder}/../legion,target=/home/coder/legion,type=bind",
+    "source=${localWorkspaceFolder}/../legate,target=/home/coder/legate,type=bind",
+    "source=${localWorkspaceFolder}/.devcontainer/opt/legate,target=/opt/legate,type=bind",
+    "source=${localWorkspaceFolder}/.devcontainer/home/coder/workspace.code-workspace,target=/home/coder/workspace.code-workspace,type=bind"
   ],
 
   "customizations": {
