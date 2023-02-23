@@ -332,6 +332,7 @@ class vectorize:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
+            print("IRINA DEBUG hash =", ptx_hash)
             if self._created:
                 #use hashed ptx and CUfunction on the C++ side
                 str_tmp =""
@@ -434,9 +435,8 @@ class vectorize:
             #profiler = cProfile.Profile()
             #profiler.enable()
             self._execute(True)
-            if not self._created:
-                if self._cache:
-                    self._created = True
+            if not self._created and self._cache:
+                self._created = True
             #profiler.disable()
             #stats = pstats.Stats(profiler).sort_stats('cumtime')
             #stats.print_stats()
