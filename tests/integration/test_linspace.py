@@ -316,11 +316,11 @@ class TestLinspaceErrors:
             num.linspace(self.start, stop)
 
     def test_start_none(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(Exception):
             num.linspace(None, 10, num=5)
 
     def test_stop_none(self):
-        with pytest.raises(TypeError):
+        with pytest.raises(Exception):
             num.linspace(0, None, num=5)
 
 

@@ -18,7 +18,7 @@ import traceback
 from functools import reduce
 from string import ascii_lowercase, ascii_uppercase
 from types import FrameType
-from typing import Any, List, Sequence, Tuple, Union, cast
+from typing import Any, Callable, List, Sequence, Tuple, Union, cast
 
 import legate.core.types as ty
 import numpy as np
@@ -225,3 +225,23 @@ def tensordot_modes(a_ndim: int, b_ndim: int, axes: AxesPairLike) -> Modes:
     b_out = [b_modes[b_i] for b_i in sorted(set(range(b_ndim)) - set(b_axes))]
 
     return (a_modes, b_modes, a_out + b_out)
+
+
+def deep_apply(obj: Any, func: Callable[[Any], Any]) -> Any:
+    """
+    Apply the provided function to objects contained at any depth within a data
+    structure.
+
+    This function will recurse over arbitrary nestings of lists, tuples and
+    dicts. This recursion logic is rather limited, but this function is
+    primarily meant to be used for arguments of NumPy API calls, which
+    shouldn't nest their arrays very deep.
+    """
+    if type(obj) == list:
+        return [deep_apply(x, func) for x in obj]
+    elif type(obj) == tuple:
+        return tuple(deep_apply(x, func) for x in obj)
+    elif type(obj) == dict:
+        return {k: deep_apply(v, func) for k, v in obj.items()}
+    else:
+        return func(obj)

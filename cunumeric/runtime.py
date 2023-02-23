@@ -23,10 +23,8 @@ import legate.core.types as ty
 import numpy as np
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 from legate.core.context import Context as LegateContext
-from legate.util.args import parse_library_command_args
 from typing_extensions import TypeGuard
 
-from .args import ARGS
 from .config import (
     _CUNUMERIC_DTYPES,
     BitGeneratorOperation,
@@ -38,6 +36,7 @@ from .config import (
 )
 from .deferred import DeferredArray
 from .eager import EagerArray
+from .settings import settings
 from .thunk import NumPyThunk
 from .types import NdShape
 from .utils import (
@@ -91,10 +90,9 @@ class Runtime(object):
         self.has_curand = cunumeric_lib.shared_object.cunumeric_has_curand()
         self._register_dtypes()
 
-        self.args = parse_library_command_args("cunumeric", ARGS)
-        self.args.warning = self.args.warning or self.args.test_mode
+        settings.warn = settings.warn() or settings.test()
 
-        if self.num_gpus > 0 and self.args.preload_cudalibs:
+        if self.num_gpus > 0 and settings.preload_cudalibs():
             self._load_cudalibs()
 
     def _register_dtypes(self) -> None:
@@ -115,7 +113,7 @@ class Runtime(object):
     def record_api_call(
         self, name: str, location: str, implemented: bool
     ) -> None:
-        assert self.args.report_coverage
+        assert settings.report_coverage()
         self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self) -> None:
@@ -161,8 +159,8 @@ class Runtime(object):
                 f"cuNumeric API coverage: {implemented}/{total} "
                 f"({implemented / total * 100}%)"
             )
-        if self.args.report_dump_csv is not None:
-            with open(self.args.report_dump_csv, "w") as f:
+        if (dump_csv := settings.report_dump_csv()) is not None:
+            with open(dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
                 for func_name, loc, impl in self.api_calls:
                     print(f"{func_name},{loc},{impl}", file=f)
@@ -171,7 +169,7 @@ class Runtime(object):
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
-        if hasattr(self, "args") and self.args.report_coverage:
+        if hasattr(self, "args") and settings.report_coverage():
             self._report_coverage()
         self.destroyed = True
 
@@ -511,7 +509,7 @@ class Runtime(object):
         if volume == 0:
             return True
         # If we're testing then the answer is always no
-        if self.args.test_mode:
+        if settings.test():
             return False
         if len(shape) > LEGATE_MAX_DIM:
             return True
@@ -557,7 +555,7 @@ class Runtime(object):
             raise RuntimeError("invalid array type")
 
     def warn(self, msg: str, category: type = UserWarning) -> None:
-        if not self.args.warning:
+        if not settings.warn():
             return
         stacklevel = find_last_user_stacklevel()
         warnings.warn(msg, stacklevel=stacklevel, category=category)

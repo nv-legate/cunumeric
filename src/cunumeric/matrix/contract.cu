@@ -80,7 +80,8 @@ __host__ void contract(T* lhs_data,
                        size_t rhs2_ndim,
                        int64_t* rhs2_shape,
                        int64_t* rhs2_strides,
-                       int32_t* rhs2_modes)
+                       int32_t* rhs2_modes,
+                       bool lhs_overwritable)
 {
   // Initialization
   auto handle      = get_cutensor();
@@ -135,7 +136,8 @@ __host__ void contract(T* lhs_data,
   cutensorContractionPlan_t plan;
   CHECK_CUTENSOR(cutensorInitContractionPlan(handle, &plan, &desc, &find, work_size));
   const typename contract_helper<T>::scalar_t alpha = 1.0;
-  const typename contract_helper<T>::scalar_t beta  = 0.0;
+  // lhs_overwritable being true means that the contraciton tasks can overwrite the lhs
+  const typename contract_helper<T>::scalar_t beta = lhs_overwritable ? 0.0 : 1.0;
   CHECK_CUTENSOR(cutensorContraction(handle,
                                      &plan,
                                      &alpha,
@@ -167,7 +169,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     contract(lhs_data,
              lhs_ndim,
@@ -183,7 +186,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
              rhs2_ndim,
              rhs2_shape,
              rhs2_strides,
-             rhs2_modes);
+             rhs2_modes,
+             lhs_overwritable);
   }
 };
 
@@ -203,7 +207,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     contract(lhs_data,
              lhs_ndim,
@@ -219,7 +224,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
              rhs2_ndim,
              rhs2_shape,
              rhs2_strides,
-             rhs2_modes);
+             rhs2_modes,
+             lhs_overwritable);
   }
 };
 
@@ -239,7 +245,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     contract(lhs_data,
              lhs_ndim,
@@ -255,7 +262,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
              rhs2_ndim,
              rhs2_shape,
              rhs2_strides,
-             rhs2_modes);
+             rhs2_modes,
+             lhs_overwritable);
   }
 };
 
@@ -275,7 +283,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     contract(lhs_data,
              lhs_ndim,
@@ -291,7 +300,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
              rhs2_ndim,
              rhs2_shape,
              rhs2_strides,
-             rhs2_modes);
+             rhs2_modes,
+             lhs_overwritable);
   }
 };
 
@@ -311,7 +321,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     contract(lhs_data,
              lhs_ndim,
@@ -327,7 +338,8 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
              rhs2_ndim,
              rhs2_shape,
              rhs2_strides,
-             rhs2_modes);
+             rhs2_modes,
+             lhs_overwritable);
   }
 };
 
