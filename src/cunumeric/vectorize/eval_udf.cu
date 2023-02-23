@@ -30,7 +30,7 @@ class JITKernelStorage
 
 private:
     JITKernelStorage(){}
-    std::map<int64_t, CUfunction> jit_functions_;
+    std::map<std::pair<int64_t,DomainPoint>, CUfunction> jit_functions_;
 
 public:
     JITKernelStorage( JITKernelStorage const&) = delete;
@@ -42,20 +42,20 @@ public:
         return instance;
     }
 
-    bool registered_jit_funtion(int64_t hash){
-         return jit_functions_.find(hash)!=jit_functions_.end();
+    bool registered_jit_funtion(std::pair<int64_t, DomainPoint> &key){
+         return jit_functions_.find(key)!=jit_functions_.end();
     };
 
-    CUfunction return_saved_jit_function(int64_t hash){
+    CUfunction return_saved_jit_function(std::pair<int64_t,DomainPoint> &key){
        if (
-            jit_functions_.find(hash)!=jit_functions_.end())
-            return jit_functions_[hash];
+            jit_functions_.find(key)!=jit_functions_.end())
+            return jit_functions_[key];
       else 
           assert(false);//should never come here
     }
 
-  void add_jit_function(int64_t hash, CUfunction func){
-        jit_functions_.insert({hash, func});
+  void add_jit_function(std::pair<int64_t,DomainPoint> &key, CUfunction func){
+        jit_functions_.insert({key, func});
   }
 };//class JITKernelStorage
 
@@ -71,10 +71,11 @@ struct EvalUdfGPU {
 
   //std::hash<std::string> hasher;
   CUfunction func;
+  std::pair<int64_t,DomainPoint> key(args.hash, args.point);
   //size_t ptx_hash = hasher(args.ptx);
-  std::cout <<"IRINA DEBUG within cuda task hash = "<<args.hash<< " , registered = ?"<<jit_storage.registered_jit_funtion(args.hash)<<std::endl;
-  if (jit_storage.registered_jit_funtion(args.hash)){
-    func = jit_storage.return_saved_jit_function(args.hash);
+  std::cout <<"IRINA DEBUG within cuda task hash = "<<args.hash<< " , registered = ?"<<jit_storage.registered_jit_funtion(key)<<std::endl;
+  if (jit_storage.registered_jit_funtion(key)){
+    func = jit_storage.return_saved_jit_function(key);
   }
   else{
     std::cout <<"IRINA DEBUG PTX code size within cuda task = "<<args.ptx.size()<<std::endl;
@@ -136,7 +137,7 @@ struct EvalUdfGPU {
 #ifdef DEBUG_CUNUMERIC
     assert(result == CUDA_SUCCESS);
 #endif
-      jit_storage.add_jit_function(args.hash, func);
+      jit_storage.add_jit_function(key, func);
    }
     // 2: after fucntion is generated, we can execute it:
 
@@ -246,6 +247,7 @@ struct EvalUdfGPU {
                    scalars,
                    context.scalars()[0].value<std::string>(),
                    context.scalars()[1].value<uint32_t>(),
+                   context.get_task_index(),
                    context.scalars()[2].value<int64_t>()};
   size_t dim=1;
   if (args.inputs.size()>0){
