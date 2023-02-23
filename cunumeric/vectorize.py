@@ -332,7 +332,7 @@ class vectorize:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
-            print("IRINA DEBUG hash =", ptx_hash)
+            #print("IRINA DEBUG hash =", ptx_hash)
             if self._created:
                 #use hashed ptx and CUfunction on the C++ side
                 str_tmp =""

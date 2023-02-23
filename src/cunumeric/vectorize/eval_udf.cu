@@ -73,12 +73,12 @@ struct EvalUdfGPU {
   CUfunction func;
   std::pair<int64_t,DomainPoint> key(args.hash, args.point);
   //size_t ptx_hash = hasher(args.ptx);
-  std::cout <<"IRINA DEBUG within cuda task hash = "<<args.hash<< " , registered = ?"<<jit_storage.registered_jit_funtion(key)<<std::endl;
+  //std::cout <<"IRINA DEBUG within cuda task hash = "<<args.hash<< " , registered = ?"<<jit_storage.registered_jit_funtion(key)<<std::endl;
   if (jit_storage.registered_jit_funtion(key)){
     func = jit_storage.return_saved_jit_function(key);
   }
   else{
-    std::cout <<"IRINA DEBUG PTX code size within cuda task = "<<args.ptx.size()<<std::endl;
+    //std::cout <<"IRINA DEBUG PTX code size within cuda task = "<<args.ptx.size()<<std::endl;
     assert(args.ptx.size()>1);// in this case PTX string shouldn't be empty
     // 1: we need to vreate a function from the ptx generated y numba
     const unsigned num_options   = 4;
