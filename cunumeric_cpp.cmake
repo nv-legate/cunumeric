@@ -161,6 +161,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/cephes/chbevl.cc
   src/cunumeric/cephes/i0.cc
   src/cunumeric/vectorize/eval_udf.cc
+  src/cunumeric/vectorize/create_cu_kernel.cc
 )
 
 if(Legion_USE_OpenMP)
@@ -260,6 +261,7 @@ if(Legion_USE_CUDA)
     src/cunumeric/cudalibs.cu
     src/cunumeric/cunumeric.cu
     src/cunumeric/vectorize/eval_udf.cu
+    src/cunumeric/vectorize/create_cu_kernel.cu
   )
 endif()
 

@@ -329,9 +329,26 @@ class vectorize:
         return numba.cfunc(sig)(self._numba_func)
 
     def _execute(self, is_gpu:bool) -> None:
+        if is_gpu and not self._created:
+            #create CUDA kernel
+            kernel_task = self._context.create_auto_task(CuNumericOpCode.CREATE_CU_KERNEL)
+            ptx_hash = hash(self._gpu_func[0])
+            kernel_task.add_scalar_arg(ptx_hash, ty.int64)
+            kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
+            #adding unused array for creating correct launch domain
+            #and set up dependency between kernel_task and task
+            if len(self._args)>0:
+               a0 = self._args[0]._thunk
+               a0 = runtime.to_deferred_array(a0)
+               kernel_task.add_input(a0.base)
+               kernel_task.add_output(a0.base)
+            kernel_task.execute()
+                
+
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._num_outputs, ty.uint32)
         task.add_scalar_arg(len(self._scalar_args), ty.uint32)
+         
         for a in self._scalar_args:
             dtype = convert_to_cunumeric_dtype(type(a).__name__)
             task.add_scalar_arg(a,dtype)
@@ -340,8 +357,6 @@ class vectorize:
             ptx_hash = hash(self._gpu_func[0])
             task.add_scalar_arg(ptx_hash, ty.int64)
             task.add_scalar_arg(self._created, bool)
-            if not self._created:
-                task.add_scalar_arg(self._gpu_func[0], ty.string)    
         else:
             task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
         a0 = self._args[0]._thunk

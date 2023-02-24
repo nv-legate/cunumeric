@@ -143,6 +143,7 @@ class _CunumericSharedLib:
     CUNUMERIC_CONVERT_NAN_PROD: int
     CUNUMERIC_CONVERT_NAN_SUM: int
     CUNUMERIC_CONVOLVE: int
+    CUNUMERIC_CREATE_CU_KERNEL: int
     CUNUMERIC_DIAG: int
     CUNUMERIC_DOT: int
     CUNUMERIC_EYE: int
@@ -346,6 +347,7 @@ class CuNumericOpCode(IntEnum):
     CONTRACT = _cunumeric.CUNUMERIC_CONTRACT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
     CONVOLVE = _cunumeric.CUNUMERIC_CONVOLVE
+    CREATE_CU_KERNEL = _cunumeric.CUNUMERIC_CREATE_CU_KERNEL
     DIAG = _cunumeric.CUNUMERIC_DIAG
     DOT = _cunumeric.CUNUMERIC_DOT
     EYE = _cunumeric.CUNUMERIC_EYE

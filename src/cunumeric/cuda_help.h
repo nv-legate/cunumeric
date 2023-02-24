@@ -390,4 +390,41 @@ __device__ __forceinline__ void store_streaming<double>(double* ptr, double valu
   asm volatile("st.global.cs.f64 [%0], %1;" : : "l"(ptr), "d"(value) : "memory");
 }
 
+#include<cuda.h>
+
+class JITKernelStorage
+{
+
+private:
+    JITKernelStorage(){}
+    std::map<std::pair<int64_t,Legion::DomainPoint>, CUfunction> jit_functions_;
+
+public:
+    JITKernelStorage( JITKernelStorage const&) = delete;
+
+    void operator=(JITKernelStorage const&) = delete;
+
+    static JITKernelStorage& get_instance(void){
+        static JITKernelStorage instance;
+        return instance;
+    }
+
+    bool registered_jit_funtion(std::pair<int64_t, Legion::DomainPoint> &key){
+         return jit_functions_.find(key)!=jit_functions_.end();
+    };
+
+    CUfunction return_saved_jit_function(std::pair<int64_t,Legion::DomainPoint> &key){
+       if (
+            jit_functions_.find(key)!=jit_functions_.end())
+            return jit_functions_[key];
+      else 
+          assert(false);//should never come here
+    }
+
+  void add_jit_function(std::pair<int64_t,Legion::DomainPoint> &key, CUfunction func){
+        jit_functions_.insert({key, func});
+  }
+};//class JITKernelStorage
+
+
 }  // namespace cunumeric
