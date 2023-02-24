@@ -26,10 +26,11 @@ struct EvalUdfArgs {
   std::vector<Array>& inputs;
   std::vector<Array>& outputs;
   std::vector<legate::Scalar>scalars;
-  std::string ptx = "";
   uint32_t num_outputs;
   Legion::DomainPoint point;
   int64_t hash=0;
+  std::string ptx = "";
+
 };
 
 class EvalUdfTask : public CuNumericTask<EvalUdfTask> {

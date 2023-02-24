@@ -237,24 +237,33 @@ struct EvalUdfGPU {
 
 /*static*/ void EvalUdfTask::gpu_variant(TaskContext& context)
 {
+ 
+  uint32_t num_outputs = context.scalars()[0].value<uint32_t>();
+  uint32_t num_scalars = context.scalars()[1].value<uint32_t>();
   std::vector<Scalar>scalars;
-  for (size_t i=3; i<context.scalars().size(); i++)
+  for (size_t i=2; i<(2+num_scalars); i++)
       scalars.push_back(context.scalars()[i]);
+  
+  int64_t ptx_hash = context.scalars()[2+num_scalars].value<int64_t>();
+  bool is_created = context.scalars()[3+num_scalars].value<bool>();
+
 
   EvalUdfArgs args{0,
                    context.inputs(),
                    context.outputs(),
                    scalars,
-                   context.scalars()[0].value<std::string>(),
-                   context.scalars()[1].value<uint32_t>(),
+                   num_outputs,
                    context.get_task_index(),
-                   context.scalars()[2].value<int64_t>()};
+                   ptx_hash};
+  if (!is_created)
+      args.ptx = context.scalars()[4+num_scalars].value<std::string>();
   size_t dim=1;
   if (args.inputs.size()>0){
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
   }
   else{
+    //FIXME
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
     //double_dispatch(dim, 0 , EvalUdfGPU{}, args);
   }

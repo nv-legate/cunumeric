@@ -55,16 +55,17 @@ struct EvalUdfCPU {
 
 /*static*/ void EvalUdfTask::cpu_variant(TaskContext& context)
 {
-  std::string tmp("tmp");
+  uint32_t num_outputs = context.scalars()[0].value<uint32_t>();
+  uint32_t num_scalars = context.scalars()[1].value<uint32_t>();
   std::vector<Scalar>scalars;
-  for (size_t i=2; i<context.scalars().size(); i++)
+  for (size_t i=2; i<(2+num_scalars); i++)
       scalars.push_back(context.scalars()[i]);
-  EvalUdfArgs args{context.scalars()[0].value<uint64_t>(),
+
+  EvalUdfArgs args{context.scalars()[2+num_scalars].value<uint64_t>(),
                    context.inputs(),
                    context.outputs(),
                    scalars,
-                   tmp,
-                   context.scalars()[1].value<uint32_t>(),
+                   num_outputs,
                    context.get_task_index()};
   size_t dim=1;
   if (args.inputs.size()>0){

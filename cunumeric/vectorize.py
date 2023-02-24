@@ -330,24 +330,20 @@ class vectorize:
 
     def _execute(self, is_gpu:bool) -> None:
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-        if is_gpu:
-            ptx_hash = hash(self._gpu_func[0])
-            #print("IRINA DEBUG hash =", ptx_hash)
-            if self._created:
-                #use hashed ptx and CUfunction on the C++ side
-                str_tmp =""
-                task.add_scalar_arg(str_tmp, ty.string)
-            else:
-                task.add_scalar_arg(self._gpu_func[0], ty.string)    
-            task.add_scalar_arg(self._num_outputs, ty.uint32)
-            task.add_scalar_arg(ptx_hash, ty.int64)
-        else:
-            task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
-            task.add_scalar_arg(self._num_outputs, ty.uint32)
+        task.add_scalar_arg(self._num_outputs, ty.uint32)
+        task.add_scalar_arg(len(self._scalar_args), ty.uint32)
         for a in self._scalar_args:
             dtype = convert_to_cunumeric_dtype(type(a).__name__)
             task.add_scalar_arg(a,dtype)
 
+        if is_gpu:
+            ptx_hash = hash(self._gpu_func[0])
+            task.add_scalar_arg(ptx_hash, ty.int64)
+            task.add_scalar_arg(self._created, bool)
+            if not self._created:
+                task.add_scalar_arg(self._gpu_func[0], ty.string)    
+        else:
+            task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
         for count, a in enumerate(self._args):
