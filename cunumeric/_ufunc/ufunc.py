@@ -335,7 +335,57 @@ class ufunc:
         return f"<ufunc {self._name}>"
 
 
-class unary_ufunc(ufunc):
+class unary_ufunc_base(ufunc):
+    def reduce(
+        self,
+        array: ndarray,
+        axis: Union[int, tuple[int, ...], None] = 0,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Union[Any, None] = None,
+        where: bool = True,
+    ) -> ndarray:
+        raise ValueError("reduce only supported for binary functions")
+
+    def at(
+        self,
+        a: ndarray,
+        indices: Union[ndarray, tuple[int, ...]],
+        b: Union[ndarray, None] = None,
+    ) -> None:
+        _b = b.__array__() if b is not None else None
+        return getattr(np, self._name).at(a.__array__(), np.array(indices), _b)
+
+    def accumulate(
+        self,
+        array: ndarray,
+        axis: Union[int, tuple[int, ...], None] = 0,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
+        raise ValueError("accumulate only supported for binary functions")
+
+    def reduceat(
+        self,
+        array: ndarray,
+        indices: ndarray,
+        axis: Union[int, tuple[int, ...], None] = 0,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
+        raise ValueError("reduceat only supported for binary functions")
+
+    def outer(
+        self,
+        A: ndarray,
+        B: ndarray,
+        **kwargs: Any,
+    ) -> ndarray:
+        raise ValueError("outer product only supported for binary functions")
+
+
+class unary_ufunc(unary_ufunc_base):
     def __init__(
         self,
         name: str,
@@ -426,7 +476,7 @@ class unary_ufunc(ufunc):
         return self._maybe_cast_output(out, result)
 
 
-class multiout_unary_ufunc(ufunc):
+class multiout_unary_ufunc(unary_ufunc_base):
     def __init__(
         self, name: str, doc: str, op_code: UnaryOpCode, types: dict[Any, Any]
     ) -> None:
@@ -777,6 +827,48 @@ class binary_ufunc(ufunc):
             keepdims=keepdims,
             initial=initial,
             where=where,
+        )
+
+    def at(
+        self,
+        a: ndarray,
+        indices: Union[ndarray, tuple[int, ...]],
+        b: Union[ndarray, None] = None,
+    ) -> None:
+        _b = b.__array__() if b is not None else None
+        return getattr(np, self._name).at(a.__array__(), np.array(indices), _b)
+
+    def accumulate(
+        self,
+        array: ndarray,
+        axis: Union[int, tuple[int, ...], None] = 0,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
+        return getattr(np, self._name).accumulate(
+            array.__array__(), axis, dtype, out
+        )
+
+    def reduceat(
+        self,
+        array: ndarray,
+        indices: ndarray,
+        axis: Union[int, tuple[int, ...], None] = 0,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+    ) -> ndarray:
+        return getattr(np, self._name).reduceat(
+            array.__array__(), indices, axis, dtype, out
+        )
+
+    def outer(
+        self,
+        A: ndarray,
+        B: ndarray,
+        **kwargs: Any,
+    ) -> ndarray:
+        return getattr(np, self._name).outer(
+            A.__array__(), B.__array__(), **kwargs
         )
 
 

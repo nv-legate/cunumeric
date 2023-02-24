@@ -250,6 +250,37 @@ def clone_module(
                 cast(AnyCallable, value), mod_name, attr, reporting=reporting
             )
             new_globals[attr] = wrapped
+            if isinstance(value, lgufunc):
+                wrapped.reduce = implemented(  # type: ignore
+                    value.reduce,  # type: ignore
+                    f"{mod_name}.{attr}",
+                    "reduce",
+                    reporting=reporting,
+                )
+                wrapped.reduceat = implemented(  # type: ignore
+                    value.reduceat,  # type: ignore
+                    f"{mod_name}.{attr}",
+                    "reduceat",
+                    reporting=reporting,
+                )
+                wrapped.at = implemented(  # type: ignore
+                    value.at,  # type: ignore
+                    f"{mod_name}.{attr}",
+                    "at",
+                    reporting=reporting,
+                )
+                wrapped.accumulate = implemented(  # type: ignore
+                    value.accumulate,  # type: ignore
+                    f"{mod_name}.{attr}",
+                    "accumulate",
+                    reporting=reporting,
+                )
+                wrapped.outer = implemented(  # type: ignore
+                    value.outer,  # type: ignore
+                    f"{mod_name}.{attr}",
+                    "outer",
+                    reporting=reporting,
+                )
 
     from numpy import ufunc as npufunc
 
@@ -266,6 +297,37 @@ def clone_module(
                 fallback=fallback,
             )
             new_globals[attr] = wrapped
+            if isinstance(value, npufunc):
+                wrapped.reduce = unimplemented(  # type: ignore
+                    value.reduce,
+                    f"{mod_name}.{attr}",
+                    "reduce",
+                    reporting=reporting,
+                )
+                wrapped.reduceat = unimplemented(  # type: ignore
+                    value.reduceat,  # type: ignore
+                    f"{mod_name}.{attr}",
+                    "reduceat",
+                    reporting=reporting,
+                )
+                wrapped.at = implemented(  # type: ignore
+                    value.at,
+                    f"{mod_name}.{attr}",
+                    "at",
+                    reporting=reporting,
+                )
+                wrapped.accumulate = unimplemented(  # type: ignore
+                    value.accumulate,
+                    f"{mod_name}.{attr}",
+                    "accumulate",
+                    reporting=reporting,
+                )
+                wrapped.outer = unimplemented(  # type: ignore
+                    value.outer,
+                    f"{mod_name}.{attr}",
+                    "outer",
+                    reporting=reporting,
+                )
         else:
             new_globals[attr] = value
 
