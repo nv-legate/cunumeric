@@ -26,17 +26,17 @@
   },
 
   "workspaceFolder": "/home/coder",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/home/coder/cunumeric,type=bind",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/coder/cunumeric,type=bind,consistency=consistent",
   "mounts": [
-    "source=${localWorkspaceFolder}/../.aws,target=/home/coder/.aws,type=bind",
-    "source=${localWorkspaceFolder}/../.cache,target=/home/coder/.cache,type=bind",
-    "source=${localWorkspaceFolder}/../.cargo,target=/home/coder/.cargo,type=bind",
-    "source=${localWorkspaceFolder}/../.conda,target=/home/coder/.conda,type=bind",
-    "source=${localWorkspaceFolder}/../.config,target=/home/coder/.config,type=bind",
-    "source=${localWorkspaceFolder}/../legion,target=/home/coder/legion,type=bind",
-    "source=${localWorkspaceFolder}/../legate,target=/home/coder/legate,type=bind",
-    "source=${localWorkspaceFolder}/.devcontainer/opt/legate,target=/opt/legate,type=bind",
-    "source=${localWorkspaceFolder}/.devcontainer/home/coder/workspace.code-workspace,target=/home/coder/workspace.code-workspace,type=bind"
+    "source=${localWorkspaceFolder}/../.aws,target=/home/coder/.aws,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../.cache,target=/home/coder/.cache,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../.cargo,target=/home/coder/.cargo,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../.conda,target=/home/coder/.conda,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../.config,target=/home/coder/.config,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../legion,target=/home/coder/legion,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../legate,target=/home/coder/legate,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/.devcontainer/opt/legate,target=/opt/legate,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/.devcontainer/home/coder/workspace.code-workspace,target=/home/coder/workspace.code-workspace,type=bind,consistency=consistent"
   ],
 
   "customizations": {
