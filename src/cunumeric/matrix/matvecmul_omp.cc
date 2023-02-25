@@ -23,7 +23,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 /*static*/ void MatVecMulTask::omp_variant(TaskContext& context)

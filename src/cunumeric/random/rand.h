@@ -25,7 +25,7 @@ struct RandArgs {
   const Array& out;
   RandGenCode gen_code;
   uint32_t epoch;
-  Legion::DomainPoint strides;
+  legate::DomainPoint strides;
   std::vector<legate::Store> args;
 };
 

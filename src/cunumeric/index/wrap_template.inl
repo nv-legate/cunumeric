@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, int DIM>
@@ -41,7 +40,7 @@ struct WrapImpl {
     size_t volume_out = pitches_out.flatten(rect_out);
     if (volume_out == 0) return;
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     bool dense = out.accessor.is_dense_row_major(rect_out);
 #else
     bool dense = false;

@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 // NOTE:
 // cuBLAS doesn't support row-major, so reverse the matrix order so it thinks things are
 // column-major. Effectively we get NxM = NxK * KxM.

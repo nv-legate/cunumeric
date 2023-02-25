@@ -23,7 +23,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND,
@@ -52,7 +51,7 @@ struct ConvertImpl {
     auto out = args.out.write_accessor<DST, DIM>(rect);
     auto in  = args.in.read_accessor<SRC, DIM>(rect);
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect);
 #else

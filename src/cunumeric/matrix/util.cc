@@ -14,7 +14,6 @@
  *
  */
 
-#include "legion.h"
 #include "core/data/buffer.h"
 #include "cunumeric/matrix/util.h"
 #ifdef LEGATE_USE_OPENMP
@@ -22,8 +21,6 @@
 #endif
 
 namespace cunumeric {
-
-using namespace Legion;
 
 size_t stride_for_blas(size_t m, size_t n, size_t x_stride, size_t y_stride, bool& transpose)
 {
