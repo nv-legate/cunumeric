@@ -22,7 +22,7 @@
 
 namespace cunumeric {
 
-using namespace Legion;
+//using namespace Legion;
 using namespace legate;
 
 struct EvalUdfGPU {
