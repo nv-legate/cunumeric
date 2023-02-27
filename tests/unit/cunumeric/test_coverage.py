@@ -16,6 +16,7 @@
 from types import ModuleType
 from typing import Any
 
+import numpy as np
 import pytest
 from mock import MagicMock, patch
 
