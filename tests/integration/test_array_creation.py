@@ -90,7 +90,7 @@ SHAPES_NEGATIVE = [
 
 
 class TestCreationErrors:
-    def setup(self):
+    def setup_method(self):
         self.bad_type_shape = (2, 3.0)
 
     @pytest.mark.parametrize("shape", SHAPES_NEGATIVE, ids=str)

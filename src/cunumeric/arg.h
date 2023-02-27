@@ -69,12 +69,12 @@ class ArgmaxReduction {
   template <bool EXCLUSIVE>
   __CUDA_HD__ inline static void apply(LHS& lhs, RHS rhs)
   {
-    lhs.template apply<Legion::MaxReduction<T>, EXCLUSIVE>(rhs);
+    lhs.template apply<legate::MaxReduction<T>, EXCLUSIVE>(rhs);
   }
   template <bool EXCLUSIVE>
   __CUDA_HD__ inline static void fold(RHS& rhs1, RHS rhs2)
   {
-    rhs1.template apply<Legion::MaxReduction<T>, EXCLUSIVE>(rhs2);
+    rhs1.template apply<legate::MaxReduction<T>, EXCLUSIVE>(rhs2);
   }
 };
 
@@ -91,12 +91,12 @@ class ArgminReduction {
   template <bool EXCLUSIVE>
   __CUDA_HD__ inline static void apply(LHS& lhs, RHS rhs)
   {
-    lhs.template apply<Legion::MinReduction<T>, EXCLUSIVE>(rhs);
+    lhs.template apply<legate::MinReduction<T>, EXCLUSIVE>(rhs);
   }
   template <bool EXCLUSIVE>
   __CUDA_HD__ inline static void fold(RHS& rhs1, RHS rhs2)
   {
-    rhs1.template apply<Legion::MinReduction<T>, EXCLUSIVE>(rhs2);
+    rhs1.template apply<legate::MinReduction<T>, EXCLUSIVE>(rhs2);
   }
 };
 

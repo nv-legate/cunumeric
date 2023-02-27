@@ -19,7 +19,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 struct Split {
@@ -30,7 +29,7 @@ struct Split {
 template <int DIM>
 class Splitter {
  public:
-  Split split(const Legion::Rect<DIM>& rect, int must_be_inner)
+  Split split(const Rect<DIM>& rect, int must_be_inner)
   {
     for (int dim = 0; dim < DIM; ++dim)
       if (dim != must_be_inner) {
@@ -54,11 +53,9 @@ class Splitter {
     return Split{outer, inner};
   }
 
-  inline Legion::Point<DIM> combine(size_t outer_idx,
-                                    size_t inner_idx,
-                                    const Legion::Point<DIM>& lo) const
+  inline Point<DIM> combine(size_t outer_idx, size_t inner_idx, const Point<DIM>& lo) const
   {
-    Legion::Point<DIM> point = lo;
+    Point<DIM> point = lo;
     for (int dim = 0; dim < DIM; ++dim) {
       if (dim == outer_dim_)
         point[dim] += outer_idx;

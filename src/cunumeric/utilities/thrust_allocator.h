@@ -24,7 +24,7 @@ class ThrustAllocator : public legate::ScopedAllocator {
  public:
   using value_type = char;
 
-  ThrustAllocator(Legion::Memory::Kind kind) : legate::ScopedAllocator(kind) {}
+  ThrustAllocator(legate::Memory::Kind kind) : legate::ScopedAllocator(kind) {}
 
   char* allocate(size_t num_bytes)
   {

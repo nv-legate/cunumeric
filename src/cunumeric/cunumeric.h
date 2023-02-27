@@ -36,7 +36,7 @@ struct CuNumeric {
   {
     get_registrar().record_variant(std::forward<Args>(args)...);
   }
-  static legate::LegateTaskRegistrar& get_registrar();
+  static legate::TaskRegistrar& get_registrar();
 };
 
 template <typename T>

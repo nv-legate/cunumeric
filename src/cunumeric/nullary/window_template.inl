@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, WindowOpCode OP_CODE>
@@ -39,7 +38,7 @@ struct WindowImpl {
 
     auto out = output.write_accessor<double, 1>(rect);
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = out.accessor.is_dense_row_major(rect);
 #else

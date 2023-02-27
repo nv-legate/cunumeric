@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, int DIM, int N>
@@ -41,7 +40,7 @@ struct ZipImpl {
     size_t volume = pitches.flatten(out_rect);
     if (volume == 0) return;
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     bool dense = out.accessor.is_dense_row_major(out_rect);
 #else
     bool dense = false;

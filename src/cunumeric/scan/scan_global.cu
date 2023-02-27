@@ -16,15 +16,14 @@
 
 #include "cunumeric/scan/scan_global.h"
 #include "cunumeric/scan/scan_global_template.inl"
+#include "cunumeric/utilities/thrust_util.h"
 
 #include <thrust/reduce.h>
-#include <thrust/execution_policy.h>
 
 #include "cunumeric/cuda_help.h"
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <typename Function, typename RES>
@@ -69,7 +68,7 @@ struct ScanGlobalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
       sum_valsp[DIM - 1]     = 0;
       auto sum_valsp_end     = sum_valsp;
       sum_valsp_end[DIM - 1] = partition_index[DIM - 1];
-      auto global_prefix     = thrust::reduce(thrust::cuda::par.on(stream),
+      auto global_prefix     = thrust::reduce(DEFAULT_POLICY.on(stream),
                                           &sum_vals[sum_valsp],
                                           &sum_vals[sum_valsp_end],
                                           (VAL)ScanOp<OP_CODE, CODE>::nan_identity,

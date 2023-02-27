@@ -20,7 +20,6 @@ import cunumeric as num
 
 # ref: https://github.com/nv-legate/cunumeric/pull/430
 def test_unimplemented_method_self_fallback():
-
     ones = num.ones((10,))
     ones.mean()
 

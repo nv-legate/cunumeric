@@ -48,7 +48,6 @@ def run_sort(
     timing,
     package,
 ):
-
     num.random.seed(42)
     newtype = np.dtype(datatype).type
 

@@ -53,10 +53,10 @@ from .config import (
     UnaryOpCode,
     UnaryRedCode,
 )
-from .coverage import clone_np_ndarray
+from .coverage import FALLBACK_WARNING, clone_class
 from .runtime import runtime
 from .types import NdShape
-from .utils import dot_modes
+from .utils import deep_apply, dot_modes
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -75,13 +75,6 @@ if TYPE_CHECKING:
     )
 
 from math import prod
-
-FALLBACK_WARNING = (
-    "cuNumeric has not fully implemented {name} "
-    + "and is falling back to canonical numpy. "
-    + "You may notice significantly decreased performance "
-    + "for this function call."
-)
 
 R = TypeVar("R")
 P = ParamSpec("P")
@@ -115,7 +108,7 @@ def add_boilerplate(
         params = signature(func).parameters
         extra = keys - set(params)
         assert len(extra) == 0, f"unknown parameter(s): {extra}"
-        for (idx, param) in enumerate(params):
+        for idx, param in enumerate(params):
             if param == "where":
                 where_idx = idx
             elif param == "out":
@@ -136,7 +129,7 @@ def add_boilerplate(
                 else arg
                 for (idx, arg) in enumerate(args)
             )
-            for (k, v) in kwargs.items():
+            for k, v in kwargs.items():
                 if v is None:
                     continue
                 elif k == "where":
@@ -172,24 +165,13 @@ def convert_to_predicate_ndarray(obj: Any) -> bool:
     )
 
 
-def _convert_all_to_numpy(obj: Any) -> Any:
+def maybe_convert_to_np_ndarray(obj: Any) -> Any:
     """
-    Converts all cuNumeric arrays within a data structure into NumPy arrays.
-
-    The recursion logic is rather limited, but this function is meant to be
-    used for arguments of NumPy API calls, which shouldn't nest their arrays
-    very deep.
+    Converts cuNumeric arrays into NumPy arrays, otherwise has no effect.
     """
-    if type(obj) == list:
-        return [_convert_all_to_numpy(x) for x in obj]
-    elif type(obj) == tuple:
-        return tuple(_convert_all_to_numpy(x) for x in obj)
-    elif type(obj) == dict:
-        return {k: _convert_all_to_numpy(v) for k, v in obj.items()}
-    elif isinstance(obj, ndarray):
+    if isinstance(obj, ndarray):
         return obj.__array__()
-    else:
-        return obj
+    return obj
 
 
 # FIXME: we can't give an accurate return type as mypy thinks
@@ -207,7 +189,19 @@ def convert_numpy_dtype_to_pyarrow(dtype: np.dtype[Any]) -> Any:
         raise ValueError(f"Unsupported NumPy dtype: {dtype}")
 
 
-@clone_np_ndarray
+NDARRAY_INTERNAL = {
+    "__array_finalize__",
+    "__array_function__",
+    "__array_interface__",
+    "__array_prepare__",
+    "__array_priority__",
+    "__array_struct__",
+    "__array_ufunc__",
+    "__array_wrap__",
+}
+
+
+@clone_class(np.ndarray, NDARRAY_INTERNAL, maybe_convert_to_np_ndarray)
 class ndarray:
     def __init__(
         self,
@@ -329,81 +323,81 @@ class ndarray:
     ) -> Any:
         import cunumeric as cn
 
-        # We are wrapping all NumPy modules, so we can expect to find every
-        # NumPy API call in cuNumeric, even if just an "unimplemented" stub.
-        module = reduce(getattr, func.__module__.split(".")[1:], cn)
-        cn_func = getattr(module, func.__name__)
+        what = func.__name__
+
         # TODO: We should technically check at this point that all array-like
         # arguments are convertible to `cunumeric.ndarray`, and if not then
         # return `NotImplemented`, to give a chance to those other types to
         # handle this call (assuming they also implement `__array_function__`).
-        # For now we will just assume that at the very least we can convert
-        # any such object to a baseline NumPy array using `np.array`, and
-        # consume that.
+        # For now we will just attempt our own implementation (converting any
+        # array-like arguments to baseline NumPy arrays if necessary, then to
+        # `cunumeric.ndarray`s). If that fails, we convert all
+        # `cunumeric.ndarray`s into NumPy arrays and pass to NumPy.
 
-        # TODO: We could check at this point that our implementation supports
-        # all the provided arguments, and fall back to NumPy if not.
-        #
-        # For now we simply try to call the cuNumeric version and fall back
-        # to NumPy once we hit a NotImplementedError
-        try:
-            return cn_func(*args, **kwargs)
-        except NotImplementedError:
-            warnings.warn(
-                FALLBACK_WARNING.format(name=func.__name__),
-                category=RuntimeWarning,
-                stacklevel=4,
-            )
-            args = _convert_all_to_numpy(args)
-            kwargs = _convert_all_to_numpy(kwargs)
-            return func(*args, **kwargs)
+        # We are wrapping all NumPy modules, so we can expect to find every
+        # NumPy API call in cuNumeric, even if just an "unimplemented" stub.
+        module = reduce(getattr, func.__module__.split(".")[1:], cn)
+        cn_func = getattr(module, func.__name__)
+
+        # We can't immediately forward to the corresponding cuNumeric
+        # entrypoint. Say that we reached this point because the user code
+        # invoked `np.foo(x, bar=True)` where `x` is a `cunumeric.ndarray`. If
+        # our implementation of `foo` is not complete, and cannot handle
+        # `bar=True`, then forwarding this call to `cn.foo` would fail. This
+        # goes against the semantics of `__array_function__`, which shouldn't
+        # fail if the custom implementation cannot handle the provided
+        # arguments. Conversely, if the user calls `cn.foo(x, bar=True)`
+        # directly, that means they requested the cuNumeric implementation
+        # specifically, and the `NotImplementedError` should not be hidden.
+        if cn_func._cunumeric.implemented:
+            try:
+                return cn_func(*args, **kwargs)
+            except NotImplementedError:
+                # Inform the user that we support the requested API in general,
+                # but not this specific combination of arguments.
+                what = f"the requested combination of arguments to {what}"
+
+        # We cannot handle this call, so we will fall back to NumPy.
+        warnings.warn(
+            FALLBACK_WARNING.format(what=what),
+            category=RuntimeWarning,
+            stacklevel=4,
+        )
+        args = deep_apply(args, maybe_convert_to_np_ndarray)
+        kwargs = deep_apply(kwargs, maybe_convert_to_np_ndarray)
+        return func(*args, **kwargs)
 
     def __array_ufunc__(
         self, ufunc: Any, method: str, *inputs: Any, **kwargs: Any
     ) -> Any:
         from . import _ufunc
 
+        what = f"{ufunc.__name__}.{method}"
+
         # TODO: Similar to __array_function__, we should technically confirm
         # that all array-like arguments are convertible to `cunumeric.ndarray`.
-        # TODO: The logic below should be moved to a "clone_ufunc" wrapper,
-        # that emits a proper warning to the user in case of fallback.
+        # TODO: The logic below should be moved to a "clone_ufunc" wrapper.
 
         if hasattr(_ufunc, ufunc.__name__):
             cn_ufunc = getattr(_ufunc, ufunc.__name__)
             if hasattr(cn_ufunc, method):
                 cn_method = getattr(cn_ufunc, method)
-                # TODO: We could check at this point that our implementation
-                # supports all the provided arguments, and fall back to
-                # NumPy if not.
-                #
-                # For now we simply try to call the cuNumeric version and
-                # fall back # to NumPy once we hit a NotImplementedError
+                # Similar to __array_function__, we need to gracefully fall
+                # back to NumPy if we can't handle the provided combination of
+                # arguments.
                 try:
                     return cn_method(*inputs, **kwargs)
                 except NotImplementedError:
-                    name = f"{ufunc.__name__}.{method}"
-                    warnings.warn(
-                        FALLBACK_WARNING.format(name=name),
-                        category=RuntimeWarning,
-                        stacklevel=3,
-                    )
-                    inputs = _convert_all_to_numpy(inputs)
-                    kwargs = _convert_all_to_numpy(kwargs)
-                    return getattr(ufunc, method)(*inputs, **kwargs)
+                    what = f"the requested combination of arguments to {what}"
 
         # We cannot handle this ufunc call, so we will fall back to NumPy.
-        # Ideally we would be able to skip the __array_ufunc__ dispatch, and
-        # let NumPy convert our arrays automatically by calling our __array__
-        # method, similar to what we are doing for __array_function__ in
-        # coverage.py, by going through the _implementation field.
-        # Unfortunately, there is no easy way to skip the dispatch mechnanism
-        # for ufuncs, therefore the best we can do is manually convert all
-        # cuNumeric arrays into NumPy arrays and try the call again.
-        # One would expect NumPy to do exactly this if all __array_ufunc__
-        # implementations return `NotImplemented` for a particular call, but
-        # alas NumPy will simply fail in that case.
-        inputs = _convert_all_to_numpy(inputs)
-        kwargs = _convert_all_to_numpy(kwargs)
+        warnings.warn(
+            FALLBACK_WARNING.format(what=what),
+            category=RuntimeWarning,
+            stacklevel=3,
+        )
+        inputs = deep_apply(inputs, maybe_convert_to_np_ndarray)
+        kwargs = deep_apply(kwargs, maybe_convert_to_np_ndarray)
         return getattr(ufunc, method)(*inputs, **kwargs)
 
     @property
@@ -1955,12 +1949,12 @@ class ndarray:
                 if (indices < -self.shape[axis]) or (
                     indices >= self.shape[axis]
                 ):
-                    raise ValueError("invalid entry in indices array")
+                    raise IndexError("invalid entry in indices array")
             else:
                 if (indices < -self.shape[axis]).any() or (
                     indices >= self.shape[axis]
                 ).any():
-                    raise ValueError("invalid entry in indices array")
+                    raise IndexError("invalid entry in indices array")
         elif mode == "wrap":
             indices = indices % self.shape[axis]
         elif mode == "clip":
@@ -1986,7 +1980,7 @@ class ndarray:
         point_indices += (indices,)
         if out is not None:
             if out.dtype != self.dtype:
-                raise ValueError("Type mismatch: out array has the wrong type")
+                raise TypeError("Type mismatch: out array has the wrong type")
             out[:] = self[point_indices]
             return out
         else:
@@ -2538,7 +2532,7 @@ class ndarray:
         if self.shape == ():
             if mode == "raise":
                 if indices.min() < -1 or indices.max() > 0:
-                    raise ValueError("Indices out of bounds")
+                    raise IndexError("Indices out of bounds")
             if values.shape == ():
                 v = values
             else:
