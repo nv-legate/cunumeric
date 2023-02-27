@@ -34,7 +34,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 // sorts inptr in-place, if argptr not nullptr it returns sort indices

@@ -198,7 +198,6 @@ if(Legion_USE_OpenMP)
     src/cunumeric/matrix/transpose_omp.cc
     src/cunumeric/matrix/trilu_omp.cc
     src/cunumeric/matrix/trsm_omp.cc
-    src/cunumeric/matrix/util_omp.cc
     src/cunumeric/random/rand_omp.cc
     src/cunumeric/search/argwhere_omp.cc
     src/cunumeric/search/nonzero_omp.cc

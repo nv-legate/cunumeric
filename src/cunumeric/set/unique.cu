@@ -16,17 +16,16 @@
 
 #include "cunumeric/set/unique.h"
 #include "cunumeric/set/unique_template.inl"
+#include "cunumeric/utilities/thrust_util.h"
 
 #include "cunumeric/cuda_help.h"
 
 #include <thrust/merge.h>
 #include <thrust/sort.h>
 #include <thrust/unique.h>
-#include <thrust/execution_policy.h>
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <typename VAL, int DIM>
@@ -102,13 +101,13 @@ static Piece<VAL> tree_reduce(Array& output,
       auto p_mine      = my_piece.first.ptr(0);
       auto p_other     = other_piece.first.ptr(0);
 
-      thrust::merge(thrust::cuda::par.on(stream),
+      thrust::merge(DEFAULT_POLICY.on(stream),
                     p_mine,
                     p_mine + my_piece.second,
                     p_other,
                     p_other + other_piece.second,
                     p_merged);
-      auto* end = thrust::unique(thrust::cuda::par.on(stream), p_merged, p_merged + merged_size);
+      auto* end = thrust::unique(DEFAULT_POLICY.on(stream), p_merged, p_merged + merged_size);
 
       // Make sure we release the memory so that we can reuse it
       my_piece.first.destroy();
@@ -172,8 +171,8 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
       CHECK_CUDA_STREAM(stream);
 
       // Find unique values
-      thrust::sort(thrust::cuda::par.on(stream), ptr, ptr + volume);
-      end = thrust::unique(thrust::cuda::par.on(stream), ptr, ptr + volume);
+      thrust::sort(DEFAULT_POLICY.on(stream), ptr, ptr + volume);
+      end = thrust::unique(DEFAULT_POLICY.on(stream), ptr, ptr + volume);
     }
 
     Piece<VAL> result;

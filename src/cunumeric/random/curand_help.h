@@ -25,7 +25,7 @@
   } while (false)
 
 namespace cunumeric {
-Legion::Logger& randutil_log();
+legate::Logger& randutil_log();
 void randutil_check_curand(curandStatus_t error, const char* file, int line);
 
 static inline curandRngType get_curandRngType(cunumeric::BitGeneratorType kind)

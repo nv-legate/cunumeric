@@ -24,7 +24,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, typename RNG, typename VAL, int DIM>

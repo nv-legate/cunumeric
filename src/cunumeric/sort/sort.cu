@@ -19,6 +19,7 @@
 #include "cunumeric/sort/cub_sort.h"
 #include "cunumeric/sort/thrust_sort.h"
 #include "cunumeric/utilities/thrust_allocator.h"
+#include "cunumeric/utilities/thrust_util.h"
 
 #include <thrust/scan.h>
 #include <thrust/sort.h>
@@ -580,9 +581,10 @@ SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
     SegmentMergePiece<VAL> result;
 
     // initialize target
-    size_t merged_size            = 0;
-    size_t num_sort_ranks         = merge_buffers.size();
-    Buffer<size_t> target_offsets = create_buffer<size_t>(num_sort_ranks, Memory::Z_COPY_MEM);
+    size_t merged_size    = 0;
+    size_t num_sort_ranks = merge_buffers.size();
+    Buffer<size_t> target_offsets =
+      create_buffer<size_t>(num_sort_ranks, legate::Memory::Z_COPY_MEM);
 
     // loop comparably small -> no init kernel
     for (int i = 0; i < num_sort_ranks; ++i) {
@@ -596,7 +598,8 @@ SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
 
     // copy data into result
     {
-      Buffer<VAL*> val_buffers_ptr = create_buffer<VAL*>(num_sort_ranks, Memory::Z_COPY_MEM);
+      Buffer<VAL*> val_buffers_ptr =
+        create_buffer<VAL*>(num_sort_ranks, legate::Memory::Z_COPY_MEM);
       for (size_t r = 0; r < num_sort_ranks; r++) {
         val_buffers_ptr[r] = merge_buffers[r].values.ptr(0);
       }
@@ -609,7 +612,7 @@ SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
         val_buffers_ptr, target_offsets, result.values, merged_size, num_sort_ranks);
       if (argsort) {
         Buffer<int64_t*> idc_buffers_ptr =
-          create_buffer<int64_t*>(num_sort_ranks, Memory::Z_COPY_MEM);
+          create_buffer<int64_t*>(num_sort_ranks, legate::Memory::Z_COPY_MEM);
         for (size_t r = 0; r < num_sort_ranks; r++) {
           idc_buffers_ptr[r] = merge_buffers[r].indices.ptr(0);
         }
@@ -643,7 +646,7 @@ SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
     return result;
   } else {
     // maybe k-way merge is more efficient here...
-    auto exec_policy      = thrust::cuda::par(alloc).on(stream);
+    auto exec_policy      = DEFAULT_POLICY(alloc).on(stream);
     size_t num_sort_ranks = merge_buffers.size();
     std::vector<SegmentMergePiece<VAL>> destroy_queue;
     for (size_t stride = 1; stride < num_sort_ranks; stride *= 2) {
@@ -774,12 +777,12 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
     output_values = static_cast<VAL*>(output_ptr);
   }
 
-  auto exec_policy = thrust::cuda::par(alloc).on(stream);
+  auto exec_policy = DEFAULT_POLICY(alloc).on(stream);
 
   {
     // compute diff for each segment
     const size_t num_segments_l_aligned = get_16b_aligned_count(num_segments_l, sizeof(size_t));
-    auto segment_diff = create_buffer<int64_t>(num_segments_l_aligned, Memory::GPU_FB_MEM);
+    auto segment_diff = create_buffer<int64_t>(num_segments_l_aligned, legate::Memory::GPU_FB_MEM);
     {
       // start kernel to search from merge_buffer.segments
       const size_t num_blocks = (num_segments_l + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -805,7 +808,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 
     // allocate target
     Buffer<int64_t> segment_diff_buffers =
-      create_buffer<int64_t>(num_segments_l_aligned * num_sort_ranks, Memory::GPU_FB_MEM);
+      create_buffer<int64_t>(num_segments_l_aligned * num_sort_ranks, legate::Memory::GPU_FB_MEM);
 
     // communicate segment diffs
     CHECK_NCCL(ncclGroupStart());
@@ -823,7 +826,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 
     // copy to transpose structure [segments][ranks]
     auto segment_diff_2d =
-      create_buffer<int64_t>(num_segments_l_aligned * num_sort_ranks, Memory::GPU_FB_MEM);
+      create_buffer<int64_t>(num_segments_l_aligned * num_sort_ranks, legate::Memory::GPU_FB_MEM);
 
     // Transpose
     {
@@ -862,12 +865,12 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
           edge case --> send more than whole line should not happen due to sample choice!
     */
     // 2 (signed) arrays - left/right for every segment
-    auto send_left  = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
-    auto send_right = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+    auto send_left  = create_buffer<int64_t>(num_segments_l, legate::Memory::GPU_FB_MEM);
+    auto send_right = create_buffer<int64_t>(num_segments_l, legate::Memory::GPU_FB_MEM);
 
     // compute data to send....
     auto segment_diff_2d_scan =
-      create_buffer<int64_t>(num_segments_l * num_sort_ranks, Memory::GPU_FB_MEM);
+      create_buffer<int64_t>(num_segments_l * num_sort_ranks, legate::Memory::GPU_FB_MEM);
     thrust::device_ptr<int64_t> segment_diff_2d_ptr(segment_diff_2d.ptr(0));
     thrust::device_ptr<int64_t> segment_diff_2d_scan_ptr(segment_diff_2d_scan.ptr(0));
     thrust::inclusive_scan(exec_policy,
@@ -931,24 +934,24 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
     send_right_data.size = send_right_size;
     recv_right_data.size = recv_right_size;
     if (argsort) {
-      send_left_data.indices  = create_buffer<int64_t>(send_left_size, Memory::GPU_FB_MEM);
-      recv_left_data.indices  = create_buffer<int64_t>(recv_left_size, Memory::GPU_FB_MEM);
-      send_right_data.indices = create_buffer<int64_t>(send_right_size, Memory::GPU_FB_MEM);
-      recv_right_data.indices = create_buffer<int64_t>(recv_right_size, Memory::GPU_FB_MEM);
+      send_left_data.indices  = create_buffer<int64_t>(send_left_size, legate::Memory::GPU_FB_MEM);
+      recv_left_data.indices  = create_buffer<int64_t>(recv_left_size, legate::Memory::GPU_FB_MEM);
+      send_right_data.indices = create_buffer<int64_t>(send_right_size, legate::Memory::GPU_FB_MEM);
+      recv_right_data.indices = create_buffer<int64_t>(recv_right_size, legate::Memory::GPU_FB_MEM);
     } else {
-      send_left_data.values  = create_buffer<VAL>(send_left_size, Memory::GPU_FB_MEM);
-      recv_left_data.values  = create_buffer<VAL>(recv_left_size, Memory::GPU_FB_MEM);
-      send_right_data.values = create_buffer<VAL>(send_right_size, Memory::GPU_FB_MEM);
-      recv_right_data.values = create_buffer<VAL>(recv_right_size, Memory::GPU_FB_MEM);
+      send_left_data.values  = create_buffer<VAL>(send_left_size, legate::Memory::GPU_FB_MEM);
+      recv_left_data.values  = create_buffer<VAL>(recv_left_size, legate::Memory::GPU_FB_MEM);
+      send_right_data.values = create_buffer<VAL>(send_right_size, legate::Memory::GPU_FB_MEM);
+      recv_right_data.values = create_buffer<VAL>(recv_right_size, legate::Memory::GPU_FB_MEM);
     }
 
     Buffer<int64_t> segment_diff_pos;
     {
       // need scan of segment_diff
       // need scan of (positive!) send_left, send_right
-      segment_diff_pos    = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
-      auto send_left_pos  = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
-      auto send_right_pos = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+      segment_diff_pos    = create_buffer<int64_t>(num_segments_l, legate::Memory::GPU_FB_MEM);
+      auto send_left_pos  = create_buffer<int64_t>(num_segments_l, legate::Memory::GPU_FB_MEM);
+      auto send_right_pos = create_buffer<int64_t>(num_segments_l, legate::Memory::GPU_FB_MEM);
       {
         thrust::device_ptr<int64_t> segment_diff_ptr(segment_diff.ptr(0));
         thrust::device_ptr<int64_t> segment_diff_pos_ptr(segment_diff_pos.ptr(0));
@@ -1099,8 +1102,8 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
     // merge data into target
     {
       // need scan of (negative!) send_left, send_right
-      auto recv_left_pos  = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
-      auto recv_right_pos = create_buffer<int64_t>(num_segments_l, Memory::GPU_FB_MEM);
+      auto recv_left_pos  = create_buffer<int64_t>(num_segments_l, legate::Memory::GPU_FB_MEM);
+      auto recv_right_pos = create_buffer<int64_t>(num_segments_l, legate::Memory::GPU_FB_MEM);
       {
         thrust::device_ptr<int64_t> recv_left_ptr(send_left.ptr(0));
         thrust::device_ptr<int64_t> recv_left_pos_ptr(recv_left_pos.ptr(0));
@@ -1217,7 +1220,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   // sort ranks. Note that if segment_size_l>0 && volume==0 means that we have
   // a full sort group being empty, this should not affect local sort rank size.
   {
-    auto worker_count_d = create_buffer<int32_t>(1, Memory::GPU_FB_MEM);
+    auto worker_count_d = create_buffer<int32_t>(1, legate::Memory::GPU_FB_MEM);
     int worker_count    = (segment_size_l > 0 ? 1 : 0);
     CHECK_CUDA(cudaMemcpyAsync(
       worker_count_d.ptr(0), &worker_count, sizeof(int32_t), cudaMemcpyHostToDevice, stream));
@@ -1237,10 +1240,10 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
       if (is_unbound_1d_storage) {
         // we need to return an empty buffer here
         if (argsort) {
-          auto buffer = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
+          auto buffer = create_buffer<int64_t>(0, legate::Memory::GPU_FB_MEM);
           output_array_unbound.return_data(buffer, Point<1>(0));
         } else {
-          auto buffer = create_buffer<VAL>(0, Memory::GPU_FB_MEM);
+          auto buffer = create_buffer<VAL>(0, legate::Memory::GPU_FB_MEM);
           output_array_unbound.return_data(buffer, Point<1>(0));
         }
       }
@@ -1259,7 +1262,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   size_t num_samples_l             = num_samples_per_segment_l * num_segments_l;
   size_t num_samples_per_segment_g = num_samples_per_segment_l * num_sort_ranks;
   size_t num_samples_g             = num_samples_per_segment_g * num_segments_l;
-  auto samples = create_buffer<SegmentSample<VAL>>(num_samples_g, Memory::GPU_FB_MEM);
+  auto samples = create_buffer<SegmentSample<VAL>>(num_samples_g, legate::Memory::GPU_FB_MEM);
 
   size_t offset = num_samples_l * my_sort_rank;
   {
@@ -1281,7 +1284,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   {
     // allocate receive buffer
     const size_t aligned_count = get_16b_aligned_count(num_samples_l, sizeof(SegmentSample<VAL>));
-    auto send_buffer = create_buffer<SegmentSample<VAL>>(aligned_count, Memory::GPU_FB_MEM);
+    auto send_buffer = create_buffer<SegmentSample<VAL>>(aligned_count, legate::Memory::GPU_FB_MEM);
     CHECK_CUDA(cudaMemcpyAsync(send_buffer.ptr(0),
                                samples.ptr(offset),
                                sizeof(SegmentSample<VAL>) * num_samples_l,
@@ -1289,7 +1292,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                                stream));
 
     auto recv_buffer =
-      create_buffer<SegmentSample<VAL>>(aligned_count * num_sort_ranks, Memory::GPU_FB_MEM);
+      create_buffer<SegmentSample<VAL>>(aligned_count * num_sort_ranks, legate::Memory::GPU_FB_MEM);
 
     CHECK_NCCL(ncclGroupStart());
     for (size_t r = 0; r < num_sort_ranks; r++) {
@@ -1333,8 +1336,8 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   /////////////////////////////////////////////////////////////////////////////////////////////////
 
   // sort samples on device
-  auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
-  auto exec_policy = thrust::cuda::par(alloc).on(stream);
+  auto alloc       = ThrustAllocator(legate::Memory::GPU_FB_MEM);
+  auto exec_policy = DEFAULT_POLICY(alloc).on(stream);
   thrust::stable_sort(
     exec_policy, samples.ptr(0), samples.ptr(0) + num_samples_g, SegmentSampleComparator<VAL>());
 
@@ -1352,7 +1355,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   // select splitters / positions based on samples (on device)
   // the indexing is split_positions[segments][positions]
   const size_t num_splitters = (num_sort_ranks - 1) * num_segments_l;
-  auto split_positions       = create_buffer<size_t>(num_splitters, Memory::GPU_FB_MEM);
+  auto split_positions       = create_buffer<size_t>(num_splitters, legate::Memory::GPU_FB_MEM);
   {
     const size_t num_blocks = (num_splitters + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
     extract_split_positions_segments<<<num_blocks, THREADS_PER_BLOCK, 0, stream>>>(
@@ -1370,12 +1373,12 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   // segment_blocks[r][segment]->position of data in segment for process r
   // perform blocksize wide scan on size_send[r][block*blocksize] within warp
   Buffer<size_t> segment_blocks =
-    create_buffer<size_t>(num_segments_l * num_sort_ranks, Memory::GPU_FB_MEM);
+    create_buffer<size_t>(num_segments_l * num_sort_ranks, legate::Memory::GPU_FB_MEM);
 
   // initialize sizes to send
   const size_t num_segments_l_aligned = get_16b_aligned_count(num_segments_l + 1, sizeof(size_t));
   Buffer<size_t> size_send =
-    create_buffer<size_t>(num_segments_l_aligned * num_sort_ranks, Memory::GPU_FB_MEM);
+    create_buffer<size_t>(num_segments_l_aligned * num_sort_ranks, legate::Memory::GPU_FB_MEM);
 
   {
     const size_t num_send_parts = num_sort_ranks * num_segments_l;
@@ -1404,7 +1407,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
 
   // all2all exchange send/receive sizes
   Buffer<size_t> size_recv =
-    create_buffer<size_t>(num_segments_l_aligned * num_sort_ranks, Memory::GPU_FB_MEM);
+    create_buffer<size_t>(num_segments_l_aligned * num_sort_ranks, legate::Memory::GPU_FB_MEM);
   CHECK_NCCL(ncclGroupStart());
   for (size_t r = 0; r < num_sort_ranks; r++) {
     CHECK_NCCL(ncclSend(size_send.ptr(r * num_segments_l_aligned),
@@ -1423,8 +1426,10 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   CHECK_NCCL(ncclGroupEnd());
 
   // we need the amount of data to transfer on the host --> get it
-  Buffer<size_t> size_send_total = create_buffer<size_t>(num_sort_ranks, Memory::Z_COPY_MEM);
-  Buffer<size_t> size_recv_total = create_buffer<size_t>(num_sort_ranks, Memory::Z_COPY_MEM);
+  Buffer<size_t> size_send_total =
+    create_buffer<size_t>(num_sort_ranks, legate::Memory::Z_COPY_MEM);
+  Buffer<size_t> size_recv_total =
+    create_buffer<size_t>(num_sort_ranks, legate::Memory::Z_COPY_MEM);
   {
     CHECK_CUDA(cudaMemcpy2DAsync(size_send_total.ptr(0),
                                  1 * sizeof(size_t),
@@ -1452,14 +1457,16 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   std::vector<Buffer<int64_t>> idc_send_buffers(num_sort_ranks);
   {
     for (size_t r = 0; r < num_sort_ranks; r++) {
-      val_send_buffers[r] = create_buffer<VAL>(size_send_total[r], Memory::GPU_FB_MEM);
+      val_send_buffers[r] = create_buffer<VAL>(size_send_total[r], legate::Memory::GPU_FB_MEM);
       if (argsort) {
-        idc_send_buffers[r] = create_buffer<int64_t>(size_send_total[r], Memory::GPU_FB_MEM);
+        idc_send_buffers[r] =
+          create_buffer<int64_t>(size_send_total[r], legate::Memory::GPU_FB_MEM);
       }
     }
 
     {
-      Buffer<VAL*> val_send_buffers_ptr = create_buffer<VAL*>(num_sort_ranks, Memory::Z_COPY_MEM);
+      Buffer<VAL*> val_send_buffers_ptr =
+        create_buffer<VAL*>(num_sort_ranks, legate::Memory::Z_COPY_MEM);
       for (size_t r = 0; r < num_sort_ranks; r++) {
         val_send_buffers_ptr[r] = val_send_buffers[r].ptr(0);
       }
@@ -1479,7 +1486,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
 
       if (argsort) {
         Buffer<int64_t*> idc_send_buffers_ptr =
-          create_buffer<int64_t*>(num_sort_ranks, Memory::Z_COPY_MEM);
+          create_buffer<int64_t*>(num_sort_ranks, legate::Memory::Z_COPY_MEM);
         for (size_t r = 0; r < num_sort_ranks; r++) {
           idc_send_buffers_ptr[r] = idc_send_buffers[r].ptr(0);
         }
@@ -1517,7 +1524,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
 
       // initialize segment information
       if (num_segments_l > 1) {
-        merge_buffers[r].segments = create_buffer<size_t>(size, Memory::GPU_FB_MEM);
+        merge_buffers[r].segments = create_buffer<size_t>(size, legate::Memory::GPU_FB_MEM);
         // 0  1  2  1  3      // counts per segment to receive
         // 0  1  3  4  7
         // 0 1 2 3 4 5 6
@@ -1543,11 +1550,11 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                                merge_buffers[r].segments.ptr(0));
       }
 
-      merge_buffers[r].values = create_buffer<VAL>(size, Memory::GPU_FB_MEM);
+      merge_buffers[r].values = create_buffer<VAL>(size, legate::Memory::GPU_FB_MEM);
       if (argsort) {
-        merge_buffers[r].indices = create_buffer<int64_t>(size, Memory::GPU_FB_MEM);
+        merge_buffers[r].indices = create_buffer<int64_t>(size, legate::Memory::GPU_FB_MEM);
       } else {
-        merge_buffers[r].indices = create_buffer<int64_t>(0, Memory::GPU_FB_MEM);
+        merge_buffers[r].indices = create_buffer<int64_t>(0, legate::Memory::GPU_FB_MEM);
       }
     }
 
@@ -1688,13 +1695,13 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     VAL* values_ptr      = nullptr;
     if (argsort) {
       // make a buffer for input
-      auto input_copy     = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+      auto input_copy     = create_buffer<VAL>(volume, legate::Memory::Kind::GPU_FB_MEM);
       local_sorted.values = input_copy;
       values_ptr          = input_copy.ptr(0);
 
       // initialize indices
       if (need_distributed_sort) {
-        auto indices_buffer  = create_buffer<int64_t>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+        auto indices_buffer  = create_buffer<int64_t>(volume, legate::Memory::Kind::GPU_FB_MEM);
         indices_ptr          = indices_buffer.ptr(0);
         local_sorted.indices = indices_buffer;
         local_sorted.size    = volume;
@@ -1706,9 +1713,9 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
       size_t offset = rect.lo[DIM - 1];
       if (volume > 0) {
         if (DIM == 1) {
-          thrust::sequence(thrust::cuda::par.on(stream), indices_ptr, indices_ptr + volume, offset);
+          thrust::sequence(DEFAULT_POLICY.on(stream), indices_ptr, indices_ptr + volume, offset);
         } else {
-          thrust::transform(thrust::cuda::par.on(stream),
+          thrust::transform(DEFAULT_POLICY.on(stream),
                             thrust::make_counting_iterator<int64_t>(0),
                             thrust::make_counting_iterator<int64_t>(volume),
                             thrust::make_constant_iterator<int64_t>(segment_size_l),
@@ -1719,10 +1726,10 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
     } else {
       // initialize output
       if (need_distributed_sort) {
-        auto input_copy      = create_buffer<VAL>(volume, Legion::Memory::Kind::GPU_FB_MEM);
+        auto input_copy      = create_buffer<VAL>(volume, legate::Memory::Kind::GPU_FB_MEM);
         values_ptr           = input_copy.ptr(0);
         local_sorted.values  = input_copy;
-        local_sorted.indices = create_buffer<int64_t>(0, Legion::Memory::Kind::GPU_FB_MEM);
+        local_sorted.indices = create_buffer<int64_t>(0, legate::Memory::Kind::GPU_FB_MEM);
         local_sorted.size    = volume;
       } else {
         AccessorWO<VAL, DIM> output = output_array.write_accessor<VAL, DIM>(rect);

@@ -24,7 +24,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM>
@@ -58,7 +57,7 @@ struct Putmask {
     values = args.values.read_accessor<T, DIM>(rect);
     volume = pitches.flatten(rect);
     if (volume == 0) return;
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     dense = input.accessor.is_dense_row_major(rect) && mask.accessor.is_dense_row_major(rect);
     dense = dense && values.accessor.is_dense_row_major(rect);
     if (dense) {
@@ -82,14 +81,13 @@ struct Putmask {
 
   void execute() const noexcept
   {
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     if (dense) { return ParallelLoopPolicy<KIND, DenseTag>()(rect, *this); }
 #endif
     return ParallelLoopPolicy<KIND, SparseTag>()(rect, *this);
   }
 };
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND>

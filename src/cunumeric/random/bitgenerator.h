@@ -30,7 +30,7 @@ struct BitGeneratorArgs {
 
   BitGeneratorDistribution distribution;
 
-  Legion::DomainPoint strides;
+  legate::DomainPoint strides;
   std::vector<int64_t> intparams;
   std::vector<float> floatparams;
   std::vector<double> doubleparams;
@@ -55,7 +55,7 @@ struct BitGeneratorArgs {
 
                    BitGeneratorDistribution distribution,
 
-                   Legion::DomainPoint strides,
+                   legate::DomainPoint strides,
                    std::vector<int64_t>&& intparams,
                    std::vector<float>&& floatparams,
                    std::vector<double>&& doubleparams,
