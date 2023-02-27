@@ -32,7 +32,7 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`search`
 
-.. _DGX SuperPOD: https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb
+.. _DGX SuperPOD: https://www.nvidia.com/en-us/data-center/dgx-superpod/
 .. _Legate: https://github.com/nv-legate/legate.core
 .. _Legion: https://legion.stanford.edu/
 .. _Numpy API: https://numpy.org/doc/stable/reference/
