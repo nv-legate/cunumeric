@@ -11,7 +11,8 @@ test driver script.
 
    ./test.py --color --debug
 
-This will start test execution for the default CPU stage, as well :
+This will start test execution for the default CPU stage, as well as enabling
+additional debug output:
 
 .. code-block:: sh
 
@@ -100,13 +101,13 @@ different stages:
   GPU framebuffer memory (MB)
 
 --omps OMPS
-  Number OpenMP processors per node to use
+  Number of OpenMP processors per node to use
 
 --ompthreads THREADS
   Number of threads per OpenMP processor
 
 --utility UTILITY
-  Number of of utility CPUs to reserve for runtime services
+  Number of utility CPUs to reserve for runtime services
 
 There are also options to get more verbose or color-coded terminal output:
 
