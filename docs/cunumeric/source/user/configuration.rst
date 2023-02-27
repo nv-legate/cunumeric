@@ -70,6 +70,8 @@ Resource allocation
 --fbmem FBMEM
   Amount of framebuffer memory per GPU (in MBs) (default: 4000)
 
+.. _config_multi_node:
+
 Multi-node execution
 ~~~~~~~~~~~~~~~~~~~~
 

@@ -56,8 +56,39 @@ Additionally, several ``legate`` command line configuration options are not
 available when running programs this way. See the output of ``legate --help``
 for more details.
 
-Configuration options
----------------------
+Multi-node execution
+--------------------
+
+Using ``legate``
+~~~~~~~~~~~~~~~~
+
+Cunumeric programs can be run in parallel by using the ``--nodes`` option to
+the ``legate`` driver, followed by the number of nodes to be used.  Whenever
+the ``--nodes`` option is used, Legate will be launched using ``mpirun``, even
+with ``--nodes 1``.
+
+.. code-block:: sh
+
+  legate --nodes 2 script.py <script options>
+
+Legate currently supports using ``mpirun``, ``srun``, and ``jsrun`` as task
+launchers for multi-node execution via the ``--launcher`` command like
+arguments:
+
+.. code-block::
+
+  legate --launcher srun --nodes 2 script.py <script options>
+
+See :ref:`config_multi_node` for more configuration options.
+
+Using a manual task manager
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: sh
+
+  mpirun -np N legate script.py <script options>
+
+It is also possible to use "standard python" in place of the ``legate`` driver.
 
 Zero code-change patching
 -------------------------
