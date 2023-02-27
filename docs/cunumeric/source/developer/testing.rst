@@ -107,7 +107,7 @@ different stages:
   Number of threads per OpenMP processor
 
 --utility UTILITY
-  Number of utility CPUs to reserve for runtime services
+  Number of cores to reserve for runtime services
 
 There are also options to get more verbose or color-coded terminal output:
 

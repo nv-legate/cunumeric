@@ -1,3 +1,5 @@
+.. _config:
+
 Configuration
 =============
 
@@ -6,6 +8,8 @@ execution.
 
 How to specify configuration
 ----------------------------
+
+.. _config_legate:
 
 Legate driver
 ~~~~~~~~~~~~~
@@ -33,6 +37,11 @@ It is also possible to pass these configuration options using the
 .. code-block:: sh
 
   LEGATE_CONFIG="--cpus 2 --sysmem 8000" legate script.py
+
+.. note::
+
+  Options provided via ``LEGATE_CONFIG`` have lower precedence than arguments
+  passed directly on the command line.
 
 Standard Python
 ~~~~~~~~~~~~~~~

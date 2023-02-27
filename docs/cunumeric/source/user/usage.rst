@@ -39,6 +39,8 @@ using the ``LEGATE_CONFIG`` environment variable:
 
   LEGATE_CONFIG="--cpus 2 --gpus 2" legate script.py <script options>
 
+See the :ref:`config` section :ref:`config_legate` for more information.
+
 Using standard Python
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -63,13 +65,8 @@ Using ``legate``
 ~~~~~~~~~~~~~~~~
 
 Cunumeric programs can be run in parallel by using the ``--nodes`` option to
-the ``legate`` driver, followed by the number of nodes to be used.  Whenever
-the ``--nodes`` option is used, Legate will be launched using ``mpirun``, even
-with ``--nodes 1``.
-
-.. code-block:: sh
-
-  legate --nodes 2 script.py <script options>
+the ``legate`` driver, followed by the number of nodes to be used.
+When running on 2+ nodes, a task launcher must be specified.
 
 Legate currently supports using ``mpirun``, ``srun``, and ``jsrun`` as task
 launchers for multi-node execution via the ``--launcher`` command like
@@ -79,7 +76,8 @@ arguments:
 
   legate --launcher srun --nodes 2 script.py <script options>
 
-See :ref:`config_multi_node` for more configuration options.
+See the :ref:`config` section :ref:`config_multi_node` for more
+configuration options.
 
 Using a manual task manager
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -93,7 +91,7 @@ It is also possible to use "standard python" in place of the ``legate`` driver.
 Zero code-change patching
 -------------------------
 
-The ``lgpatch`` script in the same location as the ``legate`` executable) can
+The ``lgpatch`` script (in the same location as the ``legate`` executable) can
 help facilitate quick demonstrations of ``cunumeric`` on existing codebases
 that make use of ``numpy``.
 
