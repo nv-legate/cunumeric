@@ -29,6 +29,14 @@ def my_func_np(a, b):
     return a
 
 
+def my_func2(A0, B0):
+    A0 = A0 * 2 + B0
+
+def my_func_np2(A0, B0):
+    A0 = A0 * 2 + B0
+    return A0
+
+
 def test_vectorize():
     func = num.vectorize(my_func)
     a = num.arange(5)
@@ -75,6 +83,20 @@ def test_vectorize():
     a[:, 2, :] = func_np(a[:, 2, :],2)
     func_num(a_num[:, 2, :],2)
     assert np.array_equal(a, a_num)
+
+    a=np.arange(100).reshape((25,4))
+    a_num= num.array(a)
+
+    b=a*10
+    b_num=a_num*10
+
+    func_np = np.vectorize(my_func_np2)
+    func_num=num.vectorize(my_func2)
+
+    a=func_np(a,b)
+    func_num(a_num, b_num)
+    assert np.array_equal(a, a_num)
+
     
 
 if __name__ == "__main__":

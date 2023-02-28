@@ -183,6 +183,8 @@ class vectorize:
         return return_lines
 
     def _replace_name(self, name: str, _LOOP_VAR:str, is_gpu:bool=False) -> str:
+        print("IRINA DEBUG ARGNAMES =", self._argnames)
+        print("IRINA DEBUG SCALAR_NAMES =", self._scalar_names)
         if name in self._argnames and not(name in self._scalar_names) :
             return "{}[{}]".format(name, _LOOP_VAR)
         else:
@@ -220,11 +222,11 @@ class vectorize:
         # kernel body
         lines_old = self._get_func_body(self._pyfunc)
         for line in lines_old:
-            l_new = re.sub(r"[_a-z]\w*", _lift_to_array_access, line)
+            l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
             lines.append(l_new)
    
         #print("IRINA DEBUG GPU function",lines)
-
+        
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
         glbs: Dict[str, Any] = {}
