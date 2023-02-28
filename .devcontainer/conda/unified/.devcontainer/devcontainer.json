@@ -1,0 +1,91 @@
+{
+  "shutdownAction": "none",
+
+  "build": {
+    "context": "${localWorkspaceFolder}/.devcontainer",
+    "dockerfile": "${localWorkspaceFolder}/.devcontainer/Dockerfile",
+    "args": {
+      "CUDA": "11.8"
+    }
+  },
+  "hostRequirements": {
+    "gpu": true
+  },
+
+  "initializeCommand": [
+    "/bin/bash", "-c", "mkdir -m 0755 -p ${localWorkspaceFolder}/../{.aws,.cache,.config,.conda} ${localWorkspaceFolder}/../{legion,legate}"
+  ],
+
+  "containerEnv": {
+    "DEFAULT_CONDA_ENV": "legate"
+  },
+
+  "workspaceFolder": "/home/coder",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/home/coder/${localWorkspaceFolderBasename},type=bind,consistency=consistent",
+  "mounts": [
+    "source=${localWorkspaceFolder}/../legion,target=/home/coder/legion,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../legate,target=/home/coder/legate,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../.aws,target=/home/coder/.aws,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../.cache,target=/home/coder/.cache,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../.config,target=/home/coder/.config,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/../.conda,target=/home/coder/.conda,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/.devcontainer/opt/${localWorkspaceFolderBasename},target=/opt/${localWorkspaceFolderBasename},type=bind,consistency=consistent"
+  ],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "cschlosser.doxdocgen",
+        "llvm-vs-code-extensions.vscode-clangd",
+        "mutantdino.resourcemonitor",
+        "ms-vscode.cpptools",
+        "rust-lang.rust-analyzer",
+        "serayuzgur.crates",
+        "tamasfe.even-better-toml",
+        "vadimcn.vscode-lldb",
+        "xaver.clang-format"
+      ],
+      "settings": {
+        "C_Cpp.vcpkg.enabled": false,
+        "C_Cpp.formatting": "disabled",
+        "C_Cpp.autocomplete": "disabled",
+        "C_Cpp.errorSquiggles": "disabled",
+        "C_Cpp.intelliSenseEngine": "disabled",
+        "C_Cpp.configurationWarnings": "disabled",
+        "C_Cpp.autoAddFileAssociations": false,
+        "clang-format.fallbackStyle": "none",
+        "clangd.arguments": [
+          "--log=info",
+          "--clang-tidy",
+          "--debug-origin",
+          "--pch-storage=disk",
+          "--use-dirty-headers",
+          "--background-index=true",
+          "--all-scopes-completion",
+          "--header-insertion=iwyu",
+          "--completion-parse=always",
+          "--completion-style=detailed",
+          "--header-insertion-decorators"
+        ],
+        "files.trimFinalNewlines": true,
+        "files.insertFinalNewline": true,
+        "files.trimTrailingWhitespace": true,
+        "files.watcherExclude": {
+          "**/target/**": true
+        },
+        "python.linting.flake8Enabled": true,
+        "rust-analyzer.checkOnSave": true,
+        "rust-analyzer.check.command": "clippy",
+        "[c]": {
+          "editor.defaultFormatter": "xaver.clang-format"
+        },
+        "[cpp]": {
+          "editor.defaultFormatter": "xaver.clang-format"
+        },
+        "[cuda-cpp]": {
+          "editor.defaultFormatter": "xaver.clang-format"
+        }
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@ skbuild_dir="$(python -c 'import skbuild; print(skbuild.constants.SKBUILD_DIR())
 mkdir -p ~/.config/clangd;
 
 cat <<EOF >  ~/.config/clangd/config.yaml
-$(cat /opt/legate/.clangd)
+$(cat /opt/cunumeric/.clangd)
 ---
 If:
   PathMatch: $HOME/legate/.*

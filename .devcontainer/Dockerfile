@@ -11,18 +11,17 @@ RUN export DEBIAN_FRONTEND=noninteractive       \
  && sudo apt install -y --no-install-recommends \
     numactl rlwrap
 
+USER coder
+
 COPY --chown=coder:coder home/coder/workspace.code-workspace /home/coder/
 
-COPY --chown=root:root opt/legate /opt/legate
+COPY --chown=coder:coder opt/cunumeric /opt/cunumeric
 
 WORKDIR /home/coder/
 
-ENV PYTHONDONTWRITEBYTECODE="1"
+RUN /bin/bash -c 'mkdir -m 0755 -p ~/.{aws,cache,cargo,conda,config,local}'
 
-ENV RUSTC_WRAPPER=sccache
-ENV CMAKE_C_COMPILER_LAUNCHER=sccache
-ENV CMAKE_CXX_COMPILER_LAUNCHER=sccache
-ENV CMAKE_CUDA_COMPILER_LAUNCHER=sccache
+ENV PYTHONDONTWRITEBYTECODE="1"
 
 ENV SCCACHE_REGION="us-east-2"
 ENV SCCACHE_BUCKET="rapids-sccache-devs"

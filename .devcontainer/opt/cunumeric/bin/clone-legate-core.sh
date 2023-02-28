@@ -4,7 +4,7 @@ generate_conda_envs_py="legate/scripts/generate-conda-envs.py";
 
 if [[ ! -d ~/legate/.git ]]; then
     echo "Cloning legate.core" 1>&2;
-    /opt/devcontainer/bin/github/repo/clone.sh "nv-legate" "legate.core" "legate";
+    github-repo-clone "nv-legate" "legate.core" "legate";
 fi
 
 if [[ ! -f ~/$generate_conda_envs_py ]]; then
