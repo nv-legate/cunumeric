@@ -25,7 +25,12 @@ def test_randn():
     # even if initialized with the same seed, so all we can do to verify
     # the results is check that they have the expected distribution.
     a_num = num.random.randn(10000)
-    assert_distribution(a_num, 0.0, 1.0)
+    # `mean(a_num)` itself will be normally distributed, with:
+    # mean = population mean = 0.0
+    # stddev = population stddev / sqrt(samples) = 0.01
+    # so a range of -0.05 to 0.05 represents 5 standard deviations
+    # which should be extremely unlikely to run over
+    assert_distribution(a_num, 0.0, 1.0, mean_tol=0.05)
 
 
 if __name__ == "__main__":
