@@ -20,6 +20,7 @@ import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import legate.core.types as ty
+from legate.core import Rect
 import numba
 import numba.core.ccallback
 import numpy as np
@@ -183,8 +184,8 @@ class vectorize:
         return return_lines
 
     def _replace_name(self, name: str, _LOOP_VAR:str, is_gpu:bool=False) -> str:
-        print("IRINA DEBUG ARGNAMES =", self._argnames)
-        print("IRINA DEBUG SCALAR_NAMES =", self._scalar_names)
+        #print("IRINA DEBUG ARGNAMES =", self._argnames)
+        #print("IRINA DEBUG SCALAR_NAMES =", self._scalar_names)
         if name in self._argnames and not(name in self._scalar_names) :
             return "{}[{}]".format(name, _LOOP_VAR)
         else:
@@ -314,20 +315,19 @@ class vectorize:
 
         return numba.cfunc(sig)(self._numba_func)
 
-    def _execute(self, is_gpu:bool) -> None:
+    def _execute(self, is_gpu:bool, num_gpus:int=0) -> None:
         if is_gpu and not self._created:
-            #create CUDA kernel
-            kernel_task = self._context.create_auto_task(CuNumericOpCode.CREATE_CU_KERNEL)
+            # create future for dependency between CREATE_CU_KERNEL and 
+            # EVAL_UDF tasks
+            future  = convert_to_cunumeric_ndarray(num_gpus)
+            future_deferred = runtime.to_deferred_array(future._thunk)
+            # create CUDA kernel
+            launch_domain=Rect(lo=(0,), hi=(num_gpus,))
+            kernel_task = self._context.create_task(CuNumericOpCode.CREATE_CU_KERNEL,manual=True, launch_domain=launch_domain)
             ptx_hash = hash(self._gpu_func[0])
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            #adding unused array for creating correct launch domain
-            #and set up dependency between kernel_task and task
-            if len(self._args)>0:
-               a0 = self._args[0]._thunk
-               a0 = runtime.to_deferred_array(a0)
-               kernel_task.add_input(a0.base)
-               kernel_task.add_output(a0.base)
+            kernel_task.add_output(future_deferred.base)
             kernel_task.execute()
                 
 
@@ -342,7 +342,7 @@ class vectorize:
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
             task.add_scalar_arg(ptx_hash, ty.int64)
-            task.add_scalar_arg(self._created, bool)
+            task.add_scalar_arg((is_gpu and not self._created), bool)
         else:
             task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
         a0 = self._args[0]._thunk
@@ -355,6 +355,8 @@ class vectorize:
                 task.add_output(a_tmp)
             if count != 0:
                 task.add_alignment(a0.base, a_tmp)
+        if is_gpu and not self._created:
+            task.add_input(future_deferred.base)
         task.execute()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
@@ -431,7 +433,7 @@ class vectorize:
                 self._gpu_func = self._compile_func_gpu()
             #profiler = cProfile.Profile()
             #profiler.enable()
-            self._execute(True)
+            self._execute(True, runtime.num_gpus)
             if not self._created and self._cache:
                 self._created = True
             #profiler.disable()

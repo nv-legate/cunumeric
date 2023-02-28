@@ -66,7 +66,7 @@ struct EvalUdfCPU {
                    context.outputs(),
                    scalars,
                    num_outputs,
-                   context.get_task_index()};
+                   context.get_current_processor()};
   size_t dim=1;
   if (args.inputs.size()>0){
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();

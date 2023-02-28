@@ -397,7 +397,7 @@ class JITKernelStorage
 
 private:
     JITKernelStorage(){}
-    std::map<std::pair<int64_t,Legion::DomainPoint>, CUfunction> jit_functions_;
+    std::map<std::pair<int64_t,Legion::Processor>, CUfunction> jit_functions_;
 
 public:
     JITKernelStorage( JITKernelStorage const&) = delete;
@@ -409,11 +409,11 @@ public:
         return instance;
     }
 
-    bool registered_jit_funtion(std::pair<int64_t, Legion::DomainPoint> &key){
+    bool registered_jit_funtion(std::pair<int64_t, Legion::Processor> &key){
          return jit_functions_.find(key)!=jit_functions_.end();
     };
 
-    CUfunction return_saved_jit_function(std::pair<int64_t,Legion::DomainPoint> &key){
+    CUfunction return_saved_jit_function(std::pair<int64_t,Legion::Processor> &key){
        if (
             jit_functions_.find(key)!=jit_functions_.end())
             return jit_functions_[key];
@@ -421,7 +421,7 @@ public:
           assert(false);//should never come here
     }
 
-  void add_jit_function(std::pair<int64_t,Legion::DomainPoint> &key, CUfunction func){
+  void add_jit_function(std::pair<int64_t,Legion::Processor> &key, CUfunction func){
         jit_functions_.insert({key, func});
   }
 };//class JITKernelStorage

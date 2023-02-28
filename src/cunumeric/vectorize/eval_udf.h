@@ -27,10 +27,9 @@ struct EvalUdfArgs {
   std::vector<Array>& outputs;
   std::vector<legate::Scalar>scalars;
   uint32_t num_outputs;
-  Legion::DomainPoint point;
+  Legion::Processor point;
   int64_t hash=0;
-  std::string ptx = "";
-
+  bool is_created = false;
 };
 
 class EvalUdfTask : public CuNumericTask<EvalUdfTask> {

@@ -36,7 +36,7 @@ struct EvalUdfGPU {
 
   //std::hash<std::string> hasher;
   CUfunction func;
-  std::pair<int64_t,DomainPoint> key(args.hash, args.point);
+  std::pair<int64_t,Processor> key(args.hash, args.point);
   //size_t ptx_hash = hasher(args.ptx);
   //std::cout <<"IRINA DEBUG within cuda task hash = "<<args.hash<< " , registered = ?"<<jit_storage.registered_jit_funtion(key)<<std::endl;
   if (jit_storage.registered_jit_funtion(key)){
@@ -47,7 +47,12 @@ struct EvalUdfGPU {
    }
 
     // Filling up the buffer with arguments
-    size_t buffer_size = (args.inputs.size()+args.scalars.size()) * sizeof(void*);
+    size_t input_size=args.inputs.size();
+      if (args.is_created){
+         input_size=input_size-1;
+      }
+
+    size_t buffer_size = (input_size+args.scalars.size()) * sizeof(void*);
     buffer_size +=sizeof(size_t);//size
     buffer_size += sizeof(size_t);//dim
     buffer_size += sizeof(void*);//pitches
@@ -63,7 +68,7 @@ struct EvalUdfGPU {
     if (args.inputs.size()>0){
       rect = args.inputs[0].shape<DIM>();
       size = rect.volume();
-      for (size_t i = 0; i < args.inputs.size(); i++) {
+      for (size_t i = 0; i < input_size; i++) {
         if (i < args.num_outputs) {
           auto out                           = args.outputs[i].write_accessor<VAL, DIM>(rect);
           *reinterpret_cast<const void**>(p) = out.ptr(rect, strides);
@@ -128,12 +133,13 @@ struct EvalUdfGPU {
 
     auto stream = get_cached_stream();
 
+    //std::cout <<"function = "<<func<<std::endl;
     // executing the function
     CUresult status = cuLaunchKernel(
       func, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, 0, stream, NULL, config);
     if (status != CUDA_SUCCESS) {
       fprintf(stderr, "Failed to launch a CUDA kernel\n");
-      exit(-1);
+      assert(false);
     }
 
     CHECK_CUDA_STREAM(stream);
@@ -150,7 +156,7 @@ struct EvalUdfGPU {
       scalars.push_back(context.scalars()[i]);
   
   int64_t ptx_hash = context.scalars()[2+num_scalars].value<int64_t>();
- // bool is_created = context.scalars()[3+num_scalars].value<bool>();
+  bool is_created = context.scalars()[3+num_scalars].value<bool>();
 
 
   EvalUdfArgs args{0,
@@ -158,8 +164,9 @@ struct EvalUdfGPU {
                    context.outputs(),
                    scalars,
                    num_outputs,
-                   context.get_task_index(),
-                   ptx_hash};
+                   context.get_current_processor(),
+                   ptx_hash,
+                   is_created};
   //if (!is_created)
   //    args.ptx = context.scalars()[4+num_scalars].value<std::string>();
   size_t dim=1;

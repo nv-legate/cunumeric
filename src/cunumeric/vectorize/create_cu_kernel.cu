@@ -29,11 +29,11 @@ using namespace legate;
   
   int64_t ptx_hash = context.scalars()[0].value<int64_t>();
   std::string ptx = context.scalars()[1].value<std::string>();
-  DomainPoint point = context.get_task_index();
+  Processor point = context.get_current_processor();
   JITKernelStorage& jit_storage =JITKernelStorage::get_instance();
 
   CUfunction func;
-  std::pair<int64_t,DomainPoint> key(ptx_hash, point);
+  std::pair<int64_t,Processor> key(ptx_hash, point);
   if (!jit_storage.registered_jit_funtion(key)){
     const unsigned num_options   = 4;
     const size_t log_buffer_size = 16384;
