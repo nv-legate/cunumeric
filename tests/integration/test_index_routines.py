@@ -517,4 +517,5 @@ class TestDiagErrors:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

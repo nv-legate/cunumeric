@@ -16,6 +16,7 @@
 from types import ModuleType
 from typing import Any
 
+import numpy as np
 import pytest
 from mock import MagicMock, patch
 
@@ -467,4 +468,5 @@ class Test_clone_class:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
