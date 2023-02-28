@@ -185,24 +185,8 @@ class vectorize:
     def _replace_name(self, name: str, _LOOP_VAR:str, is_gpu:bool=False) -> str:
         if name in self._argnames and not(name in self._scalar_names) :
             return "{}[{}]".format(name, _LOOP_VAR)
-        elif name == "if":
-            return "if "
-        elif name == "return":
-            return "return "
-        elif name == "or":
-            return "or "
-        elif name == "and":
-            return "and "
-        elif name == "not":
-            return "not "
-        elif name == "min":
-            return "min"
-        elif name == "max":
-            return "max"
-        elif is_gpu:
-            return "{}".format(name)
         else:
-            return "{}[0]".format(name)
+            return "{}".format(name)
 
 
     def _build_gpu_function(self) -> Any:
