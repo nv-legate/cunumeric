@@ -20,7 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 /*static*/ const char* SolveTask::ERROR_MESSAGE = "Singular matrix";

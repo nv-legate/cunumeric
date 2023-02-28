@@ -28,7 +28,7 @@ template <>
 struct Pack<Bitorder::BIG, true /*ALIGNED*/> {
   template <typename VAL, int32_t DIM>
   __CUDA_HD__ inline uint8_t operator()(legate::AccessorRO<VAL, DIM> in,
-                                        Legion::Point<DIM> p,
+                                        legate::Point<DIM> p,
                                         int64_t in_hi_axis,
                                         uint32_t axis)
   {
@@ -47,7 +47,7 @@ template <>
 struct Pack<Bitorder::BIG, false /*ALIGNED*/> {
   template <typename VAL, int32_t DIM>
   __CUDA_HD__ inline uint8_t operator()(legate::AccessorRO<VAL, DIM> in,
-                                        Legion::Point<DIM> p,
+                                        legate::Point<DIM> p,
                                         int64_t in_hi_axis,
                                         uint32_t axis)
   {
@@ -67,7 +67,7 @@ template <>
 struct Pack<Bitorder::LITTLE, true /*ALIGNED*/> {
   template <typename VAL, int32_t DIM>
   __CUDA_HD__ inline uint8_t operator()(legate::AccessorRO<VAL, DIM> in,
-                                        Legion::Point<DIM> p,
+                                        legate::Point<DIM> p,
                                         int64_t in_hi_axis,
                                         uint32_t axis)
   {
@@ -86,7 +86,7 @@ template <>
 struct Pack<Bitorder::LITTLE, false /*ALIGNED*/> {
   template <typename VAL, int32_t DIM>
   __CUDA_HD__ inline uint8_t operator()(legate::AccessorRO<VAL, DIM> in,
-                                        Legion::Point<DIM> p,
+                                        legate::Point<DIM> p,
                                         int64_t in_hi_axis,
                                         uint32_t axis)
   {

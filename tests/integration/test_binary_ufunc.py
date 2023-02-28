@@ -74,8 +74,6 @@ def test_all():
     # for some boring inputs. For some of these, we will want to
     # test corner cases in the future.
 
-    np.random.seed(12345)
-
     # Math operations
     ops = [
         "add",
@@ -237,4 +235,5 @@ if __name__ == "__main__":
         in_np = parse_inputs(args.inputs, args.dtypes)
         check_ops([args.op], in_np)
     else:
+        np.random.seed(12345)
         sys.exit(pytest.main(sys.argv))
