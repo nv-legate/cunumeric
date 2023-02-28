@@ -23,7 +23,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 using dim_t = long long int32_t;
@@ -105,7 +104,7 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
     plan, DIM, n, inembed, 1, 1, onembed, 1, 1, static_cast<cufftType>(type), 1, &workarea_size));
 
   if (workarea_size > 0) {
-    auto workarea_buffer = create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
+    auto workarea_buffer = create_buffer<uint8_t>(workarea_size, Memory::Kind::GPU_FB_MEM);
     CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
   }
 
@@ -123,7 +122,7 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
                           static_cast<void*>(out.ptr(out_rect.lo)),
                           static_cast<int32_t>(direction)));
 
-  // Clean up our resources, Buffers are cleaned up by Legion
+  // Clean up our resources, Buffers are cleaned up by Legate
   CHECK_CUFFT(cufftDestroy(plan));
 }
 
@@ -214,7 +213,7 @@ __host__ static inline void cufft_over_axes_c2c(AccessorWO<OUTPUT_TYPE, DIM> out
   }
 
   // Copy input to temporary buffer to perform FFTs one by one
-  auto input_buffer = create_buffer<INPUT_TYPE, DIM>(fft_size_in, Legion::Memory::Kind::GPU_FB_MEM);
+  auto input_buffer = create_buffer<INPUT_TYPE, DIM>(fft_size_in, Memory::Kind::GPU_FB_MEM);
   copy_into_buffer<DIM, INPUT_TYPE>(input_buffer, in, in_rect, num_elements_in, stream);
 
   Buffer<uint8_t> workarea_buffer;
@@ -256,7 +255,7 @@ __host__ static inline void cufft_over_axes_c2c(AccessorWO<OUTPUT_TYPE, DIM> out
     if (workarea_size > 0) {
       if (workarea_size > last_workarea_size) {
         if (last_workarea_size > 0) workarea_buffer.destroy();
-        workarea_buffer = create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
+        workarea_buffer    = create_buffer<uint8_t>(workarea_size, Memory::Kind::GPU_FB_MEM);
         last_workarea_size = workarea_size;
       }
       CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
@@ -266,7 +265,7 @@ __host__ static inline void cufft_over_axes_c2c(AccessorWO<OUTPUT_TYPE, DIM> out
     cufft_axes_plan<DIM, Buffer<INPUT_TYPE, DIM>, INPUT_TYPE>::execute(
       plan, input_buffer, input_buffer, out_rect, in_rect, ax, direction);
 
-    // Clean up our resources, Buffers are cleaned up by Legion
+    // Clean up our resources, Buffers are cleaned up by Legate
     CHECK_CUFFT(cufftDestroy(plan));
   }
   CHECK_CUDA(cudaMemcpyAsync(out.ptr(zero),
@@ -311,7 +310,7 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
   // cuFFT out-of-place C2R always overwrites the input buffer,
   // which is not what we want here, so copy
   // Copy input to temporary buffer to perform FFTs one by one
-  auto input_buffer = create_buffer<INPUT_TYPE, DIM>(fft_size_in, Legion::Memory::Kind::GPU_FB_MEM);
+  auto input_buffer = create_buffer<INPUT_TYPE, DIM>(fft_size_in, Memory::Kind::GPU_FB_MEM);
   copy_into_buffer<DIM, INPUT_TYPE>(input_buffer, in, in_rect, num_elements_in, stream);
 
   // Create the plan
@@ -353,14 +352,14 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
                                   &workarea_size));
 
   if (workarea_size > 0) {
-    auto workarea_buffer = create_buffer<uint8_t>(workarea_size, Legion::Memory::Kind::GPU_FB_MEM);
+    auto workarea_buffer = create_buffer<uint8_t>(workarea_size, Memory::Kind::GPU_FB_MEM);
     CHECK_CUFFT(cufftSetWorkArea(plan, workarea_buffer.ptr(0)));
   }
 
   cufft_axes_plan<DIM, AccessorWO<OUTPUT_TYPE, DIM>, INPUT_TYPE>::execute(
     plan, out, input_buffer, out_rect, in_rect, axis, direction);
 
-  // Clean up our resources, Buffers are cleaned up by Legion
+  // Clean up our resources, Buffers are cleaned up by Legate
   CHECK_CUFFT(cufftDestroy(plan));
 }
 

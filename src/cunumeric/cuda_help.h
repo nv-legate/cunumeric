@@ -115,7 +115,7 @@ legate::cuda::StreamView get_cached_stream();
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();
-cufftContext get_cufft_plan(cufftType type, const Legion::DomainPoint& size);
+cufftContext get_cufft_plan(cufftType type, const legate::DomainPoint& size);
 
 __host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
 {

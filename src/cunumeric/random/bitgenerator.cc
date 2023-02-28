@@ -25,12 +25,11 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
-static Legion::Logger log_curand("cunumeric.random");
+static Logger log_curand("cunumeric.random");
 
-Legion::Logger& randutil_log() { return log_curand; }
+Logger& randutil_log() { return log_curand; }
 
 void randutil_check_curand(curandStatus_t error, const char* file, int line)
 {
@@ -65,7 +64,7 @@ struct CURANDGeneratorBuilder<VariantKind::CPU> {
 };
 
 template <>
-std::map<Legion::Processor, std::unique_ptr<generator_map<VariantKind::CPU>>>
+std::map<legate::Processor, std::unique_ptr<generator_map<VariantKind::CPU>>>
   BitGeneratorImplBody<VariantKind::CPU>::m_generators = {};
 
 template <>

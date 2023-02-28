@@ -29,7 +29,7 @@ struct Unpack<Bitorder::BIG> {
   template <int32_t DIM>
   __CUDA_HD__ inline void operator()(legate::AccessorWO<uint8_t, DIM> out,
                                      legate::AccessorRO<uint8_t, DIM> in,
-                                     Legion::Point<DIM> p,
+                                     legate::Point<DIM> p,
                                      uint32_t axis) const
   {
     int64_t out_hi = (p[axis] + 1) * 8 - 1;
@@ -46,7 +46,7 @@ struct Unpack<Bitorder::LITTLE> {
   template <int32_t DIM>
   __CUDA_HD__ inline void operator()(legate::AccessorWO<uint8_t, DIM> out,
                                      legate::AccessorRO<uint8_t, DIM> in,
-                                     Legion::Point<DIM> p,
+                                     legate::Point<DIM> p,
                                      uint32_t axis) const
   {
     int64_t out_lo = p[axis] * 8;

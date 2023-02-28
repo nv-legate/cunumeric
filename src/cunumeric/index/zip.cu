@@ -20,8 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <int DIM, int N, size_t... Is>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   zip_kernel(const AccessorWO<Point<N>, DIM> out,
@@ -35,7 +33,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
-  Legion::Point<N> new_point;
+  Point<N> new_point;
   for (size_t i = 0; i < N; i++) { new_point[i] = compute_idx_cuda(index_arrays[i][p], shape[i]); }
   out[p] = new_point;
 }
@@ -51,7 +49,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 {
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
-  Legion::Point<N> new_point;
+  Point<N> new_point;
   for (size_t i = 0; i < N; i++) {
     new_point[i] = compute_idx_cuda(index_arrays[i][idx], shape[i]);
   }
@@ -73,7 +71,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
   auto p = pitches.unflatten(idx, rect.lo);
-  Legion::Point<N> new_point;
+  Point<N> new_point;
   for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
   for (size_t i = 0; i < narrays; i++) {
     new_point[start_index + i] = compute_idx_cuda(index_arrays[i][p], shape[start_index + i]);
@@ -158,7 +156,7 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
     auto index_buf =
-      create_buffer<AccessorRO<VAL, DIM>, 1>(index_arrays.size(), Memory::Kind::Z_COPY_MEM);
+      create_buffer<AccessorRO<VAL, DIM>, 1>(index_arrays.size(), legate::Memory::Kind::Z_COPY_MEM);
     for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) index_buf[idx] = index_arrays[idx];
     check_out_of_bounds(
       index_buf, volume, rect, pitches, index_arrays.size(), start_index, shape, stream);
@@ -166,7 +164,7 @@ struct ZipImplBody<VariantKind::GPU, DIM, N> {
     if (index_arrays.size() == N) {
       if (dense) {
         auto index_buf_dense =
-          create_buffer<const int64_t*, 1>(index_arrays.size(), Memory::Kind::Z_COPY_MEM);
+          create_buffer<const int64_t*, 1>(index_arrays.size(), legate::Memory::Kind::Z_COPY_MEM);
         for (uint32_t idx = 0; idx < index_arrays.size(); ++idx) {
           index_buf_dense[idx] = index_arrays[idx].ptr(rect);
         }

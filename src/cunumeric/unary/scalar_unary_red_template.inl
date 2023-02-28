@@ -26,7 +26,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
@@ -63,7 +62,7 @@ struct ScalarUnaryRed {
     out = args.out.reduce_accessor<LG_OP, true, 1>();
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     if (in.accessor.is_dense_row_major(rect)) {
       dense = true;
@@ -101,7 +100,7 @@ struct ScalarUnaryRed {
   void execute() const noexcept
   {
     auto identity = LG_OP::identity;
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // The constexpr if here prevents the DenseReduction from being instantiated for GPU kernels
     // which limits compile times and binary sizes.
     if constexpr (KIND != VariantKind::GPU) {

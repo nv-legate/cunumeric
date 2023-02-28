@@ -18,8 +18,10 @@
 
 #include "core/data/buffer.h"
 #include "cunumeric/utilities/thrust_allocator.h"
+#include "cunumeric/utilities/thrust_util.h"
 
 #include <thrust/sort.h>
+#include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/execution_policy.h>
 
@@ -42,7 +44,7 @@ void thrust_local_sort(const VAL* values_in,
                        cudaStream_t stream)
 {
   auto alloc       = ThrustAllocator(Memory::GPU_FB_MEM);
-  auto exec_policy = thrust::cuda::par(alloc).on(stream);
+  auto exec_policy = DEFAULT_POLICY(alloc).on(stream);
 
   if (values_in != values_out) {
     // not in-place --> need a copy

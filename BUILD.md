@@ -15,7 +15,10 @@ limitations under the License.
 
 -->
 
-# Basic build
+(building-from-source)=
+# Building from source
+
+## Basic build
 
 Users must have a working installation of the
 [Legate Core](https://github.com/nv-legate/legate.core)
@@ -30,9 +33,9 @@ Once Legate Core is installed, you can simply invoke `./install.py` from the
 cuNumeric top-level directory. The build will automatically pick up the
 configuration used when building Legate Core (e.g. the CUDA Toolkit directory).
 
-# Advanced topics
+## Advanced topics
 
-## Building through pip & cmake
+### Building through pip & cmake
 
 cuNumeric uses the same cmake/scikit-build-based build workflow as Legate Core.
 See the

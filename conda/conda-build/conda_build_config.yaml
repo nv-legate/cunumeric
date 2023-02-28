@@ -4,7 +4,7 @@ gpu_enabled:
 
 python:
   - 3.8
-  - 3.9
+  - "3.9,!=3.9.7"
   - 3.10
 
 numpy_version:

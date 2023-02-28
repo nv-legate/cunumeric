@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) arange_kernel(
   const AccessorWO<VAL, 1> out, const coord_t lo, const VAL start, const VAL step, const size_t max)
