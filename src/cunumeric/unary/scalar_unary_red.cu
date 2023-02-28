@@ -21,7 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 /*static*/ void ScalarUnaryRedTask::gpu_variant(TaskContext& context)

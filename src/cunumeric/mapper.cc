@@ -21,14 +21,15 @@ using namespace legate::mapping;
 
 namespace cunumeric {
 
-CuNumericMapper::CuNumericMapper(Legion::Runtime* rt, Legion::Machine m, const LibraryContext& ctx)
-  : BaseMapper(rt, m, ctx),
-    min_gpu_chunk(extract_env("CUNUMERIC_MIN_GPU_CHUNK", 1 << 20, 2)),
+CuNumericMapper::CuNumericMapper()
+  : min_gpu_chunk(extract_env("CUNUMERIC_MIN_GPU_CHUNK", 1 << 20, 2)),
     min_cpu_chunk(extract_env("CUNUMERIC_MIN_CPU_CHUNK", 1 << 14, 2)),
     min_omp_chunk(extract_env("CUNUMERIC_MIN_OMP_CHUNK", 1 << 17, 2)),
     eager_fraction(extract_env("CUNUMERIC_EAGER_FRACTION", 16, 1))
 {
 }
+
+void CuNumericMapper::set_machine(const legate::mapping::MachineQueryInterface* m) { machine = m; }
 
 TaskTarget CuNumericMapper::task_target(const Task& task, const std::vector<TaskTarget>& options)
 {
@@ -39,26 +40,26 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
 {
   switch (tunable_id) {
     case CUNUMERIC_TUNABLE_NUM_GPUS: {
-      int32_t num_gpus = local_gpus.size() * total_nodes;
+      int32_t num_gpus = machine->gpus().size() * machine->total_nodes();
       return Scalar(num_gpus);
     }
     case CUNUMERIC_TUNABLE_NUM_PROCS: {
       int32_t num_procs = 0;
-      if (!local_gpus.empty())
-        num_procs = local_gpus.size() * total_nodes;
-      else if (!local_omps.empty())
-        num_procs = local_omps.size() * total_nodes;
+      if (!machine->gpus().empty())
+        num_procs = machine->gpus().size() * machine->total_nodes();
+      else if (!machine->omps().empty())
+        num_procs = machine->omps().size() * machine->total_nodes();
       else
-        num_procs = local_cpus.size() * total_nodes;
+        num_procs = machine->cpus().size() * machine->total_nodes();
       return Scalar(num_procs);
     }
     case CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME: {
       int32_t eager_volume = 0;
       // TODO: make these profile guided
       if (eager_fraction > 0) {
-        if (!local_gpus.empty())
+        if (!machine->gpus().empty())
           eager_volume = min_gpu_chunk / eager_fraction;
-        else if (!local_omps.empty())
+        else if (!machine->omps().empty())
           eager_volume = min_omp_chunk / eager_fraction;
         else
           eager_volume = min_cpu_chunk / eager_fraction;

@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename Function, typename LHS, typename RHS1, typename RHS2>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   dense_kernel(size_t volume, Function func, LHS* out, const RHS1* in1, const RHS2* in2)

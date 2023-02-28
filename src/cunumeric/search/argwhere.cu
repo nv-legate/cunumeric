@@ -22,8 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename VAL, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   argwhere_kernel(size_t volume,
@@ -55,7 +53,7 @@ struct ArgWhereImplBody<VariantKind::GPU, CODE, DIM> {
   {
     auto stream = get_cached_stream();
 
-    auto offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
+    auto offsets = create_buffer<int64_t>(volume, legate::Memory::Kind::GPU_FB_MEM);
     auto size    = compute_offsets(input, pitches, rect, volume, offsets, stream);
     CHECK_CUDA_STREAM(stream);
 

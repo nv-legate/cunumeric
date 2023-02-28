@@ -28,7 +28,7 @@ class DeviceScalarReductionBuffer {
 
  public:
   DeviceScalarReductionBuffer(cudaStream_t stream)
-    : buffer_(legate::create_buffer<VAL>(1, Legion::Memory::Kind::GPU_FB_MEM))
+    : buffer_(legate::create_buffer<VAL>(1, legate::Memory::Kind::GPU_FB_MEM))
   {
     VAL identity{REDOP::identity};
     ptr_ = buffer_.ptr(0);
