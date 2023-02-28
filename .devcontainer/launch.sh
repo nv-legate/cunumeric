@@ -7,7 +7,7 @@ launch_devcontainer() {
 
     local mode="${1:-unified}";
 
-    case "$mode" in
+    case "${mode}" in
         unified ) ;;
         isolated) ;;
         *      ) mode="unified";;
@@ -37,7 +37,7 @@ launch_devcontainer() {
 
     if [ -n "${launch}" ]; then
         code --new-window "${tmpdir}";
-        $launch "${url}" >/dev/null 2>&1 &
+        exec "${launch}" "${url}" >/dev/null 2>&1;
     fi
 }
 
