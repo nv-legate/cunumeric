@@ -25,7 +25,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 struct GPUGenerator : public CURANDGenerator {
@@ -58,7 +57,7 @@ struct CURANDGeneratorBuilder<VariantKind::GPU> {
 };
 
 template <>
-std::map<Legion::Processor, std::unique_ptr<generator_map<VariantKind::GPU>>>
+std::map<legate::Processor, std::unique_ptr<generator_map<VariantKind::GPU>>>
   BitGeneratorImplBody<VariantKind::GPU>::m_generators = {};
 
 template <>

@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM>
@@ -44,7 +43,7 @@ struct ChooseImpl {
     auto index_rect = args.inputs[0].shape<DIM>();
     auto index_arr  = args.inputs[0].read_accessor<int64_t, DIM>(index_rect);
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense =
       index_arr.accessor.is_dense_row_major(out_rect) && out.accessor.is_dense_row_major(out_rect);

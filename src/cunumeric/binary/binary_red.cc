@@ -19,7 +19,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>

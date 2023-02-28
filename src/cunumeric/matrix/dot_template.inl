@@ -21,7 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE>
@@ -58,7 +57,7 @@ struct DotImpl {
 
     if (rect.empty()) return;
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = rhs1.accessor.is_dense_row_major(rect) && rhs2.accessor.is_dense_row_major(rect);
 #else

@@ -19,7 +19,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <ConvertCode NAN_OP, LegateTypeCode DST_TYPE, LegateTypeCode SRC_TYPE, int DIM>

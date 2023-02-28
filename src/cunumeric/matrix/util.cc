@@ -14,7 +14,6 @@
  *
  */
 
-#include "legion.h"
 #include "core/data/buffer.h"
 #include "cunumeric/matrix/util.h"
 #ifdef LEGATE_USE_OPENMP
@@ -22,8 +21,6 @@
 #endif
 
 namespace cunumeric {
-
-using namespace Legion;
 
 size_t stride_for_blas(size_t m, size_t n, size_t x_stride, size_t y_stride, bool& transpose)
 {
@@ -84,7 +81,7 @@ float* allocate_buffer(size_t size)
 void half_vector_to_float(float* out, const __half* ptr, size_t n)
 {
 #ifdef LEGATE_USE_OPENMP
-  if (Processor::get_executing_processor().kind() == Processor::OMP_PROC) {
+  if (legate::Processor::get_executing_processor().kind() == legate::Processor::OMP_PROC) {
 #pragma omp parallel for schedule(static)
     for (size_t idx = 0; idx < n; idx++) out[idx] = ptr[idx];
     return;
@@ -96,7 +93,7 @@ void half_vector_to_float(float* out, const __half* ptr, size_t n)
 void half_matrix_to_float(float* out, const __half* ptr, size_t m, size_t n, size_t pitch)
 {
 #ifdef LEGATE_USE_OPENMP
-  if (Processor::get_executing_processor().kind() == Processor::OMP_PROC) {
+  if (legate::Processor::get_executing_processor().kind() == legate::Processor::OMP_PROC) {
 #pragma omp parallel for schedule(static)
     for (size_t i = 0; i < m; i++)
       for (size_t j = 0; j < n; j++) out[i * n + j] = ptr[i * pitch + j];
@@ -112,7 +109,7 @@ void half_tensor_to_float(
 {
   int64_t volume = calculate_volume(ndim, shape);
 #ifdef LEGATE_USE_OPENMP
-  if (Processor::get_executing_processor().kind() == Processor::OMP_PROC) {
+  if (legate::Processor::get_executing_processor().kind() == legate::Processor::OMP_PROC) {
 #pragma omp parallel for schedule(static)
     for (int64_t out_idx = 0; out_idx < volume; ++out_idx) {
       int64_t in_idx = unflatten_with_strides(out_idx, ndim, shape, in_strides);
@@ -132,7 +129,7 @@ void float_tensor_to_half(
 {
   int64_t volume = calculate_volume(ndim, shape);
 #ifdef LEGATE_USE_OPENMP
-  if (Processor::get_executing_processor().kind() == Processor::OMP_PROC) {
+  if (legate::Processor::get_executing_processor().kind() == legate::Processor::OMP_PROC) {
 #pragma omp parallel for schedule(static)
     for (int64_t in_idx = 0; in_idx < volume; ++in_idx) {
       int64_t out_idx = unflatten_with_strides(in_idx, ndim, shape, out_strides);

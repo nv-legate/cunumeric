@@ -20,8 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename VAL, int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   choose_kernel(const AccessorWO<VAL, DIM> out,
@@ -63,14 +61,15 @@ struct ChooseImplBody<VariantKind::GPU, CODE, DIM> {
 
     auto stream = get_cached_stream();
     if (dense) {
-      auto ch_arr = create_buffer<const VAL*>(choices.size(), Memory::Kind::Z_COPY_MEM);
+      auto ch_arr = create_buffer<const VAL*>(choices.size(), legate::Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < choices.size(); ++idx) ch_arr[idx] = choices[idx].ptr(rect);
       VAL* outptr             = out.ptr(rect);
       const int64_t* indexptr = index_arr.ptr(rect);
       choose_kernel_dense<VAL>
         <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(outptr, indexptr, ch_arr, volume);
     } else {
-      auto ch_arr = create_buffer<AccessorRO<VAL, DIM>>(choices.size(), Memory::Kind::Z_COPY_MEM);
+      auto ch_arr =
+        create_buffer<AccessorRO<VAL, DIM>>(choices.size(), legate::Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < choices.size(); ++idx) ch_arr[idx] = choices[idx];
       choose_kernel<VAL, DIM>
         <<<blocks, THREADS_PER_BLOCK, 0, stream>>>(out, index_arr, ch_arr, rect, pitches, volume);

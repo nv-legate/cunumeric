@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <int32_t OUT_DIM, int32_t IN_DIM>

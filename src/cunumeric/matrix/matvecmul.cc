@@ -25,7 +25,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 /*static*/ void MatVecMulTask::cpu_variant(TaskContext& context)

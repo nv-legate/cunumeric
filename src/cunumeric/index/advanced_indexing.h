@@ -43,13 +43,13 @@ class AdvancedIndexingTask : public CuNumericTask<AdvancedIndexingTask> {
 };
 
 template <typename T, int DIM>
-constexpr void fill_out(Legion::Point<DIM>& out, Legion::Point<DIM>& p, T&)
+constexpr void fill_out(legate::Point<DIM>& out, legate::Point<DIM>& p, T&)
 {
   out = p;
 }
 
 template <typename T, int DIM>
-constexpr void fill_out(T& out, Legion::Point<DIM>& p, const T& in)
+constexpr void fill_out(T& out, legate::Point<DIM>& p, const T& in)
 {
   out = in;
 }
