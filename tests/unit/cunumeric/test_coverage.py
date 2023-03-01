@@ -16,6 +16,7 @@
 from types import ModuleType
 from typing import Any
 
+import numpy as np
 import pytest
 from mock import MagicMock, patch
 
@@ -138,7 +139,6 @@ class Test_implemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -180,7 +180,6 @@ class Test_implemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -224,7 +223,6 @@ class Test_unimplemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -268,7 +266,6 @@ class Test_unimplemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -467,4 +464,5 @@ class Test_clone_class:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

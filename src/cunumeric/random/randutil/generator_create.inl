@@ -22,14 +22,10 @@ curandStatus_t randutilGenerator(randutilGenerator_t* generator,
                                  uint64_t generatorID,
                                  cudaStream_t stream = nullptr)
 {
-  try {
-    randutilimpl::inner_generator<gen_t, location>* result =
-      new randutilimpl::inner_generator<gen_t, location>(seed, generatorID, stream);
-    *generator = (randutilGenerator_t)result;
-    return CURAND_STATUS_SUCCESS;
-  } catch (int errorCode) {
-    return (curandStatus_t)errorCode;
-  }
+  randutilimpl::inner_generator<gen_t, location>* result =
+    new randutilimpl::inner_generator<gen_t, location>(seed, generatorID, stream);
+  *generator = (randutilGenerator_t)result;
+  return CURAND_STATUS_SUCCESS;
 }
 
 template <randutilimpl::execlocation location>
@@ -48,6 +44,7 @@ static curandStatus_t inner_randutilCreateGenerator(randutilGenerator_t* generat
     case CURAND_RNG_PSEUDO_MRG32K3A:
       return randutilGenerator<curandStateMRG32k3a_t, location>(
         generator, seed, generatorID, stream);
-    default: return CURAND_STATUS_TYPE_ERROR;
+    default: LEGATE_ABORT;
   }
+  return CURAND_STATUS_TYPE_ERROR;
 }

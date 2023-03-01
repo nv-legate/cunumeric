@@ -14,6 +14,7 @@
 #
 from __future__ import annotations
 
+import numpy as np
 import pytest
 from legate.util.settings import PrioritizedSetting
 
@@ -80,4 +81,5 @@ class TestDefaults:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

@@ -90,6 +90,7 @@ static void bitgenerator_template(TaskContext& context)
       doubleparams.insert(doubleparams.end(), _doubleparams.begin(), _doubleparams.end());
       break;
     }
+    default: LEGATE_ABORT;
   }
 
   std::vector<Store> extra_args;

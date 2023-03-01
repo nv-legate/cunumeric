@@ -21,8 +21,6 @@ from utils.comparisons import allclose as _allclose
 
 import cunumeric as num
 
-np.random.seed(0)
-
 
 def allclose(A, B):
     if B.dtype == np.float32 or B.dtype == np.complex64:
@@ -183,4 +181,5 @@ def test_3d():
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
