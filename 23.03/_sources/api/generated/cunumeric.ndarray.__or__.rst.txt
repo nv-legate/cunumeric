@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_or\_\_
+============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__or__

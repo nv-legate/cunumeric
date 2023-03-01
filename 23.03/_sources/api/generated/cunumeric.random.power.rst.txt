@@ -1,0 +1,6 @@
+﻿cunumeric.random.power
+======================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: power

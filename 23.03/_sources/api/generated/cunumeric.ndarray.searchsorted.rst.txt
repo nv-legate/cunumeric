@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.searchsorted
+==============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.searchsorted

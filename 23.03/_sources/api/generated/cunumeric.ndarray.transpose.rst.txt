@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.transpose
+===========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.transpose

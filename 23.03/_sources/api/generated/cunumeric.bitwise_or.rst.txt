@@ -1,0 +1,6 @@
+﻿cunumeric.bitwise\_or
+=====================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: bitwise_or

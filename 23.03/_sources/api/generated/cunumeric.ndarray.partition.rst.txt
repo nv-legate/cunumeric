@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.partition
+===========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.partition

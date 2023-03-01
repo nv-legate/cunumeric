@@ -1,0 +1,6 @@
+﻿cunumeric.less\_equal
+=====================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: less_equal

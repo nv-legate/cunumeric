@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_lt\_\_
+============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__lt__

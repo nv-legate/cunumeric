@@ -1,0 +1,6 @@
+﻿cunumeric.random.gumbel
+=======================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: gumbel
