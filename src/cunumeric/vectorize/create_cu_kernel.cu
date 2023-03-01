@@ -90,6 +90,9 @@ using namespace legate;
 #ifdef DEBUG_CUNUMERIC
     assert(result == CUDA_SUCCESS);
 #endif
+
+      std::cout <<"IRINA DEBUG create_func proc = "<<point<<" , func = "<<func
+      << ", hash = "<<ptx_hash<<std::endl;
       jit_storage.add_jit_function(key, func);
    }
 }

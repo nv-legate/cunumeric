@@ -46,6 +46,9 @@ struct EvalUdfGPU {
     assert(false); //should never come here
    }
 
+    std::cout <<"IRINA DEBUG proc = "<<args.point<<" , func = "<<func<<
+      "  hash = "<<args.hash<< std::endl;
+
     // Filling up the buffer with arguments
     size_t input_size=args.inputs.size();
       if (args.is_created){
