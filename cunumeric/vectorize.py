@@ -31,6 +31,7 @@ from cunumeric.runtime import runtime
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
 from .utils import convert_to_cunumeric_dtype
+from .module import zeros
 
 # from legate.timing import time
 
@@ -128,10 +129,12 @@ class vectorize:
         self._created: bool = False
         self._cache: bool = cache
         self._num_outputs = 1  # there is at least 1 output
-        self._proc_ids = runtime.create_empty_thunk(
-                (runtime.num_gpus,), ty.int64, inputs=[])
-        self._cu_func_pointers = runtime.create_empty_thunk(
-                (runtime.num_gpus,), ty.int64, inputs=[])
+        self._proc_ids =  zeros((runtime.num_gpus,), dtype=np.dtype(np.uint64)) 
+        self._cu_func_pointers = zeros((runtime.num_gpus,), dtype=np.dtype(np.uint64))
+        self._proc_ids_deferred = runtime.to_deferred_array(self._proc_ids._thunk)
+        self._cu_func_pointers_deferred = runtime.to_deferred_array(self._cu_func_pointers._thunk)
+        #runtime.create_empty_thunk(
+                #(runtime.num_gpus,), dtype = np.dtype(np.uint64), inputs=[])
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -144,9 +147,9 @@ class vectorize:
                 raise ValueError(
                     "There should be at least 1 type specified in otypes"
                 )
-            ty = otypes[0]
+            type0 = otypes[0]
             for t in otypes:
-                if t != ty:
+                if t != type0:
                     raise NotImplementedError(
                         "cuNumeric doesn't support variable types in otypes"
                     )
@@ -281,8 +284,8 @@ class vectorize:
         # get names of arguments
         arg_idx = 0
         for a in self._args:
-            ty = a.dtype
-            _emit_assignment(self._argnames[arg_idx], arg_idx, _SIZE_VAR, ty)
+            type_a= a.dtype
+            _emit_assignment(self._argnames[arg_idx], arg_idx, _SIZE_VAR, type_a)
             arg_idx += 1
         for a in self._scalar_args:
             scalar_type = np.dtype(type(a).__name__)
@@ -314,16 +317,16 @@ class vectorize:
     def _get_numba_types(self, need_pointer: bool = True) -> list[Any]:
         types = []
         for arg in self._args:
-            ty = arg.dtype
-            ty = str(ty) if ty != bool else "int8"
-            ty = getattr(numba.core.types, ty)
-            ty = numba.core.types.CPointer(ty)
-            types.append(ty)
+            type_a = arg.dtype
+            type_a = str(type_a) if type_a != bool else "int8"
+            type_a = getattr(numba.core.types, type_a)
+            type_a = numba.core.types.CPointer(type_a)
+            types.append(type_a)
         for arg in self._scalar_args:
-            ty = np.dtype(type(arg).__name__)
-            ty = str(ty) if ty != bool else "int8"
-            ty = getattr(numba.core.types, ty)
-            types.append(ty)
+            type_a = np.dtype(type(arg).__name__)
+            type_a = str(type_a) if type_a != bool else "int8"
+            type_a = getattr(numba.core.types, type_a)
+            types.append(type_a)
         return types
 
     def _compile_func_gpu(self) -> tuple[Any]:
@@ -355,16 +358,19 @@ class vectorize:
             launch_domain = Rect(lo=(0,), hi=(num_gpus,))
             kernel_task = self._context.create_task(
                 CuNumericOpCode.CREATE_CU_KERNEL,
-                manual=True,
+                #manual=True,
                 launch_domain=launch_domain,
             )
             ptx_hash = hash(self._gpu_func[0])
             print("IRINA DEBUG creating CUkernel for hash = ", ptx_hash)
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            kernel_task.add_output(self._proc_ids.base)
-            kernel_task.add_output(self._cu_func_pointers.base)
+            kernel_task.add_input(self._proc_ids_deferred.base)
+            kernel_task.add_input(self._cu_func_pointers_deferred.base)
+            kernel_task.add_output(self._proc_ids_deferred.base)
+            kernel_task.add_output(self._cu_func_pointers_deferred.base)
             kernel_task.execute()
+            print("IRINA DEBUG proc_ids =", self._proc_ids);
             #get_legate_runtime().issue_execution_fence(block=True)
 
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
@@ -375,19 +381,6 @@ class vectorize:
             dtype = convert_to_cunumeric_dtype(type(a).__name__)
             task.add_scalar_arg(a, dtype)
 
-        if is_gpu:
-            ptx_hash = hash(self._gpu_func[0])
-            print("IRINA DEBUG executing UDF for hash = ", ptx_hash)
-            task.add_scalar_arg(ptx_hash, ty.int64)
-            kernel_task.add_intput(self._proc_ids.base)
-            kernel_task.add_intput(self._cu_func_pointers.base)
-            task.add_broadcast(self._proc_ids.base)
-            task.add_broadcast(self._cu_func_pointers.base)
-
-        else:
-            task.add_scalar_arg(
-                self._cpu_func.address, ty.uint64
-            )  # type : ignore
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
         for count, a in enumerate(self._args):
@@ -398,6 +391,20 @@ class vectorize:
                 task.add_output(a_tmp)
             if count != 0:
                 task.add_alignment(a0.base, a_tmp)
+
+        if is_gpu:
+            ptx_hash = hash(self._gpu_func[0])
+            print("IRINA DEBUG executing UDF for hash = ", ptx_hash)
+            task.add_scalar_arg(ptx_hash, ty.int64)
+            task.add_input(self._proc_ids_deferred.base)
+            task.add_input(self._cu_func_pointers_deferred.base)
+            task.add_broadcast(self._proc_ids_deferred.base)
+            task.add_broadcast(self._cu_func_pointers_deferred.base)
+
+        else:
+            task.add_scalar_arg(
+                self._cpu_func.address, ty.uint64
+            )  # type : ignore
         task.execute()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
@@ -444,10 +451,10 @@ class vectorize:
 
         # all output arrays should have the same type
         if len(self._args) > 0:
-            ty = self._args[0].dtype
+            type_a = self._args[0].dtype
             shape = self._args[0].shape
             for i in range(1, self._num_outputs):
-                if ty != self._args[i].dtype:
+                if type_a != self._args[i].dtype:
                     raise TypeError(
                         "cuNumeric doesnt support "
                         "different types for output data in "
@@ -460,12 +467,12 @@ class vectorize:
                         "user function passed to vectorize"
                     )
             for i in range(self._num_outputs, len(self._args)):
-                if ty != self._args[i].dtype:
+                if type_a != self._args[i].dtype:
                     runtime.warn(
                         "converting input array to output types in user func ",
                         category=RuntimeWarning,
                     )
-                    self._args[i] = self._args[i].astype(ty)
+                    self._args[i] = self._args[i].astype(type_a)
                 if shape != self._args[i].shape and np.ndim(self._args[i]) > 0:
                     raise TypeError(
                         "cuNumeric doesnt support "

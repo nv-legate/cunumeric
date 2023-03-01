@@ -29,31 +29,32 @@ struct EvalUdfGPU {
   template <LegateTypeCode CODE, int DIM>
   void operator()(EvalUdfArgs& args) const
   {
-    using VAL = legate_type_of<CODE>;
+  std::cout<<"IRINA DEBUG outputs = "<<args.outputs.size()<< " inputs = "<<
+      args.inputs.size()<<std::endl;
+
+   using VAL = legate_type_of<CODE>;
     Rect<DIM> rect;
 
-  JITKernelStorage& jit_storage =JITKernelStorage::get_instance(); 
+   size_t input_size=args.inputs.size()-2;  
+   auto procs_rect = args.inputs[input_size].shape<1>();
 
-  //std::hash<std::string> hasher;
-  CUfunction func;
-  std::pair<int64_t,Processor> key(args.hash, args.point);
-  //size_t ptx_hash = hasher(args.ptx);
-  //std::cout <<"IRINA DEBUG within cuda task hash = "<<args.hash<< " , registered = ?"<<jit_storage.registered_jit_funtion(key)<<std::endl;
-  if (jit_storage.registered_jit_funtion(key)){
-    func = jit_storage.return_saved_jit_function(key);
+   std::cout<<"IRINA DEBUG proc rect = "<<procs_rect<<" input_size = "<<input_size<<std::endl;
+
+  auto procs=args.inputs[input_size].read_accessor<uint64_t,1>();
+  auto funcs=args.inputs[input_size+1].read_accessor<uint64_t,1>();
+  Point<1> proc_point;
+  Pitches<0> proc_pitches;
+  size_t procs_volume = proc_pitches.flatten(procs_rect);
+  std::cout<<"IRINA DEBUG volume = "<<procs_volume<< "  " << procs[0]<<" " <<funcs[0]<<std::endl; 
+  for (size_t i=0; i<procs_volume; i++){
+    auto p = proc_pitches.unflatten(i, procs_rect.lo);
+     std::cout<<"IRINA DEBUG " <<funcs[0]<< std::endl;
+     std::cout<<"IRINA DEBUG2 " <<args.point.id<< std::endl;
+     if(procs[p]==args.point.id)
+         proc_point=p;
   }
-  else{
-    assert(false); //should never come here
-   }
-
-    std::cout <<"IRINA DEBUG proc = "<<args.point<<" , func = "<<func<<
-      "  hash = "<<args.hash<< std::endl;
-
+  CUfunction func = reinterpret_cast<CUfunction>(funcs[proc_point]);
     // Filling up the buffer with arguments
-    size_t input_size=args.inputs.size();
-      if (args.is_created){
-         input_size=input_size-1;
-      }
 
     size_t buffer_size = (input_size+args.scalars.size()) * sizeof(void*);
     buffer_size +=sizeof(size_t);//size
@@ -159,7 +160,7 @@ struct EvalUdfGPU {
       scalars.push_back(context.scalars()[i]);
   
   int64_t ptx_hash = context.scalars()[2+num_scalars].value<int64_t>();
-  bool is_created = context.scalars()[3+num_scalars].value<bool>();
+  //bool is_created = context.scalars()[3+num_scalars].value<bool>();
 
 
   EvalUdfArgs args{0,
@@ -168,10 +169,7 @@ struct EvalUdfGPU {
                    scalars,
                    num_outputs,
                    context.get_current_processor(),
-                   ptx_hash,
-                   is_created};
-  //if (!is_created)
-  //    args.ptx = context.scalars()[4+num_scalars].value<std::string>();
+                   ptx_hash};
   size_t dim=1;
   if (args.inputs.size()>0){
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();

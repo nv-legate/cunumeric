@@ -29,7 +29,6 @@ struct EvalUdfArgs {
   uint32_t num_outputs;
   Legion::Processor point;
   int64_t hash=0;
-  bool is_created = false;
 };
 
 class EvalUdfTask : public CuNumericTask<EvalUdfTask> {
