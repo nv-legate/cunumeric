@@ -105,7 +105,6 @@ class LSTM:
 
     @staticmethod
     def backward(dHout_in, cache, dcn=None, dhn=None):
-
         WLSTM = cache["WLSTM"]
         Hout = cache["Hout"]
         IFOGf = cache["IFOGf"]
@@ -135,7 +134,6 @@ class LSTM:
         if dhn is not None:
             dHout[n - 1] += dhn.copy()
         for t in reversed(range(n)):
-
             tanhCt = Ct[t]
             dIFOGf[t, :, 2 * d : 3 * d] = tanhCt * dHout[t]
             # backprop tanh non-linearity first then continue backprop

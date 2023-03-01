@@ -53,7 +53,6 @@ MISSING: list[tuple[str, str]] = []
 
 
 class MissingRefs(SphinxPostTransform):
-
     default_priority = 5
 
     def run(self, **kwargs: Any) -> None:

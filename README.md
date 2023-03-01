@@ -22,7 +22,7 @@ that aims to provide a distributed and accelerated drop-in replacement for the
 [NumPy API](https://numpy.org/doc/stable/reference/) on top of the
 [Legion](https://legion.stanford.edu) runtime. Using cuNumeric you do things like run
 [the final example of the Python CFD course](https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb)
-completely unmodified on 2048 A100 GPUs in a [DGX SuperPOD](https://github.com/barbagroup/CFDPython/blob/master/lessons/15_Step_12.ipynb) and achieve good weak scaling.
+completely unmodified on 2048 A100 GPUs in a [DGX SuperPOD](https://www.nvidia.com/en-us/data-center/dgx-superpod/) and achieve good weak scaling.
 
 <img src="docs/figures/cfd-demo.png" alt="drawing" width="500"/>
 
@@ -43,8 +43,12 @@ cuNumeric is available [on conda](https://anaconda.org/legate/cunumeric):
 conda install -c nvidia -c conda-forge -c legate cunumeric
 ```
 
-The conda package is compatible with CUDA >= 11.4 (CUDA driver version >= r470),
-and Volta or later GPU architectures.
+Only linux-64 packages are available at the moment.
+
+The default package contains GPU support, and is compatible with CUDA >= 11.4
+(CUDA driver version >= r470), and Volta or later GPU architectures. There are
+also CPU-only packages available, and will be automatically selected by `conda`
+when installing on a machine without GPUs.
 
 See [BUILD.md](BUILD.md) for instructions on building cuNumeric from source.
 
@@ -76,8 +80,9 @@ users can supply the `--nodes` option. For execution with GPUs, users can use th
 to familiarize themselves with these resource flags as described in the Legate Core
 documentation or simply by passing `--help` to the `legate` driver script.
 
-You can use `test.py` to run the test suite. This script will invoke the `legate`
-driver script automatically. Check out `test.py --help` for further options.
+You can use `test.py` to run the test suite. Invoke the script directly or through
+standard `python`; the script will invoke the `legate` driver script internally.
+Check out `test.py --help` for further options.
 
 ## Supported and Planned Features
 

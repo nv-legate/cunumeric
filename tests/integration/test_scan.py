@@ -19,8 +19,6 @@ import pytest
 
 import cunumeric as num
 
-np.random.seed(12345)
-
 
 def _gen_array(n0, shape, dt, axis, outtype):
     range_lower = 0
@@ -179,4 +177,5 @@ def test_empty_inputs():
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

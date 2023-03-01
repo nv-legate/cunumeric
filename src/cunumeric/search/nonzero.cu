@@ -20,8 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename Pitches, typename Point, typename VAL, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   nonzero_kernel(size_t volume,
@@ -54,7 +52,7 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
                          cudaStream_t stream)
   {
     auto ndims     = static_cast<int32_t>(results.size());
-    auto p_results = create_buffer<int64_t*>(ndims, Memory::Kind::Z_COPY_MEM);
+    auto p_results = create_buffer<int64_t*>(ndims, legate::Memory::Kind::Z_COPY_MEM);
     for (int32_t dim = 0; dim < ndims; ++dim) p_results[dim] = results[dim].ptr(0);
 
     const size_t blocks = (volume + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -70,7 +68,7 @@ struct NonzeroImplBody<VariantKind::GPU, CODE, DIM> {
   {
     auto stream = get_cached_stream();
 
-    auto offsets = create_buffer<int64_t>(volume, Memory::Kind::GPU_FB_MEM);
+    auto offsets = create_buffer<int64_t>(volume, legate::Memory::Kind::GPU_FB_MEM);
     auto size    = compute_offsets(in, pitches, rect, volume, offsets, stream);
 
     std::vector<Buffer<int64_t>> results;

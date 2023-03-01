@@ -37,7 +37,7 @@ def array_gen(lib):
     for arr in nonscalar_gen(lib):
         idx_tuple = arr.ndim * (2,)
         flat_idx = 0
-        for (i, x) in enumerate(idx_tuple):
+        for i, x in enumerate(idx_tuple):
             flat_idx *= arr.shape[i]
             flat_idx += x
         yield arr[idx_tuple]
@@ -65,7 +65,7 @@ def array_gen(lib):
     for arr in nonscalar_gen(lib):
         idx_tuple = arr.ndim * (2,)
         flat_idx = 0
-        for (i, x) in enumerate(idx_tuple):
+        for i, x in enumerate(idx_tuple):
             flat_idx *= arr.shape[i]
             flat_idx += x
         arr.itemset(flat_idx, -1)
@@ -108,11 +108,12 @@ def array_gen(lib):
 
 
 def test_all():
-    for (la, na) in zip(array_gen(num), array_gen(np)):
+    for la, na in zip(array_gen(num), array_gen(np)):
         assert np.array_equal(la, na)
 
 
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

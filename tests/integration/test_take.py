@@ -64,65 +64,219 @@ def test_with_out_array():
     assert np.array_equal(out_num, out)
 
 
-def test_indices_list_single():
-    x = np.arange(6)
-    x_num = num.array(x)
-
-    res = x.take([3], axis=0)
-    res_num = x_num.take([3], axis=0)
-
-    assert np.array_equal(res_num, res)
-
-
-def test_indices_list():
-    x = np.arange(6)
-    x_num = num.array(x)
-
-    res = x.take([-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5], axis=0)
-    res_num = x_num.take([-6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5], axis=0)
+@pytest.mark.parametrize(
+    "indices",
+    (-3, 2),
+    ids=lambda indices: f"(indices={indices})",
+)
+def test_scalar_indices_default_mode(indices):
+    res = np.take(x, indices, axis=0)
+    res_num = num.take(x_num, indices, axis=0)
 
     assert np.array_equal(res_num, res)
 
 
 @pytest.mark.parametrize("mode", ("clip", "wrap"))
-def test_scalar_indices_mode(mode):
-    res = np.take(x, 7, axis=0, mode=mode)
-    res_num = num.take(x_num, 7, axis=0, mode=mode)
+@pytest.mark.parametrize(
+    "indices",
+    (-4, 2, 7),
+    ids=lambda indices: f"(indices={indices})",
+)
+def test_scalar_indices_mode(mode, indices):
+    res = np.take(x, indices, axis=0, mode=mode)
+    res_num = num.take(x_num, indices, axis=0, mode=mode)
 
     assert np.array_equal(res_num, res)
 
 
-@pytest.mark.parametrize("mode", ("clip", "wrap"))
+def test_empty_array_and_indices():
+    np_arr = mk_seq_array(np, (0,))
+    num_arr = mk_seq_array(num, (0,))
+    np_indices = np.array([], dtype=int)
+    num_indices = num.array([], dtype=int)
+
+    res_np = np.take(np_arr, np_indices)
+    res_num = num.take(num_arr, num_indices)
+    assert np.array_equal(res_num, res_np)
+
+    axis = 0
+    res_np = np.take(np_arr, np_indices, axis=axis)
+    res_num = num.take(num_arr, num_indices, axis=axis)
+    assert np.array_equal(res_num, res_np)
+
+
+@pytest.mark.parametrize(
+    "shape_in",
+    ((4,), (0,), pytest.param((2, 2), marks=pytest.mark.xfail)),
+    ids=lambda shape_in: f"(shape_in={shape_in})",
+)
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
-def test_ndim(ndim, mode):
+def test_ndim_default_mode(ndim, shape_in):
+    # for shape_in=(2, 2) and ndim=4,
+    # In Numpy, pass
+    # In cuNumeric, it raises ValueError:
+    # Point cannot exceed 4 dimensions set from LEGATE_MAX_DIM
     shape = (5,) * ndim
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
-    np_indices = mk_seq_array(np, (4,))
-    num_indices = mk_seq_array(num, (4,))
+    np_indices = mk_seq_array(np, shape_in)
+    num_indices = mk_seq_array(num, shape_in)
+
     res_np = np.take(np_arr, np_indices)
     res_num = num.take(num_arr, num_indices)
-
     assert np.array_equal(res_num, res_np)
+
     for axis in range(ndim):
         res_np = np.take(np_arr, np_indices, axis=axis)
         res_num = num.take(num_arr, num_indices, axis=axis)
         assert np.array_equal(res_num, res_np)
 
-    np_indices = mk_seq_array(np, (8,))
-    num_indices = mk_seq_array(num, (8,))
+
+@pytest.mark.parametrize("mode", ("clip", "wrap"))
+@pytest.mark.parametrize(
+    "shape_in",
+    ((8,), pytest.param((3, 4), marks=pytest.mark.xfail)),
+    ids=lambda shape_in: f"(shape_in={shape_in})",
+)
+@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+def test_ndim_mode(ndim, mode, shape_in):
+    # for shape_in=(3, 4) and ndim=4,
+    # In Numpy, pass
+    # In cuNumeric, it raises ValueError:
+    # Point cannot exceed 4 dimensions set from LEGATE_MAX_DIM
+    shape = (5,) * ndim
+    np_arr = mk_seq_array(np, shape)
+    num_arr = mk_seq_array(num, shape)
+    np_indices = mk_seq_array(np, shape_in)
+    num_indices = mk_seq_array(num, shape_in)
 
     res_np = np.take(np_arr, np_indices, mode=mode)
     res_num = num.take(num_arr, num_indices, mode=mode)
-
     assert np.array_equal(res_num, res_np)
+
     for axis in range(ndim):
         res_np = np.take(np_arr, np_indices, axis=axis, mode=mode)
         res_num = num.take(num_arr, num_indices, axis=axis, mode=mode)
         assert np.array_equal(res_num, res_np)
 
 
+class TestTakeErrors:
+    def setup_method(self):
+        self.A_np = mk_seq_array(np, (3, 4, 5))
+        self.A_num = mk_seq_array(num, (3, 4, 5))
+
+    @pytest.mark.parametrize(
+        "indices",
+        (-5, 4),
+        ids=lambda indices: f"(indices={indices})",
+    )
+    def test_indices_invalid_scalar(self, indices):
+        expected_exc = IndexError
+        axis = 1
+        with pytest.raises(expected_exc):
+            np.take(self.A_np, indices, axis=axis)
+        with pytest.raises(expected_exc):
+            num.take(self.A_num, indices, axis=axis)
+
+    @pytest.mark.parametrize(
+        "indices",
+        ([-5, 0, 2], [0, 4, 2]),
+        ids=lambda indices: f"(indices={indices})",
+    )
+    def test_indices_invalid_array(self, indices):
+        expected_exc = IndexError
+        axis = 1
+        with pytest.raises(expected_exc):
+            np.take(self.A_np, np.array(indices), axis=axis)
+        with pytest.raises(expected_exc):
+            num.take(self.A_num, num.array(indices), axis=axis)
+
+    def test_invalid_indices_for_empty_array(self):
+        expected_exc = IndexError
+        A_np = mk_seq_array(np, (0,))
+        A_num = mk_seq_array(num, (0,))
+        indices = [0]
+        axis = 0
+        mode = "clip"
+        with pytest.raises(expected_exc):
+            np.take(A_np, np.array(indices), axis=axis, mode=mode)
+        with pytest.raises(expected_exc):
+            num.take(A_num, num.array(indices), axis=axis, mode=mode)
+
+    @pytest.mark.parametrize(
+        "axis",
+        (-4, 3),
+        ids=lambda axis: f"(axis={axis})",
+    )
+    def test_axis_out_of_bound(self, axis):
+        expected_exc = ValueError
+        indices = 0
+        with pytest.raises(expected_exc):
+            np.take(self.A_np, indices, axis=axis)
+        with pytest.raises(expected_exc):
+            num.take(self.A_num, indices, axis=axis)
+
+    def test_axis_float(self):
+        expected_exc = TypeError
+        indices = 0
+        axis = 0.0
+        with pytest.raises(expected_exc):
+            np.take(self.A_np, indices, axis=axis)
+        with pytest.raises(expected_exc):
+            num.take(self.A_num, indices, axis=axis)
+
+    def test_invalid_mode(self):
+        expected_exc = ValueError
+        indices = 0
+        axis = 1
+        mode = "unknown"
+        with pytest.raises(expected_exc):
+            np.take(self.A_np, indices, axis=axis, mode=mode)
+        with pytest.raises(expected_exc):
+            num.take(self.A_num, indices, axis=axis, mode=mode)
+
+    @pytest.mark.parametrize(
+        "shape",
+        ((2,), (3, 2), (3, 2, 4), (3, 4, 5)),
+        ids=lambda shape: f"(shape={shape})",
+    )
+    def test_out_invalid_shape(self, shape):
+        expected_exc = ValueError
+        indices = [1, 0]
+        axis = 1
+        out_np = np.zeros(shape, dtype=np.int64)
+        out_num = num.zeros(shape, dtype=np.int64)
+        with pytest.raises(expected_exc):
+            np.take(self.A_np, np.array(indices), axis=axis, out=out_np)
+        with pytest.raises(expected_exc):
+            num.take(self.A_num, num.array(indices), axis=axis, out=out_num)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        (np.float32, pytest.param(np.int32, marks=pytest.mark.xfail)),
+        ids=lambda dtype: f"(dtype={dtype})",
+    )
+    def test_out_invalid_dtype(self, dtype):
+        # In Numpy,
+        # for np.float32, it raises TypeError
+        # for np.int64 and np.int32, it pass
+        # In cuNumeric,
+        # for np.float32, it raises ValueError
+        # for np.int32, it raises ValueError
+        # for np.int64, it pass
+        expected_exc = TypeError
+        indices = [1, 0]
+        axis = 1
+        out_np = np.zeros((3, 2, 5), dtype=dtype)
+        out_num = num.zeros((3, 2, 5), dtype=dtype)
+        with pytest.raises(expected_exc):
+            np.take(self.A_np, np.array(indices), axis=axis, out=out_np)
+        with pytest.raises(expected_exc):
+            num.take(self.A_num, num.array(indices), axis=axis, out=out_num)
+
+
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

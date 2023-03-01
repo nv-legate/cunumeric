@@ -24,36 +24,34 @@ from types import (
     MethodType,
     ModuleType,
 )
-from typing import Any, Container, Mapping, Optional, cast
+from typing import (
+    Any,
+    Callable,
+    Container,
+    Iterable,
+    Mapping,
+    Optional,
+    Union,
+    cast,
+)
 
-import numpy as np
 from legate.core import track_provenance
 from typing_extensions import Protocol
 
 from .runtime import runtime
-from .utils import find_last_user_frames, find_last_user_stacklevel
+from .settings import settings
+from .utils import deep_apply, find_last_user_frames, find_last_user_stacklevel
 
-__all__ = ("clone_module", "clone_np_ndarray")
+__all__ = ("clone_module", "clone_class")
 
 FALLBACK_WARNING = (
-    "cuNumeric has not implemented {name} "
-    + "and is falling back to canonical numpy. "
+    "cuNumeric has not implemented {what} "
+    + "and is falling back to canonical NumPy. "
     + "You may notice significantly decreased performance "
     + "for this function call."
 )
 
 MOD_INTERNAL = {"__dir__", "__getattr__"}
-
-NDARRAY_INTERNAL = {
-    "__array_finalize__",
-    "__array_function__",
-    "__array_interface__",
-    "__array_prepare__",
-    "__array_priority__",
-    "__array_struct__",
-    "__array_ufunc__",
-    "__array_wrap__",
-}
 
 
 def filter_namespace(
@@ -102,7 +100,7 @@ def implemented(
         @track_provenance(runtime.legate_context)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(
-                not runtime.args.report_dump_callstack
+                not settings.report_dump_callstack()
             )
             runtime.record_api_call(
                 name=name,
@@ -142,23 +140,16 @@ def unimplemented(
     prefix: str,
     name: str,
     reporting: bool = True,
-    self_fallback: Optional[str] = None,
+    fallback: Union[Callable[[Any], Any], None] = None,
 ) -> CuWrapped:
     name = f"{prefix}.{name}"
 
-    # Skip over NumPy's `__array_function__` dispatch wrapper, if present.
-    # NumPy adds `__array_function__` dispatch logic through decorators, but
-    # still makes the underlying code (which converts all array-like arguments
-    # to `numpy.ndarray` through `__array__`) available in the
-    # `_implementation` field.
-    # We have to skip the dispatch wrapper, otherwise we will trigger an
-    # infinite loop. Say we're dealing with a call to `cunumeric.foo`, and are
-    # trying to fall back to `numpy.foo`. If we didn't skip the dispatch
-    # wrapper of `numpy.foo`, then NumPy would ask
-    # `cunumeric.ndarray.__array_function__` to handle the call to `numpy.foo`,
-    # then `cunumeric.ndarray.__array_function__` would call `cunumeric.foo`,
-    # and we would end up here again.
-    func = getattr(func, "_implementation", func)
+    # Previously we were depending on NumPy functions to automatically convert
+    # all array-like arguments to `numpy.ndarray` through `__array__()` (taking
+    # some care to skip the `__array_function__` dispatch logic, to avoid
+    # infinite loops). However, it appears that this behavior is inconsistent
+    # in NumPy, so we will instead convert any `cunumeric.ndarray`s manually
+    # before calling into NumPy.
 
     wrapper: CuWrapped
 
@@ -167,16 +158,16 @@ def unimplemented(
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(
-                not runtime.args.report_dump_callstack
+                not settings.report_dump_callstack()
             )
             runtime.record_api_call(
                 name=name,
                 location=location,
                 implemented=False,
             )
-            if self_fallback:
-                self_value = getattr(args[0], self_fallback)()
-                args = (self_value,) + args[1:]
+            if fallback:
+                args = deep_apply(args, fallback)
+                kwargs = deep_apply(kwargs, fallback)
             return func(*args, **kwargs)
 
     else:
@@ -185,13 +176,13 @@ def unimplemented(
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             stacklevel = find_last_user_stacklevel()
             warnings.warn(
-                FALLBACK_WARNING.format(name=name),
+                FALLBACK_WARNING.format(what=name),
                 stacklevel=stacklevel,
                 category=RuntimeWarning,
             )
-            if self_fallback:
-                self_value = getattr(args[0], self_fallback)()
-                args = (self_value,) + args[1:]
+            if fallback:
+                args = deep_apply(args, fallback)
+                kwargs = deep_apply(kwargs, fallback)
             return func(*args, **kwargs)
 
     wrapper._cunumeric = CuWrapperMetadata(implemented=False)
@@ -202,6 +193,7 @@ def unimplemented(
 def clone_module(
     origin_module: ModuleType,
     new_globals: dict[str, Any],
+    fallback: Union[Callable[[Any], Any], None] = None,
     include_builtin_function_type: bool = False,
 ) -> None:
     """Copy attributes from one module to another, excluding submodules
@@ -215,7 +207,19 @@ def clone_module(
         Existing module to clone attributes from
 
     new_globals : dict
-        a globals() dict for the new module to clone into
+        A globals() dict for the new module to clone into
+
+    fallback : Union[Callable[[Any], Any], None]
+        A function that will be applied to each argument before calling into
+        the original module, to handle unimplemented functions. The function
+        will be called recursively on list/tuple/dict containers, and should
+        convert objects of custom types into objects that the corresponding API
+        on the original module can handle. Anything else should be passed
+        through unchanged.
+
+    include_builtin_function_type: bool
+        Whether to wrap the "builtin" (C-extension) functions declared in the
+        wrapped module
 
     Returns
     -------
@@ -230,7 +234,7 @@ def clone_module(
         omit_types=(ModuleType,),
     )
 
-    reporting = runtime.args.report_coverage
+    reporting = settings.report_coverage()
 
     from ._ufunc.ufunc import ufunc as lgufunc
 
@@ -254,7 +258,13 @@ def clone_module(
             include_builtin_function_type
             and isinstance(value, BuiltinFunctionType)
         ):
-            wrapped = unimplemented(value, mod_name, attr, reporting=reporting)
+            wrapped = unimplemented(
+                value,
+                mod_name,
+                attr,
+                reporting=reporting,
+                fallback=fallback,
+            )
             new_globals[attr] = wrapped
         else:
             new_globals[attr] = value
@@ -264,50 +274,58 @@ def should_wrap(obj: object) -> bool:
     return isinstance(obj, (FunctionType, MethodType, MethodDescriptorType))
 
 
-def clone_np_ndarray(cls: type) -> type:
-    """Copy attributes from np.ndarray to cunumeric.ndarray
+def clone_class(
+    origin_class: type,
+    omit_names: Union[Iterable[str], None] = None,
+    fallback: Union[Callable[[Any], Any], None] = None,
+) -> Callable[[type], type]:
+    """Copy attributes from one class to another
 
     Method types are wrapped with a decorator to report API calls. All
     other values are copied as-is.
 
     """
 
-    origin_class = np.ndarray
-
     class_name = f"{origin_class.__module__}.{origin_class.__name__}"
+    clean_omit_names = set() if omit_names is None else omit_names
 
-    missing = filter_namespace(
-        origin_class.__dict__,
-        # this simply omits ndarray internal methods for any class. If
-        # we ever need to wrap more classes we may need to generalize to
-        # per-class specification of internal names to skip
-        omit_names=set(cls.__dict__).union(NDARRAY_INTERNAL),
-    )
+    def _clone_class(cls: type) -> type:
+        missing = filter_namespace(
+            origin_class.__dict__,
+            omit_names=set(cls.__dict__).union(clean_omit_names),
+        )
 
-    reporting = runtime.args.report_coverage
+        reporting = settings.report_coverage()
 
-    for attr, value in cls.__dict__.items():
-        # Only need to wrap things that are in the origin class to begin with
-        if not hasattr(origin_class, attr):
-            continue
-        if should_wrap(value):
-            wrapped = implemented(value, class_name, attr, reporting=reporting)
-            setattr(cls, attr, wrapped)
+        for attr, value in cls.__dict__.items():
+            # Only need to wrap things that are also in the origin class
+            if not hasattr(origin_class, attr):
+                continue
+            if should_wrap(value):
+                wrapped = implemented(
+                    value,
+                    class_name,
+                    attr,
+                    reporting=reporting,
+                )
+                setattr(cls, attr, wrapped)
 
-    for attr, value in missing.items():
-        if should_wrap(value):
-            wrapped = unimplemented(
-                value,
-                class_name,
-                attr,
-                reporting=reporting,
-                self_fallback="__array__",
-            )
-            setattr(cls, attr, wrapped)
-        else:
-            setattr(cls, attr, value)
+        for attr, value in missing.items():
+            if should_wrap(value):
+                wrapped = unimplemented(
+                    value,
+                    class_name,
+                    attr,
+                    reporting=reporting,
+                    fallback=fallback,
+                )
+                setattr(cls, attr, wrapped)
+            else:
+                setattr(cls, attr, value)
 
-    return cls
+        return cls
+
+    return _clone_class
 
 
 def is_implemented(obj: Any) -> bool:

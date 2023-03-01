@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE>
@@ -83,7 +82,8 @@ struct MatVecMulImpl {
     assert(lhs_strides[0] == 1 && lhs_strides[1] == 0);
 #endif
 
-    MatVecMulImplBody<KIND, CODE>()(m, n, lhs, mat, vec, mat_stride, transpose_mat);
+    MatVecMulImplBody<KIND, CODE>()(
+      m, n, lhs, mat, vec, mat_stride, transpose_mat, args.lhs.is_readable());
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!support_matvecmul<CODE>::value>* = nullptr>

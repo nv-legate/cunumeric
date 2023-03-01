@@ -23,7 +23,7 @@ import cunumeric as num
 window_functions = ("bartlett", "blackman", "hamming", "hanning")
 
 
-@pytest.mark.parametrize("M", (0, 1, 10, 100))
+@pytest.mark.parametrize("M", (-1, 0, 1, 10, 100))
 @pytest.mark.parametrize("fn", window_functions)
 def test_basic_window(fn, M):
     out_np = getattr(np, fn)(M)
@@ -32,8 +32,8 @@ def test_basic_window(fn, M):
     assert allclose(out_np, out_num)
 
 
-@pytest.mark.parametrize("beta", (0, 6))
-@pytest.mark.parametrize("M", (0, 1, 10, 100))
+@pytest.mark.parametrize("beta", (-1.0, 0, 5, 6, 8.6))
+@pytest.mark.parametrize("M", (-1, 0, 1, 10, 100))
 def test_kaiser_window(M, beta):
     out_np = np.kaiser(M, beta)
     out_num = num.kaiser(M, beta)
@@ -44,4 +44,5 @@ def test_kaiser_window(M, beta):
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
