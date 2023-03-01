@@ -30,11 +30,14 @@ using namespace legate;
   int64_t ptx_hash = context.scalars()[0].value<int64_t>();
   std::string ptx = context.scalars()[1].value<std::string>();
   Processor point = context.get_current_processor();
-  JITKernelStorage& jit_storage =JITKernelStorage::get_instance();
+  //JITKernelStorage& jit_storage =JITKernelStorage::get_instance();
+  auto rect = context.outputs()[0].shape<1>;
+  auto procs = context.outputs()[0].write_accessor<int64_t,1>().ptr(rect);
+  auto funcs = context.outputs()[1].write_accessor<int64_t,1>().ptr(rect);
+  procs[0]=point;
+  
 
   CUfunction func;
-  std::pair<int64_t,Processor> key(ptx_hash, point);
-  if (!jit_storage.registered_jit_funtion(key)){
     const unsigned num_options   = 4;
     const size_t log_buffer_size = 16384;
     std::vector<char> log_info_buffer(log_buffer_size);
@@ -90,11 +93,9 @@ using namespace legate;
 #ifdef DEBUG_CUNUMERIC
     assert(result == CUDA_SUCCESS);
 #endif
-
-      std::cout <<"IRINA DEBUG create_func proc = "<<point<<" , func = "<<func
-      << ", hash = "<<ptx_hash<<std::endl;
-      jit_storage.add_jit_function(key, func);
-   }
+    funcs[0]=func;
+     // std::cout <<"IRINA DEBUG create_func proc = "<<point<<" , func = "<<func
+     // << ", hash = "<<ptx_hash<<std::endl;
 }
 
 }  // namespace cunumeric
