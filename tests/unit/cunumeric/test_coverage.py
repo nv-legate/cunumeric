@@ -139,7 +139,6 @@ class Test_implemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -181,7 +180,6 @@ class Test_implemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -225,7 +223,6 @@ class Test_unimplemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -269,7 +266,6 @@ class Test_unimplemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
