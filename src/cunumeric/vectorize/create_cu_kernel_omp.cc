@@ -20,14 +20,6 @@ namespace cunumeric {
 
 using namespace legate;
 
-/*static*/ void CreateCUKernelTask::cpu_variant(TaskContext& context){};
-
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void)
-{
-  CreateCUKernelTask::register_variants();
-}
-}  // namespace
+/*static*/ void CreateCUKernelTask::omp_variant(TaskContext& context) {}
 
 }  // namespace cunumeric

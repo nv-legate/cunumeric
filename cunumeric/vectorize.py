@@ -13,18 +13,18 @@
 # limitations under the License.
 #
 
-import cProfile, pstats
-
+import cProfile
 import inspect
+import pstats
 import re
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import legate.core.types as ty
-from legate.core import Rect
 import numba
 import numba.core.ccallback
 import numpy as np
 import six
+from legate.core import Rect, get_legate_runtime
 
 from cunumeric.runtime import runtime
 
@@ -119,10 +119,10 @@ class vectorize:
         self._otypes: Optional[tuple[Any]] = None
         self._result = None
         self._args: List[Any] = []
-        self._scalar_args: List[Any]=[]
-        self._scalar_idxs:List[int]=[]
-        self._scalar_names:List[str]=[]
-        self._argnames:List[str]=[]
+        self._scalar_args: List[Any] = []
+        self._scalar_idxs: List[int] = []
+        self._scalar_names: List[str] = []
+        self._argnames: List[str] = []
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
         self._created: bool = False
@@ -183,24 +183,31 @@ class vectorize:
             return_lines.append(lines[i].rstrip())
         return return_lines
 
-    def _replace_name(self, name: str, _LOOP_VAR:str, is_gpu:bool=False) -> str:
-        #print("IRINA DEBUG ARGNAMES =", self._argnames)
-        #print("IRINA DEBUG SCALAR_NAMES =", self._scalar_names)
-        if name in self._argnames and not(name in self._scalar_names) :
+    def _replace_name(
+        self, name: str, _LOOP_VAR: str, is_gpu: bool = False
+    ) -> str:
+        # print("IRINA DEBUG ARGNAMES =", self._argnames)
+        # print("IRINA DEBUG SCALAR_NAMES =", self._scalar_names)
+        if name in self._argnames and not (name in self._scalar_names):
             return "{}[{}]".format(name, _LOOP_VAR)
         else:
             return "{}".format(name)
 
-
     def _build_gpu_function(self) -> Any:
-
         funcid = "vectorized_{}".format(self._pyfunc.__name__)
 
         # Preamble
         lines = ["from numba import cuda"]
 
         # Signature
-        args = self._argnames + [_SIZE_VAR]+[_DIM_VAR]+[_PITCHES_VAR]+[_LO_POINT_VAR] +[_STRIDES_VAR]
+        args = (
+            self._argnames
+            + [_SIZE_VAR]
+            + [_DIM_VAR]
+            + [_PITCHES_VAR]
+            + [_LO_POINT_VAR]
+            + [_STRIDES_VAR]
+        )
 
         lines.append("def {}({}):".format(funcid, ",".join(args)))
 
@@ -211,10 +218,24 @@ class vectorize:
         lines.append("        return")
         lines.append("    {}:int = 0".format(_LOOP_VAR))
         lines.append("    for p in range({}-1):".format(_DIM_VAR))
-        lines.append("        x={}[p]+int(local_i/{}[p])".format(_LO_POINT_VAR,_PITCHES_VAR))
-        lines.append("        local_i = local_i-{}[p]*int(local_i/{}[p])".format(_PITCHES_VAR,_PITCHES_VAR))
-        lines.append("        {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR))
-        lines.append("    {}+=int(local_i*{}[{}-1])".format(_LOOP_VAR, _STRIDES_VAR, _DIM_VAR))
+        lines.append(
+            "        x={}[p]+int(local_i/{}[p])".format(
+                _LO_POINT_VAR, _PITCHES_VAR
+            )
+        )
+        lines.append(
+            "        local_i = local_i-{}[p]*int(local_i/{}[p])".format(
+                _PITCHES_VAR, _PITCHES_VAR
+            )
+        )
+        lines.append(
+            "        {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR)
+        )
+        lines.append(
+            "    {}+=int(local_i*{}[{}-1])".format(
+                _LOOP_VAR, _STRIDES_VAR, _DIM_VAR
+            )
+        )
 
         # Kernel body
         def _lift_to_array_access(m: Any) -> str:
@@ -225,9 +246,9 @@ class vectorize:
         for line in lines_old:
             l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
             lines.append(l_new)
-   
-        #print("IRINA DEBUG GPU function",lines)
-        
+
+        # print("IRINA DEBUG GPU function",lines)
+
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
         glbs: Dict[str, Any] = {}
@@ -235,7 +256,6 @@ class vectorize:
         return glbs[funcid]
 
     def _build_cpu_function(self) -> Callable[[Any], Any]:
-
         funcid = "vectorized_{}".format(self._pyfunc.__name__)
 
         # Preamble
@@ -262,7 +282,9 @@ class vectorize:
             arg_idx += 1
         for a in self._scalar_args:
             scalar_type = np.dtype(type(a).__name__)
-            _emit_assignment(self._argnames[arg_idx], arg_idx, _SIZE_VAR, scalar_type)
+            _emit_assignment(
+                self._argnames[arg_idx], arg_idx, _SIZE_VAR, scalar_type
+            )
             arg_idx += 1
 
         # Main loop
@@ -302,7 +324,14 @@ class vectorize:
 
     def _compile_func_gpu(self) -> tuple[Any]:
         types = self._get_numba_types()
-        arg_types = types + [numba.core.types.uint64] + [numba.core.types.uint64]+[numba.core.types.CPointer(numba.core.types.uint64)]+ [numba.core.types.CPointer(numba.core.types.uint64)]+[numba.core.types.CPointer(numba.core.types.uint64)]
+        arg_types = (
+            types
+            + [numba.core.types.uint64]
+            + [numba.core.types.uint64]
+            + [numba.core.types.CPointer(numba.core.types.uint64)]
+            + [numba.core.types.CPointer(numba.core.types.uint64)]
+            + [numba.core.types.CPointer(numba.core.types.uint64)]
+        )
         sig = (*arg_types,)
 
         cuda_arch = numba.cuda.get_current_device().compute_capability
@@ -315,41 +344,47 @@ class vectorize:
 
         return numba.cfunc(sig)(self._numba_func)
 
-    def _execute(self, is_gpu:bool, num_gpus:int=0) -> None:
+    def _execute(self, is_gpu: bool, num_gpus: int = 0) -> None:
         if is_gpu and not self._created:
-            # create future for dependency between CREATE_CU_KERNEL and 
+            # create future for dependency between CREATE_CU_KERNEL and
             # EVAL_UDF tasks
-            future  = convert_to_cunumeric_ndarray(num_gpus)
+            future = convert_to_cunumeric_ndarray(num_gpus)
             future_deferred = runtime.to_deferred_array(future._thunk)
             # create CUDA kernel
-            launch_domain=Rect(lo=(0,), hi=(num_gpus,))
-            kernel_task = self._context.create_task(CuNumericOpCode.CREATE_CU_KERNEL,manual=True, launch_domain=launch_domain)
+            launch_domain = Rect(lo=(0,), hi=(num_gpus,))
+            kernel_task = self._context.create_task(
+                CuNumericOpCode.CREATE_CU_KERNEL,
+                manual=True,
+                launch_domain=launch_domain,
+            )
             ptx_hash = hash(self._gpu_func[0])
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            kernel_task.add_output(future_deferred.base)
+            kernel_task.add_input(future_deferred.base)
             kernel_task.execute()
-                
+            get_legate_runtime().issue_execution_fence(block=True)
 
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._num_outputs, ty.uint32)
         task.add_scalar_arg(len(self._scalar_args), ty.uint32)
-         
+
         for a in self._scalar_args:
             dtype = convert_to_cunumeric_dtype(type(a).__name__)
-            task.add_scalar_arg(a,dtype)
+            task.add_scalar_arg(a, dtype)
 
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
             task.add_scalar_arg(ptx_hash, ty.int64)
             task.add_scalar_arg((is_gpu and not self._created), bool)
         else:
-            task.add_scalar_arg(self._cpu_func.address, ty.uint64)  # type : ignore
+            task.add_scalar_arg(
+                self._cpu_func.address, ty.uint64
+            )  # type : ignore
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
         for count, a in enumerate(self._args):
             a_tmp = runtime.to_deferred_array(a._thunk)
-            a_tmp=a_tmp.base
+            a_tmp = a_tmp.base
             task.add_input(a_tmp)
             if count < self._num_outputs:
                 task.add_output(a_tmp)
@@ -364,8 +399,8 @@ class vectorize:
         Return arrays with the results of `pyfunc` broadcast (vectorized) over
         `args` and `kwargs` not in `excluded`.
         """
-        #profiler = cProfile.Profile()
-        #profiler.enable()   
+        # profiler = cProfile.Profile()
+        # profiler.enable()
         if not self._created:
             self._scalar_args.clear()
             self._scalar_idxs.clear()
@@ -373,24 +408,24 @@ class vectorize:
             self._argnames.clear()
             self._scalar_names.clear()
 
-            for i,arg in enumerate(args):
+            for i, arg in enumerate(args):
                 if arg is None:
                     raise ValueError(
                         "None is not supported in user function "
                         "passed to cunumeric.vectorize"
                     )
-                elif np.ndim(arg)==0:
+                elif np.ndim(arg) == 0:
                     self._scalar_args.append(arg)
                     self._scalar_idxs.append(i)
                 else:
                     self._args.append(convert_to_cunumeric_ndarray(arg))
 
-            #first fill arrays to argnames, then scalars:
-            for i,k in enumerate(inspect.signature(self._pyfunc).parameters):
-                if not(i in self._scalar_idxs):
+            # first fill arrays to argnames, then scalars:
+            for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
+                if not (i in self._scalar_idxs):
                     self._argnames.append(k)
 
-            for i,k in enumerate(inspect.signature(self._pyfunc).parameters):
+            for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
                 if i in self._scalar_idxs:
                     self._scalar_names.append(k)
                     self._argnames.append(k)
@@ -401,44 +436,50 @@ class vectorize:
                     "kwargs are not supported in user functions"
                 )
 
-        #all output arrays should have the same type
-        if len(self._args)>0:
+        # all output arrays should have the same type
+        if len(self._args) > 0:
             ty = self._args[0].dtype
             shape = self._args[0].shape
-            for i in range (1, self._num_outputs):
-                if ty!=self._args[i].dtype:
-                    raise TypeError("cuNumeric doesnt support "
+            for i in range(1, self._num_outputs):
+                if ty != self._args[i].dtype:
+                    raise TypeError(
+                        "cuNumeric doesnt support "
                         "different types for output data in "
-                        "user function passed to vectorize")
+                        "user function passed to vectorize"
+                    )
                 if shape != self._args[i].shape:
-                    raise TypeError("cuNumeric doesnt support "
+                    raise TypeError(
+                        "cuNumeric doesnt support "
                         "different shapes for output data in "
-                        "user function passed to vectorize")
-            for i in range (self._num_outputs, len(self._args)):
-                if ty!=self._args[i].dtype:
+                        "user function passed to vectorize"
+                    )
+            for i in range(self._num_outputs, len(self._args)):
+                if ty != self._args[i].dtype:
                     runtime.warn(
                         "converting input array to output types in user func ",
                         category=RuntimeWarning,
                     )
                     self._args[i] = self._args[i].astype(ty)
-                if shape !=self._args[i].shape and np.ndim(self._args[i])>0:
-                     raise TypeError("cuNumeric doesnt support "
+                if shape != self._args[i].shape and np.ndim(self._args[i]) > 0:
+                    raise TypeError(
+                        "cuNumeric doesnt support "
                         "different shapes for arrays in "
-                        "user function passed to vectorize")
+                        "user function passed to vectorize"
+                    )
 
         if runtime.num_gpus > 0:
             if not self._created:
-                #print("IRINA DEBUG ptx is not created yet")
+                # print("IRINA DEBUG ptx is not created yet")
                 self._numba_func = self._build_gpu_function()
                 self._gpu_func = self._compile_func_gpu()
-            #profiler = cProfile.Profile()
-            #profiler.enable()
+            # profiler = cProfile.Profile()
+            # profiler.enable()
             self._execute(True, runtime.num_gpus)
             if not self._created and self._cache:
                 self._created = True
-            #profiler.disable()
-            #stats = pstats.Stats(profiler).sort_stats('cumtime')
-            #stats.print_stats()
+            # profiler.disable()
+            # stats = pstats.Stats(profiler).sort_stats('cumtime')
+            # stats.print_stats()
         else:
             if not self._created:
                 self._numba_func = self._build_cpu_function()
@@ -447,9 +488,6 @@ class vectorize:
                     self._created = True
             self._execute(False)
 
-            
-        #profiler.disable()
-        #stats = pstats.Stats(profiler).sort_stats('cumtime')
-        #stats.print_stats()
-
-
+        # profiler.disable()
+        # stats = pstats.Stats(profiler).sort_stats('cumtime')
+        # stats.print_stats()

@@ -208,6 +208,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/convolution/convolve_omp.cc
     src/cunumeric/transform/flip_omp.cc
     src/cunumeric/vectorize/eval_udf_omp.cc
+    src/cunumeric/vectorize/create_cu_kernel_omp.cc
   )
 endif()
 
