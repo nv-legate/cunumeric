@@ -6309,6 +6309,7 @@ def bincount(
 
 # Quantiles
 
+
 # account for 0-based indexing
 # there's no negative numbers
 # arithmetic at this level,
@@ -6320,6 +6321,7 @@ def floor_i(k: int | float) -> int:
 
 
 # Generic rule: if `q` input value falls onto a node, then return that node
+
 
 # Discontinuous methods:
 #
@@ -6628,7 +6630,6 @@ def quantile_impl(
     to_dtype: np.dtype[Any],
     qs_all: Optional[ndarray],
 ) -> ndarray:
-
     ndims = len(arr.shape)
 
     if axis is None:
