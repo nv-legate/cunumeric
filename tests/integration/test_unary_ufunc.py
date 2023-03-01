@@ -14,6 +14,7 @@
 #
 
 import argparse
+from zlib import adler32
 
 import numpy as np
 import pytest
@@ -27,8 +28,7 @@ def deterministic_op_test(func):
     # This enforces that inputs are always the same whether
     # running all tests or a single test with -k.
     def wrapper_set_seed(op, *args, **kwargs):
-        # np seeds must be limited to 32-bits
-        np.random.seed(hash(op) & 0xFFFFFFFF)
+        np.random.seed(adler32(bytes(op, "utf-8")))
         func(op, *args, **kwargs)
         func(op, *args, **kwargs)
 
