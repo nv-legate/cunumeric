@@ -105,8 +105,8 @@ installing legate.core with a larger `--max-dim`.
 
 ## Documentation
 
-A complete list of available features can is provided in the [API
-reference](https://nv-legate.github.io/cunumeric/api/index.html).
+The cuNumeric documentation can be found
+[here](https://nv-legate.github.io/cunumeric).
 
 ## Future Directions
 
