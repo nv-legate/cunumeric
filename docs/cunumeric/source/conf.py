@@ -53,8 +53,10 @@ html_static_path = ["_static"]
 html_theme = "pydata_sphinx_theme"
 
 html_theme_options = {
-    "footer_items": ["copyright"],
+    "footer_start": ["copyright"],
     "github_url": "https://github.com/nv-legate/cunumeric",
+    # https://github.com/pydata/pydata-sphinx-theme/issues/1220
+    "icon_links": [],
     "logo": {"text": project, "link": "https://nv-legate.github.io/cunumeric"},
     "navbar_align": "left",
     "navbar_end": ["navbar-icon-links", "theme-switcher"],

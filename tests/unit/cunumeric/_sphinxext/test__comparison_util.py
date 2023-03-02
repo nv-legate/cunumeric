@@ -13,26 +13,26 @@
 # limitations under the License.
 #
 
-import numpy
+import numpy as np
 import pytest
 
-import cunumeric
+import cunumeric as num
 import cunumeric._sphinxext._comparison_util as m  # module under test
 
 
 def test_get_namespaces_None():
     res = m.get_namespaces(None)
     assert len(res) == 2
-    assert res[0] is numpy
-    assert res[1] is cunumeric
+    assert res[0] is np
+    assert res[1] is num
 
 
 @pytest.mark.parametrize("attr", ("ndarray", "linalg"))
 def test_get_namespaces_attr(attr):
     res = m.get_namespaces(attr)
     assert len(res) == 2
-    assert res[0] is getattr(numpy, attr)
-    assert res[1] is getattr(cunumeric, attr)
+    assert res[0] is getattr(np, attr)
+    assert res[1] is getattr(num, attr)
 
 
 class _TestObj:
@@ -60,4 +60,5 @@ class Test_filter_names:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

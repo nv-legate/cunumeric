@@ -19,8 +19,6 @@ from utils.generators import mk_seq_array
 
 import cunumeric as num
 
-np.random.seed(12345)
-
 
 @pytest.mark.parametrize(
     "array", (None, [], 4, [2, 3], mk_seq_array(num, (3, 4, 2)))
@@ -169,12 +167,10 @@ def test_array_axis_out_bound():
         num.repeat(anp, 4, 2)
 
 
-@pytest.mark.xfail()
 def test_array_axis_negative_equal():
     anp = np.array([1, 2, 3, 4, 5])
-    res_np = np.repeat(anp, 4, -1)  # [1 1 1 1 2 2 2 2 3 3 3 3 4 4 4 4 5 5 5 5]
-    res_num = num.repeat(anp, 4, -1)  # [1 1 1 1 2]
-    # They have different outputs.
+    res_np = np.repeat(anp, 4, -1)
+    res_num = num.repeat(anp, 4, -1)
     assert np.array_equal(res_np, res_num)
 
 
@@ -218,4 +214,5 @@ def test_nd_repeats(ndim):
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

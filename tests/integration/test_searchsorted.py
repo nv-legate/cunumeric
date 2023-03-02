@@ -26,7 +26,6 @@ import cunumeric as num
 # ndarray.searchsorted(v, side='left', sorter=None)
 
 
-np.random.seed(42)
 SIDES = ["left", "right"]
 
 STANDARD_CASES = [
@@ -180,4 +179,5 @@ def test_ndim(ndim, side):
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

@@ -136,4 +136,5 @@ def test_noncentral_f_float64(t):
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
