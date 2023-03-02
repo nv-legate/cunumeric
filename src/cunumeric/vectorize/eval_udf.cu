@@ -29,31 +29,15 @@ struct EvalUdfGPU {
   template <LegateTypeCode CODE, int DIM>
   void operator()(EvalUdfArgs& args) const
   {
-  std::cout<<"IRINA DEBUG outputs = "<<args.outputs.size()<< " inputs = "<<
-      args.inputs.size()<<std::endl;
-
    using VAL = legate_type_of<CODE>;
-    Rect<DIM> rect;
+   Rect<DIM> rect;
 
    size_t input_size=args.inputs.size()-2;  
    auto procs_rect = args.inputs[input_size].shape<1>();
 
-   std::cout<<"IRINA DEBUG proc rect = "<<procs_rect<<" input_size = "<<input_size<<std::endl;
-
   auto procs=args.inputs[input_size].read_accessor<uint64_t,1>();
   auto funcs=args.inputs[input_size+1].read_accessor<uint64_t,1>();
-  Point<1> proc_point;
-  Pitches<0> proc_pitches;
-  size_t procs_volume = proc_pitches.flatten(procs_rect);
-  std::cout<<"IRINA DEBUG volume = "<<procs_volume<< "  " << procs[0]<<" " <<funcs[0]<<std::endl; 
-  for (size_t i=0; i<procs_volume; i++){
-    auto p = proc_pitches.unflatten(i, procs_rect.lo);
-     std::cout<<"IRINA DEBUG " <<funcs[0]<< std::endl;
-     std::cout<<"IRINA DEBUG2 " <<args.point.id<< std::endl;
-     if(procs[p]==args.point.id)
-         proc_point=p;
-  }
-  CUfunction func = reinterpret_cast<CUfunction>(funcs[proc_point]);
+  CUfunction func = get_udf(args.hash);
     // Filling up the buffer with arguments
 
     size_t buffer_size = (input_size+args.scalars.size()) * sizeof(void*);

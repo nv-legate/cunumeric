@@ -38,6 +38,8 @@ struct CUDALibraries {
   cusolverDnHandle_t get_cusolver();
   cutensorHandle_t* get_cutensor();
   cufftContext get_cufft_plan(cufftType type, const legate::DomainPoint& size);
+  void store_udf_func(size_t hash, CUfunction func);
+  CUfunction get_udf_func(size_t hash);
 
  private:
   void finalize_cublas();
@@ -50,6 +52,7 @@ struct CUDALibraries {
   cusolverDnContext* cusolver_;
   cutensorHandle_t* cutensor_;
   std::map<cufftType, cufftPlanCache*> plan_caches_;
+  std::map<size_t, CUfunction> udf_caches_;
 };
 
 }  // namespace cunumeric

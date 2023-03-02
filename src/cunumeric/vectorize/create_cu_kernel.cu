@@ -30,16 +30,8 @@ using namespace legate;
   int64_t ptx_hash = context.scalars()[0].value<int64_t>();
   std::string ptx = context.scalars()[1].value<std::string>();
   Processor point = context.get_current_processor();
-  //JITKernelStorage& jit_storage =JITKernelStorage::get_instance();
-  std::vector<Array> &outputs =context.outputs(); 
-  auto rect = outputs[0].shape<1>();
-  auto procs = outputs[0].write_accessor<uint64_t,1>(rect);
-  auto funcs = outputs[1].write_accessor<uint64_t,1>(rect);
+  auto procs = context.outputs()[0].write_accessor<uint64_t,1>();
   //FIXME check if dense)
-  auto procs_ptr = procs.ptr(rect);
-  auto funcs_ptr = funcs.ptr(rect);
-  procs_ptr[0]=point.id;
-  std::cout <<"INSIDE OF THE CREATE FUNCTION "<<rect<< "  "<<procs_ptr[0]<<std::endl; 
 
   CUfunction func;
     const unsigned num_options   = 4;
@@ -97,7 +89,7 @@ using namespace legate;
 #ifdef DEBUG_CUNUMERIC
     assert(result == CUDA_SUCCESS);
 #endif
-    funcs_ptr[0]=reinterpret_cast<std::uintptr_t>(func);
+    store_udf(ptx_hash, func);
      // std::cout <<"IRINA DEBUG create_func proc = "<<point<<" , func = "<<func
      // << ", hash = "<<ptx_hash<<std::endl;
 }
