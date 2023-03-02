@@ -1,6 +1,0 @@
-﻿cunumeric.ceil
-==============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: ceil

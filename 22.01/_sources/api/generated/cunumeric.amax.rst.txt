@@ -1,6 +1,0 @@
-﻿cunumeric.amax
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: amax

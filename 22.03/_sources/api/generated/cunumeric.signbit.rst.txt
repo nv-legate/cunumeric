@@ -1,6 +1,0 @@
-﻿cunumeric.signbit
-=================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: signbit

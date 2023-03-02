@@ -1,6 +1,0 @@
-﻿cunumeric.nextafter
-===================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: nextafter

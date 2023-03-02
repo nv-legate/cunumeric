@@ -1,6 +1,0 @@
-﻿cunumeric.arcsinh
-=================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: arcsinh

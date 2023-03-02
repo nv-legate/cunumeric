@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.flat
-======================
-
-.. currentmodule:: cunumeric
-
-.. autoproperty:: ndarray.flat

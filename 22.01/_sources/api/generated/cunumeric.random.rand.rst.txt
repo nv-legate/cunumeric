@@ -1,6 +1,0 @@
-﻿cunumeric.random.rand
-=====================
-
-.. currentmodule:: cunumeric.random
-
-.. autofunction:: rand

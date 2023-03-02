@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.imag
-======================
-
-.. currentmodule:: cunumeric
-
-.. autoproperty:: ndarray.imag

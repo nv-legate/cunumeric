@@ -1,6 +1,0 @@
-﻿cunumeric.true\_divide
-======================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: true_divide

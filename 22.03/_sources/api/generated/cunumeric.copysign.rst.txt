@@ -1,6 +1,0 @@
-﻿cunumeric.copysign
-==================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: copysign

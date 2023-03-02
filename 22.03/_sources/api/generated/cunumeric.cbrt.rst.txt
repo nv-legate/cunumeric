@@ -1,6 +1,0 @@
-﻿cunumeric.cbrt
-==============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: cbrt

@@ -1,6 +1,0 @@
-﻿cunumeric.log2
-==============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: log2

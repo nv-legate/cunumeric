@@ -1,6 +1,0 @@
-﻿cunumeric.tril
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: tril

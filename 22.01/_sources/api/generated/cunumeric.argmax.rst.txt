@@ -1,6 +1,0 @@
-﻿cunumeric.argmax
-================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: argmax

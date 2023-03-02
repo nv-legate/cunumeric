@@ -1,6 +1,0 @@
-﻿cunumeric.dstack
-================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: dstack

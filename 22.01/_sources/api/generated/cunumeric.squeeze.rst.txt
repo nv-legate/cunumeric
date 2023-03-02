@@ -1,6 +1,0 @@
-﻿cunumeric.squeeze
-=================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: squeeze

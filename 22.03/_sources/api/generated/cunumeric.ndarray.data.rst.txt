@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.data
-======================
-
-.. currentmodule:: cunumeric
-
-.. autoproperty:: ndarray.data

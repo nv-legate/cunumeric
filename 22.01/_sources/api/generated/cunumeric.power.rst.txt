@@ -1,6 +1,0 @@
-﻿cunumeric.power
-===============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: power

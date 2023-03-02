@@ -1,6 +1,0 @@
-﻿cunumeric.exp2
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: exp2

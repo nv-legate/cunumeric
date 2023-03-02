@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.flags
-=======================
-
-.. currentmodule:: cunumeric
-
-.. autoproperty:: ndarray.flags

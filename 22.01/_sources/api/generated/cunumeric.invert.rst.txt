@@ -1,6 +1,0 @@
-﻿cunumeric.invert
-================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: invert

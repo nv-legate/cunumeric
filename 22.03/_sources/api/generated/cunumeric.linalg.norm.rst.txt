@@ -1,6 +1,0 @@
-﻿cunumeric.linalg.norm
-=====================
-
-.. currentmodule:: cunumeric.linalg
-
-.. autofunction:: norm

@@ -1,6 +1,0 @@
-﻿cunumeric.degrees
-=================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: degrees

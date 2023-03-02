@@ -1,6 +1,0 @@
-﻿cunumeric.array\_equal
-======================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: array_equal

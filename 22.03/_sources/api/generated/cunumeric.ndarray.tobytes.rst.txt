@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.tobytes
-=========================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.tobytes

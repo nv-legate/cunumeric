@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.ravel
-=======================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.ravel

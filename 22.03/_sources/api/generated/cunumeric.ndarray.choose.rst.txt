@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.choose
-========================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.choose

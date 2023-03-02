@@ -1,6 +1,0 @@
-﻿cunumeric.logical\_not
-======================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: logical_not

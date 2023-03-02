@@ -1,6 +1,0 @@
-﻿cunumeric.sinh
-==============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: sinh

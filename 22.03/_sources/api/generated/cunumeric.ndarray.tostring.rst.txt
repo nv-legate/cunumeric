@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.tostring
-==========================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.tostring

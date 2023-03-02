@@ -1,6 +1,0 @@
-﻿cunumeric.negative
-==================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: negative

@@ -1,6 +1,0 @@
-﻿cunumeric.less\_equal
-=====================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: less_equal

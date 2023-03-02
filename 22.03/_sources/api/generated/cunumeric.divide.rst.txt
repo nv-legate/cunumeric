@@ -1,6 +1,0 @@
-﻿cunumeric.divide
-================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: divide

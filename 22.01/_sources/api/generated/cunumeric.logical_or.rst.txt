@@ -1,6 +1,0 @@
-﻿cunumeric.logical\_or
-=====================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: logical_or

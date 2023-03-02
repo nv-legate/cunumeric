@@ -1,6 +1,0 @@
-﻿cunumeric.sin
-=============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: sin

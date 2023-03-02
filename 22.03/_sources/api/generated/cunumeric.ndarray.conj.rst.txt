@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.conj
-======================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.conj

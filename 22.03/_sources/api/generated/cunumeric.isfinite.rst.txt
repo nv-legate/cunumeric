@@ -1,6 +1,0 @@
-﻿cunumeric.isfinite
-==================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: isfinite

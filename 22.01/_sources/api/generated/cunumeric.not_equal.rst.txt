@@ -1,6 +1,0 @@
-﻿cunumeric.not\_equal
-====================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: not_equal

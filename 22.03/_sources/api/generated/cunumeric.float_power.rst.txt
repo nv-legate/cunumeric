@@ -1,6 +1,0 @@
-﻿cunumeric.float\_power
-======================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: float_power

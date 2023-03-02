@@ -1,6 +1,0 @@
-﻿cunumeric.lcm
-=============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: lcm

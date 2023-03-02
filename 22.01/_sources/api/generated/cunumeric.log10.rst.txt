@@ -1,6 +1,0 @@
-﻿cunumeric.log10
-===============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: log10

@@ -1,6 +1,0 @@
-﻿cunumeric.empty\_like
-=====================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: empty_like

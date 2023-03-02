@@ -1,6 +1,0 @@
-﻿cunumeric.greater\_equal
-========================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: greater_equal

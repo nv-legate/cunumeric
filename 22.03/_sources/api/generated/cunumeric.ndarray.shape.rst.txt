@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.shape
-=======================
-
-.. currentmodule:: cunumeric
-
-.. autoproperty:: ndarray.shape

@@ -1,6 +1,0 @@
-﻿cunumeric.maximum
-=================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: maximum

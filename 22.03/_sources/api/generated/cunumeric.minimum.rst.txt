@@ -1,6 +1,0 @@
-﻿cunumeric.minimum
-=================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: minimum

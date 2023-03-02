@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.argmax
-========================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.argmax

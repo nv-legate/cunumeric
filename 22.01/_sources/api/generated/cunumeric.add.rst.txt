@@ -1,6 +1,0 @@
-﻿cunumeric.add
-=============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: add

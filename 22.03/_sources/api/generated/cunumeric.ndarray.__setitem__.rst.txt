@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.\_\_setitem\_\_
-=================================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.__setitem__

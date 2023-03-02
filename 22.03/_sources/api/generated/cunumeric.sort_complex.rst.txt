@@ -1,6 +1,0 @@
-﻿cunumeric.sort\_complex
-=======================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: sort_complex

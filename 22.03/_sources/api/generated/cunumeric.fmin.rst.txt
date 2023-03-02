@@ -1,6 +1,0 @@
-﻿cunumeric.fmin
-==============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: fmin

@@ -1,6 +1,0 @@
-﻿cunumeric.sqrt
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: sqrt

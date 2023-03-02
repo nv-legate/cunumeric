@@ -1,6 +1,0 @@
-﻿cunumeric.empty
-===============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: empty

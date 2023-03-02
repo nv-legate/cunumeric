@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.ndim
-======================
-
-.. currentmodule:: cunumeric
-
-.. autoproperty:: ndarray.ndim

@@ -1,6 +1,0 @@
-﻿cunumeric.sort
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: sort

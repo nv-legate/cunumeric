@@ -1,6 +1,0 @@
-﻿cunumeric.split
-===============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: split

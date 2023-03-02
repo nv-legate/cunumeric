@@ -1,6 +1,0 @@
-﻿cunumeric.ones
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: ones

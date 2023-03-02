@@ -1,6 +1,0 @@
-﻿cunumeric.fabs
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: fabs

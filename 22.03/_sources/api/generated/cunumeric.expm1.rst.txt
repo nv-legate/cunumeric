@@ -1,6 +1,0 @@
-﻿cunumeric.expm1
-===============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: expm1

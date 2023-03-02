@@ -1,6 +1,0 @@
-﻿cunumeric.random.seed
-=====================
-
-.. currentmodule:: cunumeric.random
-
-.. autofunction:: seed

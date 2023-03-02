@@ -1,6 +1,0 @@
-﻿cunumeric.linalg.cholesky
-=========================
-
-.. currentmodule:: cunumeric.linalg
-
-.. autofunction:: cholesky

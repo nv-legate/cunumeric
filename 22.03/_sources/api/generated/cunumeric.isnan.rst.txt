@@ -1,6 +1,0 @@
-﻿cunumeric.isnan
-===============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: isnan

@@ -1,6 +1,0 @@
-﻿cunumeric.absolute
-==================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: absolute

@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.\_\_floordiv\_\_
-==================================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.__floordiv__

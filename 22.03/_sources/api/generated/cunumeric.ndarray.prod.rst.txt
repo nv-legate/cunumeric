@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.prod
-======================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.prod

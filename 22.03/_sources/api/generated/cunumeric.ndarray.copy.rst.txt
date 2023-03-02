@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.copy
-======================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.copy

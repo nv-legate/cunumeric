@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.tofile
-========================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.tofile

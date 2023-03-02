@@ -1,6 +1,0 @@
-﻿cunumeric.arctan2
-=================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: arctan2

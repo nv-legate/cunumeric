@@ -1,6 +1,0 @@
-﻿cunumeric.conjugate
-===================
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: conjugate

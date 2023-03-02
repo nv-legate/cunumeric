@@ -1,6 +1,0 @@
-﻿cunumeric.rint
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: rint

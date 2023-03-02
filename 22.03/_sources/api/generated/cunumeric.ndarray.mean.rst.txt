@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.mean
-======================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.mean

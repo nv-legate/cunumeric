@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.size
-======================
-
-.. currentmodule:: cunumeric
-
-.. autoproperty:: ndarray.size

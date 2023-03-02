@@ -1,6 +1,0 @@
-﻿cunumeric.trunc
-===============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: trunc

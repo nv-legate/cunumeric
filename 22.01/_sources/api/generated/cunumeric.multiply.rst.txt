@@ -1,6 +1,0 @@
-﻿cunumeric.multiply
-==================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: multiply

@@ -1,6 +1,0 @@
-﻿cunumeric.logaddexp2
-====================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: logaddexp2

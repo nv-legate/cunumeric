@@ -1,6 +1,0 @@
-﻿cunumeric.arcsin
-================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: arcsin

@@ -1,6 +1,0 @@
-﻿cunumeric.subtract
-==================
-
-.. currentmodule:: cunumeric
-
-.. autodata:: subtract

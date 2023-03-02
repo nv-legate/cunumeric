@@ -1,6 +1,0 @@
-﻿cunumeric.fmax
-==============
-
-.. currentmodule:: cunumeric
-
-.. autodata:: fmax

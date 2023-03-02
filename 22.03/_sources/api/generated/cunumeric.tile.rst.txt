@@ -1,6 +1,0 @@
-﻿cunumeric.tile
-==============
-
-.. currentmodule:: cunumeric
-
-.. autofunction:: tile

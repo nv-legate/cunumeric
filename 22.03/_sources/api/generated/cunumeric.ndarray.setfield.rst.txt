@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.setfield
-==========================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.setfield

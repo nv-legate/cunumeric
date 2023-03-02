@@ -1,6 +1,0 @@
-﻿cunumeric.ndarray.swapaxes
-==========================
-
-.. currentmodule:: cunumeric
-
-.. automethod:: ndarray.swapaxes
