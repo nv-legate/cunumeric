@@ -129,7 +129,10 @@ class vectorize:
         self._created: bool = False
         self._cache: bool = cache
         self._num_outputs = 1  # there is at least 1 output
-        self._created_array = full((1,), True, dtype=bool)
+        size_tmp=runtime.num_gpus
+        if size_tmp==1:
+           size_tmp=10
+        self._created_array = full((size_tmp,), True, dtype=bool)
         self._created_array_deferred = runtime.to_deferred_array(self._created_array._thunk)
              #runtime.create_empty_thunk(
              #   (1,), dtype = np.dtype(np.bool), inputs=[])
@@ -360,12 +363,13 @@ class vectorize:
                 launch_domain=launch_domain,
             )
             ptx_hash = hash(self._gpu_func[0])
-            print("IRINA DEBUG creating CUkernel for hash = ", ptx_hash)
+            #print("IRINA DEBUG creating CUkernel for hash = ", ptx_hash)
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            kernel_task.add_reduction(self._created_array_deferred.base,ReductionOp.MUL)
+            #kernel_task.add_reduction(self._created_array_deferred.base,ReductionOp.MUL)
+            kernel_task.add_output(self._created_array_deferred.base)
             kernel_task.execute()
-            print("IRINA DEBUG created array= ",self._created_array);
+            #print("IRINA DEBUG created array= ",self._created_array);
             if self._cache:
                 self._created = bool(self._created_array[0])
             #get_legate_runtime().issue_execution_fence(block=True)
@@ -391,9 +395,10 @@ class vectorize:
 
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
-            print("IRINA DEBUG executing UDF for hash = ", ptx_hash)
+            #print("IRINA DEBUG executing UDF for hash = ", ptx_hash)
             task.add_scalar_arg(ptx_hash, ty.int64)
             task.add_input(self._created_array_deferred.base)
+            task.add_broadcast(self._created_array_deferred.base)
             #task.add_input(self._cu_func_pointers_deferred.base)
             #task.add_broadcast(self._proc_ids_deferred.base)
           #task.add_broadcast(self._cu_func_pointers_deferred.base)

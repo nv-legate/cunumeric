@@ -96,10 +96,10 @@ fill_out_kernel(const AccessorRD<legate::ProdReduction<bool>,true,1> out)
     assert(result == CUDA_SUCCESS);
 #endif
     store_udf(ptx_hash, func);
-    auto stream = get_cached_stream();
-    auto out = context.reductions()[0].reduce_accessor<legate::ProdReduction<bool>, true, 1>();
-    fill_out_kernel<<<1,1,0,stream>>>(out);
-    CHECK_CUDA_STREAM(stream);
+    //auto stream = get_cached_stream();
+    //auto out = context.reductions()[0].reduce_accessor<legate::ProdReduction<bool>, true, 1>();
+    //fill_out_kernel<<<1,1,0,stream>>>(out);
+    //CHECK_CUDA_STREAM(stream);
 }
 
 }  // namespace cunumeric
