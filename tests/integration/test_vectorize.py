@@ -44,11 +44,13 @@ def test_vectorize():
     func(a, b)
     assert(np.array_equal(a, [1,3,5,7,9]))
 
+    func = num.vectorize(my_func)
     a= num.arange(5)
     b=2
     func(a,b)
     assert(np.array_equal(a, [2,4,6,8,10]))
    
+    num.vectorize(my_func)
     a=num.array([[1,2,3],[4,5,6],[7,8,9]])
     b=num.array([[10,11,12],[13,14,15],[16,17,18]])
     func(a[:2],b[:2])

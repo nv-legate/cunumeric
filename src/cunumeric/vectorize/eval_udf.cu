@@ -32,11 +32,11 @@ struct EvalUdfGPU {
    using VAL = legate_type_of<CODE>;
    Rect<DIM> rect;
 
-   size_t input_size=args.inputs.size()-2;  
-   auto procs_rect = args.inputs[input_size].shape<1>();
+   size_t input_size=args.inputs.size()-1;  
+  // auto procs_rect = args.inputs[input_size].shape<1>();
 
-  auto procs=args.inputs[input_size].read_accessor<uint64_t,1>();
-  auto funcs=args.inputs[input_size+1].read_accessor<uint64_t,1>();
+  //auto procs=args.inputs[input_size].read_accessor<uint64_t,1>();
+  //auto funcs=args.inputs[input_size+1].read_accessor<uint64_t,1>();
   CUfunction func = get_udf(args.hash);
     // Filling up the buffer with arguments
 
@@ -53,7 +53,7 @@ struct EvalUdfGPU {
     auto p = raw_arg_buffer;
     size_t strides[DIM];
     size_t size =1;
-    if (args.inputs.size()>0){
+    if (input_size>0){
       rect = args.inputs[0].shape<DIM>();
       size = rect.volume();
       for (size_t i = 0; i < input_size; i++) {
@@ -155,7 +155,7 @@ struct EvalUdfGPU {
                    context.get_current_processor(),
                    ptx_hash};
   size_t dim=1;
-  if (args.inputs.size()>0){
+  if (args.inputs.size()>1){
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
   }

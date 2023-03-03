@@ -31,7 +31,7 @@ from cunumeric.runtime import runtime
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
 from .utils import convert_to_cunumeric_dtype
-from .module import zeros
+from .module import full
 
 # from legate.timing import time
 
@@ -129,8 +129,10 @@ class vectorize:
         self._created: bool = False
         self._cache: bool = cache
         self._num_outputs = 1  # there is at least 1 output
-        self._created_array = create_empty_thunk(
-                (1,), dtype = np.dtype(np.bool), inputs=[])
+        self._created_array = full((1,), True, dtype=bool)
+        self._created_array_deferred = runtime.to_deferred_array(self._created_array._thunk)
+             #runtime.create_empty_thunk(
+             #   (1,), dtype = np.dtype(np.bool), inputs=[])
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -361,10 +363,11 @@ class vectorize:
             print("IRINA DEBUG creating CUkernel for hash = ", ptx_hash)
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            kernel_task.add_reduction(self._created_array.base,ReductionOp.MUL)
+            kernel_task.add_reduction(self._created_array_deferred.base,ReductionOp.MUL)
             kernel_task.execute()
             print("IRINA DEBUG created array= ",self._created_array);
-            self._created = bool(self._created_array[0])
+            if self._cache:
+                self._created = bool(self._created_array[0])
             #get_legate_runtime().issue_execution_fence(block=True)
 
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
@@ -390,7 +393,7 @@ class vectorize:
             ptx_hash = hash(self._gpu_func[0])
             print("IRINA DEBUG executing UDF for hash = ", ptx_hash)
             task.add_scalar_arg(ptx_hash, ty.int64)
-            task.add_input(self._created_array.base)
+            task.add_input(self._created_array_deferred.base)
             #task.add_input(self._cu_func_pointers_deferred.base)
             #task.add_broadcast(self._proc_ids_deferred.base)
           #task.add_broadcast(self._cu_func_pointers_deferred.base)
@@ -426,8 +429,8 @@ class vectorize:
                     self._scalar_idxs.append(i)
                 else:
                     self._args.append(convert_to_cunumeric_ndarray(arg))
-
-            # first fill arrays to argnames, then scalars:
+       
+                # first fill arrays to argnames, then scalars:
             for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
                 if not (i in self._scalar_idxs):
                     self._argnames.append(k)

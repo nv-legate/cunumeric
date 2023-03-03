@@ -25,9 +25,11 @@ using namespace Legion;
 using namespace legate;
 
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-fill_kernel(const AccessorRD<bool,1> out)
+fill_out_kernel(const AccessorRD<legate::ProdReduction<bool>,true,1> out)
 {
-  reduce_output(out,true);
+  const int idx = (blockIdx.x * blockDim.x + threadIdx.x);
+  if (idx >0) return;
+  out.reduce(0, true);
 }
 
 /*static*/ void CreateCUKernelTask::gpu_variant(TaskContext& context)
@@ -36,7 +38,6 @@ fill_kernel(const AccessorRD<bool,1> out)
   int64_t ptx_hash = context.scalars()[0].value<int64_t>();
   std::string ptx = context.scalars()[1].value<std::string>();
   Processor point = context.get_current_processor();
-  auto procs = context.outputs()[0].write_accessor<uint64_t,1>();
 
   CUfunction func;
     const unsigned num_options   = 4;
@@ -96,8 +97,8 @@ fill_kernel(const AccessorRD<bool,1> out)
 #endif
     store_udf(ptx_hash, func);
     auto stream = get_cached_stream();
-    out = context.outputs()[0].reduce_accessor<ProdReduction<bool>, true, 1>();
-    reduce_kernel<<<1,1,0,stream>>>(out);
+    auto out = context.reductions()[0].reduce_accessor<legate::ProdReduction<bool>, true, 1>();
+    fill_out_kernel<<<1,1,0,stream>>>(out);
     CHECK_CUDA_STREAM(stream);
 }
 
