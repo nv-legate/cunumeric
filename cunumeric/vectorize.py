@@ -129,12 +129,8 @@ class vectorize:
         self._created: bool = False
         self._cache: bool = cache
         self._num_outputs = 1  # there is at least 1 output
-        self._proc_ids =  zeros((runtime.num_gpus,), dtype=np.dtype(np.uint64)) 
-        self._cu_func_pointers = zeros((runtime.num_gpus,), dtype=np.dtype(np.uint64))
-        self._proc_ids_deferred = runtime.to_deferred_array(self._proc_ids._thunk)
-        self._cu_func_pointers_deferred = runtime.to_deferred_array(self._cu_func_pointers._thunk)
-        #runtime.create_empty_thunk(
-                #(runtime.num_gpus,), dtype = np.dtype(np.uint64), inputs=[])
+        self._created_array = create_empty_thunk(
+                (1,), dtype = np.dtype(np.bool), inputs=[])
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -352,7 +348,7 @@ class vectorize:
         return numba.cfunc(sig)(self._numba_func)
 
     def _execute(self, is_gpu: bool, num_gpus: int = 0) -> None:
-        print("IRINA DEBUG in execute")
+        #print("IRINA DEBUG in execute")
         if is_gpu and not self._created:
             # create CUDA kernel
             launch_domain = Rect(lo=(0,), hi=(num_gpus,))
@@ -365,12 +361,10 @@ class vectorize:
             print("IRINA DEBUG creating CUkernel for hash = ", ptx_hash)
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            kernel_task.add_input(self._proc_ids_deferred.base)
-            kernel_task.add_input(self._cu_func_pointers_deferred.base)
-            kernel_task.add_output(self._proc_ids_deferred.base)
-            kernel_task.add_output(self._cu_func_pointers_deferred.base)
+            kernel_task.add_reduction(self._created_array.base,ReductionOp.MUL)
             kernel_task.execute()
-            print("IRINA DEBUG proc_ids =", self._proc_ids);
+            print("IRINA DEBUG created array= ",self._created_array);
+            self._created = bool(self._created_array[0])
             #get_legate_runtime().issue_execution_fence(block=True)
 
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
@@ -396,10 +390,10 @@ class vectorize:
             ptx_hash = hash(self._gpu_func[0])
             print("IRINA DEBUG executing UDF for hash = ", ptx_hash)
             task.add_scalar_arg(ptx_hash, ty.int64)
-            task.add_input(self._proc_ids_deferred.base)
-            task.add_input(self._cu_func_pointers_deferred.base)
-            task.add_broadcast(self._proc_ids_deferred.base)
-            task.add_broadcast(self._cu_func_pointers_deferred.base)
+            task.add_input(self._created_array.base)
+            #task.add_input(self._cu_func_pointers_deferred.base)
+            #task.add_broadcast(self._proc_ids_deferred.base)
+          #task.add_broadcast(self._cu_func_pointers_deferred.base)
 
         else:
             task.add_scalar_arg(
@@ -488,8 +482,6 @@ class vectorize:
             # profiler = cProfile.Profile()
             # profiler.enable()
             self._execute(True, runtime.num_gpus)
-            if not self._created and self._cache:
-                self._created = True
             # profiler.disable()
             # stats = pstats.Stats(profiler).sort_stats('cumtime')
             # stats.print_stats()
