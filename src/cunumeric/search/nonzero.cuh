@@ -21,7 +21,7 @@
 
 namespace cunumeric {
 
-using namespace Legion;
+using namespace legate;
 
 template <typename Output, typename Pitches, typename Point, typename VAL, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)

@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "legion.h"
+#include "core/utilities/typedefs.h"
 
 namespace cunumeric {
 

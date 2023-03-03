@@ -23,7 +23,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
@@ -57,7 +56,7 @@ struct BinaryRedImpl {
     auto in1 = args.in1.read_accessor<ARG, DIM>(rect);
     auto in2 = args.in2.read_accessor<ARG, DIM>(rect);
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = in1.accessor.is_dense_row_major(rect) && in2.accessor.is_dense_row_major(rect);
 #else

@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE>
@@ -102,7 +101,8 @@ struct MatMulImpl {
                                  rhs1_stride,
                                  rhs2_stride,
                                  rhs1_transposed,
-                                 rhs2_transposed);
+                                 rhs2_transposed,
+                                 args.lhs.is_readable());
   }
 
   template <LegateTypeCode CODE, std::enable_if_t<!support_matmul<CODE>::value>* = nullptr>

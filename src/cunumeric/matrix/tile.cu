@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename VAL, int32_t OUT_DIM, int32_t IN_DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   tile_kernel(const Rect<OUT_DIM> out_rect,

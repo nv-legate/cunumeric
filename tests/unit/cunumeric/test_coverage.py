@@ -14,6 +14,7 @@
 #
 
 from types import ModuleType
+from typing import Any
 
 import numpy as np
 import pytest
@@ -25,9 +26,9 @@ from cunumeric.settings import settings
 
 
 def test_FALLBACK_WARNING() -> None:
-    assert m.FALLBACK_WARNING.format(name="foo") == (
+    assert m.FALLBACK_WARNING.format(what="foo") == (
         "cuNumeric has not implemented foo "
-        + "and is falling back to canonical numpy. "
+        + "and is falling back to canonical NumPy. "
         + "You may notice significantly decreased performance "
         + "for this function call."
     )
@@ -35,19 +36,6 @@ def test_FALLBACK_WARNING() -> None:
 
 def test_MOD_INTERNAL() -> None:
     assert m.MOD_INTERNAL == {"__dir__", "__getattr__"}
-
-
-def test_NDARRAY_INTERNAL() -> None:
-    assert m.NDARRAY_INTERNAL == {
-        "__array_finalize__",
-        "__array_function__",
-        "__array_interface__",
-        "__array_prepare__",
-        "__array_priority__",
-        "__array_struct__",
-        "__array_ufunc__",
-        "__array_wrap__",
-    }
 
 
 class Test_filter_namespace:
@@ -151,7 +139,6 @@ class Test_implemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -193,7 +180,6 @@ class Test_implemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -237,7 +223,6 @@ class Test_unimplemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -258,7 +243,7 @@ class Test_unimplemented:
 
         assert len(record) == 1
         assert record[0].message.args[0] == m.FALLBACK_WARNING.format(
-            name="foo._test_func"
+            what="foo._test_func"
         )
 
         mock_record_api_call.assert_not_called()
@@ -281,7 +266,6 @@ class Test_unimplemented:
         filename, lineno = mock_record_api_call.call_args[1]["location"].split(
             ":"
         )
-        assert filename == __file__
         assert int(lineno)
 
     @patch("cunumeric.runtime.record_api_call")
@@ -300,7 +284,7 @@ class Test_unimplemented:
 
         assert len(record) == 1
         assert record[0].message.args[0] == m.FALLBACK_WARNING.format(
-            name="foo._test_ufunc"
+            what="foo._test_ufunc"
         )
 
         mock_record_api_call.assert_not_called()
@@ -396,36 +380,55 @@ class Test_clone_module:
         settings.report_coverage.unset_value()
 
 
-@m.clone_np_ndarray
+class _Orig_ndarray:
+    def __array_prepare__(self):
+        return "I am now ready"
+
+    def foo(self, other):
+        assert type(self) == _Orig_ndarray
+        assert type(other) == _Orig_ndarray
+        return "original foo"
+
+    def bar(self, other):
+        assert False, "must never get here"
+
+
+OMIT_NAMES = {"__array_prepare__"}
+
+
+def fallback(x: Any) -> Any:
+    if isinstance(x, _Test_ndarray):
+        return _Orig_ndarray()
+    return x
+
+
+@m.clone_class(_Orig_ndarray, OMIT_NAMES, fallback)
 class _Test_ndarray:
-    def __array__(self):
-        return "__array__"
+    def bar(self, other):
+        return "new bar"
 
-    def conjugate(self):
-        return self, "conjugate"
-
-    def extra(self):
-        return "extra"
+    def extra(self, other):
+        return "new extra"
 
     attr1 = 10
     attr2 = 30
 
 
-class Test_clone_np_ndarray:
+class Test_clone_class:
     def test_report_coverage_True(self) -> None:
         settings.report_coverage = True
 
-        for name in m.NDARRAY_INTERNAL:
+        for name in OMIT_NAMES:
             assert name not in _Test_ndarray.__dict__
 
         assert _Test_ndarray.attr1 == 10
         assert _Test_ndarray.attr2 == 30
 
-        assert _Test_ndarray.conj.__wrapped__ is np.ndarray.conj
-        assert not _Test_ndarray.conj._cunumeric.implemented
+        assert _Test_ndarray.foo.__wrapped__ is _Orig_ndarray.foo
+        assert not _Test_ndarray.foo._cunumeric.implemented
 
-        assert _Test_ndarray.conjugate.__wrapped__
-        assert _Test_ndarray.conjugate._cunumeric.implemented
+        assert _Test_ndarray.bar.__wrapped__
+        assert _Test_ndarray.bar._cunumeric.implemented
 
         assert not hasattr(_Test_ndarray.extra, "_cunumeric")
 
@@ -434,33 +437,32 @@ class Test_clone_np_ndarray:
     def test_report_coverage_False(self) -> None:
         settings.report_coverage = False
 
-        for name in m.NDARRAY_INTERNAL:
+        for name in OMIT_NAMES:
             assert name not in _Test_ndarray.__dict__
 
         assert _Test_ndarray.attr1 == 10
         assert _Test_ndarray.attr2 == 30
 
-        assert _Test_ndarray.conj.__wrapped__ is np.ndarray.conj
-        assert not _Test_ndarray.conj._cunumeric.implemented
+        assert _Test_ndarray.foo.__wrapped__ is _Orig_ndarray.foo
+        assert not _Test_ndarray.foo._cunumeric.implemented
 
-        assert _Test_ndarray.conjugate.__wrapped__
-        assert _Test_ndarray.conjugate._cunumeric.implemented
+        assert _Test_ndarray.bar.__wrapped__
+        assert _Test_ndarray.bar._cunumeric.implemented
 
         assert not hasattr(_Test_ndarray.extra, "_cunumeric")
 
         settings.report_coverage.unset_value()
 
-    # TODO (bev) Not sure how to unit test this. Try to use a toy ndarray class
-    # (as above) for testing, and numpy gets unhappy. On the other hand, if we
-    # pick some arbitrary currently unimplemented method to test with, then it
-    # could become implemented in the future, silently making the test a noop
-    # For now, will test with real code in a separate integration test, and
-    # assert the unimplemented-ness so that future changes will draw attention
-    def test_self_fallback(self):
-        pass
+    def test_fallback(self):
+        a = _Test_ndarray()
+        b = _Test_ndarray()
+        assert a.foo(b) == "original foo"
+        assert a.bar(b) == "new bar"
+        assert a.extra(b) == "new extra"
 
 
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

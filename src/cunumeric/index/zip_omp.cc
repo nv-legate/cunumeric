@@ -19,7 +19,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <int DIM, int N>
@@ -45,7 +44,7 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
         auto outptr                       = out.ptr(rect);
 #pragma omp parallel for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
-          Legion::Point<N> new_point;
+          Point<N> new_point;
           for (size_t i = 0; i < N; i++) {
             auto pair    = compute_idx_omp(indx_ptrs[i][idx], shape[i]);
             new_point[i] = pair.first;
@@ -57,7 +56,7 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
 #pragma omp parallel for schedule(static)
         for (size_t idx = 0; idx < volume; ++idx) {
           auto p = pitches.unflatten(idx, rect.lo);
-          Legion::Point<N> new_point;
+          Point<N> new_point;
           for (size_t i = 0; i < N; i++) {
             auto pair    = compute_idx_omp(index_arrays[i][p], shape[i]);
             new_point[i] = pair.first;
@@ -73,7 +72,7 @@ struct ZipImplBody<VariantKind::OMP, DIM, N> {
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);
-        Legion::Point<N> new_point;
+        Point<N> new_point;
         for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
         for (size_t i = 0; i < index_arrays.size(); i++) {
           auto pair                  = compute_idx_omp(index_arrays[i][p], shape[start_index + i]);

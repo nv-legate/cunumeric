@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename WriteAcc, typename Rng, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) rand_kernel(
   size_t volume, WriteAcc out, Rng rng, Point<DIM> strides, Pitches<DIM - 1> pitches, Point<DIM> lo)

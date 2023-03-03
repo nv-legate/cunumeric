@@ -21,8 +21,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename VAL>
 static __device__ inline void _bincount(int32_t* bins,
                                         AccessorRO<VAL, 1> rhs,
