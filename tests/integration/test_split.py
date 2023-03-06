@@ -29,8 +29,6 @@ import cunumeric as num
 # cunumeric.dsplit(a: ndarray, indices: Union[int, ndarray])
 # → list[cunumeric.array.ndarray]    (axis=2)
 
-# Seed the random generator with a random number
-np.random.seed(416)
 
 DIM = 5
 SIZES = [
@@ -210,58 +208,44 @@ def compare_array(a, b):
     return True
 
 
+def get_indices(arr, axis):
+    indices_arr = []
+
+    if arr.shape[axis] == 1:
+        indices_arr.append(1)  # in index
+
+    elif arr.shape[axis] > 1:
+        for div in range(2, (int)(math.sqrt(arr.shape[axis]) + 1)):
+            if arr.shape[axis] % div == 0:
+                indices_arr.append(div)
+
+                # in index
+                indices_arr.append(list(range(1, arr.shape[axis], div)))
+
+                # out index
+                indices_arr.append(list(range(0, arr.shape[axis] + div * np.random.randint(1, 10), div)))
+                indices_arr.append(list(range(arr.shape[axis] + div * np.random.randint(1, 10), 0, -div)))
+
+        # if indivisible
+        if len(indices_arr) == 0:
+            indices_arr.append(1)
+            indices_arr.append(arr.shape[axis])
+            indices_arr.append(list(range(1, arr.shape[axis], 1)))
+
+            # out index
+            indices_arr.append(list(range(0, arr.shape[axis] + 1 * np.random.randint(1, 10), 1)))
+            indices_arr.append(list(range(arr.shape[axis] + 1 * np.random.randint(1, 10), 0, -1)))
+
+    return indices_arr
+
+
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_split(size):
     a = np.random.randint(low=0, high=100, size=size)
     axis_list = list(range(a.ndim))
     axis_list.append(-1)
     for axis in axis_list:
-        input_arr = []
-        even_div = None
-        uneven_div = None
-
-        if a.shape[axis] > 1:
-            for div in range(1, (int)(math.sqrt(a.shape[axis]) + 1)):
-                if a.shape[axis] % div == 0:
-                    even_div = div
-                else:
-                    uneven_div = div
-                if even_div is not None:
-                    break
-
-        # divisible integer
-        if even_div:
-            input_arr.append(even_div)
-        else:
-            input_arr.append(1)
-
-        if uneven_div:
-            input_arr.append(uneven_div)
-        # indices array which has points
-        # within the target dimension of the src array
-        if a.shape[axis] > 1 and even_div is not None:
-            input_arr.append(list(range(1, a.shape[axis], even_div)))
-        # indices array which has points
-        # out of the target dimension of the src array
-        if even_div is not None:
-            input_arr.append(
-                list(
-                    range(
-                        0,
-                        a.shape[axis] + even_div * np.random.randint(1, 10),
-                        even_div,
-                    )
-                )
-            )
-            input_arr.append(
-                list(
-                    range(
-                        a.shape[axis] + even_div * np.random.randint(1, 10),
-                        0,
-                        -even_div,
-                    )
-                )
-            )
+        input_arr = get_indices(a, axis)
 
         for input_opt in input_arr:
             func_num = getattr(num, "split")
@@ -277,56 +261,12 @@ def test_split(size):
 @pytest.mark.parametrize("size", SIZES_NO_EMPTY, ids=str)
 def test_split_different_split(size, func_name):
     a = np.random.randint(low=0, high=100, size=size)
-
-    input_arr = []
-    even_div = None
-    uneven_div = None
     axis = AXIS_FUNCS[func_name]
+
     if axis >= a.ndim:
         return
-    if a.shape[axis] > 1:
-        for div in range(1, (int)(math.sqrt(a.shape[axis]) + 1)):
-            if a.shape[axis] % div == 0:
-                even_div = div
-            else:
-                uneven_div = div
-            if even_div is not None:
-                break
 
-    # divisible integer
-    if even_div:
-        input_arr.append(even_div)
-    else:
-        input_arr.append(1)
-
-    if uneven_div:
-        input_arr.append(uneven_div)
-    # indices array which has points
-    # within the target dimension of the src array
-    if a.shape[axis] > 1 and even_div is not None:
-        input_arr.append(list(range(1, a.shape[axis], even_div)))
-    # indices array which has points
-    # out of the target dimension of the src array
-    if even_div is not None:
-        input_arr.append(
-            list(
-                range(
-                    0,
-                    a.shape[axis] + even_div * np.random.randint(1, 10),
-                    even_div,
-                )
-            )
-        )
-        input_arr.append(
-            list(
-                range(
-                    a.shape[axis] + even_div * np.random.randint(1, 10),
-                    0,
-                    -even_div,
-                )
-            )
-        )
-
+    input_arr = get_indices(a, axis)
     for input_opt in input_arr:
         func_num = getattr(num, func_name)
         func_np = getattr(np, func_name)
@@ -336,8 +276,8 @@ def test_split_different_split(size, func_name):
 
         assert compare_array(res_num, res_np)
 
-
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
