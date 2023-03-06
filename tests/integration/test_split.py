@@ -223,8 +223,24 @@ def get_indices(arr, axis):
                 indices_arr.append(list(range(1, arr.shape[axis], div)))
 
                 # out index
-                indices_arr.append(list(range(0, arr.shape[axis] + div * np.random.randint(1, 10), div)))
-                indices_arr.append(list(range(arr.shape[axis] + div * np.random.randint(1, 10), 0, -div)))
+                indices_arr.append(
+                    list(
+                        range(
+                            0,
+                            arr.shape[axis] + div * np.random.randint(1, 10),
+                            div,
+                        )
+                    )
+                )
+                indices_arr.append(
+                    list(
+                        range(
+                            arr.shape[axis] + div * np.random.randint(1, 10),
+                            0,
+                            -div,
+                        )
+                    )
+                )
 
         # if indivisible
         if len(indices_arr) == 0:
@@ -233,8 +249,18 @@ def get_indices(arr, axis):
             indices_arr.append(list(range(1, arr.shape[axis], 1)))
 
             # out index
-            indices_arr.append(list(range(0, arr.shape[axis] + 1 * np.random.randint(1, 10), 1)))
-            indices_arr.append(list(range(arr.shape[axis] + 1 * np.random.randint(1, 10), 0, -1)))
+            indices_arr.append(
+                list(
+                    range(0, arr.shape[axis] + 1 * np.random.randint(1, 10), 1)
+                )
+            )
+            indices_arr.append(
+                list(
+                    range(
+                        arr.shape[axis] + 1 * np.random.randint(1, 10), 0, -1
+                    )
+                )
+            )
 
     return indices_arr
 
@@ -275,6 +301,7 @@ def test_split_different_split(size, func_name):
         res_np = func_np(a, input_opt)
 
         assert compare_array(res_num, res_np)
+
 
 if __name__ == "__main__":
     import sys
