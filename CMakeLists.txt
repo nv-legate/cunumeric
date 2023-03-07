@@ -37,7 +37,7 @@ endif()
 # - Download and initialize RAPIDS CMake helpers -----------------------------
 
 if(NOT EXISTS ${CMAKE_BINARY_DIR}/RAPIDS.cmake)
-  file(DOWNLOAD https://raw.githubusercontent.com/rapidsai/rapids-cmake/branch-22.08/RAPIDS.cmake
+  file(DOWNLOAD https://raw.githubusercontent.com/rapidsai/rapids-cmake/branch-23.02/RAPIDS.cmake
        ${CMAKE_BINARY_DIR}/RAPIDS.cmake)
 endif()
 include(${CMAKE_BINARY_DIR}/RAPIDS.cmake)
@@ -47,7 +47,7 @@ include(rapids-cuda)
 include(rapids-export)
 include(rapids-find)
 
-set(cunumeric_version 22.12.00)
+set(cunumeric_version 23.03.00)
 
 # For now we want the optimization flags to match on both normal make and cmake
 # builds so we override the cmake defaults here for release, this changes
