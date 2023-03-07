@@ -1,5 +1,7 @@
 #! /usr/bin/env bash
 
+set -e;
+
 launch_devcontainer() {
 
     # Ensure we're in the repo root
@@ -13,15 +15,14 @@ launch_devcontainer() {
         *      ) mode="unified";;
     esac
 
+    local tmpdir="$(mktemp -d)";
     local flavor="conda/${mode}";
     local workspace="$(basename "$(pwd)")";
-    local tmpdir="$(mktemp -d)/${workspace}";
     local path="$(pwd)/.devcontainer/${flavor}";
 
-    mkdir -p "${tmpdir}";
-    cp -arL "$path/.devcontainer" "${tmpdir}/";
-    sed -i "s@\${localWorkspaceFolder}@$(pwd)@g" "${tmpdir}/.devcontainer/devcontainer.json";
-    path="${tmpdir}";
+    cp -arL "${path}" "${tmpdir}/${workspace}";
+    sed -i "s@\${localWorkspaceFolder}@$(pwd)@g" "${tmpdir}/${workspace}/.devcontainer.json";
+    path="${tmpdir}/${workspace}";
 
     local hash="$(echo -n "${path}" | xxd -pu - | tr -d '[:space:]')";
     local url="vscode://vscode-remote/dev-container+${hash}/home/coder";
@@ -36,7 +37,7 @@ launch_devcontainer() {
     fi
 
     if [ -n "${launch}" ]; then
-        code --new-window "${tmpdir}";
+        code --new-window "${tmpdir}/${workspace}";
         exec "${launch}" "${url}" >/dev/null 2>&1;
     fi
 }
