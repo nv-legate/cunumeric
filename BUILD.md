@@ -77,4 +77,4 @@ The Python source tree and CMake build tree are now available with the environme
 for running cuNumeric programs. The diagram below illustrates the
 complete workflow for building both Legate core and cuNumeric.
 
-<img src="https://raw.githubusercontent.com/nv-legate/cunumeric/branch-23.05/docs/figures/developer-build.png" alt="drawing" width="600"/>
+<img src="https://raw.githubusercontent.com/nv-legate/cunumeric/branch-23.03/docs/figures/developer-build.png" alt="drawing" width="600"/>
