@@ -5,6 +5,7 @@ gpu_enabled:
 python:
   - "3.9,!=3.9.7"
   - 3.10
+  - 3.11
 
 numpy_version:
   - ">=1.22"
