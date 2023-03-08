@@ -206,6 +206,10 @@ class vectorize:
 
         # Preamble
         lines = ["from numba import cuda"]
+        lines.append("import math")
+        lines.append("import numpy")
+        lines.append("import scipy.special")
+        lines.append("import numba_scipy")
 
         # Signature
         args = (
@@ -353,35 +357,32 @@ class vectorize:
         return numba.cfunc(sig)(self._numba_func)
 
     def _execute(self, is_gpu: bool, num_gpus: int = 0) -> None:
-        #print("IRINA DEBUG in execute")
         if is_gpu and not self._created:
             # create CUDA kernel
             launch_domain = Rect(lo=(0,), hi=(num_gpus,))
             kernel_task = self._context.create_task(
                 CuNumericOpCode.CREATE_CU_KERNEL,
-                #manual=True,
                 launch_domain=launch_domain,
             )
             ptx_hash = hash(self._gpu_func[0])
-            #print("IRINA DEBUG creating CUkernel for hash = ", ptx_hash)
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            #kernel_task.add_reduction(self._created_array_deferred.base,ReductionOp.MUL)
             kernel_task.add_output(self._created_array_deferred.base)
             kernel_task.execute()
-            #print("IRINA DEBUG created array= ",self._created_array);
+            # inline map first element of the array to make sure the CREATE_CU_KERNEL
+            # task has finished by the time we set self._created to True 
             if self._cache:
                 self._created = bool(self._created_array[0])
-            #get_legate_runtime().issue_execution_fence(block=True)
 
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-        task.add_scalar_arg(self._num_outputs, ty.uint32)
-        task.add_scalar_arg(len(self._scalar_args), ty.uint32)
-
+        task.add_scalar_arg(self._num_outputs, ty.uint32) # N of outputs
+        task.add_scalar_arg(len(self._scalar_args), ty.uint32) # N of scalar_args
+        # add all scalars 
         for a in self._scalar_args:
             dtype = convert_to_cunumeric_dtype(type(a).__name__)
             task.add_scalar_arg(a, dtype)
 
+        # add array arguments
         a0 = self._args[0]._thunk
         a0 = runtime.to_deferred_array(a0)
         for count, a in enumerate(self._args):
@@ -395,13 +396,11 @@ class vectorize:
 
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
-            #print("IRINA DEBUG executing UDF for hash = ", ptx_hash)
             task.add_scalar_arg(ptx_hash, ty.int64)
+            # passing the _created * array to introduce dependency between
+            # CREATE_CU_KERNEL task and EVAL_UDF task
             task.add_input(self._created_array_deferred.base)
             task.add_broadcast(self._created_array_deferred.base)
-            #task.add_input(self._cu_func_pointers_deferred.base)
-            #task.add_broadcast(self._proc_ids_deferred.base)
-          #task.add_broadcast(self._cu_func_pointers_deferred.base)
 
         else:
             task.add_scalar_arg(
@@ -487,12 +486,12 @@ class vectorize:
                 # print("IRINA DEBUG ptx is not created yet")
                 self._numba_func = self._build_gpu_function()
                 self._gpu_func = self._compile_func_gpu()
-            # profiler = cProfile.Profile()
-            # profiler.enable()
+            #profiler = cProfile.Profile()
+            #profiler.enable()
             self._execute(True, runtime.num_gpus)
-            # profiler.disable()
-            # stats = pstats.Stats(profiler).sort_stats('cumtime')
-            # stats.print_stats()
+            #profiler.disable()
+            #stats = pstats.Stats(profiler).sort_stats('cumtime')
+            #stats.print_stats()
         else:
             if not self._created:
                 self._numba_func = self._build_cpu_function()
