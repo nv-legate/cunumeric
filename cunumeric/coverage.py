@@ -257,25 +257,25 @@ def clone_module(
                     "reduce",
                     reporting=reporting,
                 )
-                wrapped.reduceat = implemented(  # type: ignore
+                wrapped.reduceat = unimplemented(  # type: ignore
                     value.reduceat,  # type: ignore
                     f"{mod_name}.{attr}",
                     "reduceat",
                     reporting=reporting,
                 )
-                wrapped.at = implemented(  # type: ignore
+                wrapped.at = unimplemented(  # type: ignore
                     value.at,  # type: ignore
                     f"{mod_name}.{attr}",
                     "at",
                     reporting=reporting,
                 )
-                wrapped.accumulate = implemented(  # type: ignore
+                wrapped.accumulate = unimplemented(  # type: ignore
                     value.accumulate,  # type: ignore
                     f"{mod_name}.{attr}",
                     "accumulate",
                     reporting=reporting,
                 )
-                wrapped.outer = implemented(  # type: ignore
+                wrapped.outer = unimplemented(  # type: ignore
                     value.outer,  # type: ignore
                     f"{mod_name}.{attr}",
                     "outer",
@@ -310,7 +310,7 @@ def clone_module(
                     "reduceat",
                     reporting=reporting,
                 )
-                wrapped.at = implemented(  # type: ignore
+                wrapped.at = unimplemented(  # type: ignore
                     value.at,
                     f"{mod_name}.{attr}",
                     "at",
