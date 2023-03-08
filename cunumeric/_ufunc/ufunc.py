@@ -18,7 +18,11 @@ from typing import TYPE_CHECKING, Any, Dict, Sequence, Union
 
 import numpy as np
 
-from ..array import convert_to_cunumeric_ndarray, ndarray
+from ..array import (
+    convert_to_cunumeric_ndarray,
+    maybe_convert_to_np_ndarray,
+    ndarray,
+)
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from ..types import NdShape
 
@@ -352,10 +356,10 @@ class unary_ufunc_base(ufunc):
         self,
         a: ndarray,
         indices: Union[ndarray, tuple[int, ...]],
-        b: Union[ndarray, None] = None,
     ) -> None:
-        _b = b.__array__() if b is not None else None
-        return getattr(np, self._name).at(a.__array__(), np.array(indices), _b)
+        _a = maybe_convert_to_np_ndarray(a)
+        _indices = maybe_convert_to_np_ndarray(indices)
+        return getattr(np, self._name).at(_a, _indices)
 
     def accumulate(
         self,
@@ -833,10 +837,12 @@ class binary_ufunc(ufunc):
         self,
         a: ndarray,
         indices: Union[ndarray, tuple[int, ...]],
-        b: Union[ndarray, None] = None,
+        b: ndarray,
     ) -> None:
-        _b = b.__array__() if b is not None else None
-        return getattr(np, self._name).at(a.__array__(), np.array(indices), _b)
+        _a = maybe_convert_to_np_ndarray(a)
+        _indices = maybe_convert_to_np_ndarray(indices)
+        _b = maybe_convert_to_np_ndarray(b)
+        return getattr(np, self._name).at(_a, _indices, _b)
 
     def accumulate(
         self,
@@ -845,9 +851,9 @@ class binary_ufunc(ufunc):
         dtype: Union[np.dtype[Any], None] = None,
         out: Union[ndarray, None] = None,
     ) -> ndarray:
-        return getattr(np, self._name).accumulate(
-            array.__array__(), axis, dtype, out
-        )
+        _array = maybe_convert_to_np_ndarray(array)
+        _out = maybe_convert_to_np_ndarray(out)
+        return getattr(np, self._name).accumulate(_array, axis, dtype, _out)
 
     def reduceat(
         self,
@@ -857,8 +863,11 @@ class binary_ufunc(ufunc):
         dtype: Union[np.dtype[Any], None] = None,
         out: Union[ndarray, None] = None,
     ) -> ndarray:
+        _array = maybe_convert_to_np_ndarray(array)
+        _indices = maybe_convert_to_np_ndarray(indices)
+        _out = maybe_convert_to_np_ndarray(out)
         return getattr(np, self._name).reduceat(
-            array.__array__(), indices, axis, dtype, out
+            _array, _indices, axis, dtype, _out
         )
 
     def outer(
@@ -867,9 +876,9 @@ class binary_ufunc(ufunc):
         B: ndarray,
         **kwargs: Any,
     ) -> ndarray:
-        return getattr(np, self._name).outer(
-            A.__array__(), B.__array__(), **kwargs
-        )
+        _A = maybe_convert_to_np_ndarray(A)
+        _B = maybe_convert_to_np_ndarray(B)
+        return getattr(np, self._name).outer(_A, _B, **kwargs)
 
 
 def _parse_unary_ufunc_type(ty: str) -> tuple[str, str]:
