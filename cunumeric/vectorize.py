@@ -367,6 +367,8 @@ class vectorize:
             ptx_hash = hash(self._gpu_func[0])
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
+            #added to introduce dependency between this and EVAL_UDF task
+            kernel_task.add_input(self._created_array_deferred.base)
             kernel_task.add_output(self._created_array_deferred.base)
             kernel_task.execute()
             # inline map first element of the array to make sure the CREATE_CU_KERNEL
