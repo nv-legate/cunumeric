@@ -18,11 +18,7 @@ from typing import TYPE_CHECKING, Any, Dict, Sequence, Union
 
 import numpy as np
 
-from ..array import (
-    convert_to_cunumeric_ndarray,
-    maybe_convert_to_np_ndarray,
-    ndarray,
-)
+from ..array import convert_to_cunumeric_ndarray, ndarray
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from ..types import NdShape
 
@@ -191,6 +187,10 @@ class ufunc:
         self.__doc__ = doc
 
     @property
+    def __name__(self) -> str:
+        return self._name
+
+    @property
     def nin(self) -> int:
         return self._nin
 
@@ -339,57 +339,7 @@ class ufunc:
         return f"<ufunc {self._name}>"
 
 
-class unary_ufunc_base(ufunc):
-    def reduce(
-        self,
-        array: ndarray,
-        axis: Union[int, tuple[int, ...], None] = 0,
-        dtype: Union[np.dtype[Any], None] = None,
-        out: Union[ndarray, None] = None,
-        keepdims: bool = False,
-        initial: Union[Any, None] = None,
-        where: bool = True,
-    ) -> ndarray:
-        raise ValueError("reduce only supported for binary functions")
-
-    def at(
-        self,
-        a: ndarray,
-        indices: Union[ndarray, tuple[int, ...]],
-    ) -> None:
-        _a = maybe_convert_to_np_ndarray(a)
-        _indices = maybe_convert_to_np_ndarray(indices)
-        return getattr(np, self._name).at(_a, _indices)
-
-    def accumulate(
-        self,
-        array: ndarray,
-        axis: Union[int, tuple[int, ...], None] = 0,
-        dtype: Union[np.dtype[Any], None] = None,
-        out: Union[ndarray, None] = None,
-    ) -> ndarray:
-        raise ValueError("accumulate only supported for binary functions")
-
-    def reduceat(
-        self,
-        array: ndarray,
-        indices: ndarray,
-        axis: Union[int, tuple[int, ...], None] = 0,
-        dtype: Union[np.dtype[Any], None] = None,
-        out: Union[ndarray, None] = None,
-    ) -> ndarray:
-        raise ValueError("reduceat only supported for binary functions")
-
-    def outer(
-        self,
-        A: ndarray,
-        B: ndarray,
-        **kwargs: Any,
-    ) -> ndarray:
-        raise ValueError("outer product only supported for binary functions")
-
-
-class unary_ufunc(unary_ufunc_base):
+class unary_ufunc(ufunc):
     def __init__(
         self,
         name: str,
@@ -480,7 +430,7 @@ class unary_ufunc(unary_ufunc_base):
         return self._maybe_cast_output(out, result)
 
 
-class multiout_unary_ufunc(unary_ufunc_base):
+class multiout_unary_ufunc(ufunc):
     def __init__(
         self, name: str, doc: str, op_code: UnaryOpCode, types: dict[Any, Any]
     ) -> None:
@@ -832,53 +782,6 @@ class binary_ufunc(ufunc):
             initial=initial,
             where=where,
         )
-
-    def at(
-        self,
-        a: ndarray,
-        indices: Union[ndarray, tuple[int, ...]],
-        b: ndarray,
-    ) -> None:
-        _a = maybe_convert_to_np_ndarray(a)
-        _indices = maybe_convert_to_np_ndarray(indices)
-        _b = maybe_convert_to_np_ndarray(b)
-        return getattr(np, self._name).at(_a, _indices, _b)
-
-    def accumulate(
-        self,
-        array: ndarray,
-        axis: Union[int, tuple[int, ...], None] = 0,
-        dtype: Union[np.dtype[Any], None] = None,
-        out: Union[ndarray, None] = None,
-    ) -> ndarray:
-        _array = maybe_convert_to_np_ndarray(array)
-        _out = maybe_convert_to_np_ndarray(out)
-        return getattr(np, self._name).accumulate(_array, axis, dtype, _out)
-
-    def reduceat(
-        self,
-        array: ndarray,
-        indices: ndarray,
-        axis: Union[int, tuple[int, ...], None] = 0,
-        dtype: Union[np.dtype[Any], None] = None,
-        out: Union[ndarray, None] = None,
-    ) -> ndarray:
-        _array = maybe_convert_to_np_ndarray(array)
-        _indices = maybe_convert_to_np_ndarray(indices)
-        _out = maybe_convert_to_np_ndarray(out)
-        return getattr(np, self._name).reduceat(
-            _array, _indices, axis, dtype, _out
-        )
-
-    def outer(
-        self,
-        A: ndarray,
-        B: ndarray,
-        **kwargs: Any,
-    ) -> ndarray:
-        _A = maybe_convert_to_np_ndarray(A)
-        _B = maybe_convert_to_np_ndarray(B)
-        return getattr(np, self._name).outer(_A, _B, **kwargs)
 
 
 def _parse_unary_ufunc_type(ty: str) -> tuple[str, str]:

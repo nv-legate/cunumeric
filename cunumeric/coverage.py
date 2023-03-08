@@ -53,6 +53,8 @@ FALLBACK_WARNING = (
 
 MOD_INTERNAL = {"__dir__", "__getattr__"}
 
+UFUNC_METHODS = ("at", "accumulate", "outer", "reduce", "reduceat")
+
 
 def filter_namespace(
     ns: Mapping[str, Any],
@@ -251,36 +253,24 @@ def clone_module(
             )
             new_globals[attr] = wrapped
             if isinstance(value, lgufunc):
-                wrapped.reduce = implemented(  # type: ignore
-                    value.reduce,  # type: ignore
-                    f"{mod_name}.{attr}",
-                    "reduce",
-                    reporting=reporting,
-                )
-                wrapped.reduceat = unimplemented(  # type: ignore
-                    value.reduceat,  # type: ignore
-                    f"{mod_name}.{attr}",
-                    "reduceat",
-                    reporting=reporting,
-                )
-                wrapped.at = unimplemented(  # type: ignore
-                    value.at,  # type: ignore
-                    f"{mod_name}.{attr}",
-                    "at",
-                    reporting=reporting,
-                )
-                wrapped.accumulate = unimplemented(  # type: ignore
-                    value.accumulate,  # type: ignore
-                    f"{mod_name}.{attr}",
-                    "accumulate",
-                    reporting=reporting,
-                )
-                wrapped.outer = unimplemented(  # type: ignore
-                    value.outer,  # type: ignore
-                    f"{mod_name}.{attr}",
-                    "outer",
-                    reporting=reporting,
-                )
+                for method in UFUNC_METHODS:
+                    wrapped_method = (
+                        implemented(
+                            getattr(value, method),
+                            f"{mod_name}.{attr}",
+                            method,
+                            reporting=reporting,
+                        )
+                        if hasattr(value, method)
+                        else unimplemented(
+                            getattr(getattr(origin_module, attr), method),
+                            f"{mod_name}.{attr}",
+                            method,
+                            reporting=reporting,
+                            fallback=fallback,
+                        )
+                    )
+                    setattr(wrapped, method, wrapped_method)
 
     from numpy import ufunc as npufunc
 
@@ -298,36 +288,15 @@ def clone_module(
             )
             new_globals[attr] = wrapped
             if isinstance(value, npufunc):
-                wrapped.reduce = unimplemented(  # type: ignore
-                    value.reduce,
-                    f"{mod_name}.{attr}",
-                    "reduce",
-                    reporting=reporting,
-                )
-                wrapped.reduceat = unimplemented(  # type: ignore
-                    value.reduceat,  # type: ignore
-                    f"{mod_name}.{attr}",
-                    "reduceat",
-                    reporting=reporting,
-                )
-                wrapped.at = unimplemented(  # type: ignore
-                    value.at,
-                    f"{mod_name}.{attr}",
-                    "at",
-                    reporting=reporting,
-                )
-                wrapped.accumulate = unimplemented(  # type: ignore
-                    value.accumulate,
-                    f"{mod_name}.{attr}",
-                    "accumulate",
-                    reporting=reporting,
-                )
-                wrapped.outer = unimplemented(  # type: ignore
-                    value.outer,
-                    f"{mod_name}.{attr}",
-                    "outer",
-                    reporting=reporting,
-                )
+                for method in UFUNC_METHODS:
+                    wrapped_method = unimplemented(
+                        getattr(value, method),
+                        f"{mod_name}.{attr}",
+                        method,
+                        reporting=reporting,
+                        fallback=fallback,
+                    )
+                    setattr(wrapped, method, wrapped_method)
         else:
             new_globals[attr] = value
 
