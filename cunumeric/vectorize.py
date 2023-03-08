@@ -485,15 +485,9 @@ class vectorize:
 
         if runtime.num_gpus > 0:
             if not self._created:
-                # print("IRINA DEBUG ptx is not created yet")
                 self._numba_func = self._build_gpu_function()
                 self._gpu_func = self._compile_func_gpu()
-            #profiler = cProfile.Profile()
-            #profiler.enable()
             self._execute(True, runtime.num_gpus)
-            #profiler.disable()
-            #stats = pstats.Stats(profiler).sort_stats('cumtime')
-            #stats.print_stats()
         else:
             if not self._created:
                 self._numba_func = self._build_cpu_function()
@@ -502,6 +496,3 @@ class vectorize:
                     self._created = True
             self._execute(False)
 
-        # profiler.disable()
-        # stats = pstats.Stats(profiler).sort_stats('cumtime')
-        # stats.print_stats()
