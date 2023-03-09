@@ -362,6 +362,7 @@ class vectorize:
             launch_domain = Rect(lo=(0,), hi=(num_gpus,))
             kernel_task = self._context.create_task(
                 CuNumericOpCode.CREATE_CU_KERNEL,
+                manual=True,
                 launch_domain=launch_domain,
             )
             ptx_hash = hash(self._gpu_func[0])
@@ -371,7 +372,7 @@ class vectorize:
             #kernel_task.add_input(self._created_array_deferred.base)
             #kernel_task.add_output(self._created_array_deferred.base)
             kernel_task.execute()
-            get_legate_runtime().issue_execution_fence(block=True)
+            self._context.issue_execution_fence(block=True)
             # inline map first element of the array to make sure the CREATE_CU_KERNEL
 
             # task has finished by the time we set self._created to True 
