@@ -132,8 +132,8 @@ class vectorize:
         size_tmp=runtime.num_gpus
         if size_tmp==1:
            size_tmp=10
-        self._created_array = full((size_tmp,), True, dtype=bool)
-        self._created_array_deferred = runtime.to_deferred_array(self._created_array._thunk)
+        #self._created_array = full((size_tmp,), True, dtype=bool)
+        #self._created_array_deferred = runtime.to_deferred_array(self._created_array._thunk)
              #runtime.create_empty_thunk(
              #   (1,), dtype = np.dtype(np.bool), inputs=[])
 
@@ -368,13 +368,16 @@ class vectorize:
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
             #added to introduce dependency between this and EVAL_UDF task
-            kernel_task.add_input(self._created_array_deferred.base)
-            kernel_task.add_output(self._created_array_deferred.base)
+            #kernel_task.add_input(self._created_array_deferred.base)
+            #kernel_task.add_output(self._created_array_deferred.base)
             kernel_task.execute()
+            get_legate_runtime().issue_execution_fence(block=True)
             # inline map first element of the array to make sure the CREATE_CU_KERNEL
+
             # task has finished by the time we set self._created to True 
             if self._cache:
-                self._created = bool(self._created_array[0])
+                #self._created = bool(self._created_array[0])
+                self._created = True
 
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._num_outputs, ty.uint32) # N of outputs
@@ -401,8 +404,8 @@ class vectorize:
             task.add_scalar_arg(ptx_hash, ty.int64)
             # passing the _created * array to introduce dependency between
             # CREATE_CU_KERNEL task and EVAL_UDF task
-            task.add_input(self._created_array_deferred.base)
-            task.add_broadcast(self._created_array_deferred.base)
+            #task.add_input(self._created_array_deferred.base)
+            #task.add_broadcast(self._created_array_deferred.base)
 
         else:
             task.add_scalar_arg(

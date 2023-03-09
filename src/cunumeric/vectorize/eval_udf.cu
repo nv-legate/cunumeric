@@ -32,7 +32,8 @@ struct EvalUdfGPU {
    using VAL = legate_type_of<CODE>;
    Rect<DIM> rect;
 
-   size_t input_size=args.inputs.size()-1;  
+  // size_t input_size=args.inputs.size()-1;  
+  size_t input_size=args.inputs.size();
   // auto procs_rect = args.inputs[input_size].shape<1>();
 
   //auto procs=args.inputs[input_size].read_accessor<uint64_t,1>();
