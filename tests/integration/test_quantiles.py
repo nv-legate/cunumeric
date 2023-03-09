@@ -458,4 +458,6 @@ def test_output_conversion(str_method, qs_arr, keepdims):
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
+
     sys.exit(pytest.main(sys.argv))
