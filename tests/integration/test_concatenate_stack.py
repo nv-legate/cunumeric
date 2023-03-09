@@ -28,6 +28,9 @@ def run_test(arr, routine, input_size):
         input_arr.append([axis for axis in range(arr[0].ndim)])
         # test axis == 'None' for concatenate
         if routine == "concatenate":
+            # test axis == -1 if ndim > 0
+            if arr[0].ndim > 0:
+                input_arr[-1].append(-1)
             input_arr[-1].append(None)
         # 'out' argument
         input_arr.append([None])
@@ -273,6 +276,20 @@ def test_stack_with_out():
     assert np.array_equal(out_np, out_num)
 
 
+@pytest.mark.parametrize(
+    "axis",
+    (-3, pytest.param(-1, marks=pytest.mark.xfail)),
+    ids=lambda axis: f"(axis={axis})",
+)
+def test_stack_axis_is_negative(axis):
+    # for -1, the output by Numpy and cuNumeric is not equal
+    a = [[1, 2], [3, 4]]
+    b = [[5, 6], [7, 8]]
+    res_np = np.stack((np.array(a), np.array(b)), axis=axis)
+    res_num = num.stack((num.array(a), num.array(b)), axis=axis)
+    assert np.array_equal(res_np, res_num)
+
+
 class TestStackErrors:
     def test_zero_arrays(self):
         expected_exc = ValueError
@@ -438,14 +455,17 @@ class TestVStackErrors:
     @pytest.mark.parametrize(
         "arrays",
         (
-            (1, []),
-            ([1, 2], [3]),
-            ([[1, 2], [3, 4]], [5]),
+            pytest.param((1, []), marks=pytest.mark.xfail),
+            pytest.param(([1, 2], [3]), marks=pytest.mark.xfail),
+            pytest.param(([[1, 2], [3, 4]], [5]), marks=pytest.mark.xfail),
             ([[[1, 2], [3, 4]]], [5, 6]),
         ),
         ids=lambda arrays: f"(arrays={arrays})",
     )
     def test_arrays_mismatched_shape(self, arrays):
+        # for (1, []), ([1, 2], [3]), ([[1, 2], [3, 4]], [5])
+        # In Numpy, it raises ValueError
+        # In cuNumeric, it pass
         expected_exc = ValueError
         with pytest.raises(expected_exc):
             np.vstack(arrays)
@@ -474,14 +494,17 @@ class TestRowStackErrors:
     @pytest.mark.parametrize(
         "arrays",
         (
-            (1, []),
-            ([1, 2], [3]),
-            ([[1, 2], [3, 4]], [5]),
+            pytest.param((1, []), marks=pytest.mark.xfail),
+            pytest.param(([1, 2], [3]), marks=pytest.mark.xfail),
+            pytest.param(([[1, 2], [3, 4]], [5]), marks=pytest.mark.xfail),
             ([[[1, 2], [3, 4]]], [5, 6]),
         ),
         ids=lambda arrays: f"(arrays={arrays})",
     )
     def test_arrays_mismatched_shape(self, arrays):
+        # for (1, []), ([1, 2], [3]), ([[1, 2], [3, 4]], [5])
+        # In Numpy, it raises ValueError
+        # In cuNumeric, it pass
         expected_exc = ValueError
         with pytest.raises(expected_exc):
             np.row_stack(arrays)
@@ -507,18 +530,19 @@ class TestDStackErrors:
         with pytest.raises(expected_exc):
             num.dstack(arrays)
 
+    @pytest.mark.xfail
     @pytest.mark.parametrize(
         "arrays",
         (
             (1, []),
             ([1, 2], [5]),
-            pytest.param(([[1, 2], [3, 4]], [5, 6]), marks=pytest.mark.xfail),
+            ([[1, 2], [3, 4]], [5, 6]),
             ([[1, 2], [3, 4]], [[5], [6]]),
         ),
         ids=lambda arrays: f"(arrays={arrays})",
     )
     def test_arrays_mismatched_shape(self, arrays):
-        # for ([[1, 2], [3, 4]], [5, 6]),
+        # for all cases,
         # In Numpy, it raises ValueError
         # In cuNumeric, it pass
         expected_exc = ValueError

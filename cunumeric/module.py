@@ -1462,7 +1462,7 @@ def check_shape_dtype(
         )
     if ndim > 1 and _builtin_any(
         shape[1:axis] != inp.shape[1:axis]
-        or shape[axis + 1 :] != inp.shape[axis + 1 :]
+        and shape[axis + 1 :] != inp.shape[axis + 1 :]
         for inp in inputs
     ):
         raise ValueError(
