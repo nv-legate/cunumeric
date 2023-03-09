@@ -208,8 +208,6 @@ class vectorize:
         lines = ["from numba import cuda"]
         lines.append("import math")
         lines.append("import numpy")
-        lines.append("import scipy.special")
-        lines.append("import numba_scipy")
 
         # Signature
         args = (
