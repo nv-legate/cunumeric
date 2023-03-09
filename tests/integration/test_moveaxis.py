@@ -74,7 +74,7 @@ def test_moveaxis_with_empty_array(a):
 
 
 class TestMoveAxisErrors:
-    def setup(self):
+    def setup_method(self):
         self.x = num.ones((3, 4, 5))
 
     def test_repeated_axis(self):
@@ -124,4 +124,5 @@ class TestMoveAxisErrors:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

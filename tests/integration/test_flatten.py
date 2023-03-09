@@ -44,7 +44,7 @@ def test_basic(order, size):
 
 
 class TestNdarrayFlattenErrors:
-    def setup(self):
+    def setup_method(self):
         size_a = (1, DIM)
         anp = np.random.randint(low=0, high=100, size=size_a)
         self.anum = num.array(anp)
@@ -85,4 +85,5 @@ class TestNdarrayFlattenErrors:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

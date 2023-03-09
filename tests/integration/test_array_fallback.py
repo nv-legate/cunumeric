@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import numpy as np
 import pytest
 
 import cunumeric as num
@@ -20,7 +21,6 @@ import cunumeric as num
 
 # ref: https://github.com/nv-legate/cunumeric/pull/430
 def test_unimplemented_method_self_fallback():
-
     ones = num.ones((10,))
     ones.mean()
 
@@ -36,4 +36,5 @@ def test_unimplemented_method_self_fallback():
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

@@ -24,7 +24,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, typename VAL, int DIM>
@@ -45,7 +44,7 @@ struct FillImpl {
     auto out        = args.out.write_accessor<VAL, DIM>(rect);
     auto fill_value = args.fill_value.read_accessor<VAL, 1>();
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = out.accessor.is_dense_row_major(rect);
 #else

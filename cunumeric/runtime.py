@@ -23,7 +23,6 @@ import legate.core.types as ty
 import numpy as np
 from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
 from legate.core.context import Context as LegateContext
-from legate.util.args import ArgSpec, Argument, parse_library_command_args
 from typing_extensions import TypeGuard
 
 from .config import (
@@ -37,6 +36,7 @@ from .config import (
 )
 from .deferred import DeferredArray
 from .eager import EagerArray
+from .settings import settings
 from .thunk import NumPyThunk
 from .types import NdShape
 from .utils import (
@@ -52,65 +52,6 @@ if TYPE_CHECKING:
     from legate.core.operation import AutoTask, ManualTask
 
     from .array import ndarray
-
-ARGS = [
-    Argument(
-        "test",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="test_mode",
-            help="Enable test mode. In test mode, all cuNumeric ndarrays are managed by the distributed runtime and the NumPy fallback for small arrays is turned off.",  # noqa E501
-        ),
-    ),
-    Argument(
-        "preload-cudalibs",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="preload_cudalibs",
-            help="Preload and initialize handles of all CUDA libraries (cuBLAS, cuSOLVER, etc.) used in cuNumericLoad CUDA libs early",  # noqa E501
-        ),
-    ),
-    Argument(
-        "warn",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="warning",
-            help="Turn on warnings",
-        ),
-    ),
-    Argument(
-        "report:coverage",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="report_coverage",
-            help="Print an overall percentage of cunumeric coverage",
-        ),
-    ),
-    Argument(
-        "report:dump-callstack",
-        ArgSpec(
-            action="store_true",
-            default=False,
-            dest="report_dump_callstack",
-            help="Print an overall percentage of cunumeric coverage with call stack details",  # noqa E501
-        ),
-    ),
-    Argument(
-        "report:dump-csv",
-        ArgSpec(
-            action="store",
-            type=str,
-            nargs="?",
-            default=None,
-            dest="report_dump_csv",
-            help="Save a coverage report to a specified CSV file",
-        ),
-    ),
-]
 
 
 class Runtime(object):
@@ -149,10 +90,9 @@ class Runtime(object):
         self.has_curand = cunumeric_lib.shared_object.cunumeric_has_curand()
         self._register_dtypes()
 
-        self.args = parse_library_command_args("cunumeric", ARGS)
-        self.args.warning = self.args.warning or self.args.test_mode
+        settings.warn = settings.warn() or settings.test()
 
-        if self.num_gpus > 0 and self.args.preload_cudalibs:
+        if self.num_gpus > 0 and settings.preload_cudalibs():
             self._load_cudalibs()
 
     def _register_dtypes(self) -> None:
@@ -173,7 +113,7 @@ class Runtime(object):
     def record_api_call(
         self, name: str, location: str, implemented: bool
     ) -> None:
-        assert self.args.report_coverage
+        assert settings.report_coverage()
         self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self) -> None:
@@ -219,17 +159,18 @@ class Runtime(object):
                 f"cuNumeric API coverage: {implemented}/{total} "
                 f"({implemented / total * 100}%)"
             )
-        if self.args.report_dump_csv is not None:
-            with open(self.args.report_dump_csv, "w") as f:
+
+        if (dump_csv := settings.report_dump_csv()) is not None:
+            with open(dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
-                for (func_name, loc, impl) in self.api_calls:
+                for func_name, loc, impl in self.api_calls:
                     print(f"{func_name},{loc},{impl}", file=f)
 
     def destroy(self) -> None:
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
-        if hasattr(self, "args") and self.args.report_coverage:
+        if settings.report_coverage():
             self._report_coverage()
         self.destroyed = True
 
@@ -569,7 +510,7 @@ class Runtime(object):
         if volume == 0:
             return True
         # If we're testing then the answer is always no
-        if self.args.test_mode:
+        if settings.test():
             return False
         if len(shape) > LEGATE_MAX_DIM:
             return True
@@ -615,7 +556,7 @@ class Runtime(object):
             raise RuntimeError("invalid array type")
 
     def warn(self, msg: str, category: type = UserWarning) -> None:
-        if not self.args.warning:
+        if not settings.warn():
             return
         stacklevel = find_last_user_stacklevel()
         warnings.warn(msg, stacklevel=stacklevel, category=category)

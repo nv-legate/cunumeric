@@ -121,7 +121,6 @@ def backward(
     y,
     p,
 ):
-
     assert z.shape == (X_size + H_size, 1)
     assert v.shape == (X_size, 1)
     assert y.shape == (X_size, 1)
@@ -185,7 +184,12 @@ def forward_backward(
     inputs, targets, h_prev, C_prev, T_steps, H_size, X_size, parameters
 ):
     # To store the values for each time step
-    x_s, z_s, f_s, i_s, = (
+    (
+        x_s,
+        z_s,
+        f_s,
+        i_s,
+    ) = (
         {},
         {},
         {},

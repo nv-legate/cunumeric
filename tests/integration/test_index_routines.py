@@ -26,7 +26,6 @@ from cunumeric.eager import diagonal_reference
 
 
 class TestChoose1d:
-
     choices1 = [
         [0, 1, 2, 3],
         [10, 11, 12, 13],
@@ -518,4 +517,5 @@ class TestDiagErrors:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

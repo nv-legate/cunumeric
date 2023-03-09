@@ -20,8 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 // This is the easy to understand functional specification of the
 // algorithm, but it is commented out in favor of the faster one
 // that is blocked for caches

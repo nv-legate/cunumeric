@@ -230,7 +230,6 @@ def test_future_stores():
 
 
 def test():
-
     # tests on 1D input array:
     print("advanced indexing test 1")
 
@@ -972,4 +971,5 @@ def test():
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

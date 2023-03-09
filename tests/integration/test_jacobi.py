@@ -21,7 +21,6 @@ import cunumeric as num
 
 
 def test_basic():
-
     height = 10
     width = 10
     grid = num.zeros((height + 2, width + 2), np.float32)
@@ -61,4 +60,5 @@ def test_basic():
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

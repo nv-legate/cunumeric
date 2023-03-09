@@ -45,11 +45,7 @@ float* allocate_buffer(size_t size);
 
 void half_vector_to_float(float* out, const __half* ptr, size_t n);
 
-void float_vector_to_half(__half* out, const float* ptr, size_t n);
-
 void half_matrix_to_float(float* out, const __half* ptr, size_t m, size_t n, size_t pitch);
-
-void float_matrix_to_half(__half* out, const float* ptr, size_t m, size_t n, size_t pitch);
 
 void half_tensor_to_float(
   float* out, const __half* in, size_t ndim, const int64_t* shape, const int64_t* in_strides);

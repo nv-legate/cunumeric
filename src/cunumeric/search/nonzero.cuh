@@ -15,13 +15,13 @@
  */
 
 #include <thrust/scan.h>
-#include <thrust/execution_policy.h>
 
 #include "cunumeric/cuda_help.h"
+#include "cunumeric/utilities/thrust_util.h"
 
 namespace cunumeric {
 
-using namespace Legion;
+using namespace legate;
 
 template <typename Output, typename Pitches, typename Point, typename VAL, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
@@ -49,7 +49,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
 static void exclusive_sum(int64_t* offsets, size_t volume, cudaStream_t stream)
 {
-  thrust::exclusive_scan(thrust::cuda::par.on(stream), offsets, offsets + volume, offsets);
+  thrust::exclusive_scan(DEFAULT_POLICY.on(stream), offsets, offsets + volume, offsets);
 }
 
 template <typename VAL, int32_t DIM>

@@ -26,7 +26,7 @@ struct ZipArgs {
   const int64_t N;
   const int64_t key_dim;
   const int64_t start_index;
-  const Legion::DomainPoint shape;
+  const legate::DomainPoint shape;
 };
 
 class ZipTask : public CuNumericTask<ZipTask> {

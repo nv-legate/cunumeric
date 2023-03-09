@@ -710,7 +710,8 @@ def linspace(
         raise ValueError("Number of samples, %s, must be non-negative." % num)
     div = (num - 1) if endpoint else num
 
-    dt = np.result_type(start, stop, float(num))
+    common_kind = np.find_common_type((start.dtype, stop.dtype), ()).kind
+    dt = np.complex128 if common_kind == "c" else np.float64
     if dtype is None:
         dtype = dt
 
@@ -2340,12 +2341,14 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
 
     # axes should be integer type
     if axis is not None and not isinstance(axis, int):
-        raise TypeError("Axis should be integer type")
+        raise TypeError("Axis should be of integer type")
 
     # when array is a scalar
     if np.ndim(a) == 0:
-        if axis is not None and axis != 0:
-            raise np.AxisError("axis is out of bounds for array of dimension")
+        if axis is not None and axis != 0 and axis != -1:
+            raise np.AxisError(
+                f"axis {axis} is out of bounds for array of dimension 0"
+            )
         if np.ndim(repeats) == 0:
             if not isinstance(repeats, int):
                 runtime.warn(
@@ -2378,10 +2381,7 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
         array = array.ravel()
         axis = 0
 
-    axis_int = np.int32(axis)
-
-    if axis_int >= array.ndim:
-        raise ValueError("axis exceeds dimension of the input array")
+    axis_int: int = normalize_axis_index(axis, array.ndim)
 
     # If repeats is on a zero sized axis_int, then return the array.
     if array.shape[axis_int] == 0:
@@ -2396,7 +2396,7 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
         # repeats is 0
         if repeats == 0:
             empty_shape = list(array.shape)
-            empty_shape[axis] = 0
+            empty_shape[axis_int] = 0
             return ndarray(shape=tuple(empty_shape), dtype=array.dtype)
         # repeats should be integer type
         if not isinstance(repeats, int):
@@ -2406,17 +2406,17 @@ def repeat(a: ndarray, repeats: Any, axis: Optional[int] = None) -> ndarray:
             )
         result = array._thunk.repeat(
             repeats=np.int64(repeats),
-            axis=axis,
+            axis=axis_int,
             scalar_repeats=True,
         )
     # repeats is an array
     else:
         # repeats should be integer type
         repeats = repeats._warn_and_convert(np.int64)
-        if repeats.shape[0] != array.shape[axis]:
+        if repeats.shape[0] != array.shape[axis_int]:
             raise ValueError("incorrect shape of repeats array")
         result = array._thunk.repeat(
-            repeats=repeats._thunk, axis=axis, scalar_repeats=False
+            repeats=repeats._thunk, axis=axis_int, scalar_repeats=False
         )
     return ndarray(shape=result.shape, thunk=result)
 
@@ -3117,7 +3117,6 @@ def take(
 def _fill_fancy_index_for_along_axis_routines(
     a_shape: NdShape, axis: int, indices: ndarray
 ) -> tuple[ndarray, ...]:
-
     # the logic below is base on the cupy implementation of
     # the *_along_axis routines
     ndim = len(a_shape)
@@ -4087,14 +4086,14 @@ def _contract(
 
     # Handle duplicate modes on inputs
     c_a_modes = Counter(a_modes)
-    for (mode, count) in c_a_modes.items():
+    for mode, count in c_a_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(a_modes) if m == mode]
             a = a._diag_helper(axes=axes)
             # diagonal is stored on last axis
             a_modes = [m for m in a_modes if m != mode] + [mode]
     c_b_modes = Counter(b_modes)
-    for (mode, count) in c_b_modes.items():
+    for mode, count in c_b_modes.items():
         if count > 1:
             axes = [i for (i, m) in enumerate(b_modes) if m == mode]
             b = b._diag_helper(axes=axes)  # type: ignore [union-attr]
@@ -4116,12 +4115,12 @@ def _contract(
     # Sum-out modes appearing on one argument, and missing from the result
     # TODO: If we supported sum on multiple axes we could do the full sum in a
     # single operation, and avoid intermediates.
-    for (dim, mode) in reversed(list(enumerate(a_modes))):
+    for dim, mode in reversed(list(enumerate(a_modes))):
         if mode not in b_modes and mode not in out_modes:
             a_modes.pop(dim)
             a = a.sum(axis=dim)
 
-    for (dim, mode) in reversed(list(enumerate(b_modes))):
+    for dim, mode in reversed(list(enumerate(b_modes))):
         if mode not in a_modes and mode not in out_modes:
             b_modes.pop(dim)
             b = b.sum(axis=dim)  # type: ignore [union-attr]
@@ -4129,7 +4128,7 @@ def _contract(
     # Compute extent per mode. No need to consider broadcasting at this stage,
     # since it has been handled above.
     mode2extent: dict[str, int] = {}
-    for (mode, extent) in chain(
+    for mode, extent in chain(
         zip(a_modes, a.shape), zip(b_modes, b.shape) if b is not None else []
     ):
         prev_extent = mode2extent.get(mode)
@@ -4150,7 +4149,7 @@ def _contract(
     c_modes = []
     c_shape: NdShape = ()
     c_bloated_shape: NdShape = ()
-    for (mode, extent) in zip(out_modes, out_shape):
+    for mode, extent in zip(out_modes, out_shape):
         if mode not in a_modes and mode not in b_modes:
             c_bloated_shape += (1,)
         else:
@@ -4162,7 +4161,7 @@ def _contract(
     # Verify output array has the right shape (input arrays can be broadcasted
     # up to match the output, but not the other way around). There should be no
     # unknown or singleton modes on the result at this point.
-    for (mode, extent) in zip(c_modes, c_shape):
+    for mode, extent in zip(c_modes, c_shape):
         prev_extent = mode2extent[mode]
         assert prev_extent != 1
         if extent != prev_extent:
@@ -4331,7 +4330,7 @@ def einsum(
     computed_operands, contractions = oe.contract_path(
         expr, *operands_list, einsum_call=True, optimize=optimize
     )
-    for (indices, _, sub_expr, _, _) in contractions:
+    for indices, _, sub_expr, _, _ in contractions:
         assert len(indices) == 1 or len(indices) == 2
         a = computed_operands.pop(indices[0])
         b = computed_operands.pop(indices[1]) if len(indices) == 2 else None

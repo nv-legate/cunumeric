@@ -108,4 +108,5 @@ def test_bincount_weights_high_bins(dtype):
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
