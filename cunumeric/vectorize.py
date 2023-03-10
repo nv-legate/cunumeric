@@ -24,7 +24,7 @@ import numba
 import numba.core.ccallback
 import numpy as np
 import six
-from legate.core import Rect, get_legate_runtime, ReductionOp
+from legate.core import Rect, get_legate_runtime, ReductionOp, track_provenance
 
 from cunumeric.runtime import runtime
 
@@ -353,7 +353,8 @@ class vectorize:
         )  # type: ignore
 
         return numba.cfunc(sig)(self._numba_func)
-
+   
+    @track_provenance(runtime.legate_context)
     def _execute(self, is_gpu: bool, num_gpus: int = 0) -> None:
         if is_gpu and not self._created:
             # create CUDA kernel
