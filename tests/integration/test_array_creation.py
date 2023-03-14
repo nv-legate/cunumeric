@@ -137,13 +137,23 @@ DATA_ARGS = [
     (np.arange(24).reshape(4, 3, 2), "f4"),
 ]
 LIKE_FUNCTIONS = ("zeros_like", "ones_like")
+SHAPE_ARG = [
+    None,
+    (-1,),
+    (
+        1,
+        -1,
+    ),
+]
 
 
 @pytest.mark.parametrize("x_np,dtype", DATA_ARGS)
-def test_empty_like(x_np, dtype):
+@pytest.mark.parametrize("shape", SHAPE_ARG)
+def test_empty_like(x_np, dtype, shape):
+    shape = shape if shape is None else x_np.reshape(shape).shape
     x = num.array(x_np)
-    xfl = num.empty_like(x, dtype=dtype)
-    yfl = np.empty_like(x_np, dtype=dtype)
+    xfl = num.empty_like(x, dtype=dtype, shape=shape)
+    yfl = np.empty_like(x_np, dtype=dtype, shape=shape)
 
     assert xfl.shape == yfl.shape
     assert xfl.dtype == yfl.dtype
@@ -151,7 +161,9 @@ def test_empty_like(x_np, dtype):
 
 @pytest.mark.parametrize("x_np,dtype", DATA_ARGS)
 @pytest.mark.parametrize("fn", LIKE_FUNCTIONS)
-def test_func_like(fn, x_np, dtype):
+@pytest.mark.parametrize("shape", SHAPE_ARG)
+def test_func_like(fn, x_np, dtype, shape):
+    shape = shape if shape is None else x_np.reshape(shape).shape
     num_f = getattr(num, fn)
     np_f = getattr(np, fn)
 
@@ -165,7 +177,9 @@ def test_func_like(fn, x_np, dtype):
 
 @pytest.mark.parametrize("value", FILLED_VALUES)
 @pytest.mark.parametrize("x_np, dtype", DATA_ARGS)
-def test_full_like(x_np, dtype, value):
+@pytest.mark.parametrize("shape", SHAPE_ARG)
+def test_full_like(x_np, dtype, value, shape):
+    shape = shape if shape is None else x_np.reshape(shape).shape
     x = num.array(x_np)
 
     xfl = num.full_like(x, value, dtype=dtype)

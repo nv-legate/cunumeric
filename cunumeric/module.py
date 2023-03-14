@@ -94,7 +94,11 @@ def empty(shape: NdShapeLike, dtype: npt.DTypeLike = np.float64) -> ndarray:
 
 
 @add_boilerplate("a")
-def empty_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
+def empty_like(
+    a: ndarray,
+    dtype: Optional[npt.DTypeLike] = None,
+    shape: Optional[NdShapeLike] = None,
+) -> ndarray:
     """
 
     empty_like(prototype, dtype=None)
@@ -108,6 +112,8 @@ def empty_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
         of the returned array.
     dtype : data-type, optional
         Overrides the data type of the result.
+    shape : int or tuple[int], optional
+        Overrides the shape of the result.
 
     Returns
     -------
@@ -123,7 +129,7 @@ def empty_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    shape = a.shape
+    shape = a.shape if shape is None else shape
     if dtype is not None:
         dtype = np.dtype(dtype)
     else:
@@ -238,7 +244,11 @@ def ones(shape: NdShapeLike, dtype: npt.DTypeLike = np.float64) -> ndarray:
     return full(shape, 1, dtype=dtype)
 
 
-def ones_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
+def ones_like(
+    a: ndarray,
+    dtype: Optional[npt.DTypeLike] = None,
+    shape: Optional[NdShapeLike] = None,
+) -> ndarray:
     """
 
     Return an array of ones with the same shape and type as a given array.
@@ -250,6 +260,8 @@ def ones_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
         returned array.
     dtype : data-type, optional
         Overrides the data type of the result.
+    shape : int or tuple[int], optional
+        Overrides the shape of the result.
 
     Returns
     -------
@@ -267,7 +279,7 @@ def ones_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
     usedtype = a.dtype
     if dtype is not None:
         usedtype = np.dtype(dtype)
-    return full_like(a, 1, dtype=usedtype)
+    return full_like(a, 1, dtype=usedtype, shape=shape)
 
 
 def zeros(shape: NdShapeLike, dtype: npt.DTypeLike = np.float64) -> ndarray:
@@ -301,7 +313,11 @@ def zeros(shape: NdShapeLike, dtype: npt.DTypeLike = np.float64) -> ndarray:
     return full(shape, 0, dtype=dtype)
 
 
-def zeros_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
+def zeros_like(
+    a: ndarray,
+    dtype: Optional[npt.DTypeLike] = None,
+    shape: Optional[NdShapeLike] = None,
+) -> ndarray:
     """
 
     Return an array of zeros with the same shape and type as a given array.
@@ -313,6 +329,8 @@ def zeros_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
         the returned array.
     dtype : data-type, optional
         Overrides the data type of the result.
+    shape : int or tuple[int], optional
+        Overrides the shape of the result.
 
     Returns
     -------
@@ -330,7 +348,7 @@ def zeros_like(a: ndarray, dtype: Optional[npt.DTypeLike] = None) -> ndarray:
     usedtype = a.dtype
     if dtype is not None:
         usedtype = np.dtype(dtype)
-    return full_like(a, 0, dtype=usedtype)
+    return full_like(a, 0, dtype=usedtype, shape=shape)
 
 
 def full(
@@ -376,7 +394,10 @@ def full(
 
 
 def full_like(
-    a: ndarray, value: Union[int, float], dtype: Optional[npt.DTypeLike] = None
+    a: ndarray,
+    value: Union[int, float],
+    dtype: Optional[npt.DTypeLike] = None,
+    shape: Optional[NdShapeLike] = None,
 ) -> ndarray:
     """
 
@@ -391,6 +412,8 @@ def full_like(
         Fill value.
     dtype : data-type, optional
         Overrides the data type of the result.
+    shape : int or tuple[int], optional
+        Overrides the shape of the result.
 
     Returns
     -------
@@ -409,7 +432,7 @@ def full_like(
         dtype = np.dtype(dtype)
     else:
         dtype = a.dtype
-    result = empty_like(a, dtype=dtype)
+    result = empty_like(a, dtype=dtype, shape=shape)
     val = np.array(value, dtype=result.dtype)
     result._thunk.fill(val)
     return result
