@@ -6991,6 +6991,7 @@ def percentile(
        The American Statistician, 50(4), pp. 361-365, 1996
     """
 
-    q01 = q / 100.0
+    q_arr = np.asarray(q)
+    q01 = q_arr / 100.0
 
     return quantile(a, q01, axis, out, overwrite_input, method, keepdims)
