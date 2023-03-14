@@ -57,7 +57,7 @@ passed via the ``LEGATE_CONFIG`` environment variable as shown above.
 .. note::
 
   Usage of standard Python is intended as a quick on-ramp for users to try
-  out cunumeric more easily. Several ``legate`` command line configuration
+  out cuNumeric more easily. Several ``legate`` command line configuration
   options, especially for  multi-node execution, are not available when
   running programs with standard Python. See the output of ``legate --help``
   for more details.
