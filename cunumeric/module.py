@@ -1460,17 +1460,30 @@ def check_shape_dtype(
             f"All arguments to {func_name} "
             "must have the same number of dimensions"
         )
-    if ndim > 1 and _builtin_any(
-        shape[1:axis] != inp.shape[1:axis]
-        and shape[axis + 1 :] != inp.shape[axis + 1 :]
-        for inp in inputs
-    ):
-        raise ValueError(
-            f"All arguments to {func_name} "
-            "must have the same "
-            "dimension size in all dimensions "
-            "except the target axis"
-        )
+
+    if func_name == "stack":
+        shapes = {inp.shape for inp in inputs}
+        if len(shapes) != 1:
+            raise ValueError(
+                f"all input arrays must have the same shape for {func_name}"
+            )
+    else:
+        if ndim == 1 and func_name == "hstack":
+            axis = 0
+        if ndim >= 1:
+            if axis < 0 and axis >= -ndim:
+                axis += ndim
+            if _builtin_any(
+                shape[:axis] != inp.shape[:axis]
+                or shape[axis + 1 :] != inp.shape[axis + 1 :]
+                for inp in inputs
+            ):
+                raise ValueError(
+                    f"All arguments to {func_name} "
+                    "must have the same "
+                    "dimension size in all dimensions "
+                    "except the target axis"
+                )
 
     # Cast arrays with the passed arguments (dtype, casting)
     if dtype is None:
@@ -1810,13 +1823,7 @@ def stack(
 
     arrays, common_info = check_shape_dtype(arrays, stack.__name__, axis)
 
-    if axis > common_info.ndim:
-        raise ValueError(
-            "The target axis should be smaller or"
-            " equal to the number of dimensions"
-            " of input arrays"
-        )
-
+    axis = normalize_axis_index(axis, common_info.ndim + 1)
     shape = common_info.shape[:axis] + (1,) + common_info.shape[axis:]
     arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = tuple(shape)
