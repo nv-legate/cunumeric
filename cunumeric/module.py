@@ -7001,5 +7001,5 @@ def percentile(
         out=out,
         overwrite_input=overwrite_input,
         method=method,
-        keepdims=keepdims
+        keepdims=keepdims,
     )
