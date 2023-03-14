@@ -30,7 +30,7 @@ import cunumeric as num
 # → list[cunumeric.array.ndarray]    (axis=2)
 
 
-DIM = 5
+DIM = 6
 SIZES = [
     (0,),
     (1),
@@ -51,8 +51,8 @@ SIZES = [
     (DIM, DIM, DIM),
 ]
 
-SIZES_NO_EMPTY = [
-    (1, 1),
+
+SIZES_VSPLIT = [
     (1, DIM),
     (DIM, 1),
     (DIM, DIM),
@@ -63,8 +63,23 @@ SIZES_NO_EMPTY = [
     (DIM, DIM, DIM),
 ]
 
+SIZES_HSPLIT = [
+    (DIM, 1),
+    (DIM, DIM),
+    (DIM, 1, 1),
+    (DIM, DIM, DIM),
+]
+
+
+SIZES_DSPLIT = [
+    (1, 1, 1),
+    (DIM, 1, 1),
+    (1, DIM, 1),
+    (1, 1, DIM),
+    (DIM, DIM, DIM),
+]
+
 ARG_FUNCS = ("vsplit", "hsplit", "dsplit")
-AXIS_FUNCS = {"vsplit": 0, "hsplit": 1, "dsplit": 2}
 
 
 class TestSplitErrors:
@@ -209,58 +224,38 @@ def compare_array(a, b):
 
 
 def get_indices(arr, axis):
+    """
+    Generate the indices. split the array along axis.
+    Include the divisible integer or a 1-D array of sorted integers.
+    """
     indices_arr = []
+    axis_size = arr.shape[axis]
+    even_div = 1
+    random_integer = np.random.randint(1, 10)
 
-    if arr.shape[axis] == 1:
+    if axis_size == 1:
         indices_arr.append(1)  # in index
 
-    elif arr.shape[axis] > 1:
-        for div in range(2, (int)(math.sqrt(arr.shape[axis]) + 1)):
-            if arr.shape[axis] % div == 0:
-                indices_arr.append(div)
+    elif axis_size > 1:
+        for div in range(2, int(math.sqrt(axis_size) + 1)):
+            if axis_size % div == 0:
+                indices_arr.append(div)  # add divisible integer
+                even_div = div
 
-                # in index
-                indices_arr.append(list(range(1, arr.shape[axis], div)))
+        # add 1 and axis_size
+        indices_arr.append(1)
+        indices_arr.append(axis_size)
 
-                # out index
-                indices_arr.append(
-                    list(
-                        range(
-                            0,
-                            arr.shape[axis] + div * np.random.randint(1, 10),
-                            div,
-                        )
-                    )
-                )
-                indices_arr.append(
-                    list(
-                        range(
-                            arr.shape[axis] + div * np.random.randint(1, 10),
-                            0,
-                            -div,
-                        )
-                    )
-                )
+    # an index in the dimension of the array along axis
+    indices_arr.append(list(range(1, axis_size, even_div)))
 
-        # if indivisible
-        if len(indices_arr) == 0:
-            indices_arr.append(1)
-            indices_arr.append(arr.shape[axis])
-            indices_arr.append(list(range(1, arr.shape[axis], 1)))
-
-            # out index
-            indices_arr.append(
-                list(
-                    range(0, arr.shape[axis] + 1 * np.random.randint(1, 10), 1)
-                )
-            )
-            indices_arr.append(
-                list(
-                    range(
-                        arr.shape[axis] + 1 * np.random.randint(1, 10), 0, -1
-                    )
-                )
-            )
+    # an index exceeds the dimension of the array along axis
+    indices_arr.append(
+        list(range(0, axis_size + even_div * random_integer, even_div))
+    )
+    indices_arr.append(
+        list(range(axis_size + even_div * random_integer, 0, -even_div))
+    )
 
     return indices_arr
 
@@ -268,38 +263,42 @@ def get_indices(arr, axis):
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_split(size):
     a = np.random.randint(low=0, high=100, size=size)
-    axis_list = list(range(a.ndim))
-    axis_list.append(-1)
+    axis_list = list(range(a.ndim)) + [-1]
     for axis in axis_list:
         input_arr = get_indices(a, axis)
-
         for input_opt in input_arr:
-            func_num = getattr(num, "split")
-            func_np = getattr(np, "split")
-
-            res_num = func_num(a, input_opt, axis=axis)
-            res_np = func_np(a, input_opt, axis=axis)
-
+            res_num = num.split(a, input_opt, axis=axis)
+            res_np = np.split(a, input_opt, axis=axis)
             assert compare_array(res_num, res_np)
 
 
-@pytest.mark.parametrize("func_name", ARG_FUNCS)
-@pytest.mark.parametrize("size", SIZES_NO_EMPTY, ids=str)
-def test_split_different_split(size, func_name):
+@pytest.mark.parametrize("size", SIZES_HSPLIT, ids=str)
+def test_vsplit(size):
     a = np.random.randint(low=0, high=100, size=size)
-    axis = AXIS_FUNCS[func_name]
-
-    if axis >= a.ndim:
-        return
-
-    input_arr = get_indices(a, axis)
+    input_arr = get_indices(a, 0)
     for input_opt in input_arr:
-        func_num = getattr(num, func_name)
-        func_np = getattr(np, func_name)
+        res_num = num.vsplit(a, input_opt)
+        res_np = np.vsplit(a, input_opt)
+        assert compare_array(res_num, res_np)
 
-        res_num = func_num(a, input_opt)
-        res_np = func_np(a, input_opt)
 
+@pytest.mark.parametrize("size", SIZES_HSPLIT, ids=str)
+def test_hsplit(size):
+    a = np.random.randint(low=0, high=100, size=size)
+    input_arr = get_indices(a, 1)
+    for input_opt in input_arr:
+        res_num = num.hsplit(a, input_opt)
+        res_np = np.hsplit(a, input_opt)
+        assert compare_array(res_num, res_np)
+
+
+@pytest.mark.parametrize("size", SIZES_DSPLIT, ids=str)
+def test_dsplit(size):
+    a = np.random.randint(low=0, high=100, size=size)
+    input_arr = get_indices(a, 2)
+    for input_opt in input_arr:
+        res_num = num.dsplit(a, input_opt)
+        res_np = np.dsplit(a, input_opt)
         assert compare_array(res_num, res_np)
 
 
