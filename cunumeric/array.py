@@ -118,14 +118,16 @@ def add_boilerplate(
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> R:
-            assert (where_idx is None or len(args) <= where_idx) and (
-                out_idx is None or len(args) <= out_idx
-            ), "'where' and 'out' should be passed as keyword arguments"
-
             # Convert relevant arguments to cuNumeric ndarrays
             args = tuple(
-                convert_to_cunumeric_ndarray(arg)
-                if idx in indices and arg is not None
+                None
+                if arg is None
+                else convert_to_predicate_ndarray(arg)
+                if idx == where_idx
+                else convert_to_cunumeric_ndarray(arg, share=True)
+                if idx == out_idx
+                else convert_to_cunumeric_ndarray(arg)
+                if idx in indices
                 else arg
                 for (idx, arg) in enumerate(args)
             )
@@ -138,7 +140,6 @@ def add_boilerplate(
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                 elif k in keys:
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
-
             return func(*args, **kwargs)
 
         return wrapper
