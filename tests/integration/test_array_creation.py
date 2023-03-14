@@ -137,14 +137,7 @@ DATA_ARGS = [
     (np.arange(24).reshape(4, 3, 2), "f4"),
 ]
 LIKE_FUNCTIONS = ("zeros_like", "ones_like")
-SHAPE_ARG = [
-    None,
-    (-1,),
-    (
-        1,
-        -1,
-    ),
-]
+SHAPE_ARG = (None, (-1,), (1, -1))
 
 
 @pytest.mark.parametrize("x_np,dtype", DATA_ARGS)
