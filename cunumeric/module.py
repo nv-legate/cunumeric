@@ -1496,7 +1496,6 @@ def _broadcast_to(
 def broadcast_to(
     arr: ndarray, shape: NdShapeLike, subok: bool = False
 ) -> ndarray:
-
     """
 
     Broadcast an array to a new shape.
