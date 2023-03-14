@@ -28,3 +28,5 @@ Order statistics
    :toctree: generated/
 
    quantile
+
+   percentile
