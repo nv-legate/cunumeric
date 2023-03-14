@@ -39,7 +39,6 @@ ALL_METHODS = (
 )
 
 
-@pytest.mark.skip(reason="debugging ...")
 @pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize("axes", (0, 1, (0, 1), (0, 2)))
 @pytest.mark.parametrize(
@@ -117,6 +116,7 @@ def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
+@pytest.mark.skip(reason="simplified for debugging, only...")
 @pytest.mark.parametrize("str_method", ALL_METHODS)
 def test_random_simple(str_method):
     eps = 1.0e-8
@@ -134,7 +134,6 @@ def test_random_simple(str_method):
     assert allclose(np_q_out, q_out, atol=eps)
 
 
-@pytest.mark.skip(reason="debugging ...")
 @pytest.mark.parametrize("str_method", ALL_METHODS)
 @pytest.mark.parametrize(
     "qin_arr", (50.0, [0.1, 37.0, 42.0, 67.0, 83.0, 100.0, 49.0, 50.0, 0.0])

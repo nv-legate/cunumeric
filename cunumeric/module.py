@@ -6994,4 +6994,12 @@ def percentile(
     q_arr = np.asarray(q)
     q01 = q_arr / 100.0
 
-    return quantile(a, q01, axis, out, overwrite_input, method, keepdims)
+    return quantile(
+        a,
+        q01,
+        axis,
+        out=out,
+        overwrite_input=overwrite_input,
+        method=method,
+        keepdims=keepdims
+    )
