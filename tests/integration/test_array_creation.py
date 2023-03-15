@@ -161,8 +161,8 @@ def test_func_like(fn, x_np, dtype, shape):
     np_f = getattr(np, fn)
 
     x = num.array(x_np)
-    xfl = num_f(x, dtype=dtype)
-    yfl = np_f(x_np, dtype=dtype)
+    xfl = num_f(x, dtype=dtype, shape=shape)
+    yfl = np_f(x_np, dtype=dtype, shape=shape)
 
     assert np.array_equal(xfl, yfl)
     assert xfl.dtype == yfl.dtype
@@ -175,8 +175,8 @@ def test_full_like(x_np, dtype, value, shape):
     shape = shape if shape is None else x_np.reshape(shape).shape
     x = num.array(x_np)
 
-    xfl = num.full_like(x, value, dtype=dtype)
-    yfl = np.full_like(x_np, value, dtype=dtype)
+    xfl = num.full_like(x, value, dtype=dtype, shape=shape)
+    yfl = np.full_like(x_np, value, dtype=dtype, shape=shape)
     assert np.array_equal(xfl, yfl)
     assert xfl.dtype == yfl.dtype
 
