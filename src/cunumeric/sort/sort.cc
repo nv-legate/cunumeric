@@ -26,7 +26,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <LegateTypeCode CODE, int32_t DIM>

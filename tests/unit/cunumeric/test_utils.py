@@ -255,7 +255,6 @@ class Test_tensordot_modes:
             m.tensordot_modes(a_ndim, b_ndim, axes)
 
     def test_bad_axes_length(self) -> None:
-
         with pytest.raises(ValueError):
             # len(a_axes) > a_ndim
             m.tensordot_modes(1, 3, [(1, 2), (1, 2)])
@@ -269,7 +268,6 @@ class Test_tensordot_modes:
             m.tensordot_modes(2, 3, ([0], [0, 1]))
 
     def test_bad_negative_axes(self) -> None:
-
         with pytest.raises(ValueError):
             # any(ax < 0 for ax in a_axes)
             m.tensordot_modes(3, 2, [(1, -1), (1, 2)])
@@ -279,7 +277,6 @@ class Test_tensordot_modes:
             m.tensordot_modes(3, 2, [(1, 2), (1, -1)])
 
     def test_bad_mismatched_axes(self) -> None:
-
         with pytest.raises(ValueError):
             # len(a_axes) != len(set(a_axes))
             m.tensordot_modes(4, 4, [(1, 1, 2), (1, 3, 2)])
@@ -289,7 +286,6 @@ class Test_tensordot_modes:
             m.tensordot_modes(4, 4, [(1, 3, 2), (1, 1, 2)])
 
     def test_bad_axes_oob(self) -> None:
-
         with pytest.raises(ValueError):
             # any(ax >= a_ndim for ax in a_axes)
             m.tensordot_modes(1, 2, [(1, 3), (1, 2)])
@@ -325,4 +321,5 @@ class Test_tensordot_modes:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

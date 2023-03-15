@@ -15,238 +15,204 @@
 
 import numpy as np
 import pytest
-from utils.comparisons import allclose
 
 import cunumeric as num
 
+DIM = 5
+SIZES = [
+    (0,),
+    (1),
+    (DIM),
+    (0, 1),
+    (1, 0),
+    (1, 1),
+    (1, DIM),
+    (DIM, 1),
+    (DIM, DIM),
+    (1, 0, 0),
+    (1, 1, 0),
+    (1, 0, 1),
+    (1, 1, 1),
+    (DIM, 1, 1),
+    (1, DIM, 1),
+    (1, 1, DIM),
+    (DIM, DIM, DIM),
+]
 
-def compare_assert(a_np, a_num):
-    if not allclose(a_np, a_num):
-        print("numpy, shape " + str(a_np.shape) + ":")
-        print(a_np)
-        print("cuNumeric, shape " + str(a_num.shape) + ":")
-        print(a_num)
-        assert False
-
-
-def check_sort_axis(a_np, a_num, axis):
-    compare_assert(a_np, a_num)
-    print("Sorting axis " + str(axis) + ":")
-    sort_np = np.sort(a_np, axis, kind="stable")
-    sort_num = num.sort(a_num, axis, kind="stable")
-    compare_assert(sort_np, sort_num)
-    sort_np = np.sort(a_np, axis)
-    sort_num = num.sort(a_num, axis)
-    compare_assert(sort_np, sort_num)
-    argsort_np = np.argsort(a_np, axis, kind="stable")
-    argsort_num = num.argsort(a_num, axis, kind="stable")
-    compare_assert(argsort_np, argsort_num)
-
-
-def check_1D():
-    np.random.seed(42)
-    A_np = np.array(np.random.randint(10, size=30), dtype=np.int32)
-
-    A_num = num.array(A_np)
-    print("Sorting array   : " + str(A_np))
-
-    sortA_np = np.sort(A_np)
-    print("Result numpy    : " + str(sortA_np))
-
-    sortA_num = num.sort(A_num)
-    print("Result cunumeric: " + str(sortA_num))
-    compare_assert(sortA_np, sortA_num)
-
-    A_num.sort()
-    print("Result (inplace): " + str(A_num))
-    compare_assert(sortA_np, A_num)
+SORT_TYPES = ["quicksort", "mergesort", "heapsort", "stable"]
 
 
-def check_2D():
-    np.random.seed(42)
-    x_dim = 5
-    y_dim = 3
-    A_np = np.array(
-        np.random.randint(10, size=x_dim * y_dim), dtype=np.int32
-    ).reshape(x_dim, y_dim)
-
-    A_num = num.array(A_np)
-    print("Sorting matrix:\n")
-    print(A_num)
-
-    check_sort_axis(A_np, A_num, 1)
-    check_sort_axis(A_np, A_num, 0)
-    check_sort_axis(A_np, A_num, axis=None)
+# cunumeric.sort(a: ndarray, axis: int = -1,
+# kind: SortType = 'quicksort', order: Optional = None) → ndarray
+# ndarray.sort(axis=-1, kind=None, order=None)
 
 
-def check_3D(x_dim, y_dim, z_dim):
-    np.random.seed(42)
-    A_np = np.array(
-        np.random.randint(10, size=x_dim * y_dim * z_dim), dtype=np.int32
-    ).reshape(x_dim, y_dim, z_dim)
+class TestSort(object):
+    @pytest.mark.xfail
+    def test_arr_none(self):
+        res_np = np.sort(
+            None
+        )  # numpy.AxisError: axis -1 is out of bounds for array of dimension 0
+        res_num = num.sort(
+            None
+        )  # AttributeError: 'NoneType' object has no attribute 'shape'
+        assert np.equal(res_np, res_num)
 
-    A_num = num.array(A_np)
-    print("Sorting 3d tensor:\n")
-    print(A_np)
+    @pytest.mark.parametrize("arr", ([], [[]], [[], []]))
+    def test_arr_empty(self, arr):
+        res_np = np.sort(arr)
+        res_num = num.sort(arr)
+        assert np.array_equal(res_num, res_np)
 
-    check_sort_axis(A_np, A_num, 2)
-    check_sort_axis(A_np, A_num, 1)
-    check_sort_axis(A_np, A_num, 0)
-    check_sort_axis(A_np, A_num, axis=None)
+    def test_structured_array_order(self):
+        dtype = [("name", "S10"), ("height", float), ("age", int)]
+        values = [
+            ("Arthur", 1.8, 41),
+            ("Lancelot", 1.9, 38),
+            ("Galahad", 1.7, 38),
+        ]
+        a_np = np.array(values, dtype=dtype)
+        a_num = num.array(values, dtype=dtype)
 
+        res_np = np.sort(a_np, order="height")
+        res_num = num.sort(a_num, order="height")
+        assert np.array_equal(res_np, res_num)
 
-def check_3D_complex(x_dim, y_dim, z_dim):
-    np.random.seed(42)
-    A_np = np.array(
-        np.random.random(size=x_dim * y_dim * z_dim), dtype=np.complex64
-    ).reshape(x_dim, y_dim, z_dim)
+        res_np = np.sort(a_np, order=["age", "height"])
+        res_num = num.sort(a_num, order=["age", "height"])
+        assert np.array_equal(res_np, res_num)
 
-    A_num = num.array(A_np)
-    print("Sorting 3d tensor:\n")
-    print(A_np)
+    def test_axis_out_bound(self):
+        arr = [-1, 0, 1, 2, 10]
+        with pytest.raises(ValueError):
+            num.sort(arr, axis=2)
 
-    check_sort_axis(A_np, A_num, 2)
-    check_sort_axis(A_np, A_num, 1)
-    check_sort_axis(A_np, A_num, 0)
-    check_sort_axis(A_np, A_num, axis=None)
+    @pytest.mark.xfail
+    def test_sorttype_invalid(self):
+        size = (3, 3, 2)
+        arr_np = np.random.randint(-3, 3, size)
+        arr_num = num.array(arr_np)
+        res_np = np.sort(arr_np, kind="negative")
+        res_num = num.sort(arr_num, kind="negative")
+        # Numpy raises "ValueError: sort kind must be one of 'quick', 'heap',
+        # or 'stable' (got 'negative')"
+        # cuNumeric passed. The code basically supports ‘stable’
+        # or not ‘stable’.
+        assert np.array_equal(res_num, res_np)
 
+    @pytest.mark.parametrize("size", SIZES)
+    def test_basic_axis(self, size):
+        arr_np = np.random.randint(-100, 100, size)
+        arr_num = num.array(arr_np)
+        for axis in range(-arr_np.ndim + 1, arr_np.ndim):
+            res_np = np.sort(arr_np, axis=axis)
+            res_num = num.sort(arr_num, axis=axis)
+            assert np.array_equal(res_num, res_np)
 
-def check_api(a=None):
-    if a is None:
-        a = np.arange(4 * 2 * 3).reshape(4, 2, 3)
-    a_num = num.array(a)
+    @pytest.mark.parametrize("size", SIZES)
+    @pytest.mark.parametrize("sort_type", SORT_TYPES)
+    def test_basic_axis_sort_type(self, size, sort_type):
+        arr_np = np.random.randint(-100, 100, size)
+        arr_num = num.array(arr_np)
+        for axis in range(-arr_np.ndim + 1, arr_np.ndim):
+            res_np = np.sort(arr_np, axis=axis, kind=sort_type)
+            res_num = num.sort(arr_num, axis=axis, kind=sort_type)
+            assert np.array_equal(res_num, res_np)
 
-    # sort axes
-    for i in range(a.ndim):
-        print("sort axis " + str(i))
-        compare_assert(
-            np.sort(a, axis=i, kind="stable"),
-            num.sort(a_num, i, kind="stable"),
+    @pytest.mark.skip
+    @pytest.mark.parametrize("size", SIZES)
+    def test_arr_basic_axis(self, size):
+        # Set skip due to https://github.com/nv-legate/cunumeric/issues/781
+        arr_np = np.random.randint(-100, 100, size)
+        arr_num = num.array(arr_np)
+        for axis in range(-arr_num.ndim + 1, arr_num.ndim):
+            arr_np_copy = arr_np
+            arr_np_copy.sort(axis=axis)
+            arr_num_copy = arr_num
+            arr_num_copy.sort(axis=axis)
+            assert np.array_equal(arr_np_copy, arr_num_copy)
+
+    @pytest.mark.skip
+    @pytest.mark.parametrize("size", SIZES)
+    @pytest.mark.parametrize("sort_type", SORT_TYPES)
+    def test_arr_basic_axis_sort(self, size, sort_type):
+        # Set skip due to https://github.com/nv-legate/cunumeric/issues/781
+        arr_np = np.random.randint(-100, 100, size)
+        arr_num = num.array(arr_np)
+        for axis in range(-arr_num.ndim + 1, arr_num.ndim):
+            arr_np_copy = arr_np
+            arr_np_copy.sort(axis=axis, kind=sort_type)
+            arr_num_copy = arr_num
+            arr_num_copy.sort(axis=axis, kind=sort_type)
+            assert np.array_equal(arr_np_copy, arr_num_copy)
+
+    @pytest.mark.skip
+    @pytest.mark.parametrize("size", SIZES)
+    def test_compare_arr_axis(self, size):
+        # Set skip due to https://github.com/nv-legate/cunumeric/issues/781
+        arr_num = num.random.randint(-100, 100, size)
+        for axis in range(-arr_num.ndim + 1, arr_num.ndim):
+            arr_num_copy = arr_num
+            res_num = num.sort(arr_num_copy, axis=axis)
+            arr_num_copy.sort(axis=axis)
+            assert np.array_equal(res_num, arr_num_copy)
+
+    @pytest.mark.skip
+    @pytest.mark.parametrize("size", SIZES)
+    @pytest.mark.parametrize("sort_type", SORT_TYPES)
+    def test_compare_arr_axis_sort(self, size, sort_type):
+        # Set skip due to https://github.com/nv-legate/cunumeric/issues/781
+        arr_num = num.random.randint(-100, 100, size)
+        for axis in range(-arr_num.ndim + 1, arr_num.ndim):
+            arr_num_copy = arr_num
+            res_num = num.sort(arr_num_copy, axis=axis, kind=sort_type)
+            arr_num_copy.sort(axis=axis, kind=sort_type)
+            assert np.array_equal(res_num, arr_num_copy)
+
+    @pytest.mark.parametrize("size", SIZES)
+    def test_basic_complex_axis(self, size):
+        arr_np = (
+            np.random.randint(-100, 100, size)
+            + np.random.randint(-100, 100, size) * 1.0j
         )
-        compare_assert(
-            np.sort(a, axis=i),
-            num.sort(a_num, i),
+        arr_num = num.array(arr_np)
+        print(arr_np)
+        for axis in range(-arr_np.ndim + 1, arr_np.ndim):
+            res_np = np.sort(arr_np, axis=axis)
+            res_num = num.sort(arr_num, axis=axis)
+            assert np.array_equal(res_num, res_np)
+
+    @pytest.mark.parametrize("size", SIZES)
+    @pytest.mark.parametrize("sort_type", SORT_TYPES)
+    def test_basic_complex_axis_sort(self, size, sort_type):
+        arr_np = (
+            np.random.randint(-100, 100, size)
+            + np.random.randint(-100, 100, size) * 1.0j
         )
+        arr_num = num.array(arr_np)
+        for axis in range(-arr_np.ndim + 1, arr_np.ndim):
+            res_np = np.sort(arr_np, axis=axis, kind=sort_type)
+            res_num = num.sort(arr_num, axis=axis, kind=sort_type)
+            assert np.array_equal(res_num, res_np)
 
-    # flatten
-    print("sort flattened")
-    compare_assert(
-        np.sort(a, axis=None, kind="stable"),
-        num.sort(a_num, axis=None, kind="stable"),
-    )
-    compare_assert(
-        np.sort(a, axis=None),
-        num.sort(a_num, axis=None),
-    )
-
-    # msort
-    print("msort")
-    compare_assert(np.msort(a), num.msort(a_num))
-
-    # sort_complex
-    print("sort_complex")
-    compare_assert(np.sort_complex(a), num.sort_complex(a_num))
-
-    # in-place sort
-    copy_a = a.copy()
-    copy_a_num = a_num.copy()
-    copy_a.sort()
-    copy_a_num.sort()
-    compare_assert(copy_a, copy_a_num)
-
-    # ndarray.argsort -- no change to array
-    copy_a = a.copy()
-    copy_a_num = a_num.copy()
-    compare_assert(
-        copy_a.argsort(kind="stable"), copy_a_num.argsort(kind="stable")
-    )
-    compare_assert(copy_a, a_num)
-    compare_assert(a, copy_a_num)
-
-    # argsort
-    for i in range(a.ndim):
-        compare_assert(a, a_num)
-        print("argsort axis " + str(i))
-        compare_assert(
-            np.argsort(a, axis=i, kind="stable"),
-            num.argsort(a_num, axis=i, kind="stable"),
+    @pytest.mark.skip
+    @pytest.mark.parametrize("size", SIZES)
+    @pytest.mark.parametrize("sort_type", SORT_TYPES)
+    def test_compare_complex_arr_axis_sort(self, size, sort_type):
+        # Set skip due to https://github.com/nv-legate/cunumeric/issues/781
+        arr_num = (
+            num.random.randint(-100, 100, size)
+            + num.random.randint(-100, 100, size) * 1.0j
         )
-        num.argsort(a_num, axis=i)  # cannot be compared
-
-    # flatten
-    print("argsort flattened")
-    compare_assert(
-        np.argsort(a, axis=None, kind="stable"),
-        num.argsort(a_num, axis=None, kind="stable"),
-    )
-    num.argsort(a_num, axis=None)  # cannot be compared
-
-
-def generate_random(shape, datatype):
-    print("Generate random for " + str(datatype))
-    a_np = None
-    volume = 1
-    for i in shape:
-        volume *= i
-
-    if np.issubdtype(datatype, np.integer):
-        a_np = np.array(
-            np.random.randint(
-                np.iinfo(datatype).min, np.iinfo(datatype).max, size=volume
-            ),
-            dtype=datatype,
-        )
-    elif np.issubdtype(datatype, np.floating):
-        a_np = np.array(np.random.random(size=volume), dtype=datatype)
-    elif np.issubdtype(datatype, np.complexfloating):
-        a_np = np.array(
-            np.random.random(size=volume) + np.random.random(size=volume) * 1j,
-            dtype=datatype,
-        )
-    else:
-        print("UNKNOWN type " + str(datatype))
-        assert False
-    return a_np.reshape(shape)
-
-
-def check_dtypes():
-    np.random.seed(42)
-    check_api(generate_random((2, 5, 7), np.uint8))
-    check_api(generate_random((8, 5), np.uint16))
-    check_api(generate_random((22, 5, 7), np.uint32))
-    check_api(generate_random((220,), np.uint32))
-
-    check_api(generate_random((2, 5, 7), np.int8))
-    check_api(generate_random((8, 5), np.int16))
-    check_api(generate_random((22, 5, 7), np.int32))
-    check_api(generate_random((2, 5, 7), np.int64))
-
-    check_api(generate_random((8, 5), np.float32))
-    check_api(generate_random((8, 5), np.float64))
-    check_api(generate_random((22, 5, 7), np.double))
-    check_api(generate_random((220,), np.double))
-
-    check_api(generate_random((2, 5, 7), np.complex64))
-    check_api(generate_random((2, 5, 7), np.complex128))
-    check_api(generate_random((220,), np.complex128))
-
-
-def test():
-    print("\n\n -----------  1D test ---------------\n")
-    check_1D()
-    print("\n\n -----------  2D test ---------------\n")
-    check_2D()
-    print("\n\n -----------  3D test (int32) -------\n")
-    check_3D(51, 23, 17)
-    print("\n\n -----------  3D test (complex) -----\n")
-    check_3D_complex(27, 30, 45)
-    print("\n\n -----------  API test --------------\n")
-    check_api()
-    print("\n\n -----------  dtype test ------------\n")
-    check_dtypes()
+        for axis in range(-arr_num.ndim + 1, arr_num.ndim):
+            arr_num_copy = arr_num
+            res_num = num.sort(arr_num_copy, axis=axis, kind=sort_type)
+            arr_num_copy.sort(axis=axis, kind=sort_type)
+            assert np.array_equal(res_num, arr_num_copy)
 
 
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

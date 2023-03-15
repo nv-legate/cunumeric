@@ -15,6 +15,8 @@
 from __future__ import annotations
 
 import numpy.random as _nprandom
+
+from cunumeric.array import maybe_convert_to_np_ndarray
 from cunumeric.coverage import clone_module
 from cunumeric.runtime import runtime
 
@@ -25,7 +27,13 @@ if runtime.has_curand:
 else:
     from cunumeric.random.legacy import *
 
-clone_module(_nprandom, globals())
+clone_module(
+    _nprandom,
+    globals(),
+    maybe_convert_to_np_ndarray,
+    include_builtin_function_type=True,
+)
 
+del maybe_convert_to_np_ndarray
 del clone_module
 del _nprandom

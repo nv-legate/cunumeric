@@ -13,7 +13,8 @@ if [ -z "$CPU_ONLY" ]; then
   # cutensor, relying on the conda cutensor package
   CMAKE_ARGS+="
 -Dcutensor_DIR=$PREFIX
--DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;86
+-DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;90
+-DBUILD_MARCH=haswell
 "
 else
   # When we build without cuda, we need to provide the location of curand
@@ -32,7 +33,7 @@ export CUDAHOSTCXX=${CXX}
 
 echo "Build starting on $(date)"
 
-cmake -S . -B build ${CMAKE_ARGS}
+cmake -S . -B build ${CMAKE_ARGS} -DCMAKE_BUILD_PARALLEL_LEVEL=$CPU_COUNT
 cmake --build build -j$CPU_COUNT
 cmake --install build
 

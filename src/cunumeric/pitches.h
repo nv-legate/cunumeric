@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "legion.h"
+#include "core/utilities/typedefs.h"
 
 namespace cunumeric {
 
@@ -26,7 +26,7 @@ template <int DIM, bool C_ORDER = true>
 class Pitches {
  public:
   __CUDA_HD__
-  inline size_t flatten(const Legion::Rect<DIM + 1>& rect)
+  inline size_t flatten(const legate::Rect<DIM + 1>& rect)
   {
     size_t pitch  = 1;
     size_t volume = 1;
@@ -43,9 +43,9 @@ class Pitches {
     return volume;
   }
   __CUDA_HD__
-  inline Legion::Point<DIM + 1> unflatten(size_t index, const Legion::Point<DIM + 1>& lo) const
+  inline legate::Point<DIM + 1> unflatten(size_t index, const legate::Point<DIM + 1>& lo) const
   {
-    Legion::Point<DIM + 1> point = lo;
+    legate::Point<DIM + 1> point = lo;
     for (int d = 0; d < DIM; d++) {
       point[d] += index / pitches[d];
       index = index % pitches[d];
@@ -62,7 +62,7 @@ template <int DIM>
 class Pitches<DIM, false /*C_ORDER*/> {
  public:
   __CUDA_HD__
-  inline size_t flatten(const Legion::Rect<DIM + 1>& rect)
+  inline size_t flatten(const legate::Rect<DIM + 1>& rect)
   {
     size_t pitch  = 1;
     size_t volume = 1;
@@ -79,9 +79,9 @@ class Pitches<DIM, false /*C_ORDER*/> {
     return volume;
   }
   __CUDA_HD__
-  inline Legion::Point<DIM + 1> unflatten(size_t index, const Legion::Point<DIM + 1>& lo) const
+  inline legate::Point<DIM + 1> unflatten(size_t index, const legate::Point<DIM + 1>& lo) const
   {
-    Legion::Point<DIM + 1> point = lo;
+    legate::Point<DIM + 1> point = lo;
     for (int d = DIM - 1; d >= 0; --d) {
       point[d + 1] += index / pitches[d];
       index = index % pitches[d];
@@ -99,7 +99,7 @@ template <bool C_ORDER>
 class Pitches<0, C_ORDER> {
  public:
   __CUDA_HD__
-  inline size_t flatten(const Legion::Rect<1>& rect)
+  inline size_t flatten(const legate::Rect<1>& rect)
   {
     if (rect.lo[0] > rect.hi[0])
       return 0;
@@ -107,9 +107,9 @@ class Pitches<0, C_ORDER> {
       return (rect.hi[0] - rect.lo[0] + 1);
   }
   __CUDA_HD__
-  inline Legion::Point<1> unflatten(size_t index, const Legion::Point<1>& lo) const
+  inline legate::Point<1> unflatten(size_t index, const legate::Point<1>& lo) const
   {
-    Legion::Point<1> point = lo;
+    legate::Point<1> point = lo;
     point[0] += index;
     return point;
   }

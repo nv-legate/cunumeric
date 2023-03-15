@@ -30,7 +30,6 @@ SQUARE_CASES = [
 
 
 class TestSquare:
-
     anp = np.arange(100).reshape(10, 10)
 
     def test_basic(self):
@@ -115,7 +114,6 @@ RECT_CASES = (
 
 
 class TestRect:
-
     anp = np.random.rand(5, 4, 10)
 
     @pytest.mark.parametrize("order", ("C", "F", "A", None), ids=str)
@@ -242,4 +240,5 @@ class TestRavelErrors:
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

@@ -24,7 +24,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM>
@@ -228,7 +227,12 @@ static unsigned roundup_tile(Point<DIM>& tile,
     while (true) {
       int d1 = DIM - 1, d2 = -1;
       int t1 = tile[d1], t2 = 0;
-      for (int d = DIM - 2; d >= 0; d--) {
+      while (t1 == bounds[d1]) {
+        skipdims |= (1 << d1);
+        if (--d1 < 0) return result;  // all dims at their bounds so we're done
+        t1 = tile[d1];
+      }
+      for (int d = d1 - 1; d >= 0; d--) {
         if (skipdims & (1 << d)) continue;
         // Skip any dimension that is at its bound
         if (tile[d] == bounds[d]) {
@@ -249,16 +253,17 @@ static unsigned roundup_tile(Point<DIM>& tile,
         // All the other dimensions are at their bounds, check that
         // the last dimension is also at its bound if not solve
         unsigned pitch = sizeof(VAL);
-        for (int d = 0; d < (DIM - 1); d++) pitch *= (tile[d] + padding[d]);
+        for (int d = 0; d < DIM; d++)
+          if (d != d1) pitch *= (tile[d] + padding[d]);
         // Make sure the last dimension is as large as it can go too
-        if (tile[DIM - 1] < bounds[DIM - 1]) {
+        if (tile[d1] < bounds[d1]) {
           unsigned elements = max_size / pitch;
-          assert(elements > padding[DIM - 1]);
-          assert(tile[DIM - 1] < (elements - padding[DIM - 1]));
-          tile[DIM - 1] = elements - padding[DIM - 1];
-          if (bounds[DIM - 1] < tile[DIM - 1]) tile[DIM - 1] = bounds[DIM - 1];
+          assert(elements > padding[d1]);
+          assert(tile[d1] < (elements - padding[d1]));
+          tile[d1] = elements - padding[d1];
+          if (bounds[d1] < tile[d1]) tile[d1] = bounds[d1];
         }
-        return pitch * (tile[DIM - 1] + padding[DIM - 1]);
+        return pitch * (tile[d1] + padding[d1]);
       }
       // If we ever get two dimensions of the same size then see what dimension
       // has the next largest value. If we can't find one that is larger then

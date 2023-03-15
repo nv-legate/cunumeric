@@ -19,7 +19,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <int DIM, int N>
@@ -43,7 +42,7 @@ struct ZipImplBody<VariantKind::CPU, DIM, N> {
         std::vector<const VAL*> indx_ptrs = {index_arrays[Is].ptr(rect)...};
         auto outptr                       = out.ptr(rect);
         for (size_t idx = 0; idx < volume; ++idx) {
-          Legion::Point<N> new_point;
+          Point<N> new_point;
           for (size_t i = 0; i < N; i++) {
             new_point[i] = compute_idx(indx_ptrs[i][idx], shape[i]);
           }
@@ -52,7 +51,7 @@ struct ZipImplBody<VariantKind::CPU, DIM, N> {
       } else {
         for (size_t idx = 0; idx < volume; ++idx) {
           auto p = pitches.unflatten(idx, rect.lo);
-          Legion::Point<N> new_point;
+          Point<N> new_point;
           for (size_t i = 0; i < N; i++) {
             new_point[i] = compute_idx(index_arrays[i][p], shape[i]);
           }
@@ -66,7 +65,7 @@ struct ZipImplBody<VariantKind::CPU, DIM, N> {
       const size_t volume = rect.volume();
       for (size_t idx = 0; idx < volume; ++idx) {
         auto p = pitches.unflatten(idx, rect.lo);
-        Legion::Point<N> new_point;
+        Point<N> new_point;
         for (size_t i = 0; i < start_index; i++) { new_point[i] = p[i]; }
         for (size_t i = 0; i < index_arrays.size(); i++) {
           new_point[start_index + i] = compute_idx(index_arrays[i][p], shape[start_index + i]);

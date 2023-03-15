@@ -30,7 +30,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind kind>
@@ -281,7 +280,7 @@ struct generate_fn {
     auto rect       = output.shape<DIM>();
     uint64_t volume = rect.volume();
 
-    const auto proc = Legion::Processor::get_executing_processor();
+    const auto proc = Processor::get_executing_processor();
     randutil_log().debug() << "proc=" << proc << " - shape = " << rect;
 
     if (volume > 0) {
@@ -1370,7 +1369,7 @@ struct generate_distribution {
     auto rect       = output.shape<DIM>();
     uint64_t volume = rect.volume();
 
-    const auto proc = Legion::Processor::get_executing_processor();
+    const auto proc = Processor::get_executing_processor();
     randutil_log().debug() << "proc=" << proc << " - shape = " << rect;
 
     if (volume > 0) {
@@ -1429,7 +1428,7 @@ struct generator_map {
   // called by the processor later using the generator
   void create(uint32_t generatorID, BitGeneratorType gentype, uint64_t seed, uint32_t flags)
   {
-    const auto proc = Legion::Processor::get_executing_processor();
+    const auto proc = Processor::get_executing_processor();
     CURANDGenerator* cugenptr =
       CURANDGeneratorBuilder<kind>::build(gentype, seed, (uint64_t)proc.id, flags);
 
@@ -1464,12 +1463,12 @@ struct BitGeneratorImplBody {
   using generator_map_t = generator_map<kind>;
 
   static std::mutex lock_generators;
-  static std::map<Legion::Processor, std::unique_ptr<generator_map_t>> m_generators;
+  static std::map<Processor, std::unique_ptr<generator_map_t>> m_generators;
 
  private:
   static generator_map_t& get_generator_map()
   {
-    const auto proc = Legion::Processor::get_executing_processor();
+    const auto proc = Processor::get_executing_processor();
     std::lock_guard<std::mutex> guard(lock_generators);
     if (m_generators.find(proc) == m_generators.end()) {
       m_generators[proc] = std::make_unique<generator_map_t>();
@@ -1740,18 +1739,12 @@ struct BitGeneratorImplBody {
               generate_distribution<uint32_t, negative_binomial_generator<uint32_t>>::generate(
                 res, cugen, intparams, floatparams, doubleparams);
               break;
-            default: {
-              randutil_log().fatal() << "unknown Distribution";
-              assert(false);
-            }
+            default: LEGATE_ABORT;
           }
         }
         break;
       }
-      default: {
-        randutil_log().fatal() << "unknown BitGenerator operation";
-        assert(false);
-      }
+      default: LEGATE_ABORT;
     }
   }
 };

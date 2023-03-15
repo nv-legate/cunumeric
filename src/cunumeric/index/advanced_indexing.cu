@@ -16,14 +16,12 @@
 
 #include "cunumeric/index/advanced_indexing.h"
 #include "cunumeric/index/advanced_indexing_template.inl"
+#include "cunumeric/utilities/thrust_util.h"
 #include "cunumeric/cuda_help.h"
 
 #include <thrust/scan.h>
-#include <thrust/execution_policy.h>
 
 namespace cunumeric {
-
-using namespace Legion;
 
 template <typename Output, typename Pitches, typename Point, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
@@ -107,7 +105,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
     CHECK_CUDA_STREAM(stream);
 
     auto off_ptr = offsets.ptr(0);
-    thrust::exclusive_scan(thrust::cuda::par.on(stream), off_ptr, off_ptr + volume, off_ptr);
+    thrust::exclusive_scan(DEFAULT_POLICY.on(stream), off_ptr, off_ptr + volume, off_ptr);
 
     return size.read(stream);
   }
@@ -122,7 +120,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
     size_t size         = 0;
     const size_t volume = rect.volume();
     auto stream         = get_cached_stream();
-    auto offsets        = create_buffer<int64_t, 1>(volume, Memory::Kind::GPU_FB_MEM);
+    auto offsets        = create_buffer<int64_t, 1>(volume, legate::Memory::Kind::GPU_FB_MEM);
 
     size_t skip_size = 1;
     for (int i = key_dim; i < DIM; i++) {

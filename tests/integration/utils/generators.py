@@ -77,7 +77,7 @@ def permutes_to(tgt_shape):
     """
     for axes in permutations(range(len(tgt_shape))):
         src_shape = [-1] * len(tgt_shape)
-        for (i, j) in enumerate(axes):
+        for i, j in enumerate(axes):
             src_shape[j] = tgt_shape[i]
         yield (axes, tuple(src_shape))
 

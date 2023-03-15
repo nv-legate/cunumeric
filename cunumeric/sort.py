@@ -84,7 +84,7 @@ def sort_swapped(
 def sort_task(
     output: DeferredArray, input: DeferredArray, argsort: bool, stable: bool
 ) -> None:
-    task = output.context.create_task(CuNumericOpCode.SORT)
+    task = output.context.create_auto_task(CuNumericOpCode.SORT)
 
     uses_unbound_output = output.runtime.num_procs > 1 and input.ndim == 1
 

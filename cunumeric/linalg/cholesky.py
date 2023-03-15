@@ -20,6 +20,7 @@ from legate.core import Rect, types as ty
 from legate.core.shape import Shape
 
 from cunumeric.config import CuNumericOpCode
+from cunumeric.settings import settings
 
 from .exception import LinAlgError
 
@@ -150,7 +151,7 @@ MIN_CHOLESKY_MATRIX_SIZE = 8192
 
 # TODO: We need a better cost model
 def choose_color_shape(runtime: Runtime, shape: Shape) -> Shape:
-    if runtime.args.test_mode:
+    if settings.test():
         num_tiles = runtime.num_procs * 2
         return Shape((num_tiles, num_tiles))
 
@@ -174,7 +175,7 @@ def choose_color_shape(runtime: Runtime, shape: Shape) -> Shape:
 
 
 def tril_single(context: Context, output: Store) -> None:
-    task = context.create_task(CuNumericOpCode.TRILU)
+    task = context.create_auto_task(CuNumericOpCode.TRILU)
     task.add_output(output)
     task.add_input(output)
     task.add_scalar_arg(True, bool)
@@ -204,7 +205,6 @@ def tril(context: Context, p_output: StorePartition, n: int) -> None:
 def cholesky(
     output: DeferredArray, input: DeferredArray, no_tril: bool
 ) -> None:
-
     runtime = output.runtime
     context = output.context
 

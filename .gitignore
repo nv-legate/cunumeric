@@ -19,7 +19,6 @@ core
 *.bbl
 *.blg
 *.aux
-*.json
 *.dylib
 legate_python
 openblas
@@ -41,3 +40,4 @@ cunumeric/install_info.py
 /dist
 /_skbuild
 /_cmake_test_compile
+.ipynb_checkpoints

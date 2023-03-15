@@ -20,8 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename VAL>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   diag_populate(const AccessorRW<VAL, 2> out,

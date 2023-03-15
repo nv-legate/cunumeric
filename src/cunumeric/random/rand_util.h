@@ -41,8 +41,8 @@ constexpr decltype(auto) op_dispatch(RandGenCode gen_code, Functor f, Fnargs&&..
       return f.template operator()<RandGenCode::NORMAL>(std::forward<Fnargs>(args)...);
     case RandGenCode::INTEGER:
       return f.template operator()<RandGenCode::INTEGER>(std::forward<Fnargs>(args)...);
+    default: LEGATE_ABORT;
   }
-  assert(false);
   return f.template operator()<RandGenCode::UNIFORM>(std::forward<Fnargs>(args)...);
 }
 

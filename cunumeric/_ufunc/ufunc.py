@@ -178,7 +178,6 @@ def to_dtypes(chars: str) -> tuple[np.dtype[Any], ...]:
 
 
 class ufunc:
-
     _types: Dict[Any, str]
     _nin: int
     _nout: int
@@ -186,6 +185,10 @@ class ufunc:
     def __init__(self, name: str, doc: str) -> None:
         self._name = name
         self.__doc__ = doc
+
+    @property
+    def __name__(self) -> str:
+        return self._name
 
     @property
     def nin(self) -> int:

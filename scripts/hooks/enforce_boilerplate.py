@@ -16,22 +16,24 @@ import sys
 from pathlib import Path
 from typing import NoReturn
 
-BOILERPLATE = "sys.exit(pytest.main(sys.argv))"
+BOILERPLATE = [
+    "np.random.seed(12345)",
+    "sys.exit(pytest.main(sys.argv))",
+]
 
 TESTS_TOP = Path(__file__).parents[2] / "tests"
 
 TEST_DIRS = (TESTS_TOP / "unit", TESTS_TOP / "integration")
 
 
-def enforce_pytest_main() -> NoReturn:
-
+def enforce_boilerplate() -> NoReturn:
     for dir in TEST_DIRS:
         for path in dir.rglob("*.py"):
-
             if not path.is_file() or not path.name.startswith("test_"):
                 continue
 
-            if not open(path).readlines()[-1].strip() == BOILERPLATE:
+            last_lines = open(path).readlines()[-len(BOILERPLATE) :]
+            if any(a.strip() != b for a, b in zip(last_lines, BOILERPLATE)):
                 print(f"Test file {path} missing required boilerplate")
                 sys.exit(1)
 
@@ -39,4 +41,4 @@ def enforce_pytest_main() -> NoReturn:
 
 
 if __name__ == "__main__":
-    enforce_pytest_main()
+    enforce_boilerplate()

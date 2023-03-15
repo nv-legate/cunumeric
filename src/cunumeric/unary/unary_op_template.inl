@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
@@ -55,7 +54,7 @@ struct UnaryOpImpl {
     auto out = args.out.write_accessor<RES, DIM>(rect);
     auto in  = args.in.read_accessor<ARG, DIM>(rect);
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect);
 #else
@@ -99,7 +98,7 @@ struct MultiOutUnaryOpImpl {
     auto rhs1 = args.in.read_accessor<RHS1, DIM>(rect);
     auto rhs2 = args.out2.write_accessor<RHS2, DIM>(rect);
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = lhs.accessor.is_dense_row_major(rect) && rhs1.accessor.is_dense_row_major(rect) &&
                  rhs2.accessor.is_dense_row_major(rect);
@@ -151,7 +150,7 @@ struct UnaryCopyImpl {
     auto out = args.out.write_accessor<VAL, DIM>(rect);
     auto in  = args.in.read_accessor<VAL, DIM>(rect);
 
-#ifndef LEGION_BOUNDS_CHECKS
+#ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     bool dense = out.accessor.is_dense_row_major(rect) && in.accessor.is_dense_row_major(rect);
 #else

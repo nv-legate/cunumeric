@@ -127,7 +127,7 @@ def auto_convert(
                 else arg
                 for (idx, arg) in enumerate(args)
             )
-            for (k, v) in kwargs.items():
+            for k, v in kwargs.items():
                 if k in keys and v is not None:
                     kwargs[k] = self.runtime.to_deferred_array(v)
 
@@ -671,7 +671,6 @@ class DeferredArray(NumPyThunk):
         # and avoid calling Copy
         has_set_value = set_value is not None and set_value.size == 1
         if has_set_value:
-
             mask = DeferredArray(
                 self.runtime,
                 base=key_store,
@@ -741,7 +740,6 @@ class DeferredArray(NumPyThunk):
         is_set: bool = False,
         set_value: Optional[Any] = None,
     ) -> tuple[bool, Any, Any, Any]:
-
         is_bool_array, lhs, bool_key = self._has_single_boolean_array(
             key, is_set
         )
@@ -947,7 +945,6 @@ class DeferredArray(NumPyThunk):
             ) = self._create_indexing_array(key)
 
             if copy_needed:
-
                 if rhs.base.kind == Future:
                     rhs = rhs._convert_future_to_regionfield()
                 result: NumPyThunk
@@ -1581,7 +1578,6 @@ class DeferredArray(NumPyThunk):
 
         # Special cases where we can use BLAS
         if blas_op is not None:
-
             if blas_op == BlasOperation.VV:
                 # Vector dot product
                 task = self.context.create_auto_task(CuNumericOpCode.DOT)
@@ -1686,7 +1682,7 @@ class DeferredArray(NumPyThunk):
         lhs_dim_mask: list[bool] = []
         rhs1_dim_mask: list[bool] = []
         rhs2_dim_mask: list[bool] = []
-        for (dim, mode) in enumerate(sorted(mode2extent.keys())):
+        for dim, mode in enumerate(sorted(mode2extent.keys())):
             extent = mode2extent[mode]
 
             def add_mode(
@@ -1811,7 +1807,6 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert("indices", "values")
     def put(self, indices: Any, values: Any, check_bounds: bool) -> None:
-
         if indices.base.kind == Future or indices.base.transformed:
             change_shape = indices.base.kind == Future
             indices = indices._convert_future_to_regionfield(change_shape)
@@ -1842,7 +1837,7 @@ class DeferredArray(NumPyThunk):
         )
 
         shape = self_tmp.shape
-        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task = self.context.create_auto_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
         task.add_scalar_arg(shape, (ty.int64,))
         task.add_scalar_arg(True, bool)  # has_input
@@ -1872,7 +1867,7 @@ class DeferredArray(NumPyThunk):
             values_new = values._broadcast(self.shape)
         else:
             values_new = values.base
-        task = self.context.create_task(CuNumericOpCode.PUTMASK)
+        task = self.context.create_auto_task(CuNumericOpCode.PUTMASK)
         task.add_input(self.base)
         task.add_input(mask.base)
         task.add_input(values_new)
@@ -2073,7 +2068,7 @@ class DeferredArray(NumPyThunk):
         seed: Union[int, None],
         flags: int,
     ) -> None:
-        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+        task = self.context.create_auto_task(CuNumericOpCode.BITGENERATOR)
 
         task.add_output(self.base)
 
@@ -2099,7 +2094,7 @@ class DeferredArray(NumPyThunk):
         floatparams: tuple[float, ...],
         doubleparams: tuple[float, ...],
     ) -> None:
-        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+        task = self.context.create_auto_task(CuNumericOpCode.BITGENERATOR)
 
         task.add_output(self.base)
 
@@ -3098,7 +3093,6 @@ class DeferredArray(NumPyThunk):
         args: Any,
         multiout: Optional[Any] = None,
     ) -> None:
-
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
@@ -3328,7 +3322,7 @@ class DeferredArray(NumPyThunk):
     def argwhere(self) -> NumPyThunk:
         result = self.runtime.create_unbound_thunk(np.dtype(np.int64), ndim=2)
 
-        task = self.context.create_task(CuNumericOpCode.ARGWHERE)
+        task = self.context.create_auto_task(CuNumericOpCode.ARGWHERE)
 
         task.add_output(result.base)
         task.add_input(self.base)
@@ -3399,7 +3393,7 @@ class DeferredArray(NumPyThunk):
             input.copy(swapped, deep=True)
             output = input
 
-        task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
+        task = output.context.create_auto_task(CuNumericOpCode.SCAN_LOCAL)
         task.add_output(output.base)
         task.add_input(input.base)
         task.add_output(temp.base)
@@ -3413,7 +3407,7 @@ class DeferredArray(NumPyThunk):
         # NOTE: Assumes the partitioning stays the same from previous task.
         # NOTE: Each node will do a sum up to its index, alternatively could
         # do one centralized scan and broadcast (slightly less redundant work)
-        task = output.context.create_task(CuNumericOpCode.SCAN_GLOBAL)
+        task = output.context.create_auto_task(CuNumericOpCode.SCAN_GLOBAL)
         task.add_input(output.base)
         task.add_input(temp.base)
         task.add_output(output.base)
@@ -3451,8 +3445,7 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert("rhs", "v")
     def searchsorted(self, rhs: Any, v: Any, side: SortSide = "left") -> None:
-
-        task = self.context.create_task(CuNumericOpCode.SEARCHSORTED)
+        task = self.context.create_auto_task(CuNumericOpCode.SEARCHSORTED)
 
         is_left = side == "left"
 
@@ -3484,7 +3477,6 @@ class DeferredArray(NumPyThunk):
         kind: SortType = "quicksort",
         order: Union[None, str, list[str]] = None,
     ) -> None:
-
         if kind == "stable":
             stable = True
         else:
@@ -3510,7 +3502,6 @@ class DeferredArray(NumPyThunk):
         kind: SelectKind = "introselect",
         order: Union[None, str, list[str]] = None,
     ) -> None:
-
         if order is not None:
             raise NotImplementedError(
                 "cuNumeric does not support partitioning with 'order' as "
@@ -3583,7 +3574,7 @@ class DeferredArray(NumPyThunk):
             ),
         )
 
-        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task = self.context.create_auto_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
         task.add_scalar_arg(src.shape, (ty.int64,))
         task.add_scalar_arg(False, bool)  # has_input

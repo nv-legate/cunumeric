@@ -90,7 +90,7 @@ SHAPES_NEGATIVE = [
 
 
 class TestCreationErrors:
-    def setup(self):
+    def setup_method(self):
         self.bad_type_shape = (2, 3.0)
 
     @pytest.mark.parametrize("shape", SHAPES_NEGATIVE, ids=str)
@@ -268,4 +268,5 @@ def test_zero_with_0d_ndarray_shape():
 if __name__ == "__main__":
     import sys
 
+    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
