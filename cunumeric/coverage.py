@@ -53,6 +53,8 @@ FALLBACK_WARNING = (
 
 MOD_INTERNAL = {"__dir__", "__getattr__"}
 
+UFUNC_METHODS = ("at", "accumulate", "outer", "reduce", "reduceat")
+
 
 def filter_namespace(
     ns: Mapping[str, Any],
@@ -250,6 +252,25 @@ def clone_module(
                 cast(AnyCallable, value), mod_name, attr, reporting=reporting
             )
             new_globals[attr] = wrapped
+            if isinstance(value, lgufunc):
+                for method in UFUNC_METHODS:
+                    wrapped_method = (
+                        implemented(
+                            getattr(value, method),
+                            f"{mod_name}.{attr}",
+                            method,
+                            reporting=reporting,
+                        )
+                        if hasattr(value, method)
+                        else unimplemented(
+                            getattr(getattr(origin_module, attr), method),
+                            f"{mod_name}.{attr}",
+                            method,
+                            reporting=reporting,
+                            fallback=fallback,
+                        )
+                    )
+                    setattr(wrapped, method, wrapped_method)
 
     from numpy import ufunc as npufunc
 
@@ -266,6 +287,16 @@ def clone_module(
                 fallback=fallback,
             )
             new_globals[attr] = wrapped
+            if isinstance(value, npufunc):
+                for method in UFUNC_METHODS:
+                    wrapped_method = unimplemented(
+                        getattr(value, method),
+                        f"{mod_name}.{attr}",
+                        method,
+                        reporting=reporting,
+                        fallback=fallback,
+                    )
+                    setattr(wrapped, method, wrapped_method)
         else:
             new_globals[attr] = value
 
