@@ -272,7 +272,7 @@ def test_split(size):
             assert compare_array(res_num, res_np)
 
 
-@pytest.mark.parametrize("size", SIZES_HSPLIT, ids=str)
+@pytest.mark.parametrize("size", SIZES_VSPLIT, ids=str)
 def test_vsplit(size):
     a = np.random.randint(low=0, high=100, size=size)
     input_arr = get_indices(a, 0)
