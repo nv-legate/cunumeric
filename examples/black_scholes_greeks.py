@@ -49,7 +49,6 @@ money_step = 0.01
 RISKFREE = 0.02
 S0 = 100.0
 N_GREEKS=7
-EPS = 0.00000001
 
 
 def initialize(n_vol_steps, n_t_steps, n_money_steps, D):
@@ -74,60 +73,32 @@ def initialize(n_vol_steps, n_t_steps, n_money_steps, D):
 
     return CALL, PUT, S, K, T, R, V
 
+def normCDF(d):
+    A1 = 0.31938153
+    A2 = -0.356563782
+    A3 = 1.781477937
+    A4 = -1.821255978
+    A5 = 1.330274429
+    RSQRT2PI = 0.39894228040143267793994605993438
 
+    K = 1.0 / (1.0 + 0.2316419 * np.absolute(d))
+
+    cnd = RSQRT2PI * np.exp(- 0.5 * d * d) * (K * (A1 + K * (A2 + K * (A3 + K * (A4 + K * A5)))));
+
+    return np.where(d > 0, 1.0 - cnd, cnd)
 
 def normPDF(d):
     RSQRT2PI = 0.39894228040143267793994605993438;
     return RSQRT2PI * np.exp(- 0.5 * d * d);
 
-def black_scholes_vec_kernel(d1, d2, nd1, nd2, S, K, T, V, stdev, R,CP, EPS):
-    if (math.fabs(V)>EPS) and (math.fabs(T)>EPS) and (math.fabs(K)>EPS) and (math.fabs(S)>EPS):
-       d1 = (math.log(S/K)+(R+0.5*V*V)*T)/stdev
-       d2=d1-stdev
-       cpd1 = CP*d1
-       cpd2 = CP*d2
-       #manual inlining ndtr
-       NPY_SQRT1_2 = 0.707106781186547524400844362104849039
-       x = cpd1 * NPY_SQRT1_2
-       z = math.fabs(x)
-
-       if z < NPY_SQRT1_2:
-           y = 0.5 + 0.5 * math.erf(x)
-       else:
-           y = 0.5 * math.erfc(z)
-
-           if x > 0:
-               y = 1.0 - y
-       nd1=y
-
-       #manual inlining ndtr
-       x = cpd2 * NPY_SQRT1_2
-       z = math.fabs(x)
-
-       if z < NPY_SQRT1_2:
-           y = 0.5 + 0.5 * math.erf(x)
-       else:
-           y = 0.5 * math.erfc(z)
-
-           if x > 0:
-               y = 1.0 - y
-       nd2=y
-    else:
-        if (math.fabs(V)<=EPS) or (math.fabs(T)<=EPS) or (math.fabs(K)<=EPS):
-            d1 = math.inf
-            d2 = math.inf
-            nd1 = 1.
-            nd2 = 1.
-        else:
-            d1 = -math.inf
-            d2 = -math.inf
-            nd1 = 1.
-            nd2 = 1.
-
-
-bs_vec = np.vectorize(black_scholes_vec_kernel,otypes=(float,float,float,float), cache=True)
-
-def black_scholes ( out , S, K, R, T, V, d1, d2, nd1, nd2, df,ind_v, ind_t, CP, greek):
+def black_scholes ( out , S, K, R, T, V, d1, d2, nd1, nd2, CP, greek):
+    EPS = 0.00000001
+    stdev = V * np.sqrt(T)
+    df = np.exp(-R*T)
+    d1 = (np.log(S/K)+(R+0.5*V*V)*T)/stdev
+    d2= d1-stdev
+    nd1 = normCDF(CP*d1)
+    nd2 = normCDF(CP*d2)
 
     if greek == "PREM":
         out[...] = CP*(S*nd1 - K*df*nd2);
@@ -137,53 +108,34 @@ def black_scholes ( out , S, K, R, T, V, d1, d2, nd1, nd2, df,ind_v, ind_t, CP, 
         out[...] = S*np.sqrt(T)*normPDF(d1)
     elif greek == "GAMMA":
         out[...] = normPDF(d1)/(S*V*np.sqrt(T))
-        out[ind_v] =0.
     elif greek == "VANNA":
         out[...] = -d2*normPDF(d1)/V
-        out[ind_v] =0.
     elif greek == "VOLGA":
         out[...] = S*np.sqrt(T)*d1*d2*normPDF(d1)/V;
-        out[ind_v] =0.
     elif greek == "THETA":
         out[...] = -(0.5*S*V/np.sqrt(T)*normPDF(d1)+CP*R*df*K*nd2)
     else:
         RuntimeError("Wrong greek name is passed")
 
-    if (greek != "PREM"):
-        out[ind_t] = 0.
 
    
 greeks = ["PREM", "DELTA", "VEGA", "GAMMA", "VANNA", "VOLGA", "THETA",]
-#greeks = ["PREM",]
 
 def run_black_scholes(n_vol_steps, n_t_steps, n_money_steps):
     timer = CuNumericTimer()
     print("Start black_scholes")
     CALL, PUT, S, K, T, R, V = initialize(n_vol_steps, n_t_steps, n_money_steps, np.float32)
-    #pre-compute some data for black_scholes
-    stdev = V * np.sqrt(T)
-    df = np.exp(-R*T)
-    ind_v = np.nonzero(np.absolute(V)<EPS)
-    ind_t = np.nonzero(np.absolute(T)<EPS)
 
-    d1_call = np.zeros_like(S)
-    d2_call= np.zeros_like(S)
-    nd1_call = np.zeros_like(S)
-    nd2_call= np.zeros_like(S)
-
-    bs_vec(d1_call, d2_call, nd1_call, nd2_call, S, K, T, V,stdev, R, 1, EPS);
-    d1_put = np.zeros_like(S)
-    d2_put= np.zeros_like(S)
-    nd1_put = np.zeros_like(S)
-    nd2_put= np.zeros_like(S)
-
-    bs_vec(d1_put, d2_put, nd1_put, nd2_put, S, K, T, V,stdev, R, -1, EPS);
+    d1 = np.zeros_like(S)
+    d2= np.zeros_like(S)
+    nd1 = np.zeros_like(S)
+    nd2= np.zeros_like(S)
 
     print("After the initialization")
     timer.start()
     for count,g in enumerate(greeks):
-        black_scholes(CALL[count],S, K, R, T, V, d1_call, d2_call, nd1_call, nd2_call, df, ind_v, ind_t, 1, g)
-        black_scholes(PUT[count],S, K, R, T, V, d1_put, d2_put, nd1_put, nd2_put, df, ind_v, ind_t, -1, g)
+        black_scholes(CALL[count],S, K, R, T, V, d1, d2, nd1, nd2,1, g)
+        black_scholes(PUT[count],S, K, R, T, V, d1, d2, nd1, nd2, -1, g)
 
     total = timer.stop()
     print("Elapsed Time: " + str(total) + " ms")
