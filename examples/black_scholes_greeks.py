@@ -18,54 +18,48 @@
 import argparse
 
 from benchmark import parse_args, run_benchmark, CuNumericTimer
-
+from enum import IntEnum
 import math
 import cunumeric as np
 
 
-#big size
-#n_vol_steps = 40
+NUM_ITERS=10
+WARMUP_ITER=2
+
 vol_start = 0.1
 vol_step = 0.01
-#n_t_steps = 365*10
 t_start = 0.5
 t_step = 1.0/(365*10)
-#n_money_steps = 60
 money_start = -0.4
 money_step = 0.01
 
 
-#small size
-#n_vol_steps = 10
-#vol_start = 0.1
-#vol_step = 0.01
-#n_t_steps = 6
-#t_start = 0.5
-#t_step = 0.5
-#n_money_steps = 1
-#money_start = 0
-#money_step = 0.1
-
 RISKFREE = 0.02
 S0 = 100.0
 N_GREEKS=7
+
+class Greeks(IntEnum):
+    PREM=0,
+    DELTA=1,
+    VEGA=2,
+    GAMMA=3,
+    VANNA=4,
+    VOLGA=5,
+    THETA=6
 
 
 def initialize(n_vol_steps, n_t_steps, n_money_steps, D):
     CALL = np.zeros((N_GREEKS, n_t_steps, n_vol_steps, n_money_steps,), dtype = D)
     PUT = np.zeros((N_GREEKS, n_t_steps, n_vol_steps, n_money_steps,), dtype = D)
     S=np.full((n_t_steps, n_vol_steps, n_money_steps,),S0, dtype = D)
-    K=np.full((n_t_steps, n_vol_steps, n_money_steps,), (1 + money_start), dtype = D)  
     temp_arr = np.arange((n_vol_steps*n_t_steps*n_money_steps), dtype=int)
     k_temp=(temp_arr%n_money_steps)*money_step
     k_temp = k_temp.reshape((n_t_steps, n_vol_steps, n_money_steps,))
-    K+=k_temp
-    K=K*S0
+    K=(k_temp+(1 + money_start))*S0
 
-    T=np.full((n_t_steps, n_vol_steps, n_money_steps,),t_start, dtype = D)
     t_temp = (temp_arr%(n_vol_steps*n_money_steps))*vol_step
     t_temp = t_temp.reshape((n_t_steps, n_vol_steps, n_money_steps,))
-    T+=t_temp
+    T=t_temp+t_start
     R=  0.02
     V=np.full((n_t_steps, n_vol_steps, n_money_steps), vol_start, dtype = D)
     for i in range(n_vol_steps):
@@ -83,15 +77,15 @@ def normCDF(d):
 
     K = 1.0 / (1.0 + 0.2316419 * np.absolute(d))
 
-    cnd = RSQRT2PI * np.exp(- 0.5 * d * d) * (K * (A1 + K * (A2 + K * (A3 + K * (A4 + K * A5)))));
+    cnd = RSQRT2PI * np.exp(- 0.5 * d * d) * (K * (A1 + K * (A2 + K * (A3 + K * (A4 + K * A5)))))
 
     return np.where(d > 0, 1.0 - cnd, cnd)
 
 def normPDF(d):
-    RSQRT2PI = 0.39894228040143267793994605993438;
-    return RSQRT2PI * np.exp(- 0.5 * d * d);
+    RSQRT2PI = 0.39894228040143267793994605993438
+    return RSQRT2PI * np.exp(- 0.5 * d * d)
 
-def black_scholes ( out , S, K, R, T, V, d1, d2, nd1, nd2, CP, greek):
+def black_scholes ( out , S, K, R, T, V, CP, greek):
     EPS = 0.00000001
     stdev = V * np.sqrt(T)
     df = np.exp(-R*T)
@@ -100,45 +94,39 @@ def black_scholes ( out , S, K, R, T, V, d1, d2, nd1, nd2, CP, greek):
     nd1 = normCDF(CP*d1)
     nd2 = normCDF(CP*d2)
 
-    if greek == "PREM":
-        out[...] = CP*(S*nd1 - K*df*nd2);
-    elif greek == "DELTA":
+    if greek == Greeks.PREM:
+        out[...] = CP*(S*nd1 - K*df*nd2)
+    elif greek == Greeks.DELTA:
         out[...] = CP*nd1
-    elif greek =="VEGA":
+    elif greek ==Greeks.VEGA:
         out[...] = S*np.sqrt(T)*normPDF(d1)
-    elif greek == "GAMMA":
+    elif greek == Greeks.GAMMA:
         out[...] = normPDF(d1)/(S*V*np.sqrt(T))
-    elif greek == "VANNA":
+    elif greek == Greeks.VANNA:
         out[...] = -d2*normPDF(d1)/V
-    elif greek == "VOLGA":
-        out[...] = S*np.sqrt(T)*d1*d2*normPDF(d1)/V;
-    elif greek == "THETA":
+    elif greek == Greeks.VOLGA:
+        out[...] = S*np.sqrt(T)*d1*d2*normPDF(d1)/V
+    elif greek == Greeks.THETA:
         out[...] = -(0.5*S*V/np.sqrt(T)*normPDF(d1)+CP*R*df*K*nd2)
     else:
-        RuntimeError("Wrong greek name is passed")
+        raise RuntimeError("Wrong greek name is passed")
 
-
-   
-greeks = ["PREM", "DELTA", "VEGA", "GAMMA", "VANNA", "VOLGA", "THETA",]
 
 def run_black_scholes(n_vol_steps, n_t_steps, n_money_steps):
     timer = CuNumericTimer()
     print("Start black_scholes")
     CALL, PUT, S, K, T, R, V = initialize(n_vol_steps, n_t_steps, n_money_steps, np.float32)
 
-    d1 = np.zeros_like(S)
-    d2= np.zeros_like(S)
-    nd1 = np.zeros_like(S)
-    nd2= np.zeros_like(S)
-
     print("After the initialization")
-    timer.start()
-    for count,g in enumerate(greeks):
-        black_scholes(CALL[count],S, K, R, T, V, d1, d2, nd1, nd2,1, g)
-        black_scholes(PUT[count],S, K, R, T, V, d1, d2, nd1, nd2, -1, g)
+    for i in range (NUM_ITERS):
+        if i==WARMUP_ITER:
+            timer.start()
+        for g in Greeks:
+            black_scholes(CALL[g.value],S, K, R, T, V, 1, g)
+            black_scholes(PUT[g.value],S, K, R, T, V, -1, g)
 
-    total = timer.stop()
-    print("Elapsed Time: " + str(total) + " ms")
+    total = (timer.stop())/(NUM_ITERS-WARMUP_ITER)
+    print("Elapsed Time: {} ms".format(total))
     return total
 
 if __name__ == "__main__":
