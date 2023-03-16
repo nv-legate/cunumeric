@@ -113,18 +113,16 @@ class Runtime(object):
         self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self) -> None:
-        task = self.legate_context.create_task(
+        task = self.legate_context.create_manual_task(
             CuNumericOpCode.LOAD_CUDALIBS,
-            manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
         )
         task.execute()
         self.legate_runtime.issue_execution_fence(block=True)
 
     def _unload_cudalibs(self) -> None:
-        task = self.legate_context.create_task(
+        task = self.legate_context.create_manual_task(
             CuNumericOpCode.UNLOAD_CUDALIBS,
-            manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
         )
         task.execute()
@@ -220,9 +218,8 @@ class Runtime(object):
     ) -> int:
         self.current_random_bitgenid = self.current_random_bitgenid + 1
         if forceCreate:
-            task = self.legate_context.create_task(
+            task = self.legate_context.create_manual_task(
                 CuNumericOpCode.BITGENERATOR,
-                manual=True,
                 launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
             )
             self.bitgenerator_populate_task(
@@ -250,9 +247,8 @@ class Runtime(object):
         else:
             # with explicit destruction, do schedule a task
             self.legate_runtime.issue_execution_fence()
-            task = self.legate_context.create_task(
+            task = self.legate_context.create_manual_task(
                 CuNumericOpCode.BITGENERATOR,
-                manual=True,
                 launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
             )
             self.bitgenerator_populate_task(
