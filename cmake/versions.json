@@ -1,8 +1,8 @@
 {
   "packages" : {
     "legate_core" : {
-      "git_url" : "https://github.com/nv-legate/legate.core.git",
-      "git_tag" : "37596159b1f8f06439fdc95d6090bbc4315c302c"
+			"git_url" : "https://github.com/nv-legate/legate.core.git",
+      "git_tag" : "bb24fda2d84132b7982a7e3020fee24781eb5c57"
     }
   }
 }
