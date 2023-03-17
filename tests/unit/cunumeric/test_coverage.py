@@ -461,6 +461,39 @@ class Test_clone_class:
         assert a.extra(b) == "new extra"
 
 
+def test_ufunc_methods_binary() -> None:
+    import cunumeric as np
+
+    # reduce is implemented
+    assert np.add.reduce.__wrapped__
+    assert np.add.reduce._cunumeric.implemented
+
+    # the rest are not
+    assert np.add.reduceat.__wrapped__
+    assert not np.add.reduceat._cunumeric.implemented
+    assert np.add.outer.__wrapped__
+    assert not np.add.outer._cunumeric.implemented
+    assert np.add.at.__wrapped__
+    assert not np.add.at._cunumeric.implemented
+    assert np.add.accumulate.__wrapped__
+    assert not np.add.accumulate._cunumeric.implemented
+
+
+def test_ufunc_methods_unary() -> None:
+    import cunumeric as np
+
+    assert np.negative.reduce.__wrapped__
+    assert not np.negative.reduce._cunumeric.implemented
+    assert np.negative.reduceat.__wrapped__
+    assert not np.negative.reduceat._cunumeric.implemented
+    assert np.negative.outer.__wrapped__
+    assert not np.negative.outer._cunumeric.implemented
+    assert np.negative.at.__wrapped__
+    assert not np.negative.at._cunumeric.implemented
+    assert np.negative.accumulate.__wrapped__
+    assert not np.negative.accumulate._cunumeric.implemented
+
+
 if __name__ == "__main__":
     import sys
 

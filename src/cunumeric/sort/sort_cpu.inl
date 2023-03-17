@@ -463,7 +463,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   using VAL = legate_type_of<CODE>;
 
   size_t volume              = local_sorted.size;
-  bool is_unbound_1d_storage = output_array_unbound.is_output_store();
+  bool is_unbound_1d_storage = output_array_unbound.is_unbound_store();
 
   assert((volume > 0 && segment_size_l > 0) || volume == segment_size_l);
 
@@ -887,9 +887,9 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
     merge_buffer.segments.destroy();
     if (argsort) {
       merge_buffer.values.destroy();
-      output_array_unbound.return_data(merge_buffer.indices, Point<1>(merge_buffer.size));
+      output_array_unbound.bind_data(merge_buffer.indices, Point<1>(merge_buffer.size));
     } else {
-      output_array_unbound.return_data(merge_buffer.values, Point<1>(merge_buffer.size));
+      output_array_unbound.bind_data(merge_buffer.values, Point<1>(merge_buffer.size));
     }
   }
 }
@@ -920,7 +920,7 @@ struct SortImplBodyCpu {
     // we allow empty domains for distributed sorting
     assert(rect.empty() || input.accessor.is_dense_row_major(rect));
 
-    bool is_unbound_1d_storage = output_array.is_output_store();
+    bool is_unbound_1d_storage = output_array.is_unbound_store();
     bool need_distributed_sort = segment_size_l != segment_size_g || is_unbound_1d_storage;
     bool rebalance             = !is_unbound_1d_storage;
     assert(DIM == 1 || !is_unbound_1d_storage);
@@ -1021,9 +1021,9 @@ struct SortImplBodyCpu {
         // edge case where we have an unbound store but only 1 CPU was assigned with the task
         if (argsort) {
           local_sorted.values.destroy();
-          output_array.return_data(local_sorted.indices, Point<1>(local_sorted.size));
+          output_array.bind_data(local_sorted.indices, Point<1>(local_sorted.size));
         } else {
-          output_array.return_data(local_sorted.values, Point<1>(local_sorted.size));
+          output_array.bind_data(local_sorted.values, Point<1>(local_sorted.size));
         }
       }
     } else if (argsort) {

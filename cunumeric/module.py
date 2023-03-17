@@ -1806,7 +1806,7 @@ def stack(
     Multiple GPUs, Multiple CPUs
     """
     if type(axis) is not int:
-        raise ValueError("The target axis should be an integer")
+        raise TypeError("The target axis should be an integer")
 
     arrays, common_info = check_shape_dtype(arrays, stack.__name__, axis)
 
