@@ -15,10 +15,10 @@
  */
 
 #include "cunumeric/vectorize/eval_udf.h"
+#include "cunumeric/pitches.h"
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 struct EvalUdfCPU {
@@ -27,29 +27,39 @@ struct EvalUdfCPU {
   {
     // In the case of CPU, we pack arguments in a vector and pass them to the
     // function (through the function pointer geenrated by numba)
-    using UDF = void(void**, size_t);
+    using UDF = void(void**, size_t, size_t, uint32_t*, uint32_t*, uint32_t*);
     auto udf  = reinterpret_cast<UDF*>(args.cpu_func_ptr);
     std::vector<void*> udf_args;
     size_t volume = 1;
+    Pitches<DIM - 1> pitches;
+    Rect<DIM> rect;
+    size_t strides[DIM];
     if (args.inputs.size()>0){
       using VAL = legate_type_of<CODE>;
-      auto rect = args.inputs[0].shape<DIM>();
+      rect = args.inputs[0].shape<DIM>();
+      volume = pitches.flatten(rect);
 
       if (rect.empty()) return;
       for (size_t i = 0; i < args.inputs.size(); i++) {
         if (i < args.num_outputs) {
           auto out = args.outputs[i].write_accessor<VAL, DIM>(rect);
-          udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect)));
+          udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect, strides)));
         } else {
           auto out = args.inputs[i].read_accessor<VAL, DIM>(rect);
-          udf_args.push_back(reinterpret_cast<void*>(const_cast<VAL*>(out.ptr(rect))));
+          udf_args.push_back(reinterpret_cast<void*>(const_cast<VAL*>(out.ptr(rect,strides))));
         }
       }
-      volume = rect.volume();
     }//if
     for (auto s: args.scalars)
         udf_args.push_back(const_cast<void*>(s.ptr()));
-    udf(udf_args.data(), volume);
+//    udf(udf_args.data(), volume, size_t(DIM),reinterpret_cast<void*>(&pitches.data()[0]),
+//    reinterpret_cast<void*>(&rect.lo[0]), reinterpret_cast<void*>(&strides[0])); 
+      std::cout<<"IRINA DEBUG pitches = "<<pitches.data()[0]<<" , "<<
+        pitches.data()[1]<<
+        " rect = "<< rect.lo<<" strides = "<< strides[0]<<
+        " , "<<strides[1]<<std::endl;
+      udf(udf_args.data(), volume, size_t(DIM), reinterpret_cast<uint32_t*>( const_cast<size_t*>(pitches.data())), reinterpret_cast<uint32_t*>(&rect.lo[0]), reinterpret_cast<uint32_t*>(&strides[0]));
+
   }
 };
 

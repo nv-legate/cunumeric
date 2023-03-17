@@ -156,7 +156,7 @@ struct EvalUdfGPU {
                    context.get_current_processor(),
                    ptx_hash};
   size_t dim=1;
-  if (args.inputs.size()>1){
+  if (args.inputs.size()>0){
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
   }

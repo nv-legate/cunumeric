@@ -194,12 +194,13 @@ class vectorize:
     def _replace_name(
         self, name: str, _LOOP_VAR: str, is_gpu: bool = False
     ) -> str:
-        # print("IRINA DEBUG ARGNAMES =", self._argnames)
-        # print("IRINA DEBUG SCALAR_NAMES =", self._scalar_names)
         if name in self._argnames and not (name in self._scalar_names):
-            return "{}[{}]".format(name, _LOOP_VAR)
+            return "{}[int({})]".format(name, _LOOP_VAR)
         else:
-            return "{}".format(name)
+            if is_gpu:
+                return "{}".format(name)
+            else:
+                return "{}[0]".format(name)
 
     def _build_gpu_function(self) -> Any:
         funcid = "vectorized_{}".format(self._pyfunc.__name__)
@@ -228,16 +229,11 @@ class vectorize:
         lines.append("        return")
         lines.append("    {}:int = 0".format(_LOOP_VAR))
         lines.append("    for p in range({}-1):".format(_DIM_VAR))
+        #fixme make sure we compute index correct for all data types
         lines.append(
-            "        x={}[p]+int(local_i/{}[p])".format(
-                _LO_POINT_VAR, _PITCHES_VAR
-            )
-        )
+                "        x=int(local_i/{}[p])".format(_PITCHES_VAR))
         lines.append(
-            "        local_i = local_i-{}[p]*int(local_i/{}[p])".format(
-                _PITCHES_VAR, _PITCHES_VAR
-            )
-        )
+            "        local_i = int(local_i%{}[p])".format(_PITCHES_VAR))
         lines.append(
             "        {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR)
         )
@@ -257,10 +253,10 @@ class vectorize:
             l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
             lines.append(l_new)
 
-        # print("IRINA DEBUG GPU function",lines)
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
+        print("IRINA DEBUG GPU body", body)
         glbs: Dict[str, Any] = {}
         six.exec_(body, glbs)
         return glbs[funcid]
@@ -272,17 +268,24 @@ class vectorize:
         lines = ["from numba import carray, types"]
 
         # Signature
-        lines.append("def {}({}, {}):".format(funcid, _ARGS_VAR, _SIZE_VAR))
+        lines.append("def {}({}, {}, {}, {}, {}, {}):".format(funcid, _ARGS_VAR, _SIZE_VAR, _DIM_VAR, _PITCHES_VAR, _LO_POINT_VAR, _STRIDES_VAR))
 
         # Unpack kernel arguments
         def _emit_assignment(
-            var: Any, idx: int, sz: Any, ty: np.dtype[Any]
+            var: Any, idx: int, sz: Any, ty: np.dtype[Any], scalar=False
         ) -> None:
-            lines.append(
-                "    {} = carray({}[{}], {}, types.{})".format(
-                    var, _ARGS_VAR, idx, sz, ty
+            if scalar:
+                lines.append(
+                    "    {} = carray({}[{}], 1, types.{})".format(
+                        var, _ARGS_VAR, idx, ty
+                    )
                 )
-            )
+            else:
+                lines.append(
+                    "    {} = carray({}[{}], {}, types.{})".format(
+                        var, _ARGS_VAR, idx, sz, ty
+                    )
+                )
 
         # get names of arguments
         arg_idx = 0
@@ -293,12 +296,28 @@ class vectorize:
         for a in self._scalar_args:
             scalar_type = np.dtype(type(a).__name__)
             _emit_assignment(
-                self._argnames[arg_idx], arg_idx, _SIZE_VAR, scalar_type
+                self._argnames[arg_idx], arg_idx, _SIZE_VAR, scalar_type, True
             )
             arg_idx += 1
 
         # Main loop
-        lines.append("    for {} in range({}):".format(_LOOP_VAR, _SIZE_VAR))
+        lines.append("    for local_i in range({}):".format( _SIZE_VAR))
+        lines.append("        {}:int = 0".format(_LOOP_VAR))
+        lines.append("        j:int = local_i")
+        lines.append("        for p in range({}-1):".format(_DIM_VAR))
+        lines.append("            x=int(j/{}[p])".format(
+                 _PITCHES_VAR
+            )
+        )
+        lines.append("            j = int(j%{}[p])".format(_PITCHES_VAR ))
+
+        lines.append("            {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR)
+        )
+        lines.append("        {}+=int(j*{}[{}-1])".format(
+                _LOOP_VAR, _STRIDES_VAR, _DIM_VAR
+            )
+        )
+
 
         lines_old = self._get_func_body(self._pyfunc)
 
@@ -308,11 +327,12 @@ class vectorize:
 
         # lines_new = []
         for line in lines_old:
-            l_new = re.sub(r"[_a-z]\w*", _lift_to_array_access, line)
-            lines.append("        " + l_new)
+            l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
+            lines.append("    " + l_new)
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
+        print ("IRINA DEBUG body =", body)
         glbs: Dict[str, Any] = {}
         six.exec_(body, glbs)
         return glbs[funcid]
@@ -349,7 +369,11 @@ class vectorize:
 
     def _compile_func_cpu(self) -> numba.core.ccallback.CFunc:
         sig = numba.core.types.void(
-            numba.types.CPointer(numba.types.voidptr), numba.core.types.uint64
+            numba.types.CPointer(numba.types.voidptr), numba.core.types.uint64,
+            numba.core.types.uint64,
+            numba.core.types.CPointer(numba.core.types.uint64),
+            numba.core.types.CPointer(numba.core.types.uint64),
+            numba.core.types.CPointer(numba.core.types.uint64)
         )  # type: ignore
 
         return numba.cfunc(sig)(self._numba_func)
@@ -359,9 +383,8 @@ class vectorize:
         if is_gpu and not self._created:
             # create CUDA kernel
             launch_domain = Rect(lo=(0,), hi=(num_gpus,))
-            kernel_task = self._context.create_task(
+            kernel_task = self._context.create_manual_task(
                 CuNumericOpCode.CREATE_CU_KERNEL,
-                manual=True,
                 launch_domain=launch_domain,
             )
             ptx_hash = hash(self._gpu_func[0])
