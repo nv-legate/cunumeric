@@ -27,7 +27,7 @@ struct EvalUdfCPU {
   {
     // In the case of CPU, we pack arguments in a vector and pass them to the
     // function (through the function pointer geenrated by numba)
-    using UDF = void(void**, size_t, size_t, uint32_t*, uint32_t*, uint32_t*);
+    using UDF = void(void**, size_t, size_t, uint32_t*, uint32_t*);
     auto udf  = reinterpret_cast<UDF*>(args.cpu_func_ptr);
     std::vector<void*> udf_args;
     size_t volume = 1;
@@ -52,13 +52,7 @@ struct EvalUdfCPU {
     }//if
     for (auto s: args.scalars)
         udf_args.push_back(const_cast<void*>(s.ptr()));
-//    udf(udf_args.data(), volume, size_t(DIM),reinterpret_cast<void*>(&pitches.data()[0]),
-//    reinterpret_cast<void*>(&rect.lo[0]), reinterpret_cast<void*>(&strides[0])); 
-      std::cout<<"IRINA DEBUG pitches = "<<pitches.data()[0]<<" , "<<
-        pitches.data()[1]<<
-        " rect = "<< rect.lo<<" strides = "<< strides[0]<<
-        " , "<<strides[1]<<std::endl;
-      udf(udf_args.data(), volume, size_t(DIM), reinterpret_cast<uint32_t*>( const_cast<size_t*>(pitches.data())), reinterpret_cast<uint32_t*>(&rect.lo[0]), reinterpret_cast<uint32_t*>(&strides[0]));
+      udf(udf_args.data(), volume, size_t(DIM), reinterpret_cast<uint32_t*>( const_cast<size_t*>(pitches.data())), reinterpret_cast<uint32_t*>(&strides[0]));
 
   }
 };

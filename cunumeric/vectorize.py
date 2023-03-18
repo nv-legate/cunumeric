@@ -47,7 +47,6 @@ _LOOP_VAR = "__i__"
 _ARGS_VAR = "__args__"
 _DIM_VAR = "__dim__"
 _STRIDES_VAR = "__strides__"
-_LO_POINT_VAR = "__lo_point__"
 _PITCHES_VAR = "__pitches__"
 
 
@@ -216,7 +215,6 @@ class vectorize:
             + [_SIZE_VAR]
             + [_DIM_VAR]
             + [_PITCHES_VAR]
-            + [_LO_POINT_VAR]
             + [_STRIDES_VAR]
         )
 
@@ -256,7 +254,6 @@ class vectorize:
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
-        print("IRINA DEBUG GPU body", body)
         glbs: Dict[str, Any] = {}
         six.exec_(body, glbs)
         return glbs[funcid]
@@ -268,7 +265,7 @@ class vectorize:
         lines = ["from numba import carray, types"]
 
         # Signature
-        lines.append("def {}({}, {}, {}, {}, {}, {}):".format(funcid, _ARGS_VAR, _SIZE_VAR, _DIM_VAR, _PITCHES_VAR, _LO_POINT_VAR, _STRIDES_VAR))
+        lines.append("def {}({}, {}, {}, {}, {}):".format(funcid, _ARGS_VAR, _SIZE_VAR, _DIM_VAR, _PITCHES_VAR, _STRIDES_VAR))
 
         # Unpack kernel arguments
         def _emit_assignment(
@@ -332,7 +329,6 @@ class vectorize:
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
-        print ("IRINA DEBUG body =", body)
         glbs: Dict[str, Any] = {}
         six.exec_(body, glbs)
         return glbs[funcid]
@@ -360,7 +356,6 @@ class vectorize:
             + [numba.core.types.uint64]
             + [numba.core.types.CPointer(numba.core.types.uint64)]
             + [numba.core.types.CPointer(numba.core.types.uint64)]
-            + [numba.core.types.CPointer(numba.core.types.uint64)]
         )
         sig = (*arg_types,)
 
@@ -371,7 +366,6 @@ class vectorize:
         sig = numba.core.types.void(
             numba.types.CPointer(numba.types.voidptr), numba.core.types.uint64,
             numba.core.types.uint64,
-            numba.core.types.CPointer(numba.core.types.uint64),
             numba.core.types.CPointer(numba.core.types.uint64),
             numba.core.types.CPointer(numba.core.types.uint64)
         )  # type: ignore

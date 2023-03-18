@@ -45,7 +45,6 @@ struct EvalUdfGPU {
     buffer_size +=sizeof(size_t);//size
     buffer_size += sizeof(size_t);//dim
     buffer_size += sizeof(void*);//pitches
-    buffer_size += sizeof(void*);//lo_point
     buffer_size += sizeof(void*);//strides
 
     std::vector<char> arg_buffer(buffer_size);
@@ -84,21 +83,14 @@ struct EvalUdfGPU {
     //create buffers for pitches, lower point and strides since
     //we need to pass pointer to device memory
     auto device_pitches   = create_buffer<int64_t>(Point<1>(DIM-1), Memory::Kind::Z_COPY_MEM);
-    auto device_lo   = create_buffer<int64_t>(Point<1>(DIM), Memory::Kind::Z_COPY_MEM);
     auto device_strides   = create_buffer<int64_t>(Point<1>(DIM), Memory::Kind::Z_COPY_MEM);
-    //std::cout<<"IRINA DEBUG"<<std::endl;
     for (size_t i=0; i<DIM;i++){
       if (i!=DIM-1){
         device_pitches[Point<1>(i)]=pitches.data()[i];
-        //std::cout<<" pitches ="<<pitches.data()[i];
         }
-      device_lo[Point<1>(i)]=rect.lo[i];
       device_strides[Point<1>(i)] = strides[i];
-      //std::cout<<" device_lo = " <<rect.lo[i]<< "  strides = "<<strides[i]<<std::endl;
     }
     *reinterpret_cast<const void**>(p) =device_pitches.ptr(Point<1>(0));
-    p += sizeof(void*);
-    *reinterpret_cast<const void**>(p) =device_lo.ptr(Point<1>(0));
     p += sizeof(void*);
     *reinterpret_cast<const void**>(p) =device_strides.ptr(Point<1>(0));
     p += sizeof(void*);
@@ -122,8 +114,6 @@ struct EvalUdfGPU {
 
     auto stream = get_cached_stream();
 
-    //std::cout <<"function = "<<func<<std::endl;
-    // executing the function
     CUresult status = cuLaunchKernel(
       func, gridDimX, gridDimY, gridDimZ, blockDimX, blockDimY, blockDimZ, 0, stream, NULL, config);
     if (status != CUDA_SUCCESS) {
