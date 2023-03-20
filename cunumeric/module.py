@@ -1761,6 +1761,12 @@ def concatenate(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if dtype is not None and out is not None:
+        raise TypeError(
+            "concatenate() only takes `out` or `dtype` as an argument,"
+            "but both were provided."
+        )
+
     # flatten arrays if axis == None and concatenate arrays on the first axis
     if axis is None:
         inputs = list(inp.ravel() for inp in inputs)
