@@ -13,10 +13,10 @@
 # limitations under the License.
 #
 
-import cProfile
 import inspect
-import pstats
 import re
+
+# numba typing
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import legate.core.types as ty
@@ -24,21 +24,13 @@ import numba
 import numba.core.ccallback
 import numpy as np
 import six
-from legate.core import Rect, get_legate_runtime, ReductionOp, track_provenance
+from legate.core import Rect, track_provenance
 
 from cunumeric.runtime import runtime
 
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
 from .utils import convert_to_cunumeric_dtype
-from .module import full
-
-# from legate.timing import time
-
-
-# import numba.cuda
-# import numba.types
-
 
 _EXTERNAL_REFERENCE_PREFIX = "__extern_ref__"
 _MASK_VAR = "__mask__"
@@ -51,58 +43,6 @@ _PITCHES_VAR = "__pitches__"
 
 
 class vectorize:
-    """
-    vectorize(pyfunc, otypes=None, doc=None, excluded=None, cache=False,
-              signature=None)
-    Generalized function class.
-    Define a vectorized function which takes a nested sequence of objects or
-    numpy arrays as inputs and returns a single numpy array or a tuple of numpy
-    arrays. The vectorized function evaluates `pyfunc` over successive tuples
-    of the input arrays like the python map function, except it uses the
-    broadcasting rules of numpy.
-    The data type of the output of `vectorized` is determined by calling
-    the function with the first element of the input.  This can be avoided
-    by specifying the `otypes` argument.
-
-    Parameters
-    ----------
-    pyfunc : callable
-        A python function or method.
-    otypes : str or list of dtypes, optional
-        The output data type. It must be specified as either a string of
-        typecode characters or a list of data type specifiers. There should
-        be one data type specifier for each output.
-    doc : str, optional
-        The docstring for the function. If None, the docstring will be the
-        ``pyfunc.__doc__``.
-    excluded : set, optional
-        Set of strings or integers representing the positional or keyword
-        arguments for which the function will not be vectorized.  These will be
-        passed directly to `pyfunc` unmodified.
-    cache : bool, optional
-        If `True`, then cache the first function call that determines
-        the number of outputs if `otypes` is not provided.
-    signature : string, optional
-        Generalized universal function signature, e.g., ``(m,n),(n)->(m)`` for
-        vectorized matrix-vector multiplication. If provided, ``pyfunc`` will
-        be called with (and expected to return) arrays with shapes given by the
-        size of corresponding core dimensions. By default, ``pyfunc`` is
-        assumed to take scalars as input and output.
-
-    Returns
-    -------
-    vectorized : callable
-        Vectorized function.
-
-    See Also
-    --------
-    numpy.vectorize
-
-    Availability
-    --------
-    Multiple GPUs, Multiple CPUs
-    """
-
     def __init__(
         self,
         pyfunc: Callable[[Any], Any],
@@ -112,12 +52,70 @@ class vectorize:
         cache: bool = False,
         signature: Optional[str] = None,
     ) -> None:
+        """
+        vectorize(pyfunc, otypes=None, doc=None, excluded=None, cache=False,
+                  signature=None)
+        Generalized function class.
+        Define a vectorized function which takes a nested sequence of
+        objects or numpy arrays as inputs and returns a single numpy array
+        or a tuple of numpy arrays.
+        The vectorized function evaluates `pyfunc` over successive tuples
+        of the input arrays like the python map function, except it uses the
+        broadcasting rules of numpy.
+        The data type of the output of `vectorized` is determined by calling
+        the function with the first element of the input.  This can be avoided
+        by specifying the `otypes` argument.
+
+        Parameters
+        ----------
+        pyfunc : callable
+            A python function or method.
+        otypes : str or list of dtypes, optional
+            The output data type. It must be specified as either a string of
+            typecode characters or a list of data type specifiers. There should
+            be one data type specifier for each output.
+            WARNING: cuNumeric currently requires all output types to be the
+            same
+        doc : str, optional
+            The docstring for the function. If None, the docstring will be the
+            ``pyfunc.__doc__``.
+        excluded : set, optional
+            Set of strings or integers representing the positional or keyword
+            arguments for which the function will not be vectorized.
+            These will be passed directly to `pyfunc` unmodified.
+            WARNING: cuNumeric doesn't suport this argument at the moment
+        cache : bool, optional
+            If `True`, then cache the first function call that generates C fun-
+            ction or CUDA kernel
+        signature : string, optional
+            Generalized universal function signature, e.g., ``(m,n),(n)->(m)``
+            for vectorized matrix-vector multiplication. If provided,
+            ``pyfunc`` will be called with (and expected to return)
+            arrays with shapes given by the size of corresponding core
+            dimensions. By default, ``pyfunc`` is assumed to take scalars
+            as input and output.
+            WARNING: cuNumeric doesn't suport this argument at the moment
+
+        Returns
+        -------
+        vectorized : callable
+            Vectorized function.
+
+        See Also
+        --------
+        numpy.vectorize
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+        """
+
         self._pyfunc = pyfunc
+        self._otypes: Optional[tuple[Any]] = None
+        self._cache: bool = cache
         self._numba_func: Callable[[Any], Any]
         self._cpu_func: numba.core.ccallback.CFunc
         self._gpu_func: tuple[Any]
-        self._otypes: Optional[tuple[Any]] = None
-        self._result = None
         self._args: List[Any] = []
         self._scalar_args: List[Any] = []
         self._scalar_idxs: List[int] = []
@@ -126,15 +124,7 @@ class vectorize:
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
         self._created: bool = False
-        self._cache: bool = cache
         self._num_outputs = 1  # there is at least 1 output
-        size_tmp=runtime.num_gpus
-        if size_tmp==1:
-           size_tmp=10
-        #self._created_array = full((size_tmp,), True, dtype=bool)
-        #self._created_array_deferred = runtime.to_deferred_array(self._created_array._thunk)
-             #runtime.create_empty_thunk(
-             #   (1,), dtype = np.dtype(np.bool), inputs=[])
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -143,7 +133,7 @@ class vectorize:
 
         if otypes is not None:
             self._num_outputs = len(otypes)
-            if len(otypes) == 0:
+            if self._num_outputs == 0:
                 raise ValueError(
                     "There should be at least 1 type specified in otypes"
                 )
@@ -183,7 +173,7 @@ class vectorize:
         if func.__doc__ is not None and len(func.__doc__.split("\n")) > 0:
             lines_to_skip = len(func.__doc__.split("\n"))
 
-        lines = inspect.getsourcelines(func)[0]
+        lines = inspect.getsourcelines(func)[0]  # type ignore
 
         return_lines = []
         for i in range(lines_to_skip + 1, len(lines)):
@@ -206,6 +196,7 @@ class vectorize:
 
         # Preamble
         lines = ["from numba import cuda"]
+        # we add math and numpy so user-defined functions can use them
         lines.append("import math")
         lines.append("import numpy")
 
@@ -225,13 +216,16 @@ class vectorize:
         lines.append("    local_i = cuda.grid(1)")
         lines.append("    if local_i >= {}:".format(_SIZE_VAR))
         lines.append("        return")
+        # we compute inndex for sparse data access when using Legion's
+        # pointer.
+        # aa[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
         lines.append("    {}:int = 0".format(_LOOP_VAR))
         lines.append("    for p in range({}-1):".format(_DIM_VAR))
-        #fixme make sure we compute index correct for all data types
+        # fixme make sure we compute index correct for all data types
+        lines.append("        x=int(local_i/{}[p])".format(_PITCHES_VAR))
         lines.append(
-                "        x=int(local_i/{}[p])".format(_PITCHES_VAR))
-        lines.append(
-            "        local_i = int(local_i%{}[p])".format(_PITCHES_VAR))
+            "        local_i = int(local_i%{}[p])".format(_PITCHES_VAR)
+        )
         lines.append(
             "        {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR)
         )
@@ -241,7 +235,7 @@ class vectorize:
             )
         )
 
-        # Kernel body
+        # this function is used to replace all array names with array[i]
         def _lift_to_array_access(m: Any) -> str:
             return self._replace_name(m.group(0), _LOOP_VAR, True)
 
@@ -250,7 +244,6 @@ class vectorize:
         for line in lines_old:
             l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
             lines.append(l_new)
-
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
@@ -263,15 +256,32 @@ class vectorize:
 
         # Preamble
         lines = ["from numba import carray, types"]
+        # we add math and numpy so user-defined functions can use them
+        lines.append("import math")
+        lines.append("import numpy")
 
         # Signature
-        lines.append("def {}({}, {}, {}, {}, {}):".format(funcid, _ARGS_VAR, _SIZE_VAR, _DIM_VAR, _PITCHES_VAR, _STRIDES_VAR))
+        lines.append(
+            "def {}({}, {}, {}, {}, {}):".format(
+                funcid,
+                _ARGS_VAR,
+                _SIZE_VAR,
+                _DIM_VAR,
+                _PITCHES_VAR,
+                _STRIDES_VAR,
+            )
+        )
 
         # Unpack kernel arguments
         def _emit_assignment(
-            var: Any, idx: int, sz: Any, ty: np.dtype[Any], scalar=False
+            var: Any,
+            idx: int,
+            sz: Any,
+            ty: np.dtype[Any],
+            scalar: bool = False,
         ) -> None:
             if scalar:
+                # we represent scalars as arrays of size 1
                 lines.append(
                     "    {} = carray({}[{}], 1, types.{})".format(
                         var, _ARGS_VAR, idx, ty
@@ -284,11 +294,13 @@ class vectorize:
                     )
                 )
 
-        # get names of arguments
+        # define pyfunc arguments ar carrays
         arg_idx = 0
         for a in self._args:
-            type_a= a.dtype
-            _emit_assignment(self._argnames[arg_idx], arg_idx, _SIZE_VAR, type_a)
+            type_a = a.dtype
+            _emit_assignment(
+                self._argnames[arg_idx], arg_idx, _SIZE_VAR, type_a
+            )
             arg_idx += 1
         for a in self._scalar_args:
             scalar_type = np.dtype(type(a).__name__)
@@ -298,23 +310,24 @@ class vectorize:
             arg_idx += 1
 
         # Main loop
-        lines.append("    for local_i in range({}):".format( _SIZE_VAR))
+        lines.append("    for local_i in range({}):".format(_SIZE_VAR))
+        # we compute inndex for sparse data access when using Legion's
+        # pointer.
+        # aa[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
         lines.append("        {}:int = 0".format(_LOOP_VAR))
         lines.append("        j:int = local_i")
         lines.append("        for p in range({}-1):".format(_DIM_VAR))
-        lines.append("            x=int(j/{}[p])".format(
-                 _PITCHES_VAR
-            )
-        )
-        lines.append("            j = int(j%{}[p])".format(_PITCHES_VAR ))
+        lines.append("            x=int(j/{}[p])".format(_PITCHES_VAR))
+        lines.append("            j = int(j%{}[p])".format(_PITCHES_VAR))
 
-        lines.append("            {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR)
+        lines.append(
+            "            {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR)
         )
-        lines.append("        {}+=int(j*{}[{}-1])".format(
+        lines.append(
+            "        {}+=int(j*{}[{}-1])".format(
                 _LOOP_VAR, _STRIDES_VAR, _DIM_VAR
             )
         )
-
 
         lines_old = self._get_func_body(self._pyfunc)
 
@@ -322,7 +335,6 @@ class vectorize:
         def _lift_to_array_access(m: Any) -> str:
             return self._replace_name(m.group(0), _LOOP_VAR)
 
-        # lines_new = []
         for line in lines_old:
             l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
             lines.append("    " + l_new)
@@ -364,14 +376,15 @@ class vectorize:
 
     def _compile_func_cpu(self) -> numba.core.ccallback.CFunc:
         sig = numba.core.types.void(
-            numba.types.CPointer(numba.types.voidptr), numba.core.types.uint64,
+            numba.types.CPointer(numba.types.voidptr),
+            numba.core.types.uint64,
             numba.core.types.uint64,
             numba.core.types.CPointer(numba.core.types.uint64),
-            numba.core.types.CPointer(numba.core.types.uint64)
-        )  # type: ignore
+            numba.core.types.CPointer(numba.core.types.uint64),
+        )
 
         return numba.cfunc(sig)(self._numba_func)
-   
+
     @track_provenance(runtime.legate_context)
     def _execute(self, is_gpu: bool, num_gpus: int = 0) -> None:
         if is_gpu and not self._created:
@@ -384,22 +397,21 @@ class vectorize:
             ptx_hash = hash(self._gpu_func[0])
             kernel_task.add_scalar_arg(ptx_hash, ty.int64)
             kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            #added to introduce dependency between this and EVAL_UDF task
-            #kernel_task.add_input(self._created_array_deferred.base)
-            #kernel_task.add_output(self._created_array_deferred.base)
             kernel_task.execute()
+            # we want to make sure EVAL_UDF function is not executed before
+            # CUDA kernel is created
             self._context.issue_execution_fence(block=True)
-            # inline map first element of the array to make sure the CREATE_CU_KERNEL
 
-            # task has finished by the time we set self._created to True 
+            # task has finished by the time we set self._created to True
             if self._cache:
-                #self._created = bool(self._created_array[0])
                 self._created = True
 
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
-        task.add_scalar_arg(self._num_outputs, ty.uint32) # N of outputs
-        task.add_scalar_arg(len(self._scalar_args), ty.uint32) # N of scalar_args
-        # add all scalars 
+        task.add_scalar_arg(self._num_outputs, ty.uint32)  # N of outputs
+        task.add_scalar_arg(
+            len(self._scalar_args), ty.uint32
+        )  # N of scalar_args
+        # add all scalars
         for a in self._scalar_args:
             dtype = convert_to_cunumeric_dtype(type(a).__name__)
             task.add_scalar_arg(a, dtype)
@@ -409,21 +421,16 @@ class vectorize:
         a0 = runtime.to_deferred_array(a0)
         for count, a in enumerate(self._args):
             a_tmp = runtime.to_deferred_array(a._thunk)
-            a_tmp = a_tmp.base
-            task.add_input(a_tmp)
+            a_tmp_base = a_tmp.base
+            task.add_input(a_tmp_base)
             if count < self._num_outputs:
-                task.add_output(a_tmp)
+                task.add_output(a_tmp_base)
             if count != 0:
-                task.add_alignment(a0.base, a_tmp)
+                task.add_alignment(a0.base, a_tmp_base)
 
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
             task.add_scalar_arg(ptx_hash, ty.int64)
-            # passing the _created * array to introduce dependency between
-            # CREATE_CU_KERNEL task and EVAL_UDF task
-            #task.add_input(self._created_array_deferred.base)
-            #task.add_broadcast(self._created_array_deferred.base)
-
         else:
             task.add_scalar_arg(
                 self._cpu_func.address, ty.uint64
@@ -435,8 +442,6 @@ class vectorize:
         Return arrays with the results of `pyfunc` broadcast (vectorized) over
         `args` and `kwargs` not in `excluded`.
         """
-        # profiler = cProfile.Profile()
-        # profiler.enable()
         if not self._created:
             self._scalar_args.clear()
             self._scalar_idxs.clear()
@@ -455,8 +460,8 @@ class vectorize:
                     self._scalar_idxs.append(i)
                 else:
                     self._args.append(convert_to_cunumeric_ndarray(arg))
-       
-                # first fill arrays to argnames, then scalars:
+
+            # first fill arrays to argnames, then scalars:
             for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
                 if not (i in self._scalar_idxs):
                     self._argnames.append(k)
@@ -515,4 +520,3 @@ class vectorize:
                 if self._cache:
                     self._created = True
             self._execute(False)
-

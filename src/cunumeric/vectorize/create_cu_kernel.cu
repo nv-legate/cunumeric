@@ -25,81 +25,79 @@ using namespace Legion;
 using namespace legate;
 
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-fill_out_kernel(const AccessorRD<legate::ProdReduction<bool>,true,1> out)
+  fill_out_kernel(const AccessorRD<legate::ProdReduction<bool>, true, 1> out)
 {
   const int idx = (blockIdx.x * blockDim.x + threadIdx.x);
-  if (idx >0) return;
+  if (idx > 0) return;
   out.reduce(0, true);
 }
 
 /*static*/ void CreateCUKernelTask::gpu_variant(TaskContext& context)
 {
-
   int64_t ptx_hash = context.scalars()[0].value<int64_t>();
-  std::string ptx = context.scalars()[1].value<std::string>();
-  Processor point = context.get_current_processor();
+  std::string ptx  = context.scalars()[1].value<std::string>();
+  Processor point  = context.get_current_processor();
 
   CUfunction func;
-    const unsigned num_options   = 4;
-    const size_t log_buffer_size = 16384;
-    std::vector<char> log_info_buffer(log_buffer_size);
-    std::vector<char> log_error_buffer(log_buffer_size);
-    CUjit_option jit_options[] = {
-      CU_JIT_INFO_LOG_BUFFER,
-      CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
-      CU_JIT_ERROR_LOG_BUFFER,
-      CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES,
-    };
-    void* option_vals[] = {
-      static_cast<void*>(log_info_buffer.data()),
-      reinterpret_cast<void*>(log_buffer_size),
-      static_cast<void*>(log_error_buffer.data()),
-      reinterpret_cast<void*>(log_buffer_size),
-    };
+  const unsigned num_options   = 4;
+  const size_t log_buffer_size = 16384;
+  std::vector<char> log_info_buffer(log_buffer_size);
+  std::vector<char> log_error_buffer(log_buffer_size);
+  CUjit_option jit_options[] = {
+    CU_JIT_INFO_LOG_BUFFER,
+    CU_JIT_INFO_LOG_BUFFER_SIZE_BYTES,
+    CU_JIT_ERROR_LOG_BUFFER,
+    CU_JIT_ERROR_LOG_BUFFER_SIZE_BYTES,
+  };
+  void* option_vals[] = {
+    static_cast<void*>(log_info_buffer.data()),
+    reinterpret_cast<void*>(log_buffer_size),
+    static_cast<void*>(log_error_buffer.data()),
+    reinterpret_cast<void*>(log_buffer_size),
+  };
 
-    CUmodule module;
-    CUresult result =
-      cuModuleLoadDataEx(&module, ptx.data(), num_options, jit_options, option_vals);
-    if (result != CUDA_SUCCESS) {
-      if (result == CUDA_ERROR_OPERATING_SYSTEM) {
-        fprintf(stderr,
-                "ERROR: Device side asserts are not supported by the "
-                "CUDA driver for MAC OSX, see NVBugs 1628896.\n");
-        exit(-1);
-      } else if (result == CUDA_ERROR_NO_BINARY_FOR_GPU) {
-        fprintf(stderr, "ERROR: The binary was compiled for the wrong GPU architecture.\n");
-        exit(-1);
-      } else {
-        fprintf(stderr, "Failed to load CUDA module! Error log: %s\n", log_error_buffer.data());
+  CUmodule module;
+  CUresult result = cuModuleLoadDataEx(&module, ptx.data(), num_options, jit_options, option_vals);
+  if (result != CUDA_SUCCESS) {
+    if (result == CUDA_ERROR_OPERATING_SYSTEM) {
+      fprintf(stderr,
+              "ERROR: Device side asserts are not supported by the "
+              "CUDA driver for MAC OSX, see NVBugs 1628896.\n");
+      exit(-1);
+    } else if (result == CUDA_ERROR_NO_BINARY_FOR_GPU) {
+      fprintf(stderr, "ERROR: The binary was compiled for the wrong GPU architecture.\n");
+      exit(-1);
+    } else {
+      fprintf(stderr, "Failed to load CUDA module! Error log: %s\n", log_error_buffer.data());
 #if CUDA_VERSION >= 6050
-        const char *name, *str;
-        assert(cuGetErrorName(result, &name) == CUDA_SUCCESS);
-        assert(cuGetErrorString(result, &str) == CUDA_SUCCESS);
-        fprintf(stderr, "CU: cuModuleLoadDataEx = %d (%s): %s\n", result, name, str);
+      const char *name, *str;
+      assert(cuGetErrorName(result, &name) == CUDA_SUCCESS);
+      assert(cuGetErrorString(result, &str) == CUDA_SUCCESS);
+      fprintf(stderr, "CU: cuModuleLoadDataEx = %d (%s): %s\n", result, name, str);
 #else
-        fprintf(stderr, "CU: cuModuleLoadDataEx = %d\n", result);
+      fprintf(stderr, "CU: cuModuleLoadDataEx = %d\n", result);
 #endif
-        exit(-1);
-      }
+      exit(-1);
     }
-    std::cmatch line_match;
-    bool match =
-      std::regex_search(ptx.data(), line_match, std::regex(".visible .entry [_a-zA-Z0-9$]+"));
+  }
+  std::cmatch line_match;
+  bool match =
+    std::regex_search(ptx.data(), line_match, std::regex(".visible .entry [_a-zA-Z0-9$]+"));
 #ifdef DEBUG_CUNUMERIC
-    assert(match);
+  assert(match);
 #endif
-    const auto& matched_line = line_match.begin()->str();
-    auto fun_name = matched_line.substr(matched_line.rfind(" ") + 1, matched_line.size());
+  const auto& matched_line = line_match.begin()->str();
+  auto fun_name            = matched_line.substr(matched_line.rfind(" ") + 1, matched_line.size());
 
-    result = cuModuleGetFunction(&func, module, fun_name.c_str());
+  result = cuModuleGetFunction(&func, module, fun_name.c_str());
 #ifdef DEBUG_CUNUMERIC
-    assert(result == CUDA_SUCCESS);
+  assert(result == CUDA_SUCCESS);
 #endif
-    store_udf(ptx_hash, func);
-    //auto stream = get_cached_stream();
-    //auto out = context.reductions()[0].reduce_accessor<legate::ProdReduction<bool>, true, 1>();
-    //fill_out_kernel<<<1,1,0,stream>>>(out);
-    //CHECK_CUDA_STREAM(stream);
+  store_udf(ptx_hash, func);
+  // auto stream = get_cached_stream();
+  // auto out = context.reductions()[0].reduce_accessor<legate::ProdReduction<bool>, true, 1>();
+  // fill_out_kernel<<<1,1,0,stream>>>(out);
+  // CHECK_CUDA_STREAM(stream);
 }
 
 }  // namespace cunumeric

@@ -34,10 +34,10 @@ struct EvalUdfCPU {
     Pitches<DIM - 1> pitches;
     Rect<DIM> rect;
     size_t strides[DIM];
-    if (args.inputs.size()>0){
+    if (args.inputs.size() > 0) {
       using VAL = legate_type_of<CODE>;
-      rect = args.inputs[0].shape<DIM>();
-      volume = pitches.flatten(rect);
+      rect      = args.inputs[0].shape<DIM>();
+      volume    = pitches.flatten(rect);
 
       if (rect.empty()) return;
       for (size_t i = 0; i < args.inputs.size(); i++) {
@@ -46,14 +46,16 @@ struct EvalUdfCPU {
           udf_args.push_back(reinterpret_cast<void*>(out.ptr(rect, strides)));
         } else {
           auto out = args.inputs[i].read_accessor<VAL, DIM>(rect);
-          udf_args.push_back(reinterpret_cast<void*>(const_cast<VAL*>(out.ptr(rect,strides))));
+          udf_args.push_back(reinterpret_cast<void*>(const_cast<VAL*>(out.ptr(rect, strides))));
         }
       }
-    }//if
-    for (auto s: args.scalars)
-        udf_args.push_back(const_cast<void*>(s.ptr()));
-      udf(udf_args.data(), volume, size_t(DIM), reinterpret_cast<uint32_t*>( const_cast<size_t*>(pitches.data())), reinterpret_cast<uint32_t*>(&strides[0]));
-
+    }  // if
+    for (auto s : args.scalars) udf_args.push_back(const_cast<void*>(s.ptr()));
+    udf(udf_args.data(),
+        volume,
+        size_t(DIM),
+        reinterpret_cast<uint32_t*>(const_cast<size_t*>(pitches.data())),
+        reinterpret_cast<uint32_t*>(&strides[0]));
   }
 };
 
@@ -61,25 +63,23 @@ struct EvalUdfCPU {
 {
   uint32_t num_outputs = context.scalars()[0].value<uint32_t>();
   uint32_t num_scalars = context.scalars()[1].value<uint32_t>();
-  std::vector<Scalar>scalars;
-  for (size_t i=2; i<(2+num_scalars); i++)
-      scalars.push_back(context.scalars()[i]);
+  std::vector<Scalar> scalars;
+  for (size_t i = 2; i < (2 + num_scalars); i++) scalars.push_back(context.scalars()[i]);
 
-  EvalUdfArgs args{context.scalars()[2+num_scalars].value<uint64_t>(),
+  EvalUdfArgs args{context.scalars()[2 + num_scalars].value<uint64_t>(),
                    context.inputs(),
                    context.outputs(),
                    scalars,
                    num_outputs,
                    context.get_current_processor()};
-  size_t dim=1;
-  if (args.inputs.size()>0){
+  size_t dim = 1;
+  if (args.inputs.size() > 0) {
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
     double_dispatch(dim, args.inputs[0].code(), EvalUdfCPU{}, args);
+  } else {
+    // FIXME
+    double_dispatch(dim, args.inputs[0].code(), EvalUdfCPU{}, args);
   }
-  else{
-    //FIXME
-    double_dispatch(dim, args.inputs[0].code() , EvalUdfCPU{}, args);
-    }
 }
 
 namespace  // unnamed

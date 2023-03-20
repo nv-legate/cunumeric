@@ -233,17 +233,16 @@ cufftContext CUDALibraries::get_cufft_plan(cufftType type, const DomainPoint& si
   return cufftContext(cache->get_cufft_plan(size));
 }
 
-void CUDALibraries::store_udf_func(size_t hash, CUfunction func){
-  udf_caches_[hash]=func;
-}
+void CUDALibraries::store_udf_func(size_t hash, CUfunction func) { udf_caches_[hash] = func; }
 
-CUfunction CUDALibraries::get_udf_func(size_t hash){
-    auto finder = udf_caches_.find(hash);
-    if (udf_caches_.end() == finder) {
-      fprintf(stderr, "UDF function wasn't generated yet");
-      LEGATE_ABORT;
-    }
-    return udf_caches_[hash];
+CUfunction CUDALibraries::get_udf_func(size_t hash)
+{
+  auto finder = udf_caches_.find(hash);
+  if (udf_caches_.end() == finder) {
+    fprintf(stderr, "UDF function wasn't generated yet");
+    LEGATE_ABORT;
+  }
+  return udf_caches_[hash];
 }
 
 static CUDALibraries& get_cuda_libraries(legate::Processor proc)
@@ -291,13 +290,15 @@ cufftContext get_cufft_plan(cufftType type, const DomainPoint& size)
   return lib.get_cufft_plan(type, size);
 }
 
-void store_udf(size_t hash, CUfunction func){
-    const auto proc = legate::Processor::get_executing_processor();
+void store_udf(size_t hash, CUfunction func)
+{
+  const auto proc = legate::Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
   lib.store_udf_func(hash, func);
 }
 
-CUfunction get_udf(size_t hash){
+CUfunction get_udf(size_t hash)
+{
   const auto proc = legate::Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
   return lib.get_udf_func(hash);

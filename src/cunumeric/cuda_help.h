@@ -393,7 +393,7 @@ __device__ __forceinline__ void store_streaming<double>(double* ptr, double valu
   asm volatile("st.global.cs.f64 [%0], %1;" : : "l"(ptr), "d"(value) : "memory");
 }
 #if 0
-#include<cuda.h>
+#include <cuda.h>
 
 class JITKernelStorage
 {
@@ -429,5 +429,5 @@ public:
   }
 };//class JITKernelStorage
 
-#endif 
+#endif
 }  // namespace cunumeric

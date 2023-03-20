@@ -22,38 +22,38 @@
 
 namespace cunumeric {
 
-//using namespace Legion;
+// using namespace Legion;
 using namespace legate;
 
 struct EvalUdfGPU {
   template <LegateTypeCode CODE, int DIM>
   void operator()(EvalUdfArgs& args) const
   {
-   using VAL = legate_type_of<CODE>;
-   Rect<DIM> rect;
+    using VAL = legate_type_of<CODE>;
+    Rect<DIM> rect;
 
-  // size_t input_size=args.inputs.size()-1;  
-  size_t input_size=args.inputs.size();
-  // auto procs_rect = args.inputs[input_size].shape<1>();
+    // size_t input_size=args.inputs.size()-1;
+    size_t input_size = args.inputs.size();
+    // auto procs_rect = args.inputs[input_size].shape<1>();
 
-  //auto procs=args.inputs[input_size].read_accessor<uint64_t,1>();
-  //auto funcs=args.inputs[input_size+1].read_accessor<uint64_t,1>();
-  CUfunction func = get_udf(args.hash);
+    // auto procs=args.inputs[input_size].read_accessor<uint64_t,1>();
+    // auto funcs=args.inputs[input_size+1].read_accessor<uint64_t,1>();
+    CUfunction func = get_udf(args.hash);
     // Filling up the buffer with arguments
 
-    size_t buffer_size = (input_size+args.scalars.size()) * sizeof(void*);
-    buffer_size +=sizeof(size_t);//size
-    buffer_size += sizeof(size_t);//dim
-    buffer_size += sizeof(void*);//pitches
-    buffer_size += sizeof(void*);//strides
+    size_t buffer_size = (input_size + args.scalars.size()) * sizeof(void*);
+    buffer_size += sizeof(size_t);  // size
+    buffer_size += sizeof(size_t);  // dim
+    buffer_size += sizeof(void*);   // pitches
+    buffer_size += sizeof(void*);   // strides
 
     std::vector<char> arg_buffer(buffer_size);
     char* raw_arg_buffer = arg_buffer.data();
 
     auto p = raw_arg_buffer;
     size_t strides[DIM];
-    size_t size =1;
-    if (input_size>0){
+    size_t size = 1;
+    if (input_size > 0) {
       rect = args.inputs[0].shape<DIM>();
       size = rect.volume();
       for (size_t i = 0; i < input_size; i++) {
@@ -67,34 +67,31 @@ struct EvalUdfGPU {
         p += sizeof(void*);
       }
     }
-    for (auto scalar: args.scalars){
-        memcpy(p, scalar.ptr(), scalar.size());
-        p += scalar.size();
-       // *reinterpret_cast<const void**>(p) =s;
-        //p += sizeof(void*);
-      }
+    for (auto scalar : args.scalars) {
+      memcpy(p, scalar.ptr(), scalar.size());
+      p += scalar.size();
+      // *reinterpret_cast<const void**>(p) =s;
+      // p += sizeof(void*);
+    }
     memcpy(p, &size, sizeof(size_t));
-    size_t dim=DIM;
+    size_t dim = DIM;
     p += sizeof(size_t);
     memcpy(p, &dim, sizeof(size_t));
     p += sizeof(size_t);
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
-    //create buffers for pitches, lower point and strides since
-    //we need to pass pointer to device memory
-    auto device_pitches   = create_buffer<int64_t>(Point<1>(DIM-1), Memory::Kind::Z_COPY_MEM);
-    auto device_strides   = create_buffer<int64_t>(Point<1>(DIM), Memory::Kind::Z_COPY_MEM);
-    for (size_t i=0; i<DIM;i++){
-      if (i!=DIM-1){
-        device_pitches[Point<1>(i)]=pitches.data()[i];
-        }
+    // create buffers for pitches, lower point and strides since
+    // we need to pass pointer to device memory
+    auto device_pitches = create_buffer<int64_t>(Point<1>(DIM - 1), Memory::Kind::Z_COPY_MEM);
+    auto device_strides = create_buffer<int64_t>(Point<1>(DIM), Memory::Kind::Z_COPY_MEM);
+    for (size_t i = 0; i < DIM; i++) {
+      if (i != DIM - 1) { device_pitches[Point<1>(i)] = pitches.data()[i]; }
       device_strides[Point<1>(i)] = strides[i];
     }
-    *reinterpret_cast<const void**>(p) =device_pitches.ptr(Point<1>(0));
+    *reinterpret_cast<const void**>(p) = device_pitches.ptr(Point<1>(0));
     p += sizeof(void*);
-    *reinterpret_cast<const void**>(p) =device_strides.ptr(Point<1>(0));
+    *reinterpret_cast<const void**>(p) = device_strides.ptr(Point<1>(0));
     p += sizeof(void*);
-    
 
     void* config[] = {
       CU_LAUNCH_PARAM_BUFFER_POINTER,
@@ -127,16 +124,13 @@ struct EvalUdfGPU {
 
 /*static*/ void EvalUdfTask::gpu_variant(TaskContext& context)
 {
- 
   uint32_t num_outputs = context.scalars()[0].value<uint32_t>();
   uint32_t num_scalars = context.scalars()[1].value<uint32_t>();
-  std::vector<Scalar>scalars;
-  for (size_t i=2; i<(2+num_scalars); i++)
-      scalars.push_back(context.scalars()[i]);
-  
-  int64_t ptx_hash = context.scalars()[2+num_scalars].value<int64_t>();
-  //bool is_created = context.scalars()[3+num_scalars].value<bool>();
+  std::vector<Scalar> scalars;
+  for (size_t i = 2; i < (2 + num_scalars); i++) scalars.push_back(context.scalars()[i]);
 
+  int64_t ptx_hash = context.scalars()[2 + num_scalars].value<int64_t>();
+  // bool is_created = context.scalars()[3+num_scalars].value<bool>();
 
   EvalUdfArgs args{0,
                    context.inputs(),
@@ -145,15 +139,14 @@ struct EvalUdfGPU {
                    num_outputs,
                    context.get_current_processor(),
                    ptx_hash};
-  size_t dim=1;
-  if (args.inputs.size()>0){
+  size_t dim = 1;
+  if (args.inputs.size() > 0) {
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
-  }
-  else{
-    //FIXME
+  } else {
+    // FIXME
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
-    //double_dispatch(dim, 0 , EvalUdfGPU{}, args);
+    // double_dispatch(dim, 0 , EvalUdfGPU{}, args);
   }
 }
 }  // namespace cunumeric
