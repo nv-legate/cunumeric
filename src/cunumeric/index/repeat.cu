@@ -23,8 +23,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename Output, int DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   count_repeat_kernel(const int64_t extent,
@@ -135,7 +133,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
 
     // Compute offsets
     int64_t extent = in_rect.hi[axis] - in_rect.lo[axis] + 1;
-    auto offsets   = create_buffer<int64_t>(Point<1>(extent), Memory::Kind::Z_COPY_MEM);
+    auto offsets   = create_buffer<int64_t>(Point<1>(extent), legate::Memory::Kind::Z_COPY_MEM);
 
     DeviceScalarReductionBuffer<SumReduction<uint64_t>> sum(stream);
     const size_t blocks_count = (extent + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
@@ -152,7 +150,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
     CHECK_CUDA_STREAM(stream);
 
     Point<DIM> out_extents = in_rect.hi - in_rect.lo + Point<DIM>::ONES();
-    out_extents[axis]      = static_cast<Legion::coord_t>(sum.read(stream));
+    out_extents[axis]      = static_cast<coord_t>(sum.read(stream));
 
     auto out = out_array.create_output_buffer<VAL, DIM>(out_extents, true);
 

@@ -25,7 +25,7 @@
   } while (false)
 
 namespace cunumeric {
-Legion::Logger& randutil_log();
+legate::Logger& randutil_log();
 void randutil_check_curand(curandStatus_t error, const char* file, int line);
 
 static inline curandRngType get_curandRngType(cunumeric::BitGeneratorType kind)
@@ -38,11 +38,9 @@ static inline curandRngType get_curandRngType(cunumeric::BitGeneratorType kind)
     case cunumeric::BitGeneratorType::MT19937: return curandRngType::CURAND_RNG_PSEUDO_MT19937;
     case cunumeric::BitGeneratorType::PHILOX4_32_10:
       return curandRngType::CURAND_RNG_PSEUDO_PHILOX4_32_10;
-    default: {
-      randutil_log().fatal() << "unknown parameter";
-      return curandRngType::CURAND_RNG_TEST;
-    }
+    default: LEGATE_ABORT;
   }
+  return curandRngType::CURAND_RNG_TEST;
 }
 
 }  // namespace cunumeric

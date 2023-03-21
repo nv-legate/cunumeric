@@ -17,14 +17,12 @@
 #include "cunumeric/matrix/contract.h"
 #include "cunumeric/matrix/contract_template.inl"
 #include "cunumeric/matrix/util.h"
-#include "cunumeric/matrix/util_omp.h"
 
 #include <tblis/tblis.h>
 #include <omp.h>
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace tblis;
 
 template <>
@@ -43,7 +41,8 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     tblis_tensor lhs;
     tblis_init_tensor_s(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
@@ -74,7 +73,8 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     tblis_tensor lhs;
     tblis_init_tensor_d(&lhs, lhs_ndim, lhs_shape, lhs_data, lhs_strides);
@@ -105,7 +105,8 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     // TBLIS doesn't handle half-precision floating point directly, so we have to go through a
     // conversion to single-precision.
@@ -113,17 +114,17 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
     std::vector<int64_t> lhs_copy_strides(lhs_ndim);
     int64_t lhs_size     = calculate_volume(lhs_ndim, lhs_shape, lhs_copy_strides.data());
     float* lhs_copy_data = allocate_buffer(lhs_size);
-    half_tensor_to_float_omp(lhs_copy_data, lhs_data, lhs_ndim, lhs_shape, lhs_strides);
+    half_tensor_to_float(lhs_copy_data, lhs_data, lhs_ndim, lhs_shape, lhs_strides);
 
     std::vector<int64_t> rhs1_copy_strides(rhs1_ndim);
     int64_t rhs1_size     = calculate_volume(rhs1_ndim, rhs1_shape, rhs1_copy_strides.data());
     float* rhs1_copy_data = allocate_buffer(rhs1_size);
-    half_tensor_to_float_omp(rhs1_copy_data, rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
+    half_tensor_to_float(rhs1_copy_data, rhs1_data, rhs1_ndim, rhs1_shape, rhs1_strides);
 
     std::vector<int64_t> rhs2_copy_strides(rhs2_ndim);
     int64_t rhs2_size     = calculate_volume(rhs2_ndim, rhs2_shape, rhs2_copy_strides.data());
     float* rhs2_copy_data = allocate_buffer(rhs2_size);
-    half_tensor_to_float_omp(rhs2_copy_data, rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
+    half_tensor_to_float(rhs2_copy_data, rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
 
     ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>{}(lhs_copy_data,
                                                                    lhs_ndim,
@@ -139,9 +140,10 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
                                                                    rhs2_ndim,
                                                                    rhs2_shape,
                                                                    rhs2_copy_strides.data(),
-                                                                   rhs2_modes);
+                                                                   rhs2_modes,
+                                                                   lhs_overwritable);
 
-    float_tensor_to_half_omp(lhs_data, lhs_copy_data, lhs_ndim, lhs_shape, lhs_strides);
+    float_tensor_to_half(lhs_data, lhs_copy_data, lhs_ndim, lhs_shape, lhs_strides);
   }
 };
 
@@ -161,7 +163,8 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     tblis_tensor lhs;
     tblis_init_tensor_c(
@@ -203,7 +206,8 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
                   size_t rhs2_ndim,
                   int64_t* rhs2_shape,
                   int64_t* rhs2_strides,
-                  int32_t* rhs2_modes)
+                  int32_t* rhs2_modes,
+                  bool lhs_overwritable)
   {
     tblis_tensor lhs;
     tblis_init_tensor_z(

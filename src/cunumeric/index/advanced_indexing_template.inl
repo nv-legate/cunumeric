@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM, typename OUT_TYPE>
@@ -51,7 +50,7 @@ struct AdvancedIndexingImpl {
 #endif
 
     if (volume == 0) {
-      args.output.make_empty();
+      args.output.bind_empty_data();
       return;
     }
 

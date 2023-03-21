@@ -20,9 +20,9 @@
 
 #include <stdio.h>
 
-namespace cunumeric {
+using namespace legate;
 
-using namespace Legion;
+namespace cunumeric {
 
 static Logger log_cudalibs("cunumeric.cudalibs");
 
@@ -132,7 +132,7 @@ struct cufftPlanCache {
 
  private:
   using Cache = std::array<LRUEntry, MAX_PLANS>;
-  std::array<Cache, LEGION_MAX_DIM + 1> cache_{};
+  std::array<Cache, LEGATE_MAX_DIM + 1> cache_{};
   cufftType type_;
   int64_t cache_hits_     = 0;
   int64_t cache_requests_ = 0;
@@ -320,9 +320,9 @@ cufftContext CUDALibraries::get_cufft_plan(cufftType type, const cufftPlanParms&
   return cufftContext(cache->get_cufft_plan(parms));
 }
 
-static CUDALibraries& get_cuda_libraries(Processor proc)
+static CUDALibraries& get_cuda_libraries(legate::Processor proc)
 {
-  if (proc.kind() != Processor::TOC_PROC) {
+  if (proc.kind() != legate::Processor::TOC_PROC) {
     fprintf(stderr, "Illegal request for CUDA libraries for non-GPU processor");
     LEGATE_ABORT;
   }
@@ -339,28 +339,28 @@ legate::cuda::StreamView get_cached_stream()
 
 cublasContext* get_cublas()
 {
-  const auto proc = Processor::get_executing_processor();
+  const auto proc = legate::Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
   return lib.get_cublas();
 }
 
 cusolverDnContext* get_cusolver()
 {
-  const auto proc = Processor::get_executing_processor();
+  const auto proc = legate::Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
   return lib.get_cusolver();
 }
 
 cutensorHandle_t* get_cutensor()
 {
-  const auto proc = Processor::get_executing_processor();
+  const auto proc = legate::Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
   return lib.get_cutensor();
 }
 
 cufftContext get_cufft_plan(cufftType type, const cufftPlanParms& parms)
 {
-  const auto proc = Processor::get_executing_processor();
+  const auto proc = legate::Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
   return lib.get_cufft_plan(type, parms);
 }
@@ -372,7 +372,7 @@ class LoadCUDALibsTask : public CuNumericTask<LoadCUDALibsTask> {
  public:
   static void gpu_variant(legate::TaskContext& context)
   {
-    const auto proc = Processor::get_executing_processor();
+    const auto proc = legate::Processor::get_executing_processor();
     auto& lib       = get_cuda_libraries(proc);
     lib.get_cublas();
     lib.get_cusolver();
@@ -387,7 +387,7 @@ class UnloadCUDALibsTask : public CuNumericTask<UnloadCUDALibsTask> {
  public:
   static void gpu_variant(legate::TaskContext& context)
   {
-    const auto proc = Processor::get_executing_processor();
+    const auto proc = legate::Processor::get_executing_processor();
     auto& lib       = get_cuda_libraries(proc);
     lib.finalize();
   }

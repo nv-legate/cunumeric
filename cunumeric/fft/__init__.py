@@ -15,10 +15,13 @@
 from __future__ import annotations
 
 import numpy.fft as _npfft
+
+from cunumeric.array import maybe_convert_to_np_ndarray
 from cunumeric.fft.fft import *
 from cunumeric.coverage import clone_module
 
-clone_module(_npfft, globals())
+clone_module(_npfft, globals(), maybe_convert_to_np_ndarray)
 
+del maybe_convert_to_np_ndarray
 del clone_module
 del _npfft

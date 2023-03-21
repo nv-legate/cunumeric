@@ -23,8 +23,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename Output, typename Pitches, typename Point, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   count_nonzero_kernel(size_t volume,
@@ -122,7 +120,7 @@ struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
     size_t size         = 0;
     const size_t volume = rect.volume();
     auto stream         = get_cached_stream();
-    auto offsets        = create_buffer<int64_t, 1>(volume, Memory::Kind::GPU_FB_MEM);
+    auto offsets        = create_buffer<int64_t, 1>(volume, legate::Memory::Kind::GPU_FB_MEM);
 
     size_t skip_size = 1;
     for (int i = key_dim; i < DIM; i++) {

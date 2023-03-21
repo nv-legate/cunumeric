@@ -13,23 +13,14 @@
 # limitations under the License.
 #
 
-# Configuration file for the Sphinx documentation builder.
-#
-# This file only contains a selection of the most common options. For a full
-# list see the documentation:
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
 # -- Project information -----------------------------------------------------
 
-project = "cunumeric"
-copyright = "2021-2022, NVIDIA"
+project = "cuNumeric"
+copyright = "2021-2023, NVIDIA"
 author = "NVIDIA"
 
 # -- General configuration ---------------------------------------------------
 
-# Add any Sphinx extension module names here, as strings. They can be
-# extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
-# ones.
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
@@ -37,43 +28,45 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
     "sphinx_copybutton",
+    "IPython.sphinxext.ipython_console_highlighting",
     "myst_parser",
+    "nbsphinx",
+    "legate._sphinxext.settings",
     "cunumeric._sphinxext.comparison_table",
     "cunumeric._sphinxext.implemented_index",
     "cunumeric._sphinxext.missing_refs",
     "cunumeric._sphinxext.ufunc_formatter",
 ]
 
-# The master toctree document.
-master_doc = "index"
-
-# Add any paths that contain templates here, relative to this directory.
-templates_path = ["_templates"]
-
 source_suffix = {".rst": "restructuredtext", ".md": "markdown"}
-
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 
-# The theme to use for HTML and HTML Help pages.  See the documentation for
-# a list of builtin themes.
-html_theme = "pydata_sphinx_theme"
+html_context = {
+    "default_mode": "light",
+    "AUTHOR": author,
+    "DESCRIPTION": "cuNumeric documentation site.",
+}
 
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-pygments_style = "sphinx"
+html_theme = "pydata_sphinx_theme"
 
-intersphinx_mapping = {
-    "python": ("https://docs.python.org/3/", None),
-    "numpy": ("https://numpy.org/doc/stable/", None),
+html_theme_options = {
+    "footer_start": ["copyright"],
+    "github_url": "https://github.com/nv-legate/cunumeric",
+    # https://github.com/pydata/pydata-sphinx-theme/issues/1220
+    "icon_links": [],
+    "logo": {"text": project, "link": "https://nv-legate.github.io/cunumeric"},
+    "navbar_align": "left",
+    "navbar_end": ["navbar-icon-links", "theme-switcher"],
+    "primary_sidebar_end": ["indices.html"],
+    "secondary_sidebar_items": ["page-toc"],
+    "show_nav_level": 2,
+    "show_toc_level": 2,
 }
+
+templates_path = ["_templates"]
 
 # -- Options for extensions --------------------------------------------------
 
@@ -81,9 +74,18 @@ autosummary_generate = True
 
 copybutton_prompt_text = ">>> "
 
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+}
+
 mathjax_path = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
 
 napoleon_custom_sections = [("Availability", "returns_style")]
+
+nbsphinx_execute = "never"
+
+pygments_style = "sphinx"
 
 
 def setup(app):

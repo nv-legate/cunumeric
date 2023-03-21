@@ -22,11 +22,9 @@
 
 namespace cunumeric {
 
-class CuNumericMapper : public legate::mapping::BaseMapper {
+class CuNumericMapper : public legate::mapping::LegateMapper {
  public:
-  CuNumericMapper(Legion::Runtime* rt,
-                  Legion::Machine machine,
-                  const legate::LibraryContext& context);
+  CuNumericMapper();
   virtual ~CuNumericMapper(void) {}
 
  private:
@@ -35,7 +33,7 @@ class CuNumericMapper : public legate::mapping::BaseMapper {
 
   // Legate mapping functions
  public:
-  virtual bool is_pure() const override { return true; }
+  virtual void set_machine(const legate::mapping::MachineQueryInterface* machine) override;
   virtual legate::mapping::TaskTarget task_target(
     const legate::mapping::Task& task,
     const std::vector<legate::mapping::TaskTarget>& options) override;
@@ -45,6 +43,7 @@ class CuNumericMapper : public legate::mapping::BaseMapper {
   virtual legate::Scalar tunable_value(legate::TunableID tunable_id) override;
 
  private:
+  const legate::mapping::MachineQueryInterface* machine;
   const int32_t min_gpu_chunk;
   const int32_t min_cpu_chunk;
   const int32_t min_omp_chunk;

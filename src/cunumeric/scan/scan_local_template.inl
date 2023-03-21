@@ -19,7 +19,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
@@ -46,7 +45,7 @@ struct ScanLocalImpl {
     size_t volume = pitches.flatten(rect);
 
     if (volume == 0) {
-      args.sum_vals.make_empty();
+      args.sum_vals.bind_empty_data();
       return;
     }
 
@@ -72,7 +71,7 @@ struct ScanLocalImpl {
     size_t volume = pitches.flatten(rect);
 
     if (volume == 0) {
-      args.sum_vals.make_empty();
+      args.sum_vals.bind_empty_data();
       return;
     }
 

@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int32_t DIM>
@@ -41,7 +40,7 @@ struct NonzeroImpl {
     size_t volume = pitches.flatten(rect);
 
     if (volume == 0) {
-      for (auto& store : args.results) store.make_empty();
+      for (auto& store : args.results) store.bind_empty_data();
       return;
     }
 

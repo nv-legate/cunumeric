@@ -19,7 +19,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <typename VAL, int32_t DIM>

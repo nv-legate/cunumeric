@@ -26,7 +26,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <typename VAL, int DIM>
@@ -194,7 +193,7 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
     CHECK_CUDA_STREAM(stream);
 
     // Finally we pack the result
-    output.return_data(result.first, Point<1>(result.second));
+    output.bind_data(result.first, Point<1>(result.second));
   }
 };
 

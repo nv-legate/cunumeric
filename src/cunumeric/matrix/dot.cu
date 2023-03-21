@@ -20,8 +20,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
-
 template <typename Output, typename ReadAcc, typename Point, typename ACC>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) reduction_kernel(
   size_t volume, Output out, ReadAcc rhs1, ReadAcc rhs2, Point origin, size_t iters, ACC identity)

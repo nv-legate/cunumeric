@@ -117,18 +117,16 @@ class Runtime(object):
         self.api_calls.append((name, location, implemented))
 
     def _load_cudalibs(self) -> None:
-        task = self.legate_context.create_task(
+        task = self.legate_context.create_manual_task(
             CuNumericOpCode.LOAD_CUDALIBS,
-            manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
         )
         task.execute()
         self.legate_runtime.issue_execution_fence(block=True)
 
     def _unload_cudalibs(self) -> None:
-        task = self.legate_context.create_task(
+        task = self.legate_context.create_manual_task(
             CuNumericOpCode.UNLOAD_CUDALIBS,
-            manual=True,
             launch_domain=Rect(lo=(0,), hi=(self.num_gpus,)),
         )
         task.execute()
@@ -159,6 +157,7 @@ class Runtime(object):
                 f"cuNumeric API coverage: {implemented}/{total} "
                 f"({implemented / total * 100}%)"
             )
+
         if (dump_csv := settings.report_dump_csv()) is not None:
             with open(dump_csv, "w") as f:
                 print("function_name,location,implemented", file=f)
@@ -169,7 +168,7 @@ class Runtime(object):
         assert not self.destroyed
         if self.num_gpus > 0:
             self._unload_cudalibs()
-        if hasattr(self, "args") and settings.report_coverage():
+        if settings.report_coverage():
             self._report_coverage()
         self.destroyed = True
 
@@ -223,9 +222,8 @@ class Runtime(object):
     ) -> int:
         self.current_random_bitgenid = self.current_random_bitgenid + 1
         if forceCreate:
-            task = self.legate_context.create_task(
+            task = self.legate_context.create_manual_task(
                 CuNumericOpCode.BITGENERATOR,
-                manual=True,
                 launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
             )
             self.bitgenerator_populate_task(
@@ -253,9 +251,8 @@ class Runtime(object):
         else:
             # with explicit destruction, do schedule a task
             self.legate_runtime.issue_execution_fence()
-            task = self.legate_context.create_task(
+            task = self.legate_context.create_manual_task(
                 CuNumericOpCode.BITGENERATOR,
-                manual=True,
                 launch_domain=Rect(lo=(0,), hi=(self.num_procs,)),
             )
             self.bitgenerator_populate_task(

@@ -23,7 +23,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <typename Trsm, typename VAL>

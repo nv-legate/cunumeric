@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM>
@@ -38,7 +37,7 @@ struct RepeatImpl {
     auto input_arr  = args.input.read_accessor<VAL, DIM>(input_rect);
 
     if (input_rect.empty()) {
-      args.output.make_empty();
+      args.output.bind_empty_data();
       return;
     }
 

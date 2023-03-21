@@ -23,7 +23,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 using dim_t = long long int32_t;
 
@@ -98,7 +97,7 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
 
   if (cufft_context.workareaSize() > 0) {
     auto workarea_buffer =
-      create_buffer<uint8_t>(cufft_context.workareaSize(), Legion::Memory::Kind::GPU_FB_MEM);
+      create_buffer<uint8_t>(cufft_context.workareaSize(), Memory::Kind::GPU_FB_MEM);
     CHECK_CUFFT(cufftSetWorkArea(cufft_context.handle(), workarea_buffer.ptr(0)));
   }
 
@@ -175,7 +174,7 @@ __host__ static inline void cufft_over_axes_c2c(INOUT_TYPE* out,
       if (cufft_context.workareaSize() > last_workarea_size) {
         if (last_workarea_size > 0) workarea_buffer.destroy();
         workarea_buffer =
-          create_buffer<uint8_t>(cufft_context.workareaSize(), Legion::Memory::Kind::GPU_FB_MEM);
+          create_buffer<uint8_t>(cufft_context.workareaSize(), Memory::Kind::GPU_FB_MEM);
         last_workarea_size = cufft_context.workareaSize();
       }
       CHECK_CUFFT(cufftSetWorkArea(cufft_context.handle(), workarea_buffer.ptr(0)));
@@ -251,7 +250,7 @@ __host__ static inline void cufft_r2c_c2r(OUTPUT_TYPE* out,
 
   if (cufft_context.workareaSize() > 0) {
     auto workarea_buffer =
-      create_buffer<uint8_t>(cufft_context.workareaSize(), Legion::Memory::Kind::GPU_FB_MEM);
+      create_buffer<uint8_t>(cufft_context.workareaSize(), Memory::Kind::GPU_FB_MEM);
     CHECK_CUFFT(cufftSetWorkArea(cufft_context.handle(), workarea_buffer.ptr(0)));
   }
 
@@ -295,9 +294,8 @@ __host__ static inline void cufft_over_axes(AccessorWO<OUTPUT_TYPE, DIM> out,
       // utilize out as temporary store for c2c
       in_ptr = (INPUT_TYPE*)out.ptr(out_rect.lo);
     } else {
-      auto input_buffer =
-        create_buffer<INPUT_TYPE, DIM>(fft_size_in, Legion::Memory::Kind::GPU_FB_MEM);
-      in_ptr = input_buffer.ptr(Point<DIM>::ZEROES());
+      auto input_buffer = create_buffer<INPUT_TYPE, DIM>(fft_size_in, Memory::Kind::GPU_FB_MEM);
+      in_ptr            = input_buffer.ptr(Point<DIM>::ZEROES());
     }
     copy_into_buffer<DIM, INPUT_TYPE>(in_ptr, in, in_rect, num_elements_in, get_cached_stream());
   }

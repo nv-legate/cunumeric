@@ -22,7 +22,6 @@
 
 namespace cunumeric {
 
-using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND, LegateTypeCode CODE, int DIM>
@@ -41,7 +40,7 @@ struct ArgWhereImpl {
     size_t volume = pitches.flatten(rect_in);
 
     if (volume == 0) {
-      args.out.make_empty();
+      args.out.bind_empty_data();
       return;
     }
 
