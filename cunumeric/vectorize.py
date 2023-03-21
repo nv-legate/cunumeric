@@ -15,6 +15,7 @@
 
 import inspect
 import re
+import typing
 
 # numba typing
 from typing import Any, Callable, Dict, List, Optional, Union
@@ -124,25 +125,27 @@ class vectorize:
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
         self._created: bool = False
-        self._num_outputs = 1  # there is at least 1 output
+        self._func_body: List[str]=[]
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
         else:
             self.__doc__ = doc
 
+        self._return_arguments = self._get_return_argumets()
+        self._num_outputs = len(self._return_arguments) 
+
         if otypes is not None:
-            self._num_outputs = len(otypes)
-            if self._num_outputs == 0:
-                raise ValueError(
-                    "There should be at least 1 type specified in otypes"
-                )
-            type0 = otypes[0]
-            for t in otypes:
-                if t != type0:
-                    raise NotImplementedError(
-                        "cuNumeric doesn't support variable types in otypes"
-                    )
+            if self._num_outputs !=len(otypes):
+                raise ValueError("number of types in otypes is not consistente"
+                 " with the number of return values difened in pyfunc")
+            if len(otypes)>1:
+                for t in otypes:
+                    if t != otypes[0]:
+                        raise NotImplementedError(
+                            "cuNumeric doesn't support variable types in otypes"
+                        )
+
 
         # FIXME
         if excluded is not None:
@@ -156,14 +159,6 @@ class vectorize:
                 "signature variable is not supported yet"
             )
 
-        # FIXME check return of the user function
-        # return annotation (we supprt only void)
-
-    #        if inspect.signature(self._pyfunc).return_annotation()
-    #            != inspect._empty:
-    #            raise NotImplementedError(
-    #                "user defined functions can't have a return"
-    #            )
 
     def _get_func_body(self, func: Callable[[Any], Any]) -> list[str]:
         """Using the magic method __doc__, we KNOW the size of the docstring.
@@ -179,6 +174,17 @@ class vectorize:
         for i in range(lines_to_skip + 1, len(lines)):
             return_lines.append(lines[i].rstrip())
         return return_lines
+
+    def _get_return_argumets(self)->list[str]:
+        self._func_body = self._get_func_body(self._pyfunc)
+        return_names = []
+        for l in self._func_body:
+            if "return"  in l:
+                l = l.replace("return", '')
+                l=l.replace(" ",'')
+                return_names = l.split(",")
+        return return_names
+
 
     def _replace_name(
         self, name: str, _LOOP_VAR: str, is_gpu: bool = False
@@ -240,7 +246,7 @@ class vectorize:
             return self._replace_name(m.group(0), _LOOP_VAR, True)
 
         # kernel body
-        lines_old = self._get_func_body(self._pyfunc)
+        lines_old = self._func_body
         for line in lines_old:
             l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
             lines.append(l_new)
@@ -329,7 +335,7 @@ class vectorize:
             )
         )
 
-        lines_old = self._get_func_body(self._pyfunc)
+        lines_old = self._func_body
 
         # Kernel body
         def _lift_to_array_access(m: Any) -> str:
