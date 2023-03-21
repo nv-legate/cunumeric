@@ -32,15 +32,10 @@ struct EvalUdfGPU {
     using VAL = legate_type_of<CODE>;
     Rect<DIM> rect;
 
-    // size_t input_size=args.inputs.size()-1;
     size_t input_size = args.inputs.size();
-    // auto procs_rect = args.inputs[input_size].shape<1>();
-
-    // auto procs=args.inputs[input_size].read_accessor<uint64_t,1>();
-    // auto funcs=args.inputs[input_size+1].read_accessor<uint64_t,1>();
     CUfunction func = get_udf(args.hash);
-    // Filling up the buffer with arguments
 
+    // Filling up the buffer with arguments
     size_t buffer_size = (input_size + args.scalars.size()) * sizeof(void*);
     buffer_size += sizeof(size_t);  // size
     buffer_size += sizeof(size_t);  // dim
@@ -70,8 +65,6 @@ struct EvalUdfGPU {
     for (auto scalar : args.scalars) {
       memcpy(p, scalar.ptr(), scalar.size());
       p += scalar.size();
-      // *reinterpret_cast<const void**>(p) =s;
-      // p += sizeof(void*);
     }
     memcpy(p, &size, sizeof(size_t));
     size_t dim = DIM;
@@ -80,7 +73,7 @@ struct EvalUdfGPU {
     p += sizeof(size_t);
     Pitches<DIM - 1> pitches;
     size_t volume = pitches.flatten(rect);
-    // create buffers for pitches, lower point and strides since
+    // create buffers for pitches and strides since
     // we need to pass pointer to device memory
     auto device_pitches = create_buffer<int64_t>(Point<1>(DIM - 1), Memory::Kind::Z_COPY_MEM);
     auto device_strides = create_buffer<int64_t>(Point<1>(DIM), Memory::Kind::Z_COPY_MEM);
@@ -130,7 +123,6 @@ struct EvalUdfGPU {
   for (size_t i = 2; i < (2 + num_scalars); i++) scalars.push_back(context.scalars()[i]);
 
   int64_t ptx_hash = context.scalars()[2 + num_scalars].value<int64_t>();
-  // bool is_created = context.scalars()[3+num_scalars].value<bool>();
 
   EvalUdfArgs args{0,
                    context.inputs(),
@@ -144,9 +136,8 @@ struct EvalUdfGPU {
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
   } else {
-    // FIXME
-    double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
-    // double_dispatch(dim, 0 , EvalUdfGPU{}, args);
+    LegateTypeCode code = LegateTypeCode::BOOL_LT ;
+    double_dispatch(dim, code, EvalUdfGPU{}, args);
   }
 }
 }  // namespace cunumeric
