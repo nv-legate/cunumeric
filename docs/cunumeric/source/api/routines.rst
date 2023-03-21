@@ -13,6 +13,7 @@ Routines
    logic
    math
    fft
+   functional
    random
    set
    sorting

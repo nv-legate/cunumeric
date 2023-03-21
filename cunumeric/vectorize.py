@@ -15,8 +15,6 @@
 
 import inspect
 import re
-
-# numba typing
 from typing import Any, Callable, Dict, List, Optional, Union
 
 import legate.core.types as ty
@@ -55,6 +53,7 @@ class vectorize:
         """
         vectorize(pyfunc, otypes=None, doc=None, excluded=None, cache=False,
                   signature=None)
+
         Generalized function class.
         Define a vectorized function which takes a nested sequence of
         objects or numpy arrays as inputs and returns a single numpy array
@@ -417,7 +416,7 @@ class vectorize:
             task.add_scalar_arg(a, dtype)
 
         # add array arguments
-        if len (self._args)>0:
+        if len(self._args) > 0:
             a0 = self._args[0]._thunk
             a0 = runtime.to_deferred_array(a0)
             for count, a in enumerate(self._args):
@@ -478,10 +477,10 @@ class vectorize:
                     "kwargs are not supported in user functions"
                 )
 
-        if self._num_outputs==0 or len(self._args)==0:
-           #execute function that doesn't modify anything:
-           self._pyfunc()
-           return
+        if self._num_outputs == 0 or len(self._args) == 0:
+            # execute function that doesn't modify anything:
+            self._pyfunc()
+            return
 
         # all output arrays should have the same type
         if len(self._args) > 0:

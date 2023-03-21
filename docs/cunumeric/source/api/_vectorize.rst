@@ -1,7 +1,7 @@
 cunumeric.vectorize
-=============================
+===================
 
-.. currentmodule:: cunumeric
+.. currentmodule:: cunumeric.vectorize
 
 .. autoclass:: vectorize
 
@@ -9,5 +9,6 @@ cunumeric.vectorize
 
    .. rubric:: Methods
 
-   .. autosummary:: __call__
+   .. automethod:: __call__
 
+   .. autosummary::
