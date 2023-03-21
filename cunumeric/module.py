@@ -56,6 +56,13 @@ _builtin_max = max
 _builtin_min = min
 _builtin_sum = sum
 
+casting_kinds: tuple[CastingKind, ...] = (
+    "no",
+    "equiv",
+    "safe",
+    "same_kind",
+    "unsafe",
+)
 
 #########################
 # Array creation routines
@@ -1765,6 +1772,12 @@ def concatenate(
         raise TypeError(
             "concatenate() only takes `out` or `dtype` as an argument,"
             "but both were provided."
+        )
+
+    if casting not in casting_kinds:
+        raise ValueError(
+            "casting must be one of 'no', 'equiv', "
+            "'safe', 'same_kind', or 'unsafe'"
         )
 
     # flatten arrays if axis == None and concatenate arrays on the first axis

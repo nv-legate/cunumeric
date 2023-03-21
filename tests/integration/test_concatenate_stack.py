@@ -227,7 +227,6 @@ class TestConcatenateErrors:
                 dtype=dtype,
             )
 
-    @pytest.mark.xfail
     def test_invalid_casting(self):
         # In Numpy, raise ValueError
         # In cuNumeric, pass
