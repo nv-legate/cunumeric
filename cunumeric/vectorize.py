@@ -24,7 +24,7 @@ import legate.core.types as ty
 import numba
 import numba.core.ccallback
 import numpy as np
-import six
+#import six
 from legate.core import Rect, track_provenance
 
 from cunumeric.runtime import runtime
@@ -60,12 +60,13 @@ class vectorize:
         Define a vectorized function which takes a nested sequence of
         objects or numpy arrays as inputs and returns a single numpy array
         or a tuple of numpy arrays.
-        The vectorized function evaluates `pyfunc` over successive tuples
-        of the input arrays like the python map function, except it uses the
-        broadcasting rules of numpy.
+        User defined pyfunction will be executed in a single cuNumeric task
+        over a set of arguments. 
         The data type of the output of `vectorized` is determined by calling
         the function with the first element of the input.  This can be avoided
         by specifying the `otypes` argument.
+        WARNING: when running with OpenMP back-end, "vectorize" will fall-back
+        to the serial CPU implementation
 
         Parameters
         ----------
@@ -87,7 +88,12 @@ class vectorize:
             WARNING: cuNumeric doesn't suport this argument at the moment
         cache : bool, optional
             If `True`, then cache the first function call that generates C fun-
-            ction or CUDA kernel
+            ction or CUDA kernel. We recomment enabling caching in cuNumeric 
+            for better performance, when possible.
+            Warning: in the case when cache=True, cuNumeric will parse function
+            signature and create C function or CUDA kernel only once. This
+            means that types of arguments passed to the vectorized function
+            (arrays, scalars etc) should be the same each time we call it.
         signature : string, optional
             Generalized universal function signature, e.g., ``(m,n),(n)->(m)``
             for vectorized matrix-vector multiplication. If provided,
@@ -132,8 +138,8 @@ class vectorize:
         else:
             self.__doc__ = doc
 
-        self._return_arguments = self._get_return_argumets()
-        self._num_outputs = len(self._return_arguments) 
+        self._return_argnames = self._get_return_argumets()
+        self._num_outputs = len(self._return_argnames) 
 
         if otypes is not None:
             if self._num_outputs !=len(otypes):
@@ -192,7 +198,7 @@ class vectorize:
         if name in self._argnames and not (name in self._scalar_names):
             return "{}[int({})]".format(name, _LOOP_VAR)
         else:
-            if is_gpu:
+            if is_gpu or ((not is_gpu) and not (name  in self._scalar_names)) :
                 return "{}".format(name)
             else:
                 return "{}[0]".format(name)
@@ -254,7 +260,7 @@ class vectorize:
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
         glbs: Dict[str, Any] = {}
-        six.exec_(body, glbs)
+        exec(body, glbs)
         return glbs[funcid]
 
     def _build_cpu_function(self) -> Callable[[Any], Any]:
@@ -348,7 +354,7 @@ class vectorize:
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
         glbs: Dict[str, Any] = {}
-        six.exec_(body, glbs)
+        exec(body, glbs)
         return glbs[funcid]
 
     def _get_numba_types(self, need_pointer: bool = True) -> list[Any]:
@@ -445,11 +451,11 @@ class vectorize:
         task.execute()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
-        """
-        Return arrays with the results of `pyfunc` broadcast (vectorized) over
-        `args` and `kwargs` not in `excluded`.
-        """
         if not self._created:
+            # the case when  we execute `__call__` the first time or
+            # when cache=False:
+            # each time we call `vectorize` on a pyfunc we need to clear
+            # these lists to support different types of arguments passed
             self._scalar_args.clear()
             self._scalar_idxs.clear()
             self._args.clear()
