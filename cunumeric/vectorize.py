@@ -31,6 +31,7 @@ from cunumeric.runtime import runtime
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
 from .utils import convert_to_cunumeric_dtype
+from .module import full
 
 _EXTERNAL_REFERENCE_PREFIX = "__extern_ref__"
 _MASK_VAR = "__mask__"
@@ -531,8 +532,8 @@ class vectorize:
         #the case if we didn't find output argument in input argnames
         if output_shape is None:
             for r in self._return_argnames:
-                if r in self._scalar_argnames:
-                    idx = self._scalar_argnames.index(r)
+                if r in self._scalar_names:
+                    idx = self._scalar_names.index(r)
                     if output_dtype is None:
                         output_dtype = np.dtype(type(self._scalar_args[idx]))
                     output_shape = (1,)
@@ -611,3 +612,10 @@ class vectorize:
                 if self._cache:
                     self._created = True
             self._execute(False)
+
+        if len(self._return_args)==1:
+            return self._return_args[0]
+        if len(self._return_args)>1:
+            return tuple(self._return_args)
+        else:
+            return 
