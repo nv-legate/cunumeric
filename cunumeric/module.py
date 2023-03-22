@@ -56,6 +56,13 @@ _builtin_max = max
 _builtin_min = min
 _builtin_sum = sum
 
+casting_kinds: tuple[CastingKind, ...] = (
+    "no",
+    "equiv",
+    "safe",
+    "same_kind",
+    "unsafe",
+)
 
 #########################
 # Array creation routines
@@ -1464,10 +1471,33 @@ def check_list_depth(arr: Any, prefix: NdShape = (0,)) -> int:
     return depths[0] + 1
 
 
-def check_shape_dtype(
-    inputs: Sequence[ndarray],
+def check_shape_with_axis(
+    inputs: list[ndarray],
     func_name: str,
     axis: int,
+) -> None:
+    ndim = inputs[0].ndim
+    shape = inputs[0].shape
+
+    if ndim >= 1:
+        axis = normalize_axis_index(axis, ndim)
+        if _builtin_any(
+            shape[:axis] != inp.shape[:axis]
+            or shape[axis + 1 :] != inp.shape[axis + 1 :]
+            for inp in inputs
+        ):
+            raise ValueError(
+                f"All arguments to {func_name} "
+                "must have the same "
+                "dimension size in all dimensions "
+                "except the target axis"
+            )
+    return
+
+
+def check_shape_dtype_without_axis(
+    inputs: Sequence[ndarray],
+    func_name: str,
     dtype: Optional[npt.DTypeLike] = None,
     casting: CastingKind = "same_kind",
 ) -> tuple[list[ndarray], ArrayInfo]:
@@ -1482,17 +1512,6 @@ def check_shape_dtype(
         raise ValueError(
             f"All arguments to {func_name} "
             "must have the same number of dimensions"
-        )
-    if ndim > 1 and _builtin_any(
-        shape[1:axis] != inp.shape[1:axis]
-        and shape[axis + 1 :] != inp.shape[axis + 1 :]
-        for inp in inputs
-    ):
-        raise ValueError(
-            f"All arguments to {func_name} "
-            "must have the same "
-            "dimension size in all dimensions "
-            "except the target axis"
         )
 
     # Cast arrays with the passed arguments (dtype, casting)
@@ -1551,10 +1570,11 @@ def _block_collect_slices(
         arrays = list(convert_to_cunumeric_ndarray(inp) for inp in arr)
         common_shape = arrays[0].shape
         if len(arr) > 1:
-            arrays, common_info = check_shape_dtype(
-                arrays, block.__name__, axis=-1
+            arrays, common_info = check_shape_dtype_without_axis(
+                arrays, block.__name__
             )
             common_shape = common_info.shape
+            check_shape_with_axis(arrays, block.__name__, axis=-1)
         # the initial slices for each arr on arr.shape[-1]
         out_shape, slices, arrays = _collect_outshape_slices(
             arrays, common_shape, axis=-1 + len(common_shape)
@@ -1771,15 +1791,28 @@ def concatenate(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    if dtype is not None and out is not None:
+        raise TypeError(
+            "concatenate() only takes `out` or `dtype` as an argument,"
+            "but both were provided."
+        )
+
+    if casting not in casting_kinds:
+        raise ValueError(
+            "casting must be one of 'no', 'equiv', "
+            "'safe', 'same_kind', or 'unsafe'"
+        )
+
     # flatten arrays if axis == None and concatenate arrays on the first axis
     if axis is None:
         inputs = list(inp.ravel() for inp in inputs)
         axis = 0
 
     # Check to see if we can build a new tuple of cuNumeric arrays
-    cunumeric_inputs, common_info = check_shape_dtype(
-        inputs, concatenate.__name__, axis, dtype, casting
+    cunumeric_inputs, common_info = check_shape_dtype_without_axis(
+        inputs, concatenate.__name__, dtype, casting
     )
+    check_shape_with_axis(cunumeric_inputs, concatenate.__name__, axis)
 
     return _concatenate(
         cunumeric_inputs,
@@ -1831,15 +1864,14 @@ def stack(
     if type(axis) is not int:
         raise TypeError("The target axis should be an integer")
 
-    arrays, common_info = check_shape_dtype(arrays, stack.__name__, axis)
+    arrays, common_info = check_shape_dtype_without_axis(
+        arrays, stack.__name__
+    )
+    shapes = {inp.shape for inp in arrays}
+    if len(shapes) != 1:
+        raise ValueError("all input arrays must have the same shape for stack")
 
-    if axis > common_info.ndim:
-        raise ValueError(
-            "The target axis should be smaller or"
-            " equal to the number of dimensions"
-            " of input arrays"
-        )
-
+    axis = normalize_axis_index(axis, common_info.ndim + 1)
     shape = common_info.shape[:axis] + (1,) + common_info.shape[axis:]
     arrays = [arr.reshape(shape) for arr in arrays]
     common_info.shape = tuple(shape)
@@ -1883,7 +1915,10 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     reshaped = _atleast_nd(2, tuple(tup))
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
-    tup, common_info = check_shape_dtype(reshaped, vstack.__name__, 0)
+    tup, common_info = check_shape_dtype_without_axis(
+        reshaped, vstack.__name__
+    )
+    check_shape_with_axis(tup, vstack.__name__, 0)
     return _concatenate(
         tup,
         common_info,
@@ -1925,7 +1960,10 @@ def hstack(tup: Sequence[ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    tup, common_info = check_shape_dtype(tup, hstack.__name__, 1)
+    tup, common_info = check_shape_dtype_without_axis(tup, hstack.__name__)
+    check_shape_with_axis(
+        tup, hstack.__name__, axis=(0 if common_info.ndim == 1 else 1)
+    )
     # When ndim == 1, hstack concatenates arrays along the first axis
     return _concatenate(
         tup,
@@ -1973,7 +2011,10 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     reshaped = _atleast_nd(3, tuple(tup))
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
-    tup, common_info = check_shape_dtype(reshaped, dstack.__name__, 2)
+    tup, common_info = check_shape_dtype_without_axis(
+        reshaped, dstack.__name__
+    )
+    check_shape_with_axis(tup, dstack.__name__, 2)
     return _concatenate(
         tup,
         common_info,
@@ -2011,11 +2052,14 @@ def column_stack(tup: Sequence[ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    tup, common_info = check_shape_dtype(tup, column_stack.__name__, 1)
+    tup, common_info = check_shape_dtype_without_axis(
+        tup, column_stack.__name__
+    )
     # When ndim == 1, hstack concatenates arrays along the first axis
     if common_info.ndim == 1:
         tup = list(inp.reshape((inp.shape[0], 1)) for inp in tup)
         common_info.shape = tup[0].shape
+    check_shape_with_axis(tup, dstack.__name__, 1)
     return _concatenate(
         tup,
         common_info,
