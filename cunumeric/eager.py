@@ -1633,6 +1633,13 @@ class EagerArray(NumPyThunk):
         else:
             raise RuntimeError(f"unsupported scan op {op}")
 
+    def nanargmax(self) -> None:
+        if self.deferred is not None:
+            self.deferred.nanargmax()
+        else:
+            # this will call numpy's nanargmax: np.nanargmax(self.array)
+            print("Skipping eager execution for nanargmax")
+
     def unique(self) -> NumPyThunk:
         if self.deferred is not None:
             return self.deferred.unique()

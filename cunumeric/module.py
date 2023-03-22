@@ -5311,6 +5311,11 @@ def nancumsum(
     )
 
 
+@add_boilerplate("a")
+def nanargmax(a: ndarray):
+    return a._thunk.nanargmax()
+
+
 # Exponents and logarithms
 
 

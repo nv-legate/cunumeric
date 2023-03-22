@@ -355,6 +355,7 @@ class CuNumericOpCode(IntEnum):
     LOAD_CUDALIBS = _cunumeric.CUNUMERIC_LOAD_CUDALIBS
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
+    NANARGMAX = _cunumeric.CUNUMERIC_NANARGMAX #this will eventually be part of reductions; place it here for now
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
     PACKBITS = _cunumeric.CUNUMERIC_PACKBITS
     POTRF = _cunumeric.CUNUMERIC_POTRF

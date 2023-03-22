@@ -3587,3 +3587,12 @@ class DeferredArray(NumPyThunk):
         copy.add_source_indirect(indirect.base)
         copy.add_output(self.base)
         copy.execute()
+
+    def nanargmax(self) -> None:
+        task = self.context.create_auto_task(CuNumericOpCode.NANARGMAX)
+        task.add_input(self.base)
+        task.add_output(self.base)
+        
+        # no need for alignment
+        task.execute()
+
