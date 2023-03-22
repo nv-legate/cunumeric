@@ -84,7 +84,7 @@ def check_2d_r2c(N, dtype=np.float64):
         out_num = num.fft.rfft2(Z_num, **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfft2(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.rfft2(np.swapaxes(Z_num, 0, 1), **kwargs)
+        out_num = num.fft.rfft2(num.swapaxes(Z_num, 0, 1), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types
@@ -121,10 +121,10 @@ def check_3d_r2c(N, dtype=np.float64):
         out_num = num.fft.rfftn(Z_num, **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfftn(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.rfftn(np.swapaxes(Z_num, 0, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 0, 1), **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfftn(np.swapaxes(Z, 2, 1), **kwargs)
-        out_num = num.fft.rfftn(np.swapaxes(Z_num, 2, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 2, 1), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types
@@ -168,13 +168,13 @@ def check_4d_r2c(N, dtype=np.float64):
         out_num = num.fft.rfftn(Z_num, **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfftn(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.rfftn(np.swapaxes(Z_num, 0, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 0, 1), **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfftn(np.swapaxes(Z, 2, 1), **kwargs)
-        out_num = num.fft.rfftn(np.swapaxes(Z_num, 2, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 2, 1), **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfftn(np.swapaxes(Z, 3, 1), **kwargs)
-        out_num = num.fft.rfftn(np.swapaxes(Z_num, 3, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 3, 1), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types

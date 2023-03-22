@@ -93,7 +93,7 @@ def check_2d_c2c(N, dtype=np.float64):
         assert allclose(out, out_num)
 
         out = np.fft.fft2(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.fft2(np.swapaxes(Z_num, 0, 1), **kwargs)
+        out_num = num.fft.fft2(num.swapaxes(Z_num, 0, 1), **kwargs)
         assert allclose(out, out_num)
 
         out = np.fft.ifft2(Z, **kwargs)
@@ -101,7 +101,7 @@ def check_2d_c2c(N, dtype=np.float64):
         assert allclose(out, out_num)
 
         out = np.fft.ifft2(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.ifft2(np.swapaxes(Z_num, 0, 1), **kwargs)
+        out_num = num.fft.ifft2(num.swapaxes(Z_num, 0, 1), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types
@@ -142,7 +142,7 @@ def check_3d_c2c(N, dtype=np.float64):
         assert allclose(out, out_num)
 
         out = np.fft.fftn(np.swapaxes(Z, 2, 0), **kwargs)
-        out_num = num.fft.fftn(np.swapaxes(Z_num, 2, 0), **kwargs)
+        out_num = num.fft.fftn(num.swapaxes(Z_num, 2, 0), **kwargs)
         assert allclose(out, out_num)
 
         out = np.fft.ifftn(Z, **kwargs)
@@ -150,7 +150,7 @@ def check_3d_c2c(N, dtype=np.float64):
         assert allclose(out, out_num)
 
         out = np.fft.ifftn(np.swapaxes(Z, 2, 0), **kwargs)
-        out_num = num.fft.ifftn(np.swapaxes(Z_num, 2, 0), **kwargs)
+        out_num = num.fft.ifftn(num.swapaxes(Z_num, 2, 0), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types
@@ -192,11 +192,11 @@ def check_4d_c2c(N, dtype=np.float64):
         assert allclose(out, out_num)
 
         out = np.fft.fftn(np.swapaxes(Z, 2, 0), **kwargs)
-        out_num = num.fft.fftn(np.swapaxes(Z_num, 2, 0), **kwargs)
+        out_num = num.fft.fftn(num.swapaxes(Z_num, 2, 0), **kwargs)
         assert allclose(out, out_num)
 
         out = np.fft.fftn(np.swapaxes(Z, 3, 1), **kwargs)
-        out_num = num.fft.fftn(np.swapaxes(Z_num, 3, 1), **kwargs)
+        out_num = num.fft.fftn(num.swapaxes(Z_num, 3, 1), **kwargs)
         assert allclose(out, out_num)
 
         out = np.fft.ifftn(Z, **kwargs)
@@ -204,11 +204,11 @@ def check_4d_c2c(N, dtype=np.float64):
         assert allclose(out, out_num)
 
         out = np.fft.ifftn(np.swapaxes(Z, 2, 0), **kwargs)
-        out_num = num.fft.ifftn(np.swapaxes(Z_num, 2, 0), **kwargs)
+        out_num = num.fft.ifftn(num.swapaxes(Z_num, 2, 0), **kwargs)
         assert allclose(out, out_num)
 
         out = np.fft.ifftn(np.swapaxes(Z, 3, 1), **kwargs)
-        out_num = num.fft.ifftn(np.swapaxes(Z_num, 3, 1), **kwargs)
+        out_num = num.fft.ifftn(num.swapaxes(Z_num, 3, 1), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types

@@ -99,7 +99,7 @@ class cufftContext {
   cufftContext& operator=(cufftContext&&) = default;
 
  public:
-  cufftHandle handle();
+  cufftHandle& handle();
   size_t workareaSize();
   void setCallback(cufftXtCallbackType type, void* callback, void* data);
 

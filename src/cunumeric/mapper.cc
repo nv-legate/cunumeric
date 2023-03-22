@@ -92,6 +92,7 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
       mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
       mappings.back().policy.exact = true;
+      mappings.back().policy.ordering.c_order();
       return std::move(mappings);
     }
     case CUNUMERIC_TRANSPOSE_COPY_2D: {

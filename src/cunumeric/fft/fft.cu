@@ -45,8 +45,8 @@ __host__ static inline void copy_into_buffer(TYPE* target,
 {
   if (acc.accessor.is_dense_row_major(rect)) {
     auto zero = Point<DIM>::ZEROES();
-    CHECK_CUDA(
-      cudaMemcpyAsync(target, acc.ptr(rect.lo), volume * sizeof(TYPE), cudaMemcpyDefault, stream));
+    CHECK_CUDA(cudaMemcpyAsync(
+      target, acc.ptr(rect.lo), volume * sizeof(TYPE), cudaMemcpyDeviceToDevice, stream));
   } else {
     Pitches<DIM - 1> pitches;
     pitches.flatten(rect);
@@ -93,7 +93,6 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
   // get plan from cache
   auto cufft_context =
     get_cufft_plan((cufftType)type, cufftPlanParms(DIM, n, inembed, 1, 1, onembed, 1, 1, 1));
-  CHECK_CUFFT(cufftSetStream(cufft_context.handle(), stream));
 
   if (cufft_context.workareaSize() > 0) {
     auto workarea_buffer =
@@ -143,8 +142,8 @@ __host__ static inline void cufft_over_axes_c2c(INOUT_TYPE* out,
   // Copy input to output buffer (if needed)
   // the computation will be done inplace of the target
   if (in != out) {
-    CHECK_CUDA(
-      cudaMemcpyAsync(out, in, num_elements * sizeof(INOUT_TYPE), cudaMemcpyDefault, stream));
+    CHECK_CUDA(cudaMemcpyAsync(
+      out, in, num_elements * sizeof(INOUT_TYPE), cudaMemcpyDeviceToDevice, stream));
   }
 
   Buffer<uint8_t> workarea_buffer;
@@ -168,7 +167,6 @@ __host__ static inline void cufft_over_axes_c2c(INOUT_TYPE* out,
     // get plan from cache
     auto cufft_context = get_cufft_plan(
       (cufftType)type, cufftPlanParms(1, &size_1d, n, stride, dist, n, stride, dist, batches));
-    CHECK_CUFFT(cufftSetStream(cufft_context.handle(), stream));
 
     if (cufft_context.workareaSize() > 0) {
       if (cufft_context.workareaSize() > last_workarea_size) {
@@ -246,7 +244,6 @@ __host__ static inline void cufft_r2c_c2r(OUTPUT_TYPE* out,
   auto cufft_context = get_cufft_plan(
     (cufftType)type,
     cufftPlanParms(1, &size_1d, inembed, istride, idist, onembed, ostride, odist, batches));
-  CHECK_CUFFT(cufftSetStream(cufft_context.handle(), stream));
 
   if (cufft_context.workareaSize() > 0) {
     auto workarea_buffer =

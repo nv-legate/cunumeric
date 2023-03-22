@@ -30,11 +30,12 @@ cufftContext::cufftContext(cufftPlan* plan) : plan_(plan) {}
 
 cufftContext::~cufftContext()
 {
-  auto hdl = handle();
+  auto& hdl = handle();
   for (auto type : callback_types_) CHECK_CUFFT(cufftXtClearCallback(hdl, type));
+  CHECK_CUFFT(cufftSetWorkArea(hdl, nullptr));
 }
 
-cufftHandle cufftContext::handle() { return plan_->handle; }
+cufftHandle& cufftContext::handle() { return plan_->handle; }
 
 size_t cufftContext::workareaSize() { return plan_->workarea_size; }
 
@@ -105,9 +106,13 @@ bool cufftPlanParms::operator==(const cufftPlanParms& other) const
 std::string cufftPlanParms::to_string() const
 {
   std::ostringstream ss;
-  ss << "cufftPlanParms[rank(" << rank_ << "), n(" << n_[0] << "), inembed(" << inembed_[0]
-     << "), istride(" << istride_ << "), idist(" << idist_ << "), onembed(" << onembed_[0]
-     << "), ostride(" << ostride_ << "), odist(" << odist_ << "), batch(" << batch_ << ")]";
+  ss << "cufftPlanParms[rank(" << rank_ << "), n(" << n_[0];
+  for (int i = 1; i < rank_; ++i) ss << "," << n_[i];
+  ss << "), inembed(" << inembed_[0];
+  for (int i = 1; i < rank_; ++i) ss << "," << inembed_[i];
+  ss << "), istride(" << istride_ << "), idist(" << idist_ << "), onembed(" << onembed_[0];
+  for (int i = 1; i < rank_; ++i) ss << "," << onembed_[i];
+  ss << "), ostride(" << ostride_ << "), odist(" << odist_ << "), batch(" << batch_ << ")]";
   return std::move(ss).str();
 }
 
@@ -119,7 +124,7 @@ struct cufftPlanCache {
  private:
   struct LRUEntry {
     std::unique_ptr<cufftPlan> plan{nullptr};
-    cufftPlanParms parms;
+    std::unique_ptr<cufftPlanParms> parms{nullptr};
     uint32_t lru_index{0};
   };
 
@@ -141,7 +146,7 @@ struct cufftPlanCache {
 cufftPlanCache::cufftPlanCache(cufftType type) : type_(type)
 {
   for (auto& cache : cache_)
-    for (auto& entry : cache) assert(0 == entry.parms.rank_);
+    for (auto& entry : cache) assert(0 == entry.lru_index);
 }
 
 cufftPlanCache::~cufftPlanCache()
@@ -159,7 +164,7 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParms& parms)
   for (int32_t idx = 0; idx < MAX_PLANS; ++idx) {
     auto& entry = cache[idx];
     if (nullptr == entry.plan) break;
-    if (entry.parms == parms) {
+    if (*entry.parms == parms) {
       match = idx;
       cache_hits_++;
       break;
@@ -185,9 +190,11 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParms& parms)
         break;
       } else if (entry.lru_index == MAX_PLANS - 1) {
         log_cudalibs.debug() << "[cufftPlanCache] evict entry " << idx << " for "
-                             << entry.parms.to_string() << " (type: " << type_ << ")";
+                             << entry.parms->to_string() << " (type: " << type_ << ")";
         CHECK_CUFFT(cufftDestroy(entry.plan->handle));
         plan_index = idx;
+        // create new plan
+        entry.plan = std::make_unique<cufftPlan>();
         break;
       } else {
         entry.lru_index++;
@@ -205,24 +212,27 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParms& parms)
       entry.lru_index = 0;
     }
 
-    entry.parms = parms;
+    entry.parms = std::make_unique<cufftPlanParms>(parms);
     result      = entry.plan.get();
 
+    auto stream = get_cached_stream();
     CHECK_CUFFT(cufftCreate(&result->handle));
     CHECK_CUFFT(cufftSetAutoAllocation(result->handle, 0 /*we'll do the allocation*/));
-
+    // this should always be the correct stream, as we have a cache per GPU-proc
+    CHECK_CUFFT(cufftSetStream(result->handle, stream));
     CHECK_CUFFT(cufftMakePlanMany64(result->handle,
-                                    entry.parms.rank_,
-                                    entry.parms.n_,
-                                    entry.parms.inembed_[0] != 0 ? entry.parms.inembed_ : nullptr,
-                                    entry.parms.istride_,
-                                    entry.parms.idist_,
-                                    entry.parms.onembed_[0] != 0 ? entry.parms.onembed_ : nullptr,
-                                    entry.parms.ostride_,
-                                    entry.parms.odist_,
+                                    entry.parms->rank_,
+                                    entry.parms->n_,
+                                    entry.parms->inembed_[0] != 0 ? entry.parms->inembed_ : nullptr,
+                                    entry.parms->istride_,
+                                    entry.parms->idist_,
+                                    entry.parms->onembed_[0] != 0 ? entry.parms->onembed_ : nullptr,
+                                    entry.parms->ostride_,
+                                    entry.parms->odist_,
                                     type_,
-                                    entry.parms.batch_,
+                                    entry.parms->batch_,
                                     &result->workarea_size));
+
   }
   // Otherwise, we return the cached plan and adjust the LRU count
   else {

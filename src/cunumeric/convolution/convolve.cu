@@ -1325,10 +1325,7 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
     auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, cufftPlanParms(fftsize));
     auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, cufftPlanParms(fftsize));
 
-    // Set the stream and working area for the plans
-    CHECK_CUFFT(cufftSetStream(forward_plan.handle(), stream));
-    CHECK_CUFFT(cufftSetStream(backward_plan.handle(), stream));
-
+    // Set the working area for the plans
     auto workarea_size = std::max(forward_plan.workareaSize(), backward_plan.workareaSize());
 
     // Create the plan and allocate a temporary buffer for it if it needs one
