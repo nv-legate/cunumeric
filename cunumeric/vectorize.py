@@ -24,7 +24,6 @@ import legate.core.types as ty
 import numba
 import numba.core.ccallback
 import numpy as np
-#import six
 from legate.core import Rect, track_provenance
 
 from cunumeric.runtime import runtime
@@ -140,17 +139,21 @@ class vectorize:
 
         self._return_argnames = self._get_return_argumets()
         self._num_outputs = len(self._return_argnames) 
-
+        self._return_args=[]
+        self._output_shape :Optional[tuple[Any]]= None
+        self._output_dtype: Optional[np.dtype[Any]] = None
+  
         if otypes is not None:
             if self._num_outputs !=len(otypes):
                 raise ValueError("number of types in otypes is not consistente"
-                 " with the number of return values difened in pyfunc")
+                 " with the number of return values defined in pyfunc")
             if len(otypes)>1:
                 for t in otypes:
                     if t != otypes[0]:
                         raise NotImplementedError(
                             "cuNumeric doesn't support variable types in otypes"
                         )
+                self._output_dtype = otypes[0]
 
 
         # FIXME
@@ -195,7 +198,7 @@ class vectorize:
     def _replace_name(
         self, name: str, _LOOP_VAR: str, is_gpu: bool = False
     ) -> str:
-        if name in self._argnames and not (name in self._scalar_names):
+        if (name in self._argnames) or (name in self._return_argnames ):
             return "{}[int({})]".format(name, _LOOP_VAR)
         else:
             if is_gpu or ((not is_gpu) and not (name  in self._scalar_names)) :
@@ -214,7 +217,9 @@ class vectorize:
 
         # Signature
         args = (
-            self._argnames
+            self._return_argnames
+            + self._argnames
+            + self._scalar_names
             + [_SIZE_VAR]
             + [_DIM_VAR]
             + [_PITCHES_VAR]
@@ -254,8 +259,9 @@ class vectorize:
         # kernel body
         lines_old = self._func_body
         for line in lines_old:
-            l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
-            lines.append(l_new)
+            if not ( "return" in line):
+                l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
+                lines.append(l_new)
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
@@ -289,35 +295,32 @@ class vectorize:
             var: Any,
             idx: int,
             sz: Any,
-            ty: np.dtype[Any],
-            scalar: bool = False,
+            ty: np.dtype[Any]
         ) -> None:
-            if scalar:
-                # we represent scalars as arrays of size 1
-                lines.append(
-                    "    {} = carray({}[{}], 1, types.{})".format(
-                        var, _ARGS_VAR, idx, ty
-                    )
+            lines.append(
+                "    {} = carray({}[{}], {}, types.{})".format(
+                    var, _ARGS_VAR, idx, sz, ty
                 )
-            else:
-                lines.append(
-                    "    {} = carray({}[{}], {}, types.{})".format(
-                        var, _ARGS_VAR, idx, sz, ty
-                    )
-                )
+            )
 
         # define pyfunc arguments ar carrays
         arg_idx = 0
-        for a in self._args:
+        for count, a in enumerate(self._return_args):
             type_a = a.dtype
             _emit_assignment(
-                self._argnames[arg_idx], arg_idx, _SIZE_VAR, type_a
+                self._return_argnames[count], arg_idx, _SIZE_VAR, type_a
             )
             arg_idx += 1
-        for a in self._scalar_args:
+        for count,a in enumerate(self._args):
+            type_a = a.dtype
+            _emit_assignment(
+                self._argnames[count], arg_idx, _SIZE_VAR, type_a
+            )
+            arg_idx += 1
+        for count, a in enumerate(self._scalar_args):
             scalar_type = np.dtype(type(a).__name__)
             _emit_assignment(
-                self._argnames[arg_idx], arg_idx, _SIZE_VAR, scalar_type, True
+                self._scalar_names[count], arg_idx, 1, scalar_type
             )
             arg_idx += 1
 
@@ -348,8 +351,9 @@ class vectorize:
             return self._replace_name(m.group(0), _LOOP_VAR)
 
         for line in lines_old:
-            l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
-            lines.append("    " + l_new)
+            if not ( "return" in line): 
+                l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
+                lines.append("    " + l_new)
 
         # Evaluate the string to get the Python function
         body = "\n".join(lines)
@@ -359,6 +363,12 @@ class vectorize:
 
     def _get_numba_types(self, need_pointer: bool = True) -> list[Any]:
         types = []
+        for arg in self._return_args:
+            type_a = arg.dtype
+            type_a = str(type_a) if type_a != bool else "int8"
+            type_a = getattr(numba.core.types, type_a)
+            type_a = numba.core.types.CPointer(type_a)
+            types.append(type_a)
         for arg in self._args:
             type_a = arg.dtype
             type_a = str(type_a) if type_a != bool else "int8"
@@ -428,18 +438,28 @@ class vectorize:
             dtype = convert_to_cunumeric_dtype(type(a).__name__)
             task.add_scalar_arg(a, dtype)
 
+        # add return arguments
+        a0=None
+        if len (self._return_args)>0:
+            a0 = self._return_args[0]._thunk
+            a0 = runtime.to_deferred_array(a0)
+            for count, a in enumerate(self._return_args):
+                a_tmp = runtime.to_deferred_array(a._thunk)
+                a_tmp_base = a_tmp.base
+                task.add_input(a_tmp_base)
+                task.add_output(a_tmp_base)
+                if count != 0:
+                    task.add_alignment(a0.base, a_tmp_base)
         # add array arguments
         if len (self._args)>0:
-            a0 = self._args[0]._thunk
-            a0 = runtime.to_deferred_array(a0)
+            if a0 is None:
+              a0 = self._args[0]._thunk
+              a0 = runtime.to_deferred_array(a0)
             for count, a in enumerate(self._args):
                 a_tmp = runtime.to_deferred_array(a._thunk)
                 a_tmp_base = a_tmp.base
                 task.add_input(a_tmp_base)
-                if count < self._num_outputs:
-                    task.add_output(a_tmp_base)
-                if count != 0:
-                    task.add_alignment(a0.base, a_tmp_base)
+                task.add_alignment(a0.base, a_tmp_base)
 
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
@@ -482,45 +502,98 @@ class vectorize:
             for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
                 if i in self._scalar_idxs:
                     self._scalar_names.append(k)
-                    self._argnames.append(k)
 
             self._kwargs = list(kwargs)
-            if len(self._kwargs) > 1:
+            if len(self._kwargs) > 0:
                 raise NotImplementedError(
                     "kwargs are not supported in user functions"
                 )
 
-        if self._num_outputs==0 or len(self._args)==0:
-           #execute function that doesn't modify anything:
-           self._pyfunc()
-           return
+        #we need to do ther rest each time `__call__` is executed
+        output_shape = self._output_shape
+        output_dtype = self._output_dtype
+        self._return_args.clear()
+        # if output type is not specified, we need to decide
+        # which one to use
+        # we also want to choose the shape for output array
 
-        # all output arrays should have the same type
-        if len(self._args) > 0:
-            type_a = self._args[0].dtype
-            shape = self._args[0].shape
-            for i in range(1, self._num_outputs):
-                if type_a != self._args[i].dtype:
-                    raise TypeError(
-                        "cuNumeric doesnt support "
-                        "different types for output data in "
-                        "user function passed to vectorize"
-                    )
-                if shape != self._args[i].shape:
-                    raise TypeError(
-                        "cuNumeric doesnt support "
-                        "different shapes for output data in "
-                        "user function passed to vectorize"
-                    )
-            for i in range(self._num_outputs, len(self._args)):
-                if type_a != self._args[i].dtype:
+        # check if output variable is in input arguments - >
+        # then use it's dtype and shape
+        for r in self._return_argnames:
+            if r in self._argnames:
+                idx = self._argnames.index(r)
+                if output_dtype is None:
+                    output_dtype = self._args[idx].dtype
+                if output_shape is None:
+                   output_shape = self._args[idx].shape
+                break
+                
+        #the case if we didn't find output argument in input argnames
+        if output_shape is None:
+            for r in self._return_argnames:
+                if r in self._scalar_argnames:
+                    idx = self._scalar_argnames.index(r)
+                    if output_dtype is None:
+                        output_dtype = np.dtype(type(self._scalar_args[idx]))
+                    output_shape = (1,)
+                    break
+        #FIXME
+        #we could find common type of input arguments here and
+        #broadcasted shapes
+        if self._num_outputs>0 and output_dtype is None:
+            raise ValueError("Unable to choose output dtype")
+        if self._num_outputs>0 and output_shape is None:
+            raise ValueError("Unable to choose output shape")
+
+
+        # filing the list of return arguments
+        # check if there are return argnames in input argnames,
+        # if not, create a new array
+        for r in self._return_argnames:
+            if r in self._argnames:
+                idx = self._argnames.index(r)
+                if  self._args[idx].shape !=output_shape:
+                    raise ValueError(
+                        "all output arrays should have the same shape")
+                if output_dtype != self._args[idx].dtype:
                     runtime.warn(
                         "converting input array to output types in user func ",
                         category=RuntimeWarning,
                     )
-                    self._args[i] = self._args[i].astype(type_a)
-                if shape != self._args[i].shape and np.ndim(self._args[i]) > 0:
-                    raise TypeError(
+                    self._args[idx]=self._args[idx].astype(output_dtype)
+                self._return_args.append(self._args[idx])
+                self._args.remove(self._args[idx])
+                self._argnames.remove(r)
+            elif r in self._scalar_names:
+                idx = self._scalar_names.index(r)
+                if output_shape != (1,):
+                    raise ValueError(
+                      "all output arrays should have the same shape")
+                self._return_args.append(full(output_shape,self._scalar_args[idx], output_dtype))
+                self._scalar_args.remove(self._scalar_args[idx])
+                self._scalar_names.remove(r)
+            else:
+                #create array and add it to the list of return_args
+                tmp_ret = full(output_shape,0, output_dtype)
+                self._return_args.append(tmp_ret)
+        #FIXME
+        #if self._num_outputs==0:
+        #   #execute function that doesn't modify anything:
+        #   self._pyfunc(args)
+        #   return
+
+        # bring all arrays to same type
+        if len(self._args) > 0:
+            for count, a  in enumerate(self._args):
+                if output_dtype != a.dtype:
+                    runtime.warn(
+                        "converting input array to output types in user func ",
+                        category=RuntimeWarning,
+                    )
+                    self._args[count] = self._args[count].astype(output_dtype)
+                #FIXME broadcast shapes
+                if output_shape != self._args[count].shape :
+                    raise ValueError(
                         "cuNumeric doesnt support "
                         "different shapes for arrays in "
                         "user function passed to vectorize"
