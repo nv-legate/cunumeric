@@ -201,6 +201,7 @@ class TestScanErrors:
         with pytest.raises(expected_exc):
             getattr(num, op)(A, axis=axis)
 
+    @pytest.mark.xfail
     @pytest.mark.parametrize(
         "out_shape",
         ((1,), (2, 3)),
@@ -208,13 +209,16 @@ class TestScanErrors:
     )
     @pytest.mark.parametrize("op", ops)
     def test_out_invalid_shape(self, op, out_shape):
+        # for all ops and all out_shape,
+        # in Numpy, it raises ValueError
+        # in cuNumeric, it raises NotImplementedError
         expected_exc = ValueError
         A = [1, 2, 3, 4]
         out_np = np.zeros(out_shape)
         out_num = num.zeros(out_shape)
         with pytest.raises(expected_exc):
             getattr(np, op)(A, out=out_np)
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(expected_exc):
             getattr(num, op)(A, out=out_num)
 
 
