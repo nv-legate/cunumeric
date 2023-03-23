@@ -19,7 +19,8 @@ import pytest
 
 import cunumeric as num
 import numpy as np
-
+from legate.core import LEGATE_MAX_DIM
+from utils.generators import mk_seq_array
 
 def my_func(a, b):
     a = a * 2 + b
@@ -171,6 +172,21 @@ def test_cache():
         assert np.array_equal(a, a_num)
         assert np.array_equal(c, c_num)
 
+#checking caching on different shapes of arrays:
+func_np2 = np.vectorize(my_func2, cache = True)
+func_num2=num.vectorize(my_func2, cache = True)
+
+@pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+def test_nd_vectorize(ndim):
+    a_shape = tuple(np.random.randint(1, 9) for _ in range(ndim))
+    a = mk_seq_array(np, a_shape)
+    a_num = mk_seq_array(num, a_shape)
+    b=a*2
+    b_num=a_num*2
+    a,c=func_np2(a,b)
+    a_num,c_num = func_num2(a_num, b_num)
+    assert np.array_equal(a, a_num)
+    assert np.array_equal(c, c_num)        
 
 if __name__ == "__main__":
     import sys
