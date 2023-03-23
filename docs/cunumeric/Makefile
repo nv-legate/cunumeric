@@ -20,21 +20,35 @@
 # from the environment for the first two.
 SPHINXOPTS     ?= -v -W
 PARALLEL_BUILD ?= 1
-SPHINXBUILD    ?= legate $(shell which sphinx-build)
+SPHINXBUILD    ?= $(shell which sphinx-build)
 SOURCEDIR      = source
 BUILDDIR       = build
 
-# Put it first so that "make" without argument is like "make help".
+.PHONY: help clean html linkcheck
+
 help:
-	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	@echo "Please use 'make <target>' where <target> is one of"
+	@echo "  all              to clean build standalone HTML files and run linkcheck"
+	@echo "  clean            to clear all built documentation files"
+	@echo "  html             to make standalone (non-gallery) HTML files"
+	@echo "  linkcheck        to run the link checker on built docs"
 
-.PHONY: help Makefile
+all: clean html linkcheck
 
-# Catch-all target: route all unknown targets to Sphinx using the new
-# "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
-%: Makefile
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O) -j $(PARALLEL_BUILD)
+clean:
 	rm -rf build/html/docs
-	mkdir -p build/html/docs
-	cp -r ../figures build/html/docs/
 	find source/ -name "generated" | xargs rm -rf
+
+html:
+	@start=$$(date +%s) \
+	; $(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) -j $(PARALLEL_BUILD) \
+	&& mkdir -p build/html/docs \
+	&& cp -r ../figures build/html/docs/ \
+	&& echo "\nBuild finished in $$(($$(date +%s)-start)) seconds\n"
+
+linkcheck: html
+	@start=$$(date +%s) \
+	; $(SPHINXBUILD) "$(SOURCEDIR)" "$(BUILDDIR)" -b linkcheck \
+	; echo "\nLink check finished in $$(($$(date +%s)-start)) seconds. Any broken links are listed below:\n" \
+	&& [ -f "$(BUILDDIR)/output.txt" ] && cat "$(BUILDDIR)/output.txt"
+
