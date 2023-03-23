@@ -75,10 +75,10 @@ struct EvalUdfCPU {
   int dim = 1;
   if (args.inputs.size() > 0) {
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
-    assert(dim>0);
+    assert(dim > 0);
     double_dispatch(dim, args.inputs[0].code(), EvalUdfCPU{}, args);
   } else {
-    LegateTypeCode code = LegateTypeCode::BOOL_LT ;
+    LegateTypeCode code = LegateTypeCode::BOOL_LT;
     double_dispatch(dim, code, EvalUdfCPU{}, args);
   }
 }

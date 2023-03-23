@@ -33,7 +33,7 @@ struct EvalUdfGPU {
     Rect<DIM> rect;
 
     size_t input_size = args.inputs.size();
-    CUfunction func = get_udf(args.hash);
+    CUfunction func   = get_udf(args.hash);
 
     // Filling up the buffer with arguments
     size_t buffer_size = (input_size + args.scalars.size()) * sizeof(void*);
@@ -136,7 +136,7 @@ struct EvalUdfGPU {
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
   } else {
-    LegateTypeCode code = LegateTypeCode::BOOL_LT ;
+    LegateTypeCode code = LegateTypeCode::BOOL_LT;
     double_dispatch(dim, code, EvalUdfGPU{}, args);
   }
 }

@@ -15,10 +15,7 @@
 
 import inspect
 import re
-import typing
-
-# numba typing
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import legate.core.types as ty
 import numba
@@ -30,8 +27,8 @@ from cunumeric.runtime import runtime
 
 from .array import convert_to_cunumeric_ndarray
 from .config import CuNumericOpCode
-from .utils import convert_to_cunumeric_dtype
 from .module import full
+from .utils import convert_to_cunumeric_dtype
 
 _EXTERNAL_REFERENCE_PREFIX = "__extern_ref__"
 _MASK_VAR = "__mask__"
@@ -61,7 +58,7 @@ class vectorize:
         objects or numpy arrays as inputs and returns a single numpy array
         or a tuple of numpy arrays.
         User defined pyfunction will be executed in a single cuNumeric task
-        over a set of arguments. 
+        over a set of arguments.
         The data type of the output of `vectorized` is determined by calling
         the function with the first element of the input.  This can be avoided
         by specifying the `otypes` argument.
@@ -88,7 +85,7 @@ class vectorize:
             WARNING: cuNumeric doesn't suport this argument at the moment
         cache : bool, optional
             If `True`, then cache the first function call that generates C fun-
-            ction or CUDA kernel. We recomment enabling caching in cuNumeric 
+            ction or CUDA kernel. We recomment enabling caching in cuNumeric
             for better performance, when possible.
             WARNING: in the case when cache=True, cuNumeric will parse function
             signature and create C function or CUDA kernel only once. This
@@ -131,7 +128,7 @@ class vectorize:
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
         self._created: bool = False
-        self._func_body: List[str]=[]
+        self._func_body: List[str] = []
 
         if doc is None:
             self.__doc__ = pyfunc.__doc__
@@ -139,24 +136,26 @@ class vectorize:
             self.__doc__ = doc
 
         self._return_names = self._get_return_argumets()
-        self._num_outputs = len(self._return_names) 
-        self._return_args=[]
+        self._num_outputs: int = len(self._return_names)
+        self._return_args: List[Any] = []
         self._output_dtype: Optional[np.dtype[Any]] = None
         self._cached_dtype: Optional[np.dtype[Any]] = None
-        self._cached_scalar_types: List[Any]=[]
+        self._cached_scalar_types: List[Any] = []
 
         if otypes is not None:
-            if self._num_outputs !=len(otypes):
-                raise ValueError("number of types in otypes is not consistente"
-                 " with the number of return values defined in pyfunc")
-            if len(otypes)>1:
+            if self._num_outputs != len(otypes):
+                raise ValueError(
+                    "number of types in otypes is not consistente"
+                    " with the number of return values defined in pyfunc"
+                )
+            if len(otypes) > 1:
                 for t in otypes:
                     if t != otypes[0]:
                         raise NotImplementedError(
-                            "cuNumeric doesn't support variable types in otypes"
+                            "cuNumeric doesn't support variable types"
+                            " in otypes"
                         )
-                self._output_dtype = otypes[0]
-
+                self._output_dtype = np.dtype(otypes[0])
 
         # FIXME
         if excluded is not None:
@@ -169,7 +168,6 @@ class vectorize:
             raise NotImplementedError(
                 "signature variable is not supported yet"
             )
-
 
     def _get_func_body(self, func: Callable[[Any], Any]) -> list[str]:
         """Using the magic method __doc__, we KNOW the size of the docstring.
@@ -186,19 +184,18 @@ class vectorize:
             return_lines.append(lines[i].rstrip())
         return return_lines
 
-    def _get_return_argumets(self)->list[str]:
+    def _get_return_argumets(self) -> list[str]:
         """
         Returns the list of names for return arrays/values
         """
         self._func_body = self._get_func_body(self._pyfunc)
         return_names = []
-        for l in self._func_body:
-            if "return"  in l:
-                l = l.replace("return", '')
-                l=l.replace(" ",'')
-                return_names = l.split(",")
+        for ln in self._func_body:
+            if "return" in ln:
+                ln = ln.replace("return", "")
+                ln = ln.replace(" ", "")
+                return_names = ln.split(",")
         return return_names
-
 
     def _replace_name(
         self, name: str, _LOOP_VAR: str, is_gpu: bool = False
@@ -206,10 +203,10 @@ class vectorize:
         """
         add indices to the names of input/output arrays in the function body
         """
-        if (name in self._arg_names) or (name in self._return_names ):
+        if (name in self._arg_names) or (name in self._return_names):
             return "{}[int({})]".format(name, _LOOP_VAR)
         else:
-            if is_gpu or ((not is_gpu) and not (name  in self._scalar_names)) :
+            if is_gpu or ((not is_gpu) and not (name in self._scalar_names)):
                 return "{}".format(name)
             else:
                 return "{}[0]".format(name)
@@ -267,7 +264,7 @@ class vectorize:
         # kernel body
         lines_old = self._func_body
         for line in lines_old:
-            if not ( "return" in line):
+            if not ("return" in line):
                 l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
                 lines.append(l_new)
 
@@ -300,10 +297,7 @@ class vectorize:
 
         # Unpack kernel arguments
         def _emit_assignment(
-            var: Any,
-            idx: int,
-            sz: Any,
-            ty: np.dtype[Any]
+            var: Any, idx: int, sz: Any, ty: np.dtype[Any]
         ) -> None:
             lines.append(
                 "    {} = carray({}[{}], {}, types.{})".format(
@@ -319,7 +313,7 @@ class vectorize:
                 self._return_names[count], arg_idx, _SIZE_VAR, type_a
             )
             arg_idx += 1
-        for count,a in enumerate(self._args):
+        for count, a in enumerate(self._args):
             type_a = a.dtype
             _emit_assignment(
                 self._arg_names[count], arg_idx, _SIZE_VAR, type_a
@@ -359,7 +353,7 @@ class vectorize:
             return self._replace_name(m.group(0), _LOOP_VAR)
 
         for line in lines_old:
-            if not ( "return" in line): 
+            if not ("return" in line):
                 l_new = re.sub(r"[_a-zA-Z]\w*", _lift_to_array_access, line)
                 lines.append("    " + l_new)
 
@@ -405,13 +399,13 @@ class vectorize:
         return numba.cuda.compile_ptx(self._numba_func, sig, cc=cuda_arch)
 
     def _compile_func_cpu(self) -> numba.core.ccallback.CFunc:
-        sig = numba.core.types.void(
+        sig = numba.core.types.void(  # type : ignore
             numba.types.CPointer(numba.types.voidptr),
             numba.core.types.uint64,
             numba.core.types.uint64,
             numba.core.types.CPointer(numba.core.types.uint64),
             numba.core.types.CPointer(numba.core.types.uint64),
-        )
+        )  # type : ignore
 
         return numba.cfunc(sig)(self._numba_func)
 
@@ -447,8 +441,8 @@ class vectorize:
             task.add_scalar_arg(a, dtype)
 
         # add return arguments
-        a0=None
-        if len (self._return_args)>0:
+        a0 = None
+        if len(self._return_args) > 0:
             a0 = self._return_args[0]._thunk
             a0 = runtime.to_deferred_array(a0)
             for count, a in enumerate(self._return_args):
@@ -459,10 +453,10 @@ class vectorize:
                 if count != 0:
                     task.add_alignment(a0.base, a_tmp_base)
         # add array arguments
-        if len (self._args)>0:
+        if len(self._args) > 0:
             if a0 is None:
-              a0 = self._args[0]._thunk
-              a0 = runtime.to_deferred_array(a0)
+                a0 = self._args[0]._thunk
+                a0 = runtime.to_deferred_array(a0)
             for count, a in enumerate(self._args):
                 a_tmp = runtime.to_deferred_array(a._thunk)
                 a_tmp_base = a_tmp.base
@@ -478,7 +472,7 @@ class vectorize:
             )  # type : ignore
         task.execute()
 
-    def __call__(self, *args: Any, **kwargs: Any) -> None:
+    def __call__(self, *args: Any, **kwargs: Any) -> Union[Any, Tuple[Any]]:
         # each time we call `vectorize` on a pyfunc we need to clear
         # these lists to support different types of arguments passed
         self._scalar_args.clear()
@@ -487,7 +481,7 @@ class vectorize:
         self._arg_names.clear()
         self._scalar_names.clear()
 
-        scalar_idx=0
+        scalar_idx = 0
         for i, arg in enumerate(args):
             if arg is None:
                 raise ValueError(
@@ -496,15 +490,16 @@ class vectorize:
                 )
             elif np.ndim(arg) == 0:
                 if self._cache and not self._created:
-                    self._cached_scalar_types.apend(type(arg))
+                    self._cached_scalar_types.append(type(arg))
                 elif self._cache:
                     if self._cached_scalar_types[scalar_idx] != type(arg):
                         raise TypeError(
                             " Input arguments to vectorized function should"
-                            " have consistent types for each invocation")
+                            " have consistent types for each invocation"
+                        )
                 self._scalar_args.append(arg)
                 self._scalar_idxs.append(i)
-                scalar_idx+=1
+                scalar_idx += 1
             else:
                 self._args.append(convert_to_cunumeric_ndarray(arg))
 
@@ -523,8 +518,8 @@ class vectorize:
                 "kwargs are not supported in user functions"
             )
 
-        #we need to do ther rest each time `__call__` is executed
-        output_shape = None
+        # we need to do ther rest each time `__call__` is executed
+        output_shape: Tuple[int] = (-1,)
         output_dtype = self._output_dtype
         self._return_args.clear()
         # if output type is not specified, we need to decide
@@ -537,13 +532,13 @@ class vectorize:
             if r in self._arg_names:
                 idx = self._arg_names.index(r)
                 if output_dtype is None:
-                   output_dtype = self._args[idx].dtype
-                if output_shape is None:
-                   output_shape = self._args[idx].shape
+                    output_dtype = self._args[idx].dtype
+                if output_shape is (-1,):
+                    output_shape = self._args[idx].shape
                 break
-                
-        #the case if we didn't find output argument in input argnames
-        if output_shape is None:
+
+        # the case if we didn't find output argument in input argnames
+        if output_shape is (-1,):
             for r in self._return_names:
                 if r in self._scalar_names:
                     idx = self._scalar_names.index(r)
@@ -551,22 +546,23 @@ class vectorize:
                         output_dtype = np.dtype(type(self._scalar_args[idx]))
                     output_shape = (1,)
                     break
-        
+
         if self._cache and not (self._cached_dtype is None):
-            if self._cached_dtype !=output_dtype:
-                raise TypeError("types of the arguments should stay the same"
-                    " for each invocation of the vectorize object")
+            if self._cached_dtype != output_dtype:
+                raise TypeError(
+                    "types of the arguments should stay the same"
+                    " for each invocation of the vectorize object"
+                )
         elif self._cache:
             self._cached_dtype = output_dtype
 
-        #FIXME            
-        #we could find common type of input arguments here and
-        #broadcasted shapes
-        if self._num_outputs>0 and output_dtype is None:
+        # FIXME
+        # we could find common type of input arguments here and
+        # broadcasted shapes
+        if self._num_outputs > 0 and output_dtype is None:
             raise ValueError("Unable to choose output dtype")
-        if self._num_outputs>0 and output_shape is None:
+        if self._num_outputs > 0 and output_shape is None:
             raise ValueError("Unable to choose output shape")
-
 
         # filing the list of return arguments
         # check if there are return argnames in input argnames,
@@ -574,15 +570,16 @@ class vectorize:
         for r in self._return_names:
             if r in self._arg_names:
                 idx = self._arg_names.index(r)
-                if  self._args[idx].shape !=output_shape:
+                if self._args[idx].shape != output_shape:
                     raise ValueError(
-                        "all output arrays should have the same shape")
+                        "all output arrays should have the same shape"
+                    )
                 if output_dtype != self._args[idx].dtype:
                     runtime.warn(
                         "converting input array to output types in user func ",
                         category=RuntimeWarning,
                     )
-                    self._args[idx]=self._args[idx].astype(output_dtype)
+                    self._args[idx] = self._args[idx].astype(output_dtype)
                 self._return_args.append(self._args[idx])
                 self._args.remove(self._args[idx])
                 self._arg_names.remove(r)
@@ -590,31 +587,34 @@ class vectorize:
                 idx = self._scalar_names.index(r)
                 if output_shape != (1,):
                     raise ValueError(
-                      "all output arrays should have the same shape")
-                self._return_args.append(full(output_shape,self._scalar_args[idx], output_dtype))
+                        "all output arrays should have the same shape"
+                    )
+                self._return_args.append(
+                    full(output_shape, self._scalar_args[idx], output_dtype)
+                )
                 self._scalar_args.remove(self._scalar_args[idx])
                 self._scalar_names.remove(r)
             else:
-                #create array and add it to the list of return_args
-                tmp_ret = full(output_shape,0, output_dtype)
+                # create array and add it to the list of return_args
+                tmp_ret = full(output_shape, 0, output_dtype)
                 self._return_args.append(tmp_ret)
-        #FIXME
-        #if self._num_outputs==0:
+        # FIXME
+        # if self._num_outputs==0:
         #   #execute function that doesn't modify anything:
         #   self._pyfunc(args)
         #   return
 
         # bring all arrays to same type
         if len(self._args) > 0:
-            for count, a  in enumerate(self._args):
+            for count, a in enumerate(self._args):
                 if output_dtype != a.dtype:
                     runtime.warn(
                         "converting input array to output types in user func ",
                         category=RuntimeWarning,
                     )
                     self._args[count] = self._args[count].astype(output_dtype)
-                #FIXME broadcast shapes
-                if output_shape != self._args[count].shape :
+                # FIXME broadcast shapes
+                if output_shape != self._args[count].shape:
                     raise ValueError(
                         "cuNumeric doesnt support "
                         "different shapes for arrays in "
@@ -634,9 +634,9 @@ class vectorize:
                     self._created = True
             self._execute(False)
 
-        if len(self._return_args)==1:
+        if len(self._return_args) == 1:
             return self._return_args[0]
-        if len(self._return_args)>1:
+        if len(self._return_args) > 1:
             return tuple(self._return_args)
         else:
-            return 
+            return -1
