@@ -90,7 +90,7 @@ class vectorize:
             If `True`, then cache the first function call that generates C fun-
             ction or CUDA kernel. We recomment enabling caching in cuNumeric 
             for better performance, when possible.
-            Warning: in the case when cache=True, cuNumeric will parse function
+            WARNING: in the case when cache=True, cuNumeric will parse function
             signature and create C function or CUDA kernel only once. This
             means that types of arguments passed to the vectorized function
             (arrays, scalars etc) should be the same each time we call it.
@@ -127,7 +127,7 @@ class vectorize:
         self._scalar_args: List[Any] = []
         self._scalar_idxs: List[int] = []
         self._scalar_names: List[str] = []
-        self._argnames: List[str] = []
+        self._arg_names: List[str] = []
         self._kwargs: List[Any] = []
         self._context = runtime.legate_context
         self._created: bool = False
@@ -138,8 +138,8 @@ class vectorize:
         else:
             self.__doc__ = doc
 
-        self._return_argnames = self._get_return_argumets()
-        self._num_outputs = len(self._return_argnames) 
+        self._return_names = self._get_return_argumets()
+        self._num_outputs = len(self._return_names) 
         self._return_args=[]
         self._output_shape :Optional[tuple[Any]]= None
         self._output_dtype: Optional[np.dtype[Any]] = None
@@ -186,6 +186,9 @@ class vectorize:
         return return_lines
 
     def _get_return_argumets(self)->list[str]:
+        """
+        Returns the list of names for return arrays/values
+        """
         self._func_body = self._get_func_body(self._pyfunc)
         return_names = []
         for l in self._func_body:
@@ -199,7 +202,10 @@ class vectorize:
     def _replace_name(
         self, name: str, _LOOP_VAR: str, is_gpu: bool = False
     ) -> str:
-        if (name in self._argnames) or (name in self._return_argnames ):
+        """
+        add indices to the names of input/output arrays in the function body
+        """
+        if (name in self._arg_names) or (name in self._return_names ):
             return "{}[int({})]".format(name, _LOOP_VAR)
         else:
             if is_gpu or ((not is_gpu) and not (name  in self._scalar_names)) :
@@ -218,8 +224,8 @@ class vectorize:
 
         # Signature
         args = (
-            self._return_argnames
-            + self._argnames
+            self._return_names
+            + self._arg_names
             + self._scalar_names
             + [_SIZE_VAR]
             + [_DIM_VAR]
@@ -309,13 +315,13 @@ class vectorize:
         for count, a in enumerate(self._return_args):
             type_a = a.dtype
             _emit_assignment(
-                self._return_argnames[count], arg_idx, _SIZE_VAR, type_a
+                self._return_names[count], arg_idx, _SIZE_VAR, type_a
             )
             arg_idx += 1
         for count,a in enumerate(self._args):
             type_a = a.dtype
             _emit_assignment(
-                self._argnames[count], arg_idx, _SIZE_VAR, type_a
+                self._arg_names[count], arg_idx, _SIZE_VAR, type_a
             )
             arg_idx += 1
         for count, a in enumerate(self._scalar_args):
@@ -480,7 +486,7 @@ class vectorize:
             self._scalar_args.clear()
             self._scalar_idxs.clear()
             self._args.clear()
-            self._argnames.clear()
+            self._arg_names.clear()
             self._scalar_names.clear()
 
             for i, arg in enumerate(args):
@@ -498,7 +504,7 @@ class vectorize:
             # first fill arrays to argnames, then scalars:
             for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
                 if not (i in self._scalar_idxs):
-                    self._argnames.append(k)
+                    self._arg_names.append(k)
 
             for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
                 if i in self._scalar_idxs:
@@ -520,18 +526,20 @@ class vectorize:
 
         # check if output variable is in input arguments - >
         # then use it's dtype and shape
-        for r in self._return_argnames:
-            if r in self._argnames:
-                idx = self._argnames.index(r)
+        print ("IRINA DEBUG ", self._return_names, self._arg_names, output_dtype)
+        for r in self._return_names:
+            if r in self._arg_names:
+                idx = self._arg_names.index(r)
                 if output_dtype is None:
                     output_dtype = self._args[idx].dtype
                 if output_shape is None:
                    output_shape = self._args[idx].shape
                 break
+        print ("IRINA DEBUG 2", output_dtype)
                 
         #the case if we didn't find output argument in input argnames
         if output_shape is None:
-            for r in self._return_argnames:
+            for r in self._return_names:
                 if r in self._scalar_names:
                     idx = self._scalar_names.index(r)
                     if output_dtype is None:
@@ -550,9 +558,9 @@ class vectorize:
         # filing the list of return arguments
         # check if there are return argnames in input argnames,
         # if not, create a new array
-        for r in self._return_argnames:
-            if r in self._argnames:
-                idx = self._argnames.index(r)
+        for r in self._return_names:
+            if r in self._arg_names:
+                idx = self._arg_names.index(r)
                 if  self._args[idx].shape !=output_shape:
                     raise ValueError(
                         "all output arrays should have the same shape")
@@ -564,7 +572,7 @@ class vectorize:
                     self._args[idx]=self._args[idx].astype(output_dtype)
                 self._return_args.append(self._args[idx])
                 self._args.remove(self._args[idx])
-                self._argnames.remove(r)
+                self._arg_names.remove(r)
             elif r in self._scalar_names:
                 idx = self._scalar_names.index(r)
                 if output_shape != (1,):

@@ -31,10 +31,6 @@ def my_func2(A0, B0):
     C0=A0*2
     return A0,C0
 
-def empty_func():
-    print("within empty function")
-
-
 def test_vectorize():
     #2 arrays
     func = num.vectorize(my_func)
@@ -57,23 +53,42 @@ def test_vectorize():
     a = func(a,b)
     assert(a ==8)
 
+def empty_func():
+    print("within empty function")
+
+def print_func(a,b):
+    print ("I am pringing input arguments", a, b)
+
+def test_empty_functions():
     #empty function
     func = num.vectorize(empty_func)
     func()
 
-    #slices
-    func = num.vectorize(my_func)
-    num.vectorize(my_func)
-    a=num.array([[1,2,3],[4,5,6],[7,8,9]])
-    b=num.array([[10,11,12],[13,14,15],[16,17,18]])
-    a[:2] = func(a[:2],b[:2])
+    func2 = num.vectorize(print_func)
+    print_func(1,2)
+
+    print_func(np.array([1,2,3]), 2)
+
+
+def test_vectorize_over_slices():
+    #reuse the same vectorize object on
+    #different slices
+    func_num = num.vectorize(my_func)
+    func_np = np.vectorize(my_func)
+
+    a=np.array([[1,2,3],[4,5,6],[7,8,9]])
+    b=np.array([[10,11,12],[13,14,15],[16,17,18]])
+    a_num=num.array(a)
+    b_num = num.array(b)
+    a[:2] = func_np(a[:2],b[:2])
+    a_num[:2] = func_num(a_num[:2],b_num[:2])
+    assert np.array_equal(a, a_num)
+
 
     a=np.arange(100).reshape((25,4))
     a_num= num.array(a)
     b=a*10
     b_num=a_num*10
-    func_np = np.vectorize(my_func)
-    func_num=num.vectorize(my_func)
     a=func_np(a,b)
     a_num=func_num(a_num, b_num)
     assert np.array_equal(a, a_num)
@@ -100,7 +115,9 @@ def test_vectorize():
     a_num[:, 2, :]=func_num(a_num[:, 2, :],2)
     assert np.array_equal(a, a_num)
 
+def test_multiple_outputs():
     #checking signature with capital letters and numbers
+    # + checking multiple outputs
     a=np.arange(100).reshape((25,4))
     a_num= num.array(a)
     b=a*10
@@ -112,7 +129,48 @@ def test_vectorize():
     assert np.array_equal(a, a_num)
     assert np.array_equal(c, c_num)
 
-    
+def test_different_types():
+    #checking the case when input and output types are different
+    a=np.arange(100, dtype = int).reshape((25,4))
+    a_num= num.array(a)
+    b=a*10
+    b_num=a_num*10
+    func_np = np.vectorize(my_func, otypes=(float,))
+    func_num=num.vectorize(my_func, otypes=(float,))
+    a=func_np(a,b)
+    a_num=func_num(a_num, b_num)
+    assert np.array_equal(a, a_num)
+
+    #another test for different types
+    a=np.arange(100, dtype = float).reshape((25,4))
+    a_num= num.array(a)
+    b=a*10
+    b_num=a_num*10
+    func_np = np.vectorize(my_func2, otypes = (int, int,))
+    func_num=num.vectorize(my_func2, otypes = (int, int, ))
+    a,c=func_np(a,b)
+    a_num,c_num = func_num(a_num, b_num)
+    assert np.array_equal(a, a_num)
+    assert np.array_equal(c, c_num)
+
+
+def test_cache():
+    a=np.arange(100).reshape((25,4))
+    a_num= num.array(a)
+    b=a*10
+    b_num=a_num*10
+    func_np = np.vectorize(my_func2, cache = True)
+    func_num=num.vectorize(my_func2, cache = True)
+    for i in range (10):
+        a=a*2
+        b=b*3
+        a_num=a_num*2
+        b_num=b_num*3
+        a,c=func_np(a,b)
+        a_num,c_num = func_num(a_num, b_num)
+        assert np.array_equal(a, a_num)
+        assert np.array_equal(c, c_num)
+
 
 if __name__ == "__main__":
     import sys
