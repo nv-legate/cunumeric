@@ -1,4 +1,4 @@
-# Copyright 2023  NVIDIA Corporation
+  # Copyright 2023  NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,6 +53,7 @@ class vectorize:
         """
         vectorize(pyfunc, otypes=None, doc=None, excluded=None, cache=False,
                   signature=None)
+
         Generalized function class.
         Define a vectorized function which takes a nested sequence of
         objects or numpy arrays as inputs and returns a single numpy array
