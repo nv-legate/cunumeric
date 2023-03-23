@@ -50,7 +50,7 @@ struct AdvancedIndexingImpl {
 #endif
 
     if (volume == 0) {
-      args.output.make_empty();
+      args.output.bind_empty_data();
       return;
     }
 

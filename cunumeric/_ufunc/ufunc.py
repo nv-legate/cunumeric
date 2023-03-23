@@ -187,6 +187,10 @@ class ufunc:
         self.__doc__ = doc
 
     @property
+    def __name__(self) -> str:
+        return self._name
+
+    @property
     def nin(self) -> int:
         return self._nin
 

@@ -54,9 +54,13 @@ interpreter, with some limitations:
 When running programs with this method, configuration options may only be
 passed via the ``LEGATE_CONFIG`` environment variable as shown above.
 
-Additionally, several ``legate`` command line configuration options are not
-available when running programs this way. See the output of ``legate --help``
-for more details.
+.. note::
+
+  Usage of standard Python is intended as a quick on-ramp for users to try
+  out cuNumeric more easily. Several ``legate`` command line configuration
+  options, especially for  multi-node execution, are not available when
+  running programs with standard Python. See the output of ``legate --help``
+  for more details.
 
 Multi-node execution
 --------------------
@@ -88,8 +92,8 @@ Using a manual task manager
 
 It is also possible to use "standard python" in place of the ``legate`` driver.
 
-Zero code-change patching
--------------------------
+Running Numpy programs without changes
+--------------------------------------
 
 The ``lgpatch`` script (in the same location as the ``legate`` executable) can
 help facilitate quick demonstrations of ``cunumeric`` on existing codebases

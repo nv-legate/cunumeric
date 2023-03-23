@@ -1837,7 +1837,7 @@ class DeferredArray(NumPyThunk):
         )
 
         shape = self_tmp.shape
-        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task = self.context.create_auto_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
         task.add_scalar_arg(shape, (ty.int64,))
         task.add_scalar_arg(True, bool)  # has_input
@@ -1867,7 +1867,7 @@ class DeferredArray(NumPyThunk):
             values_new = values._broadcast(self.shape)
         else:
             values_new = values.base
-        task = self.context.create_task(CuNumericOpCode.PUTMASK)
+        task = self.context.create_auto_task(CuNumericOpCode.PUTMASK)
         task.add_input(self.base)
         task.add_input(mask.base)
         task.add_input(values_new)
@@ -2068,7 +2068,7 @@ class DeferredArray(NumPyThunk):
         seed: Union[int, None],
         flags: int,
     ) -> None:
-        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+        task = self.context.create_auto_task(CuNumericOpCode.BITGENERATOR)
 
         task.add_output(self.base)
 
@@ -2094,7 +2094,7 @@ class DeferredArray(NumPyThunk):
         floatparams: tuple[float, ...],
         doubleparams: tuple[float, ...],
     ) -> None:
-        task = self.context.create_task(CuNumericOpCode.BITGENERATOR)
+        task = self.context.create_auto_task(CuNumericOpCode.BITGENERATOR)
 
         task.add_output(self.base)
 
@@ -3322,7 +3322,7 @@ class DeferredArray(NumPyThunk):
     def argwhere(self) -> NumPyThunk:
         result = self.runtime.create_unbound_thunk(np.dtype(np.int64), ndim=2)
 
-        task = self.context.create_task(CuNumericOpCode.ARGWHERE)
+        task = self.context.create_auto_task(CuNumericOpCode.ARGWHERE)
 
         task.add_output(result.base)
         task.add_input(self.base)
@@ -3393,7 +3393,7 @@ class DeferredArray(NumPyThunk):
             input.copy(swapped, deep=True)
             output = input
 
-        task = output.context.create_task(CuNumericOpCode.SCAN_LOCAL)
+        task = output.context.create_auto_task(CuNumericOpCode.SCAN_LOCAL)
         task.add_output(output.base)
         task.add_input(input.base)
         task.add_output(temp.base)
@@ -3407,7 +3407,7 @@ class DeferredArray(NumPyThunk):
         # NOTE: Assumes the partitioning stays the same from previous task.
         # NOTE: Each node will do a sum up to its index, alternatively could
         # do one centralized scan and broadcast (slightly less redundant work)
-        task = output.context.create_task(CuNumericOpCode.SCAN_GLOBAL)
+        task = output.context.create_auto_task(CuNumericOpCode.SCAN_GLOBAL)
         task.add_input(output.base)
         task.add_input(temp.base)
         task.add_output(output.base)
@@ -3445,7 +3445,7 @@ class DeferredArray(NumPyThunk):
 
     @auto_convert("rhs", "v")
     def searchsorted(self, rhs: Any, v: Any, side: SortSide = "left") -> None:
-        task = self.context.create_task(CuNumericOpCode.SEARCHSORTED)
+        task = self.context.create_auto_task(CuNumericOpCode.SEARCHSORTED)
 
         is_left = side == "left"
 
@@ -3574,7 +3574,7 @@ class DeferredArray(NumPyThunk):
             ),
         )
 
-        task = self.context.create_task(CuNumericOpCode.WRAP)
+        task = self.context.create_auto_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
         task.add_scalar_arg(src.shape, (ty.int64,))
         task.add_scalar_arg(False, bool)  # has_input

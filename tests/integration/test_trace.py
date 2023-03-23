@@ -81,9 +81,131 @@ def test_ndim(ndim):
         diag_size = min(a_shape[axes[0]], a_shape[axes[1]]) - 1
         for offset in range(-diag_size + 1, diag_size):
             assert np.array_equal(
-                np_array.trace(offset, axes[0], axes[1]),
-                num_array.trace(offset, axes[0], axes[1]),
+                np.trace(np_array, offset, axes[0], axes[1]),
+                num.trace(num_array, offset, axes[0], axes[1]),
             )
+
+
+@pytest.mark.parametrize(
+    "offset",
+    (
+        pytest.param(-3, marks=pytest.mark.xfail),
+        pytest.param(-2, marks=pytest.mark.xfail),
+        -1,
+        0,
+        1,
+        2,
+        pytest.param(3, marks=pytest.mark.xfail),
+    ),
+    ids=lambda offset: f"(offset={offset})",
+)
+def test_offset(offset):
+    # For -3, -2, 3
+    # In Numpy, pass and return 0
+    # In cuNumeric, it raises ValueError:
+    # 'offset' for diag or diagonal must be in range
+    a = np.arange(24).reshape((2, 3, 4))
+    a_num = num.array(a)
+    res = np.trace(a, offset=offset)
+    res_num = num.trace(a_num, offset=offset)
+    assert np.array_equal(res, res_num)
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize(
+    "axes",
+    ((-2, -1), (-2, 0), (1, -3)),
+    ids=lambda axes: f"(axes={axes})",
+)
+def test_negative_axes(axes):
+    # For all 3 cases,
+    # In Numpy, pass
+    # In cuNumeric, it raises ValueError:
+    # axes must be the same size as ndim for transpose
+    axis1, axis2 = axes
+    a = np.arange(24).reshape((2, 3, 4))
+    a_num = num.array(a)
+    res = np.trace(a, axis1=axis1, axis2=axis2)
+    res_num = num.trace(a_num, axis1=axis1, axis2=axis2)
+    assert np.array_equal(res, res_num)
+
+
+class TestTraceErrors:
+    def setup_method(self):
+        self.a_np = np.arange(24).reshape((2, 3, 4))
+        self.a_num = num.array(self.a_np)
+
+    @pytest.mark.parametrize(
+        "array",
+        (1, [], [1]),
+        ids=lambda array: f"(array={array})",
+    )
+    def test_invalid_arrays(self, array):
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            np.trace(array)
+        with pytest.raises(expected_exc):
+            num.trace(array)
+
+    @pytest.mark.parametrize(
+        "axes",
+        (
+            (None, 0),
+            (0, None),
+            pytest.param((None, None), marks=pytest.mark.xfail),
+        ),
+        ids=lambda axes: f"(axes={axes})",
+    )
+    def test_axes_none(self, axes):
+        # For (None, None)
+        # In Numpy, it raises TypeError
+        # In cuNumeric, it pass
+        expected_exc = TypeError
+        axis1, axis2 = axes
+        with pytest.raises(expected_exc):
+            np.trace(self.a_np, axis1=axis1, axis2=axis2)
+        with pytest.raises(expected_exc):
+            num.trace(self.a_num, axis1=axis1, axis2=axis2)
+
+    @pytest.mark.parametrize(
+        "axes",
+        ((-4, 1), (0, 3)),
+        ids=lambda axes: f"(axes={axes})",
+    )
+    def test_axes_out_of_bound(self, axes):
+        expected_exc = ValueError
+        axis1, axis2 = axes
+        with pytest.raises(expected_exc):
+            np.trace(self.a_np, axis1=axis1, axis2=axis2)
+        with pytest.raises(expected_exc):
+            num.trace(self.a_num, axis1=axis1, axis2=axis2)
+
+    @pytest.mark.parametrize(
+        "axes",
+        ((-3, 0), (1, 1)),
+        ids=lambda axes: f"(axes={axes})",
+    )
+    def test_axes_duplicate(self, axes):
+        expected_exc = ValueError
+        axis1, axis2 = axes
+        with pytest.raises(expected_exc):
+            np.trace(self.a_np, axis1=axis1, axis2=axis2)
+        with pytest.raises(expected_exc):
+            num.trace(self.a_num, axis1=axis1, axis2=axis2)
+
+    @pytest.mark.parametrize(
+        "out_shape",
+        ((0,), (1, 4)),
+        ids=lambda out_shape: f"(out_shape={out_shape})",
+    )
+    def test_out_invalid_shape(self, out_shape):
+        expected_exc = ValueError
+        out_np = np.zeros(out_shape)
+        out_num = num.array(out_np)
+        with pytest.raises(expected_exc):
+            np.trace(self.a_np, out=out_np)
+        with pytest.raises(expected_exc):
+            num.trace(self.a_num, out=out_num)
 
 
 if __name__ == "__main__":
