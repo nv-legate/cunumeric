@@ -113,6 +113,8 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
                           const_cast<void*>(in_ptr),
                           static_cast<void*>(out.ptr(out_rect.lo)),
                           static_cast<int32_t>(direction)));
+  // synchronize before cufft_context runs out of scope
+  CHECK_CUDA(cudaStreamSynchronize(stream));
 }
 
 // Perform the FFT operation as multiple 1D FFTs along the specified axes (Complex-to-complex case).
@@ -184,6 +186,8 @@ __host__ static inline void cufft_over_axes_c2c(INOUT_TYPE* out,
                               static_cast<void*>(out + (n * offset)),
                               static_cast<int32_t>(direction)));
     }
+    // synchronize before cufft_context runs out of scope
+    CHECK_CUDA(cudaStreamSynchronize(stream));
   }
 }
 
@@ -257,6 +261,8 @@ __host__ static inline void cufft_r2c_c2r(OUTPUT_TYPE* out,
                             static_cast<void*>(out + (n * offset_out)),
                             static_cast<int32_t>(direction)));
   }
+  // synchronize before cufft_context runs out of scope
+  CHECK_CUDA(cudaStreamSynchronize(stream));
 }
 
 // Perform the FFT operation as multiple 1D FFTs along the specified axes.
