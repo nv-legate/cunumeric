@@ -40,7 +40,7 @@ struct ArgWhereImpl {
     size_t volume = pitches.flatten(rect_in);
 
     if (volume == 0) {
-      args.out.make_empty();
+      args.out.bind_empty_data();
       return;
     }
 

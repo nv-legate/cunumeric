@@ -16,7 +16,7 @@
 import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
-from utils.generators import mk_seq_array
+from utils.generators import mk_0to1_array, mk_seq_array
 
 import cunumeric as num
 
@@ -139,13 +139,101 @@ def test_ndim(ndim):
     num.putmask(num_arr, num_mask, num_values)
     assert np.array_equal(np_arr, num_arr)
 
-    # val is different shape and different size for vals and array
+    # val is different shape and smaller size for vals and array
     shape_val = (2,) * ndim
     np_values = mk_seq_array(np, shape_val) * 10
     num_values = mk_seq_array(num, shape_val) * 10
     np.putmask(np_arr, np_mask, np_values)
     num.putmask(num_arr, num_mask, num_values)
     assert np.array_equal(np_arr, num_arr)
+
+    # val is different shape and bigger size for vals and array
+    shape_val = (10,) * ndim
+    np_values = mk_seq_array(np, shape_val) * 10
+    num_values = mk_seq_array(num, shape_val) * 10
+    np.putmask(np_arr, np_mask, np_values)
+    num.putmask(num_arr, num_mask, num_values)
+    assert np.array_equal(np_arr, num_arr)
+
+
+@pytest.mark.parametrize(
+    "shape_val",
+    (
+        (1,),
+        (4,),
+        (5,),
+        (1, 4),
+        (2, 3),
+        pytest.param((2, 3, 4), marks=pytest.mark.xfail),
+        (3, 4, 5),
+    ),
+    ids=lambda shape_val: f"(shape_val={shape_val})",
+)
+def test_a_values_different_shapes(shape_val):
+    # for (2, 3, 4),
+    # In Numpy, pass
+    # In cuNumeric, it raises ValueError
+    shape_arr = (3, 4)
+    np_arr = mk_seq_array(np, shape_arr)
+    num_arr = mk_seq_array(num, shape_arr)
+    np_mask = (np_arr % 2).astype(bool)
+    num_mask = (num_arr % 2).astype(bool)
+    np_values = mk_seq_array(np, shape_val) * 10
+    num_values = mk_seq_array(num, shape_val) * 10
+    np.putmask(np_arr, np_mask, np_values)
+    num.putmask(num_arr, num_mask, num_values)
+    assert np.array_equal(np_arr, num_arr)
+
+
+def test_empty_array():
+    np_arr = np.array([])
+    num_arr = num.array([])
+    np_mask = np.array([])
+    num_mask = num.array([])
+    value = -1
+    np.putmask(np_arr, np_mask, value)
+    num.putmask(num_arr, num_mask, value)
+    assert np.array_equal(np_arr, num_arr)
+
+
+class TestPutmaskErrors:
+    def test_invalid_mask_shape(self):
+        expected_exc = ValueError
+        shape_arr = (3, 4, 5)
+        np_arr = mk_seq_array(np, shape_arr)
+        num_arr = mk_seq_array(num, shape_arr)
+        shape_mask = (3, 4, 1)
+        np_mask = np.zeros(shape_mask)
+        num_mask = num.zeros(shape_mask)
+        value = -1
+        with pytest.raises(expected_exc):
+            np.putmask(np_arr, np_mask, value)
+        with pytest.raises(expected_exc):
+            num.putmask(num_arr, num_mask, value)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize(
+        "dtype_val",
+        (float, complex),
+        ids=lambda dtype_val: f"(dtype_val={dtype_val})",
+    )
+    def test_a_values_different_dtype(self, dtype_val):
+        # for both cases,
+        # In Numpy, it raises TypeError
+        # In cuNumeric, it pass
+        expected_exc = TypeError
+        shape = (3, 4)
+        dtype_arr = int
+        np_arr = mk_0to1_array(np, shape, dtype=dtype_arr)
+        num_arr = mk_0to1_array(num, shape, dtype=dtype_arr)
+        np_mask = (np_arr % 2).astype(bool)
+        num_mask = (num_arr % 2).astype(bool)
+        np_values = mk_0to1_array(np, shape, dtype=dtype_val) * 10
+        num_values = mk_0to1_array(num, shape, dtype=dtype_val) * 10
+        with pytest.raises(expected_exc):
+            np.putmask(np_arr, np_mask, np_values)
+        with pytest.raises(expected_exc):
+            num.putmask(num_arr, num_mask, num_values)
 
 
 if __name__ == "__main__":
