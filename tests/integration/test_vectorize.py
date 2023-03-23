@@ -180,9 +180,9 @@ func_num2=num.vectorize(my_func2, cache = True)
 def test_nd_vectorize(ndim):
     a_shape = tuple(np.random.randint(1, 9) for _ in range(ndim))
     a = mk_seq_array(np, a_shape)
-    a_num = mk_seq_array(num, a_shape)
+    a_num = num.array(a)
     b=a*2
-    b_num=a_num*2
+    b_num=num.array(b)
     a,c=func_np2(a,b)
     a_num,c_num = func_num2(a_num, b_num)
     assert np.array_equal(a, a_num)

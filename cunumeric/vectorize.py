@@ -534,12 +534,12 @@ class vectorize:
                 idx = self._arg_names.index(r)
                 if output_dtype is None:
                     output_dtype = self._args[idx].dtype
-                if output_shape is (-1,):
+                if output_shape == (-1,):
                     output_shape = self._args[idx].shape
                 break
 
         # the case if we didn't find output argument in input argnames
-        if output_shape is (-1,):
+        if output_shape == (-1,):
             for r in self._return_names:
                 if r in self._scalar_names:
                     idx = self._scalar_names.index(r)
