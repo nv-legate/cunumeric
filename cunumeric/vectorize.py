@@ -141,9 +141,10 @@ class vectorize:
         self._return_names = self._get_return_argumets()
         self._num_outputs = len(self._return_names) 
         self._return_args=[]
-        self._output_shape :Optional[tuple[Any]]= None
         self._output_dtype: Optional[np.dtype[Any]] = None
-  
+        self._cached_dtype: Optional[np.dtype[Any]] = None
+        self._cached_scalar_types: List[Any]=[]
+
         if otypes is not None:
             if self._num_outputs !=len(otypes):
                 raise ValueError("number of types in otypes is not consistente"
@@ -478,46 +479,52 @@ class vectorize:
         task.execute()
 
     def __call__(self, *args: Any, **kwargs: Any) -> None:
-        if not self._created:
-            # the case when  we execute `__call__` the first time or
-            # when cache=False:
-            # each time we call `vectorize` on a pyfunc we need to clear
-            # these lists to support different types of arguments passed
-            self._scalar_args.clear()
-            self._scalar_idxs.clear()
-            self._args.clear()
-            self._arg_names.clear()
-            self._scalar_names.clear()
+        # each time we call `vectorize` on a pyfunc we need to clear
+        # these lists to support different types of arguments passed
+        self._scalar_args.clear()
+        self._scalar_idxs.clear()
+        self._args.clear()
+        self._arg_names.clear()
+        self._scalar_names.clear()
 
-            for i, arg in enumerate(args):
-                if arg is None:
-                    raise ValueError(
-                        "None is not supported in user function "
-                        "passed to cunumeric.vectorize"
-                    )
-                elif np.ndim(arg) == 0:
-                    self._scalar_args.append(arg)
-                    self._scalar_idxs.append(i)
-                else:
-                    self._args.append(convert_to_cunumeric_ndarray(arg))
-
-            # first fill arrays to argnames, then scalars:
-            for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
-                if not (i in self._scalar_idxs):
-                    self._arg_names.append(k)
-
-            for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
-                if i in self._scalar_idxs:
-                    self._scalar_names.append(k)
-
-            self._kwargs = list(kwargs)
-            if len(self._kwargs) > 0:
-                raise NotImplementedError(
-                    "kwargs are not supported in user functions"
+        scalar_idx=0
+        for i, arg in enumerate(args):
+            if arg is None:
+                raise ValueError(
+                    "None is not supported in user function "
+                    "passed to cunumeric.vectorize"
                 )
+            elif np.ndim(arg) == 0:
+                if self._cache and not self._created:
+                    self._cached_scalar_types.apend(type(arg))
+                elif self._cache:
+                    if self._cached_scalar_types[scalar_idx] != type(arg):
+                        raise TypeError(
+                            " Input arguments to vectorized function should"
+                            " have consistent types for each invocation")
+                self._scalar_args.append(arg)
+                self._scalar_idxs.append(i)
+                scalar_idx+=1
+            else:
+                self._args.append(convert_to_cunumeric_ndarray(arg))
+
+        # first fill arrays to argnames, then scalars:
+        for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
+            if not (i in self._scalar_idxs):
+                self._arg_names.append(k)
+
+        for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
+            if i in self._scalar_idxs:
+                self._scalar_names.append(k)
+
+        self._kwargs = list(kwargs)
+        if len(self._kwargs) > 0:
+            raise NotImplementedError(
+                "kwargs are not supported in user functions"
+            )
 
         #we need to do ther rest each time `__call__` is executed
-        output_shape = self._output_shape
+        output_shape = None
         output_dtype = self._output_dtype
         self._return_args.clear()
         # if output type is not specified, we need to decide
@@ -526,16 +533,14 @@ class vectorize:
 
         # check if output variable is in input arguments - >
         # then use it's dtype and shape
-        print ("IRINA DEBUG ", self._return_names, self._arg_names, output_dtype)
         for r in self._return_names:
             if r in self._arg_names:
                 idx = self._arg_names.index(r)
                 if output_dtype is None:
-                    output_dtype = self._args[idx].dtype
+                   output_dtype = self._args[idx].dtype
                 if output_shape is None:
                    output_shape = self._args[idx].shape
                 break
-        print ("IRINA DEBUG 2", output_dtype)
                 
         #the case if we didn't find output argument in input argnames
         if output_shape is None:
@@ -546,7 +551,15 @@ class vectorize:
                         output_dtype = np.dtype(type(self._scalar_args[idx]))
                     output_shape = (1,)
                     break
-        #FIXME
+        
+        if self._cache and not (self._cached_dtype is None):
+            if self._cached_dtype !=output_dtype:
+                raise TypeError("types of the arguments should stay the same"
+                    " for each invocation of the vectorize object")
+        elif self._cache:
+            self._cached_dtype = output_dtype
+
+        #FIXME            
         #we could find common type of input arguments here and
         #broadcasted shapes
         if self._num_outputs>0 and output_dtype is None:
