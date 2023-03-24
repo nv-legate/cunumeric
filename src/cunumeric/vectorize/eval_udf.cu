@@ -129,7 +129,7 @@ struct EvalUdfGPU {
                    context.outputs(),
                    scalars,
                    num_outputs,
-                   context.get_current_processor(),
+                   legate::Processor::get_executing_processor(),
                    ptx_hash};
   size_t dim = 1;
   if (args.inputs.size() > 0) {

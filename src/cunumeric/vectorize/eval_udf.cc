@@ -66,11 +66,12 @@ struct EvalUdfCPU {
   std::vector<Scalar> scalars;
   for (size_t i = 2; i < (2 + num_scalars); i++) scalars.push_back(context.scalars()[i]);
 
-  EvalUdfArgs args
-  {
-    context.scalars()[2 + num_scalars].value<uint64_t>(), context.inputs(), context.outputs(),
-      scalars, num_outputs, legate::Processor::get_executing_processor()
-  };
+  EvalUdfArgs args{context.scalars()[2 + num_scalars].value<uint64_t>(),
+                   context.inputs(),
+                   context.outputs(),
+                   scalars,
+                   num_outputs,
+                   legate::Processor::get_executing_processor()};
   int dim = 1;
   if (args.inputs.size() > 0) {
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
