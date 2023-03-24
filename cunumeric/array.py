@@ -2580,7 +2580,7 @@ class ndarray:
             # default values for axis
             axes = (0, 1)
         elif (axis1 is None) or (axis2 is None):
-            raise ValueError("both axes should be passed")
+            raise TypeError("both axes should be passed")
         else:
             axes = (axis1, axis2)
 
