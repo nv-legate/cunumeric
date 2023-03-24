@@ -24,19 +24,11 @@ namespace cunumeric {
 using namespace Legion;
 using namespace legate;
 
-__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  fill_out_kernel(const AccessorRD<legate::ProdReduction<bool>, true, 1> out)
-{
-  const int idx = (blockIdx.x * blockDim.x + threadIdx.x);
-  if (idx > 0) return;
-  out.reduce(0, true);
-}
-
 /*static*/ void CreateCUKernelTask::gpu_variant(TaskContext& context)
 {
   int64_t ptx_hash = context.scalars()[0].value<int64_t>();
   std::string ptx  = context.scalars()[1].value<std::string>();
-  Processor point  = context.get_current_processor();
+  Processor point  = legate::Processor::get_executing_processor();
 
   CUfunction func;
   const unsigned num_options   = 4;

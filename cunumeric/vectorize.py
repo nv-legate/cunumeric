@@ -1,4 +1,4 @@
-  # Copyright 2023  NVIDIA Corporation
+# Copyright 2023  NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -172,7 +172,7 @@ class vectorize:
 
     def _get_func_body(self, func: Callable[[Any], Any]) -> list[str]:
         """Using the magic method __doc__, we KNOW the size of the docstring.
-        We then, just substract this from the total length of the function
+        We then, just subtract this from the total length of the function
         """
         lines_to_skip = 0
         if func.__doc__ is not None and len(func.__doc__.split("\n")) > 0:
@@ -239,12 +239,12 @@ class vectorize:
         lines.append("    local_i = cuda.grid(1)")
         lines.append("    if local_i >= {}:".format(_SIZE_VAR))
         lines.append("        return")
-        # we compute inndex for sparse data access when using Legion's
+        # we compute index for sparse data access when using Legion's
         # pointer.
-        # aa[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
+        # a[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
         lines.append("    {}:int = 0".format(_LOOP_VAR))
         lines.append("    for p in range({}-1):".format(_DIM_VAR))
-        # fixme make sure we compute index correct for all data types
+        # FIXME make sure we compute index correct for all data types
         lines.append("        x=int(local_i/{}[p])".format(_PITCHES_VAR))
         lines.append(
             "        local_i = int(local_i%{}[p])".format(_PITCHES_VAR)
@@ -306,7 +306,7 @@ class vectorize:
                 )
             )
 
-        # define pyfunc arguments ar carrays
+        # define pyfunc arguments as carrays
         arg_idx = 0
         for count, a in enumerate(self._return_args):
             type_a = a.dtype
@@ -329,9 +329,9 @@ class vectorize:
 
         # Main loop
         lines.append("    for local_i in range({}):".format(_SIZE_VAR))
-        # we compute inndex for sparse data access when using Legion's
+        # we compute index for sparse data access when using Legion's
         # pointer.
-        # aa[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
+        # a[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
         lines.append("        {}:int = 0".format(_LOOP_VAR))
         lines.append("        j:int = local_i")
         lines.append("        for p in range({}-1):".format(_DIM_VAR))
@@ -366,13 +366,7 @@ class vectorize:
 
     def _get_numba_types(self, need_pointer: bool = True) -> list[Any]:
         types = []
-        for arg in self._return_args:
-            type_a = arg.dtype
-            type_a = str(type_a) if type_a != bool else "int8"
-            type_a = getattr(numba.core.types, type_a)
-            type_a = numba.core.types.CPointer(type_a)
-            types.append(type_a)
-        for arg in self._args:
+        for arg in self._return_args + self._args:
             type_a = arg.dtype
             type_a = str(type_a) if type_a != bool else "int8"
             type_a = getattr(numba.core.types, type_a)
@@ -400,69 +394,80 @@ class vectorize:
         return numba.cuda.compile_ptx(self._numba_func, sig, cc=cuda_arch)
 
     def _compile_func_cpu(self) -> numba.core.ccallback.CFunc:
-        sig = numba.core.types.void(  # type : ignore
+        sig = numba.core.types.void(  # type: ignore
             numba.types.CPointer(numba.types.voidptr),
             numba.core.types.uint64,
             numba.core.types.uint64,
             numba.core.types.CPointer(numba.core.types.uint64),
             numba.core.types.CPointer(numba.core.types.uint64),
-        )  # type : ignore
+        )  
 
         return numba.cfunc(sig)(self._numba_func)
+
+    def _create_cuda_kernel(self, num_gpus: int) -> None:
+        # create CUDA kernel
+        launch_domain = Rect(lo=(0,), hi=(num_gpus,))
+        kernel_task = self._context.create_manual_task(
+            CuNumericOpCode.CREATE_CU_KERNEL,
+            launch_domain=launch_domain,
+        )
+        ptx_hash = hash(self._gpu_func[0])
+        kernel_task.add_scalar_arg(ptx_hash, ty.int64)
+        kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
+        kernel_task.execute()
+        # we want to make sure EVAL_UDF function is not executed before
+        # CUDA kernel is created
+        self._context.issue_execution_fence(block=True)
+
+        # task has finished by the time we set self._created to True
+        if self._cache:
+            self._created = True
 
     @track_provenance(runtime.legate_context)
     def _execute(self, is_gpu: bool, num_gpus: int = 0) -> None:
         if is_gpu and not self._created:
-            # create CUDA kernel
-            launch_domain = Rect(lo=(0,), hi=(num_gpus,))
-            kernel_task = self._context.create_manual_task(
-                CuNumericOpCode.CREATE_CU_KERNEL,
-                launch_domain=launch_domain,
-            )
-            ptx_hash = hash(self._gpu_func[0])
-            kernel_task.add_scalar_arg(ptx_hash, ty.int64)
-            kernel_task.add_scalar_arg(self._gpu_func[0], ty.string)
-            kernel_task.execute()
-            # we want to make sure EVAL_UDF function is not executed before
-            # CUDA kernel is created
-            self._context.issue_execution_fence(block=True)
-
-            # task has finished by the time we set self._created to True
-            if self._cache:
-                self._created = True
+            self._create_cuda_kernel(num_gpus)
 
         task = self._context.create_auto_task(CuNumericOpCode.EVAL_UDF)
         task.add_scalar_arg(self._num_outputs, ty.uint32)  # N of outputs
         task.add_scalar_arg(
             len(self._scalar_args), ty.uint32
         )  # N of scalar_args
-        # add all scalars
+
+        # add all scalar arguments first
         for a in self._scalar_args:
             dtype = convert_to_cunumeric_dtype(type(a).__name__)
             task.add_scalar_arg(a, dtype)
 
-        # add return arguments
-        a0 = None
-        if len(self._return_args) > 0:
-            a0 = self._return_args[0]._thunk
-            a0 = runtime.to_deferred_array(a0)
-            for count, a in enumerate(self._return_args):
-                a_tmp = runtime.to_deferred_array(a._thunk)
+        num_args = len(self._args)
+        # add return arguments with RW permissions
+        first_array = None
+        if self._num_outputs > 0:
+            first_array = runtime.to_deferred_array(
+                self._return_args[0]._thunk
+            )
+            task.add_input(first_array.base)
+            task.add_output(first_array.base)
+
+            for i in range(1, self._num_outputs):
+                a_tmp = runtime.to_deferred_array(self._return_args[i]._thunk)
                 a_tmp_base = a_tmp.base
                 task.add_input(a_tmp_base)
                 task.add_output(a_tmp_base)
-                if count != 0:
-                    task.add_alignment(a0.base, a_tmp_base)
-        # add array arguments
-        if len(self._args) > 0:
-            if a0 is None:
-                a0 = self._args[0]._thunk
-                a0 = runtime.to_deferred_array(a0)
-            for count, a in enumerate(self._args):
-                a_tmp = runtime.to_deferred_array(a._thunk)
+                task.add_alignment(first_array.base, a_tmp_base)
+
+        # add array arguments with read-only permissions
+        if num_args > 0:
+            start = 0
+            if first_array is None:
+                first_array = runtime.to_deferred_array(self._args[0]._thunk)
+                task.add_input(first_array.base)
+                start = 1
+            for i in range(start, num_args):
+                a_tmp = runtime.to_deferred_array(self._args[i]._thunk)
                 a_tmp_base = a_tmp.base
                 task.add_input(a_tmp_base)
-                task.add_alignment(a0.base, a_tmp_base)
+                task.add_alignment(first_array.base, a_tmp_base)
 
         if is_gpu:
             ptx_hash = hash(self._gpu_func[0])
@@ -519,10 +524,10 @@ class vectorize:
                 "kwargs are not supported in user functions"
             )
 
-        # we need to do ther rest each time `__call__` is executed
         output_shape: Tuple[int] = (-1,)
         output_dtype = self._output_dtype
         self._return_args.clear()
+
         # if output type is not specified, we need to decide
         # which one to use
         # we also want to choose the shape for output array
@@ -599,13 +604,8 @@ class vectorize:
                 # create array and add it to the list of return_args
                 tmp_ret = full(output_shape, 0, output_dtype)
                 self._return_args.append(tmp_ret)
-        # FIXME
-        # if self._num_outputs==0:
-        #   #execute function that doesn't modify anything:
-        #   self._pyfunc(args)
-        #   return
 
-        # bring all arrays to same type
+        # check types and shapes
         if len(self._args) > 0:
             for count, a in enumerate(self._args):
                 if output_dtype != a.dtype:
@@ -617,7 +617,7 @@ class vectorize:
                 # FIXME broadcast shapes
                 if output_shape != self._args[count].shape:
                     raise ValueError(
-                        "cuNumeric doesnt support "
+                        "cuNumeric doesn't support "
                         "different shapes for arrays in "
                         "user function passed to vectorize"
                     )

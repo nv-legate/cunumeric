@@ -51,7 +51,7 @@ CUNUMERIC_TYPE_MAP = {
     "int16": ty.int16,
     "int32": ty.int32,
     "int": ty.int64,  # np.int is int
-    "int64": ty.int64, 
+    "int64": ty.int64,
     "uint8": ty.uint8,
     "uint16": ty.uint16,
     "uint32": ty.uint32,
@@ -117,7 +117,8 @@ def is_supported_dtype(dtype: Any) -> bool:
         raise TypeError("expected a NumPy dtype")
     return dtype.type in SUPPORTED_DTYPES
 
-def convert_to_cunumeric_dtype(dtype: str) ->Any:
+
+def convert_to_cunumeric_dtype(dtype: str) -> Any:
     if dtype in CUNUMERIC_TYPE_MAP:
         return CUNUMERIC_TYPE_MAP[dtype]
     else:

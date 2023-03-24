@@ -53,12 +53,9 @@ class Pitches {
     point[DIM] += index;
     return point;
   }
-  
+
   __CUDA_HD__
-  inline const size_t* data(void)
-  {
-       return &pitches[0];
-  }
+  inline const size_t* data(void) { return &pitches[0]; }
 
  private:
   size_t pitches[DIM];
@@ -97,11 +94,7 @@ class Pitches<DIM, false /*C_ORDER*/> {
   }
 
   __CUDA_HD__
-  inline const size_t* data(void)
-  {
-       return &pitches[0];
-  }
-
+  inline const size_t* data(void) { return &pitches[0]; }
 
  private:
   size_t pitches[DIM];
@@ -116,10 +109,10 @@ class Pitches<0, C_ORDER> {
   {
     if (rect.lo[0] > rect.hi[0])
       return 0;
-    else{
-      pitches[0]=rect.hi[0] - rect.lo[0] + 1;
+    else {
+      pitches[0] = rect.hi[0] - rect.lo[0] + 1;
       return (rect.hi[0] - rect.lo[0] + 1);
-      }
+    }
   }
   __CUDA_HD__
   inline legate::Point<1> unflatten(size_t index, const legate::Point<1>& lo) const
@@ -129,14 +122,10 @@ class Pitches<0, C_ORDER> {
     return point;
   }
   __CUDA_HD__
-  inline const size_t* data(void)
-  {
-       return &pitches[0];
-  }
+  inline const size_t* data(void) { return &pitches[0]; }
 
-  private:
+ private:
   size_t pitches[1];
-
 };
 
 }  // namespace cunumeric
