@@ -29,6 +29,7 @@ Decompositions
    :toctree: generated/
 
    linalg.cholesky
+   linalg.qr
 
 Norms and other numbers
 -----------------------
