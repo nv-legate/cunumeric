@@ -400,7 +400,7 @@ class vectorize:
             numba.core.types.uint64,
             numba.core.types.CPointer(numba.core.types.uint64),
             numba.core.types.CPointer(numba.core.types.uint64),
-        )  
+        )
 
         return numba.cfunc(sig)(self._numba_func)
 
