@@ -3050,7 +3050,7 @@ class ndarray:
             divisor = self.shape[axis]
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
-        if dtype.kind == "f":
+        if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
                 np.array(divisor, dtype=sum_array.dtype),
             )
