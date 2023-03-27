@@ -500,7 +500,7 @@ class vectorize:
                 elif self._cache:
                     if self._cached_scalar_types[scalar_idx] != type(arg):
                         raise TypeError(
-                            " Input arguments to vectorized function should"
+                            "Input arguments to vectorized function should"
                             " have consistent types for each invocation"
                         )
                 self._scalar_args.append(arg)
