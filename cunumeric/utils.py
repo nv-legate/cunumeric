@@ -121,8 +121,7 @@ def is_supported_dtype(dtype: Any) -> bool:
 def convert_to_cunumeric_dtype(dtype: str) -> Any:
     if dtype in CUNUMERIC_TYPE_MAP:
         return CUNUMERIC_TYPE_MAP[dtype]
-    else:
-        raise TypeError("dtype is not supported")
+    raise TypeError("dtype is not supported")
 
 
 def calculate_volume(shape: NdShape) -> int:

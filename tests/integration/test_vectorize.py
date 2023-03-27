@@ -67,48 +67,31 @@ def test_empty_functions():
     func()
 
 
-def test_vectorize_over_slices():
-    # reuse the same vectorize object on
-    # different slices
-    func_num = num.vectorize(my_func)
-    func_np = np.vectorize(my_func)
+func_num = num.vectorize(my_func)
+func_np = np.vectorize(my_func)
 
-    a = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
-    b = np.array([[10, 11, 12], [13, 14, 15], [16, 17, 18]])
-    a_num = num.array(a)
-    b_num = num.array(b)
-    a[:2] = func_np(a[:2], b[:2])
-    a_num[:2] = func_num(a_num[:2], b_num[:2])
-    assert np.array_equal(a, a_num)
 
-    a = np.arange(100).reshape((25, 4))
-    a_num = num.array(a)
-    b = a * 10
-    b_num = a_num * 10
-    a = func_np(a, b)
-    a_num = func_num(a_num, b_num)
-    assert np.array_equal(a, a_num)
-
-    # reusing the same function for different inputs
-    a[:, 2] = func_np(a[:, 2], b[:, 2])
-    a_num[:, 2] = func_num(a_num[:, 2], b_num[:, 2])
-    assert np.array_equal(a, a_num)
-
-    # reusing the same function for different inputs
-    a[5:10, 2] = func_np(a[5:10, 2], b[1:6, 2])
-    a_num[5:10, 2] = func_num(a_num[5:10, 2], b_num[1:6, 2])
-    assert np.array_equal(a, a_num)
-
-    # reusing the same function for different inputs
-    a[15:20] = func_np(a[15:20], b[15:20])
-    a_num[15:20] = func_num(a_num[15:20], b_num[15:20])
-    assert np.array_equal(a, a_num)
-
-    # reusing the same function for different inputs
+@pytest.mark.parametrize(
+    "slice",
+    (
+        (Ellipsis),
+        (
+            slice(5, 10),
+            2,
+        ),
+        (slice(15, 20),),
+    ),
+)  # , (Ellipsis,2,)))
+def test_vectorize_over_slices(slice):
     a = np.arange(1000).reshape((25, 10, 4))
     a_num = num.array(a)
-    a[:, 2, :] = func_np(a[:, 2, :], 2)
-    a_num[:, 2, :] = func_num(a_num[:, 2, :], 2)
+    b = a * 10
+    b_num = num.array(b)
+    a[slice] = func_np(a[slice], b[slice])
+    a_num[slice] = func_num(a_num[slice], b_num[slice])
+    print("IRINA DEBUG", slice)
+    print(a)
+    print(a_num)
     assert np.array_equal(a, a_num)
 
 
@@ -164,7 +147,7 @@ def test_different_types():
     assert np.array_equal(c, c_num)
 
 
-def test_cache():
+def test_cache_multiple_outputs():
     a = np.arange(100).reshape((25, 4))
     a_num = num.array(a)
     b = a * 10
@@ -180,6 +163,35 @@ def test_cache():
         a_num, c_num = func_num(a_num, b_num)
         assert np.array_equal(a, a_num)
         assert np.array_equal(c, c_num)
+
+    a_num = a_num.astype(float)
+    b_num = b_num.astype(float)
+    msg = r"types of the arguments should stay the same"
+    with pytest.raises(TypeError, match=msg):
+        a_num = func_num(a_num, b_num)
+
+
+def test_cache_single_output():
+    a = np.arange(100).reshape((2, 50))
+    a_num = num.array(a)
+    b = a * 10
+    b_num = a_num * 10
+    func_np = np.vectorize(my_func, cache=True)
+    func_num = num.vectorize(my_func, cache=True)
+    for i in range(10):
+        a = a * 2
+        b = b * 3
+        a_num = a_num * 2
+        b_num = b_num * 3
+        a = func_np(a, b)
+        a_num = func_num(a_num, b_num)
+        assert np.array_equal(a, a_num)
+
+    a_num = a_num.astype(float)
+    b_num = b_num.astype(float)
+    msg = r"types of the arguments should stay the same"
+    with pytest.raises(TypeError, match=msg):
+        a_num = func_num(a_num, b_num)
 
 
 # checking caching on different shapes of arrays:

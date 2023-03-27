@@ -126,7 +126,6 @@ class vectorize:
         self._scalar_idxs: List[int] = []
         self._scalar_names: List[str] = []
         self._arg_names: List[str] = []
-        self._kwargs: List[Any] = []
         self._context = runtime.legate_context
         self._created: bool = False
         self._func_body: List[str] = []
@@ -136,7 +135,7 @@ class vectorize:
         else:
             self.__doc__ = doc
 
-        self._return_names = self._get_return_argumets()
+        self._return_names = self._get_return_arguments()
         self._num_outputs: int = len(self._return_names)
         self._return_args: List[Any] = []
         self._output_dtype: Optional[np.dtype[Any]] = None
@@ -170,7 +169,7 @@ class vectorize:
                 "signature variable is not supported yet"
             )
 
-    def _get_func_body(self, func: Callable[[Any], Any]) -> list[str]:
+    def _get_func_body(self, func: Callable[[Any], Any]) -> List[str]:
         """Using the magic method __doc__, we KNOW the size of the docstring.
         We then, just subtract this from the total length of the function
         """
@@ -185,7 +184,7 @@ class vectorize:
             return_lines.append(lines[i].rstrip())
         return return_lines
 
-    def _get_return_argumets(self) -> list[str]:
+    def _get_return_arguments(self) -> List[str]:
         """
         Returns the list of names for return arrays/values
         """
@@ -478,51 +477,9 @@ class vectorize:
             )  # type : ignore
         task.execute()
 
-    def __call__(self, *args: Any, **kwargs: Any) -> Union[Any, Tuple[Any]]:
-        # each time we call `vectorize` on a pyfunc we need to clear
-        # these lists to support different types of arguments passed
-        self._scalar_args.clear()
-        self._scalar_idxs.clear()
-        self._args.clear()
-        self._arg_names.clear()
-        self._scalar_names.clear()
-
-        scalar_idx = 0
-        for i, arg in enumerate(args):
-            if arg is None:
-                raise ValueError(
-                    "None is not supported in user function "
-                    "passed to cunumeric.vectorize"
-                )
-            elif np.ndim(arg) == 0:
-                if self._cache and not self._created:
-                    self._cached_scalar_types.append(type(arg))
-                elif self._cache:
-                    if self._cached_scalar_types[scalar_idx] != type(arg):
-                        raise TypeError(
-                            "Input arguments to vectorized function should"
-                            " have consistent types for each invocation"
-                        )
-                self._scalar_args.append(arg)
-                self._scalar_idxs.append(i)
-                scalar_idx += 1
-            else:
-                self._args.append(convert_to_cunumeric_ndarray(arg))
-
-        # first fill arrays to argnames, then scalars:
-        for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
-            if not (i in self._scalar_idxs):
-                self._arg_names.append(k)
-
-        for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
-            if i in self._scalar_idxs:
-                self._scalar_names.append(k)
-
-        self._kwargs = list(kwargs)
-        if len(self._kwargs) > 0:
-            raise NotImplementedError(
-                "kwargs are not supported in user functions"
-            )
+    def _filter_arguments_and_check(self) -> None:
+        # this method will filter return and input arguments
+        # it will also check shape and type of the arguments
 
         output_shape: Tuple[int] = (-1,)
         output_dtype = self._output_dtype
@@ -622,6 +579,53 @@ class vectorize:
                         "user function passed to vectorize"
                     )
 
+    def __call__(self, *args: Any, **kwargs: Any) -> Union[Any, Tuple[Any]]:
+        # each time we call `vectorize` on a pyfunc we need to clear
+        # these lists to support different types of arguments passed
+        self._scalar_args.clear()
+        self._scalar_idxs.clear()
+        self._args.clear()
+        self._arg_names.clear()
+        self._scalar_names.clear()
+
+        scalar_idx = 0
+        for i, arg in enumerate(args):
+            if arg is None:
+                raise ValueError(
+                    "None is not supported in user function "
+                    "passed to cunumeric.vectorize"
+                )
+            elif np.ndim(arg) == 0:
+                if self._cache and not self._created:
+                    self._cached_scalar_types.append(type(arg))
+                elif self._cache:
+                    if self._cached_scalar_types[scalar_idx] != type(arg):
+                        raise TypeError(
+                            "Input arguments to vectorized function should"
+                            " have consistent types for each invocation"
+                        )
+                self._scalar_args.append(arg)
+                self._scalar_idxs.append(i)
+                scalar_idx += 1
+            else:
+                self._args.append(convert_to_cunumeric_ndarray(arg))
+
+        # first fill arrays to argnames, then scalars:
+        for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
+            if not (i in self._scalar_idxs):
+                self._arg_names.append(k)
+
+        for i, k in enumerate(inspect.signature(self._pyfunc).parameters):
+            if i in self._scalar_idxs:
+                self._scalar_names.append(k)
+
+        if len(kwargs) > 0:
+            raise NotImplementedError(
+                "kwargs are not supported in user functions"
+            )
+
+        self._filter_arguments_and_check()
+
         if runtime.num_gpus > 0:
             if not self._created:
                 self._numba_func = self._build_gpu_function()
@@ -639,5 +643,4 @@ class vectorize:
             return self._return_args[0]
         if len(self._return_args) > 1:
             return tuple(self._return_args)
-        else:
-            return -1
+        return -1
