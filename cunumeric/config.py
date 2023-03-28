@@ -164,6 +164,7 @@ class _CunumericSharedLib:
     CUNUMERIC_MAX_MAPPERS: int
     CUNUMERIC_MAX_REDOPS: int
     CUNUMERIC_MAX_TASKS: int
+    CUNUMERIC_NANARGMAX: int
     CUNUMERIC_NONZERO: int
     CUNUMERIC_PACKBITS: int
     CUNUMERIC_POTRF: int
@@ -178,6 +179,7 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_COUNT_NONZERO: int
     CUNUMERIC_RED_MAX: int
     CUNUMERIC_RED_MIN: int
+    CUNUMERIC_RED_NANARGMAX: int
     CUNUMERIC_RED_PROD: int
     CUNUMERIC_RED_SUM: int
     CUNUMERIC_REPEAT: int
@@ -355,7 +357,9 @@ class CuNumericOpCode(IntEnum):
     LOAD_CUDALIBS = _cunumeric.CUNUMERIC_LOAD_CUDALIBS
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
-    NANARGMAX = _cunumeric.CUNUMERIC_NANARGMAX #this will eventually be part of reductions; place it here for now
+    NANARGMAX = (
+        _cunumeric.CUNUMERIC_NANARGMAX
+    )  # this will eventually be part of reductions; place it here for now
     NONZERO = _cunumeric.CUNUMERIC_NONZERO
     PACKBITS = _cunumeric.CUNUMERIC_PACKBITS
     POTRF = _cunumeric.CUNUMERIC_POTRF
@@ -450,6 +454,7 @@ class UnaryRedCode(IntEnum):
     COUNT_NONZERO = _cunumeric.CUNUMERIC_RED_COUNT_NONZERO
     MAX = _cunumeric.CUNUMERIC_RED_MAX
     MIN = _cunumeric.CUNUMERIC_RED_MIN
+    NANARGMAX = _cunumeric.CUNUMERIC_RED_NANARGMAX
     PROD = _cunumeric.CUNUMERIC_RED_PROD
     SUM = _cunumeric.CUNUMERIC_RED_SUM
 

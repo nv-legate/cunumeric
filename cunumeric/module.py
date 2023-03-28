@@ -5312,7 +5312,7 @@ def nancumsum(
 
 
 @add_boilerplate("a")
-def nanargmax(a: ndarray):
+def nanargmax(a: ndarray) -> None:
     return a._thunk.nanargmax()
 
 

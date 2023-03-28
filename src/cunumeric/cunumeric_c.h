@@ -49,7 +49,7 @@ enum CuNumericOpCode {
   CUNUMERIC_LOAD_CUDALIBS,
   CUNUMERIC_MATMUL,
   CUNUMERIC_MATVECMUL,
-  CUNUMERIC_NANARGMAX, // this will eventually be part of reductions; place it here for now
+  CUNUMERIC_NANARGMAX,  // this will eventually be part of reductions; place it here for now
   CUNUMERIC_NONZERO,
   CUNUMERIC_PACKBITS,
   CUNUMERIC_POTRF,
@@ -142,6 +142,7 @@ enum CuNumericUnaryRedCode {
   CUNUMERIC_RED_COUNT_NONZERO,
   CUNUMERIC_RED_MAX,
   CUNUMERIC_RED_MIN,
+  CUNUMERIC_RED_NANARGMAX,
   CUNUMERIC_RED_PROD,
   CUNUMERIC_RED_SUM,
 };

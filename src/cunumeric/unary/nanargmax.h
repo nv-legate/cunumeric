@@ -22,9 +22,10 @@ namespace cunumeric {
 
 struct NanArgMaxArgs {
   const Array& input;
+  float identity;
 };
 
-class NanArgMaxTask: public CuNumericTask<NanArgMaxTask> {
+class NanArgMaxTask : public CuNumericTask<NanArgMaxTask> {
  public:
   static const int TASK_ID = CUNUMERIC_NANARGMAX;
 

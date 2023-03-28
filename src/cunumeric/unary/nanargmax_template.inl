@@ -18,13 +18,14 @@
 
 // Useful for IDEs
 #include <core/utilities/typedefs.h>
+#include "cunumeric/unary/isnan.h"
 #include "cunumeric/unary/nanargmax.h"
 #include "cunumeric/pitches.h"
 #include "cunumeric/execution_policy/indexing/parallel_loop.h"
 
 // TODO: Eventually, this should use an execution policy for reductions
 // and not that of indexing, but since there are no reductions right now,
-// execution policy for indexing is used as a placeholder 
+// execution policy for indexing is used as a placeholder
 
 namespace cunumeric {
 
@@ -39,31 +40,37 @@ struct NanArgMax {
   Pitches<DIM - 1> pitches;
   Rect<DIM> rect;
   size_t volume;
+  float identity;
 
   struct SampleTag {};
 
   // constructor:
-  NanArgMax(NanArgMaxArgs& args) 
+  NanArgMax(NanArgMaxArgs& args)
   {
     rect = args.input.shape<DIM>();
+
+    identity = args.identity;
 
     input  = args.input.read_write_accessor<T, DIM>(rect);
     volume = pitches.flatten(rect);
     if (volume == 0) return;
-  } 
+  }
 
   __CUDA_HD__ void operator()(const size_t idx, SampleTag) const noexcept
   {
-    auto p = pitches.unflatten(idx, rect.lo);
+    // auto p = pitches.unflatten(idx, rect.lo);
+    // input[p] = input[p];
 
-    // just set the output to input
-    input[p] = input[p]; 
+    auto inptr = input.ptr(rect);
+
+    if (is_nan(inptr[idx])) {
+      inptr[idx] = identity;
+    } else {
+      inptr[idx] = inptr[idx];
+    }
   }
 
-  void execute() const noexcept
-  {
-    return ParallelLoopPolicy<KIND, SampleTag>()(rect, *this);
-  }
+  void execute() const noexcept { return ParallelLoopPolicy<KIND, SampleTag>()(rect, *this); }
 };
 
 using namespace legate;
@@ -82,7 +89,7 @@ template <VariantKind KIND>
 static void nanargmax_template(TaskContext& context)
 {
   auto& inputs = context.inputs();
-  NanArgMaxArgs args{context.outputs()[0]};
+  NanArgMaxArgs args{context.outputs()[0], context.scalars()[0].value<float>()};
   double_dispatch(args.input.dim(), args.input.code(), NanArgMaxImpl<KIND>{}, args);
 }
 

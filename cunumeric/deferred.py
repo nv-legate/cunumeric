@@ -217,6 +217,10 @@ _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
     UnaryRedCode.COUNT_NONZERO: lambda _: 0,
     UnaryRedCode.ALL: lambda _: True,
     UnaryRedCode.ANY: lambda _: False,
+    UnaryRedCode.NANARGMAX: lambda ty: (
+        np.iinfo(np.int64).min,
+        max_identity(ty),
+    ),
 }
 
 
@@ -3592,7 +3596,9 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_auto_task(CuNumericOpCode.NANARGMAX)
         task.add_input(self.base)
         task.add_output(self.base)
-        
+
+        # this mimics the identity
+        task.add_scalar_arg(-1, ty.float32)
+
         # no need for alignment
         task.execute()
-
