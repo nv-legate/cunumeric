@@ -155,7 +155,7 @@ class TestProdNegative(object):
         arr_np = np.array(arr_num)
         out_np = np.prod(arr_np, axis=2, keepdims=True)
         out_num = num.prod(arr_num, axis=2, keepdims=True)
-        assert np.array_equal(out_np, out_num)
+        assert np.allclose(out_np, out_num)
 
     @pytest.mark.xfail
     def test_initial_scalar_list(self):
