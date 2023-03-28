@@ -89,9 +89,9 @@ def test_vectorize_over_slices(slice):
     b_num = num.array(b)
     a[slice] = func_np(a[slice], b[slice])
     a_num[slice] = func_num(a_num[slice], b_num[slice])
-    #print("IRINA DEBUG", slice)
-    #print(a)
-    #print(a_num)
+    # print("IRINA DEBUG", slice)
+    # print(a)
+    # print(a_num)
     assert np.array_equal(a, a_num)
 
 
