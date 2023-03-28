@@ -204,15 +204,15 @@ class vectorize:
         add indices to the names of input/output arrays in the function body
         """
         if (name in self._arg_names) or (name in self._return_names):
-            return "{}[int({})]".format(name, _LOOP_VAR)
+            return f"{name}[int({_LOOP_VAR})]"
         else:
             if is_gpu or ((not is_gpu) and not (name in self._scalar_names)):
-                return "{}".format(name)
+                return f"{name}"
             else:
-                return "{}[0]".format(name)
+                return f"{name}[0]"
 
     def _build_gpu_function(self) -> Any:
-        funcid = "vectorized_{}".format(self._pyfunc.__name__)
+        funcid = f"vectorized_{self._pyfunc.__name__}"
 
         # Preamble
         lines = ["from numba import cuda"]
@@ -267,7 +267,7 @@ class vectorize:
         return glbs[funcid]
 
     def _build_cpu_function(self) -> Callable[[Any], Any]:
-        funcid = "vectorized_{}".format(self._pyfunc.__name__)
+        funcid = f"vectorized_{self._pyfunc.__name__}"
 
         # Preamble
         lines = ["from numba import carray, types"]
@@ -277,14 +277,7 @@ class vectorize:
 
         # Signature
         lines.append(
-            "def {}({}, {}, {}, {}, {}):".format(
-                funcid,
-                _ARGS_VAR,
-                _SIZE_VAR,
-                _DIM_VAR,
-                _PITCHES_VAR,
-                _STRIDES_VAR,
-            )
+            f"def {funcid}({_ARGS_VAR},{_SIZE_VAR}, {_DIM_VAR}, {_PITCHES_VAR}, {_STRIDES_VAR}):"
         )
 
         # Unpack kernel arguments
@@ -292,9 +285,7 @@ class vectorize:
             var: Any, idx: int, sz: Any, ty: np.dtype[Any]
         ) -> None:
             lines.append(
-                "    {} = carray({}[{}], {}, types.{})".format(
-                    var, _ARGS_VAR, idx, sz, ty
-                )
+                f"    {var} = carray({ _ARGS_VAR}[{idx}], {sz}, types.{ty})"
             )
 
         # define pyfunc arguments as carrays
