@@ -101,6 +101,7 @@ def initialize(n_vol_steps, n_t_steps, n_money_steps, D):
 
     return CALL, PUT, S, K, T, R, V
 
+
 # Cumulative distribution function
 # https://en.wikipedia.org/wiki/Cumulative_distribution_function
 def normCDF(d):
@@ -121,11 +122,13 @@ def normCDF(d):
 
     return np.where(d > 0, 1.0 - cnd, cnd)
 
+
 # Probability density function.
 # https://en.wikipedia.org/wiki/Probability_density_function
 def normPDF(d):
     RSQRT2PI = 0.39894228040143267793994605993438
     return RSQRT2PI * np.exp(-0.5 * d * d)
+
 
 # https://en.wikipedia.org/wiki/Black–Scholes_model
 def black_scholes(out, S, K, R, T, V, CP, greek):
