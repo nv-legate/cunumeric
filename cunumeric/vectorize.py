@@ -194,7 +194,12 @@ class vectorize:
             if "return" in ln:
                 ln = ln.replace("return", "")
                 ln = ln.replace(" ", "")
-                return_names = ln.split(",")
+                return_names += ln.split(",")
+        # FIXME
+        # for n in return_names:
+        #   if re.match("^([-+]? ?(\d+|\(\g<1>\))( ?[-+*\/] ?\g<1>)?)$", n):
+        #       raise NotImplementedError (" User defined function can't have"
+        #           " mathematical operation as a return")
         return return_names
 
     def _replace_name(
@@ -277,7 +282,8 @@ class vectorize:
 
         # Signature
         lines.append(
-            f"def {funcid}({_ARGS_VAR},{_SIZE_VAR}, {_DIM_VAR}, {_PITCHES_VAR}, {_STRIDES_VAR}):"
+            f"def {funcid}({_ARGS_VAR},{_SIZE_VAR}, "
+            f"{_DIM_VAR}, {_PITCHES_VAR}, {_STRIDES_VAR}):"
         )
 
         # Unpack kernel arguments
@@ -587,7 +593,8 @@ class vectorize:
                 self._scalar_idxs.append(i)
                 scalar_idx += 1
             else:
-                self._args.append(convert_to_cunumeric_ndarray(arg))
+                # we need to make a copy of original array to match numpy
+                self._args.append(convert_to_cunumeric_ndarray(arg.copy()))
 
         # first fill arrays to argnames, then scalars:
         for i, k in enumerate(inspect.signature(self._pyfunc).parameters):

@@ -79,19 +79,20 @@ func_np = np.vectorize(my_func)
             slice(5, 10),
             2,
         ),
-        (slice(15, 20),),
+        (slice(3, 7),),
+        (
+            Ellipsis,
+            2,
+        ),
     ),
-)  # , (Ellipsis,2,)))
+)
 def test_vectorize_over_slices(slice):
-    a = np.arange(1000).reshape((25, 10, 4))
+    a = np.arange(160).reshape((10, 4, 4))
     a_num = num.array(a)
     b = a * 10
     b_num = num.array(b)
     a[slice] = func_np(a[slice], b[slice])
     a_num[slice] = func_num(a_num[slice], b_num[slice])
-    # print("IRINA DEBUG", slice)
-    # print(a)
-    # print(a_num)
     assert np.array_equal(a, a_num)
 
 
