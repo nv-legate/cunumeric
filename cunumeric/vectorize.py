@@ -232,30 +232,22 @@ class vectorize:
         )
 
         lines.append("def {}({}):".format(funcid, ",".join(args)))
-
         # Initialize the index variable and return immediately
         # when it exceeds the data size
-        lines.append("    local_i = cuda.grid(1)")
-        lines.append("    if local_i >= {}:".format(_SIZE_VAR))
-        lines.append("        return")
         # we compute index for sparse data access when using Legion's
         # pointer.
         # a[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
-        lines.append("    {}:int = 0".format(_LOOP_VAR))
-        lines.append("    for p in range({}-1):".format(_DIM_VAR))
-        # FIXME make sure we compute index correct for all data types
-        lines.append("        x=int(local_i/{}[p])".format(_PITCHES_VAR))
-        lines.append(
-            "        local_i = int(local_i%{}[p])".format(_PITCHES_VAR)
-        )
-        lines.append(
-            "        {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR)
-        )
-        lines.append(
-            "    {}+=int(local_i*{}[{}-1])".format(
-                _LOOP_VAR, _STRIDES_VAR, _DIM_VAR
-            )
-        )
+        loop_lines = f"""    local_i = cuda.grid(1)
+    if local_i >= {_SIZE_VAR}:
+        return
+    {_LOOP_VAR}:int = 0
+    for p in range({_DIM_VAR}-1):
+        x=int(local_i/{_PITCHES_VAR}[p])
+        local_i = int(local_i%{_PITCHES_VAR}[p])
+        {_LOOP_VAR}+=int(x*{_STRIDES_VAR}[p])
+    {_LOOP_VAR}+=int(local_i*{_STRIDES_VAR}[{_DIM_VAR}-1])
+    """
+        lines += loop_lines.split("\n")
 
         # this function is used to replace all array names with array[i]
         def _lift_to_array_access(m: Any) -> str:
@@ -326,25 +318,21 @@ class vectorize:
             )
             arg_idx += 1
 
-        # Main loop
-        lines.append("    for local_i in range({}):".format(_SIZE_VAR))
+        # Initialize the index variable and return immediately
+        # when it exceeds the data size
         # we compute index for sparse data access when using Legion's
         # pointer.
         # a[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
-        lines.append("        {}:int = 0".format(_LOOP_VAR))
-        lines.append("        j:int = local_i")
-        lines.append("        for p in range({}-1):".format(_DIM_VAR))
-        lines.append("            x=int(j/{}[p])".format(_PITCHES_VAR))
-        lines.append("            j = int(j%{}[p])".format(_PITCHES_VAR))
-
-        lines.append(
-            "            {}+=int(x*{}[p])".format(_LOOP_VAR, _STRIDES_VAR)
-        )
-        lines.append(
-            "        {}+=int(j*{}[{}-1])".format(
-                _LOOP_VAR, _STRIDES_VAR, _DIM_VAR
-            )
-        )
+        loop_lines = f"""    for local_i in range({_SIZE_VAR}):
+        {_LOOP_VAR}:int = 0
+        j:int = local_i
+        for p in range({_DIM_VAR}-1):
+            x=int(j/{_PITCHES_VAR}[p])
+            j = int(j%{_PITCHES_VAR}[p])
+            {_LOOP_VAR}+=int(x*{_STRIDES_VAR}[p])
+        {_LOOP_VAR}+=int(j*{_STRIDES_VAR}[{_DIM_VAR}-1])
+        """
+        lines += loop_lines.split("\n")
 
         lines_old = self._func_body
 
