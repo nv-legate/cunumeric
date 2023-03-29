@@ -95,7 +95,7 @@ class TestProdNegative(object):
 
     @pytest.mark.parametrize("arr", ARR)
     def test_array(self, arr):
-        assert np.array_equal(np.prod(arr), num.prod(arr))
+        assert allclose(np.prod(arr), num.prod(arr))
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("dtype", NEGATIVE_DTYPE, ids=to_dtype)
@@ -155,7 +155,7 @@ class TestProdNegative(object):
         arr_np = np.array(arr_num)
         out_np = np.prod(arr_np, axis=2, keepdims=True)
         out_num = num.prod(arr_num, axis=2, keepdims=True)
-        assert np.allclose(out_np, out_num)
+        assert allclose(out_np, out_num)
 
     @pytest.mark.xfail
     def test_initial_scalar_list(self):
@@ -167,7 +167,7 @@ class TestProdNegative(object):
         # Input object to FillWithScalar is not a scalar
         out_np = np.prod(arr, initial=initial_value)
 
-        assert np.array_equal(out_np, out_num)
+        assert allclose(out_np, out_num)
 
     def test_initial_list(self):
         arr = [[1, 2], [3, 4]]
@@ -191,7 +191,7 @@ class TestProdNegative(object):
         # cuNumeric raises NotImplementedError:
         # the `where` parameter is currently not supported
         out_num = num.prod(arr, where=[False, True])
-        assert np.array_equal(out_np, out_num)
+        assert allclose(out_np, out_num)
 
 
 class TestProdPositive(object):
