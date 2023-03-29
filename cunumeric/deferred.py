@@ -217,10 +217,6 @@ _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
     UnaryRedCode.COUNT_NONZERO: lambda _: 0,
     UnaryRedCode.ALL: lambda _: True,
     UnaryRedCode.ANY: lambda _: False,
-    UnaryRedCode.NANARGMAX: lambda ty: (
-        np.iinfo(np.int64).min,
-        max_identity(ty),
-    ),
 }
 
 

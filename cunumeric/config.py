@@ -175,11 +175,11 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_ANY: int
     CUNUMERIC_RED_ARGMAX: int
     CUNUMERIC_RED_ARGMIN: int
+    CUNUMERIC_RED_NANARGMAX: int
     CUNUMERIC_RED_CONTAINS: int
     CUNUMERIC_RED_COUNT_NONZERO: int
     CUNUMERIC_RED_MAX: int
     CUNUMERIC_RED_MIN: int
-    CUNUMERIC_RED_NANARGMAX: int
     CUNUMERIC_RED_PROD: int
     CUNUMERIC_RED_SUM: int
     CUNUMERIC_REPEAT: int
@@ -454,7 +454,6 @@ class UnaryRedCode(IntEnum):
     COUNT_NONZERO = _cunumeric.CUNUMERIC_RED_COUNT_NONZERO
     MAX = _cunumeric.CUNUMERIC_RED_MAX
     MIN = _cunumeric.CUNUMERIC_RED_MIN
-    NANARGMAX = _cunumeric.CUNUMERIC_RED_NANARGMAX
     PROD = _cunumeric.CUNUMERIC_RED_PROD
     SUM = _cunumeric.CUNUMERIC_RED_SUM
 
@@ -544,6 +543,11 @@ class ConvertCode(IntEnum):
     NOOP = _cunumeric.CUNUMERIC_CONVERT_NAN_NOOP
     PROD = _cunumeric.CUNUMERIC_CONVERT_NAN_PROD
     SUM = _cunumeric.CUNUMERIC_CONVERT_NAN_SUM
+
+
+@unique
+class NanUnaryRedCode(IntEnum):
+    NANARGMAX = _cunumeric.CUNUMERIC_RED_NANARGMAX
 
 
 # Match these to BitGeneratorOperation in cunumeric_c.h

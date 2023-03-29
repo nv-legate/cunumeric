@@ -49,8 +49,8 @@ enum CuNumericOpCode {
   CUNUMERIC_LOAD_CUDALIBS,
   CUNUMERIC_MATMUL,
   CUNUMERIC_MATVECMUL,
-  CUNUMERIC_NANARGMAX,  // this will eventually be part of reductions; place it here for now
   CUNUMERIC_NONZERO,
+  CUNUMERIC_NANARGMAX,
   CUNUMERIC_PACKBITS,
   CUNUMERIC_POTRF,
   CUNUMERIC_PUTMASK,
@@ -142,7 +142,6 @@ enum CuNumericUnaryRedCode {
   CUNUMERIC_RED_COUNT_NONZERO,
   CUNUMERIC_RED_MAX,
   CUNUMERIC_RED_MIN,
-  CUNUMERIC_RED_NANARGMAX,
   CUNUMERIC_RED_PROD,
   CUNUMERIC_RED_SUM,
 };
@@ -229,6 +228,12 @@ enum CuNumericConvertCode {
   CUNUMERIC_CONVERT_NAN_NOOP = 1,
   CUNUMERIC_CONVERT_NAN_PROD,
   CUNUMERIC_CONVERT_NAN_SUM,
+};
+
+// Match these to ConvertCode in config.py
+// Also, sort these alphabetically for easy lookup later
+enum CuNumericNanUnaryRedCode {
+  CUNUMERIC_RED_NANARGMAX = 1,
 };
 
 // Match these to BitGeneratorOperation in config.py
