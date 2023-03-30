@@ -67,7 +67,7 @@ def run_quantiles(
     shape = tuple(shape)
     if np.issubdtype(newtype, np.integer):
         if lower is None:
-            lower = np.iinfo(newtype).min
+            lower = 0
         if upper is None:
             upper = np.iinfo(newtype).max
         a = num.random.randint(low=lower, high=upper, size=N).astype(newtype)
@@ -131,7 +131,7 @@ if __name__ == "__main__":
         nargs="+",
         default=[1000],
         dest="shape",
-        help="array reshape (default '[1000]')",
+        help="array reshape (default '[100000]')",
     )
     parser.add_argument(
         "-d",
