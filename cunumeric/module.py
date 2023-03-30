@@ -1286,7 +1286,7 @@ def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int, ...]:
 
 
 def _atleast_nd(
-    ndim: int, arys: tuple[ndarray, ...]
+    ndim: int, arys: Sequence[ndarray]
 ) -> Union[list[ndarray], ndarray]:
     inputs = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
     # 'reshape' change the shape of arrays
@@ -1806,7 +1806,7 @@ def concatenate(
     # flatten arrays if axis == None and concatenate arrays on the first axis
     if axis is None:
         # Reshape arrays in the `array_list` to handle scalars
-        reshaped = _atleast_nd(1, tuple(inputs))
+        reshaped = _atleast_nd(1, inputs)
         if not isinstance(reshaped, list):
             reshaped = [reshaped]
         inputs = list(inp.ravel() for inp in reshaped)
@@ -1875,9 +1875,6 @@ def stack(
     if len(shapes) != 1:
         raise ValueError("all input arrays must have the same shape for stack")
 
-    # handle scalar inputs
-    if type(common_info.ndim) is not int:
-        common_info.ndim = 0
     axis = normalize_axis_index(axis, common_info.ndim + 1)
     shape = common_info.shape[:axis] + (1,) + common_info.shape[axis:]
     arrays = [arr.reshape(shape) for arr in arrays]
@@ -1919,7 +1916,7 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    reshaped = _atleast_nd(2, tuple(tup))
+    reshaped = _atleast_nd(2, tup)
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype_without_axis(
@@ -1968,7 +1965,7 @@ def hstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` to handle scalars
-    reshaped = _atleast_nd(1, tuple(tup))
+    reshaped = _atleast_nd(1, tup)
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
 
@@ -2022,7 +2019,7 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = _atleast_nd(3, tuple(tup))
+    reshaped = _atleast_nd(3, tup)
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype_without_axis(
@@ -2067,7 +2064,7 @@ def column_stack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` to handle scalars
-    reshaped = _atleast_nd(1, tuple(tup))
+    reshaped = _atleast_nd(1, tup)
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
 
