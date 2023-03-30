@@ -195,11 +195,17 @@ class vectorize:
                 ln = ln.replace("return", "")
                 ln = ln.replace(" ", "")
                 return_names += ln.split(",")
-        # FIXME
-        # for n in return_names:
-        #   if re.match("^([-+]? ?(\d+|\(\g<1>\))( ?[-+*\/] ?\g<1>)?)$", n):
-        #       raise NotImplementedError (" User defined function can't have"
-        #           " mathematical operation as a return")
+        # we check if return statement has any special characters since
+        # we don't support cases like "return a+b"
+        for n in return_names:
+            regex = re.compile("[^A-Za-z0-9]")
+            res = regex.findall(n)
+            if len(res) > 0:
+                raise NotImplementedError(
+                    " CuNumeric doesn't support special "
+                    "characters in the return statement of the "
+                    "user-defined function "
+                )
         return return_names
 
     def _replace_name(
