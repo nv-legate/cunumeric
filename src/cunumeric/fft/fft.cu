@@ -44,7 +44,6 @@ __host__ static inline void copy_into_buffer(TYPE* target,
                                              cudaStream_t stream)
 {
   if (acc.accessor.is_dense_row_major(rect)) {
-    auto zero = Point<DIM>::ZEROES();
     CHECK_CUDA(cudaMemcpyAsync(
       target, acc.ptr(rect.lo), volume * sizeof(TYPE), cudaMemcpyDeviceToDevice, stream));
   } else {
@@ -92,7 +91,7 @@ __host__ static inline void cufft_operation(AccessorWO<OUTPUT_TYPE, DIM> out,
 
   // get plan from cache
   auto cufft_context =
-    get_cufft_plan((cufftType)type, cufftPlanParms(DIM, n, inembed, 1, 1, onembed, 1, 1, 1));
+    get_cufft_plan((cufftType)type, cufftPlanParams(DIM, n, inembed, 1, 1, onembed, 1, 1, 1));
 
   if (cufft_context.workareaSize() > 0) {
     auto workarea_buffer =
@@ -168,7 +167,7 @@ __host__ static inline void cufft_over_axes_c2c(INOUT_TYPE* out,
 
     // get plan from cache
     auto cufft_context = get_cufft_plan(
-      (cufftType)type, cufftPlanParms(1, &size_1d, n, stride, dist, n, stride, dist, batches));
+      (cufftType)type, cufftPlanParams(1, &size_1d, n, stride, dist, n, stride, dist, batches));
 
     if (cufft_context.workareaSize() > 0) {
       if (cufft_context.workareaSize() > last_workarea_size) {
@@ -247,7 +246,7 @@ __host__ static inline void cufft_r2c_c2r(OUTPUT_TYPE* out,
   // get plan from cache
   auto cufft_context = get_cufft_plan(
     (cufftType)type,
-    cufftPlanParms(1, &size_1d, inembed, istride, idist, onembed, ostride, odist, batches));
+    cufftPlanParams(1, &size_1d, inembed, istride, idist, onembed, ostride, odist, batches));
 
   if (cufft_context.workareaSize() > 0) {
     auto workarea_buffer =

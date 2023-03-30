@@ -46,73 +46,63 @@ void cufftContext::setCallback(cufftXtCallbackType type, void* callback, void* d
   CHECK_CUFFT(cufftXtSetCallback(handle(), callbacks, type, datas));
 }
 
-cufftPlanParms::cufftPlanParms() : rank_(0) {}
-
-cufftPlanParms::cufftPlanParms(const DomainPoint& size)
-  : rank_(size.dim),
-    n_{0},
-    inembed_{0},
-    onembed_{0},
-    istride_(1),
-    idist_(1),
-    ostride_(1),
-    odist_(1),
-    batch_(1)
+cufftPlanParams::cufftPlanParams(const DomainPoint& size)
+  : rank(size.dim),
+    n{0},
+    inembed{0},
+    onembed{0},
+    istride(1),
+    idist(1),
+    ostride(1),
+    odist(1),
+    batch(1)
 {
-  for (int dim = 0; dim < rank_; ++dim) n_[dim] = size[dim];
+  for (int dim = 0; dim < rank; ++dim) n[dim] = size[dim];
 }
 
-cufftPlanParms::cufftPlanParms(int rank,
-                               long long int* n,
-                               long long int* inembed,
-                               long long int istride,
-                               long long int idist,
-                               long long int* onembed,
-                               long long int ostride,
-                               long long int odist,
-                               long long int batch)
-  : rank_(rank),
-    n_{0},
-    inembed_{0},
-    onembed_{0},
-    istride_(istride),
-    idist_(idist),
-    ostride_(ostride),
-    odist_(odist),
-    batch_(batch)
+cufftPlanParams::cufftPlanParams(int rank,
+                                 long long int* n_,
+                                 long long int* inembed_,
+                                 long long int istride,
+                                 long long int idist,
+                                 long long int* onembed_,
+                                 long long int ostride,
+                                 long long int odist,
+                                 long long int batch)
+  : rank(rank), istride(istride), idist(idist), ostride(ostride), odist(odist), batch(batch)
 {
-  for (int dim = 0; dim < rank_; ++dim) {
-    n_[dim]       = n[dim];
-    inembed_[dim] = inembed[dim];
-    onembed_[dim] = onembed[dim];
+  for (int dim = 0; dim < rank; ++dim) {
+    n[dim]       = n_[dim];
+    inembed[dim] = inembed_[dim];
+    onembed[dim] = onembed_[dim];
   }
 }
 
-bool cufftPlanParms::operator==(const cufftPlanParms& other) const
+bool cufftPlanParams::operator==(const cufftPlanParams& other) const
 {
-  bool equal = rank_ == other.rank_ && istride_ == other.istride_ && idist_ == other.idist_ &&
-               ostride_ == other.ostride_ && odist_ == other.odist_ && batch_ == other.batch_;
+  bool equal = rank == other.rank && istride == other.istride && idist == other.idist &&
+               ostride == other.ostride && odist == other.odist && batch == other.batch;
   if (equal) {
-    for (int dim = 0; dim < rank_; ++dim) {
-      equal = equal && (n_[dim] == other.n_[dim]);
-      equal = equal && (inembed_[dim] == other.inembed_[dim]);
-      equal = equal && (onembed_[dim] == other.onembed_[dim]);
+    for (int dim = 0; dim < rank; ++dim) {
+      equal = equal && (n[dim] == other.n[dim]);
+      equal = equal && (inembed[dim] == other.inembed[dim]);
+      equal = equal && (onembed[dim] == other.onembed[dim]);
       if (!equal) break;
     }
   }
   return equal;
 }
 
-std::string cufftPlanParms::to_string() const
+std::string cufftPlanParams::to_string() const
 {
   std::ostringstream ss;
-  ss << "cufftPlanParms[rank(" << rank_ << "), n(" << n_[0];
-  for (int i = 1; i < rank_; ++i) ss << "," << n_[i];
-  ss << "), inembed(" << inembed_[0];
-  for (int i = 1; i < rank_; ++i) ss << "," << inembed_[i];
-  ss << "), istride(" << istride_ << "), idist(" << idist_ << "), onembed(" << onembed_[0];
-  for (int i = 1; i < rank_; ++i) ss << "," << onembed_[i];
-  ss << "), ostride(" << ostride_ << "), odist(" << odist_ << "), batch(" << batch_ << ")]";
+  ss << "cufftPlanParams[rank(" << rank << "), n(" << n[0];
+  for (int i = 1; i < rank; ++i) ss << "," << n[i];
+  ss << "), inembed(" << inembed[0];
+  for (int i = 1; i < rank; ++i) ss << "," << inembed[i];
+  ss << "), istride(" << istride << "), idist(" << idist << "), onembed(" << onembed[0];
+  for (int i = 1; i < rank; ++i) ss << "," << onembed[i];
+  ss << "), ostride(" << ostride << "), odist(" << odist << "), batch(" << batch << ")]";
   return std::move(ss).str();
 }
 
@@ -124,7 +114,7 @@ struct cufftPlanCache {
  private:
   struct LRUEntry {
     std::unique_ptr<cufftPlan> plan{nullptr};
-    std::unique_ptr<cufftPlanParms> parms{nullptr};
+    std::unique_ptr<cufftPlanParams> params{nullptr};
     uint32_t lru_index{0};
   };
 
@@ -133,14 +123,14 @@ struct cufftPlanCache {
   ~cufftPlanCache();
 
  public:
-  cufftPlan* get_cufft_plan(const cufftPlanParms& parms);
+  cufftPlan* get_cufft_plan(const cufftPlanParams& params);
 
  private:
   using Cache = std::array<LRUEntry, MAX_PLANS>;
   std::array<Cache, LEGATE_MAX_DIM + 1> cache_{};
   cufftType type_;
-  int64_t cache_hits_     = 0;
-  int64_t cache_requests_ = 0;
+  int64_t cache_hits_{0};
+  int64_t cache_requests_{0};
 };
 
 cufftPlanCache::cufftPlanCache(cufftType type) : type_(type)
@@ -156,27 +146,27 @@ cufftPlanCache::~cufftPlanCache()
       if (entry.plan != nullptr) CHECK_CUFFT(cufftDestroy(entry.plan->handle));
 }
 
-cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParms& parms)
+cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParams& params)
 {
   cache_requests_++;
   int32_t match = -1;
-  auto& cache   = cache_[parms.rank_];
+  auto& cache   = cache_[params.rank];
   for (int32_t idx = 0; idx < MAX_PLANS; ++idx) {
     auto& entry = cache[idx];
     if (nullptr == entry.plan) break;
-    if (*entry.parms == parms) {
+    if (*entry.params == params) {
       match = idx;
       cache_hits_++;
       break;
     }
   }
 
-  float hit_rate = (float)cache_hits_ / cache_requests_;
+  float hit_rate = static_cast<float>(cache_hits_) / cache_requests_;
 
   cufftPlan* result{nullptr};
   // If there's no match, we create a new plan
   if (-1 == match) {
-    log_cudalibs.debug() << "[cufftPlanCache] no match found for " << parms.to_string()
+    log_cudalibs.debug() << "[cufftPlanCache] no match found for " << params.to_string()
                          << " (type: " << type_ << ", hitrate: " << hit_rate << ")";
     int32_t plan_index = -1;
     for (int32_t idx = 0; idx < MAX_PLANS; ++idx) {
@@ -190,7 +180,7 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParms& parms)
         break;
       } else if (entry.lru_index == MAX_PLANS - 1) {
         log_cudalibs.debug() << "[cufftPlanCache] evict entry " << idx << " for "
-                             << entry.parms->to_string() << " (type: " << type_ << ")";
+                             << entry.params->to_string() << " (type: " << type_ << ")";
         CHECK_CUFFT(cufftDestroy(entry.plan->handle));
         plan_index = idx;
         // create new plan
@@ -212,8 +202,8 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParms& parms)
       entry.lru_index = 0;
     }
 
-    entry.parms = std::make_unique<cufftPlanParms>(parms);
-    result      = entry.plan.get();
+    entry.params = std::make_unique<cufftPlanParams>(params);
+    result       = entry.plan.get();
 
     auto stream = get_cached_stream();
     CHECK_CUFFT(cufftCreate(&result->handle));
@@ -221,22 +211,22 @@ cufftPlan* cufftPlanCache::get_cufft_plan(const cufftPlanParms& parms)
     // this should always be the correct stream, as we have a cache per GPU-proc
     CHECK_CUFFT(cufftSetStream(result->handle, stream));
     CHECK_CUFFT(cufftMakePlanMany64(result->handle,
-                                    entry.parms->rank_,
-                                    entry.parms->n_,
-                                    entry.parms->inembed_[0] != 0 ? entry.parms->inembed_ : nullptr,
-                                    entry.parms->istride_,
-                                    entry.parms->idist_,
-                                    entry.parms->onembed_[0] != 0 ? entry.parms->onembed_ : nullptr,
-                                    entry.parms->ostride_,
-                                    entry.parms->odist_,
+                                    entry.params->rank,
+                                    entry.params->n,
+                                    entry.params->inembed[0] != 0 ? entry.params->inembed : nullptr,
+                                    entry.params->istride,
+                                    entry.params->idist,
+                                    entry.params->onembed[0] != 0 ? entry.params->onembed : nullptr,
+                                    entry.params->ostride,
+                                    entry.params->odist,
                                     type_,
-                                    entry.parms->batch_,
+                                    entry.params->batch,
                                     &result->workarea_size));
 
   }
   // Otherwise, we return the cached plan and adjust the LRU count
   else {
-    log_cudalibs.debug() << "[cufftPlanCache] found match for " << parms.to_string()
+    log_cudalibs.debug() << "[cufftPlanCache] found match for " << params.to_string()
                          << " (type: " << type_ << ", hitrate: " << hit_rate << ")";
     auto& entry = cache[match];
     result      = entry.plan.get();
@@ -317,7 +307,7 @@ cutensorHandle_t* CUDALibraries::get_cutensor()
   return cutensor_;
 }
 
-cufftContext CUDALibraries::get_cufft_plan(cufftType type, const cufftPlanParms& parms)
+cufftContext CUDALibraries::get_cufft_plan(cufftType type, const cufftPlanParams& params)
 {
   auto finder = plan_caches_.find(type);
   cufftPlanCache* cache{nullptr};
@@ -327,7 +317,7 @@ cufftContext CUDALibraries::get_cufft_plan(cufftType type, const cufftPlanParms&
     plan_caches_[type] = cache;
   } else
     cache = finder->second;
-  return cufftContext(cache->get_cufft_plan(parms));
+  return cufftContext(cache->get_cufft_plan(params));
 }
 
 static CUDALibraries& get_cuda_libraries(legate::Processor proc)
@@ -368,11 +358,11 @@ cutensorHandle_t* get_cutensor()
   return lib.get_cutensor();
 }
 
-cufftContext get_cufft_plan(cufftType type, const cufftPlanParms& parms)
+cufftContext get_cufft_plan(cufftType type, const cufftPlanParams& params)
 {
   const auto proc = legate::Processor::get_executing_processor();
   auto& lib       = get_cuda_libraries(proc);
-  return lib.get_cufft_plan(type, parms);
+  return lib.get_cufft_plan(type, params);
 }
 
 class LoadCUDALibsTask : public CuNumericTask<LoadCUDALibsTask> {

@@ -96,6 +96,7 @@ def fft(
     -----
     This is really `fftn` with different defaults.
     For more details see `fftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -155,6 +156,7 @@ def fft2(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -212,6 +214,7 @@ def fftn(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -298,6 +301,7 @@ def ifft(
     -----
     This is really `ifftn` with different defaults.
     For more details see `ifftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -364,6 +368,7 @@ def ifft2(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -430,6 +435,7 @@ def ifftn(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -504,6 +510,7 @@ def rfft(
     ------
     This is really `rfftn` with different defaults.
     For more details see `rfftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -550,6 +557,7 @@ def rfft2(
     ------
     This is really `rfftn` with different defaults.
     For more details see `rfftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -611,6 +619,7 @@ def rfftn(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -711,6 +720,7 @@ def irfft(
     ------
     This is really `irfftn` with different defaults.
     For more details see `irfftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -759,6 +769,7 @@ def irfft2(
     ------
     This is really `irfftn` with different defaults.
     For more details see `irfftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -831,6 +842,7 @@ def irfftn(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -922,6 +934,7 @@ def hfft(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See also
     --------
@@ -978,6 +991,10 @@ def ihfft(
         The truncated or zero-padded input, transformed along the axis
         indicated by `axis`, or the last one if `axis` is not specified.
         The length of the transformed axis is ``n//2 + 1``.
+
+    Notes
+    ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See also
     --------

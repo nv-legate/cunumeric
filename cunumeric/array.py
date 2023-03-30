@@ -2705,6 +2705,10 @@ class ndarray:
 
         Common entrypoint for FFT functionality in cunumeric.fft module.
 
+        Notes
+        -----
+        Multi-GPU usage is limited to data parallel axis-wise batching.
+
         See Also
         --------
         cunumeric.fft : FFT functions for different ``kind`` and

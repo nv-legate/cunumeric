@@ -1322,8 +1322,8 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
 
     CHECK_CUDA_STREAM(stream);
 
-    auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, cufftPlanParms(fftsize));
-    auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, cufftPlanParms(fftsize));
+    auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, cufftPlanParams(fftsize));
+    auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, cufftPlanParams(fftsize));
 
     // Set the working area for the plans
     auto workarea_size = std::max(forward_plan.workareaSize(), backward_plan.workareaSize());
