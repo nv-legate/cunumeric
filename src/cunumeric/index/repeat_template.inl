@@ -37,7 +37,7 @@ struct RepeatImpl {
     auto input_arr  = args.input.read_accessor<VAL, DIM>(input_rect);
 
     if (input_rect.empty()) {
-      args.output.make_empty();
+      args.output.bind_empty_data();
       return;
     }
 

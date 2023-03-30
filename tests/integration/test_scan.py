@@ -103,10 +103,12 @@ ops_nan = [
 shapes = [
     [100],
     [4, 25],
+    [4, 5, 6],
 ]
 axes = [
     None,
     0,
+    -1,
 ]
 dtypes = [
     np.int16,
@@ -129,12 +131,12 @@ n0s = [
 ]
 
 
+@pytest.mark.parametrize("op", ops)
 @pytest.mark.parametrize("shape", shapes)
 @pytest.mark.parametrize("axis", axes)
 @pytest.mark.parametrize("outtype", dtypes_simplified)
 @pytest.mark.parametrize("dt", dtypes_simplified)
-def test_scan_out0_shape(shape, axis, outtype, dt):
-    op = "cumsum"
+def test_scan_out0_shape_ops(op, shape, axis, outtype, dt):
     out0 = True
     n0 = None
     _run_tests(op, n0, shape, dt, axis, out0, outtype)
@@ -152,26 +154,72 @@ def test_scan_nan(op, outtype, dt, n0):
 
 
 @pytest.mark.parametrize("op", ops)
-@pytest.mark.parametrize("outtype", dtypes_simplified)
-@pytest.mark.parametrize("dt", dtypes_simplified)
-def test_scan_op(op, outtype, dt):
-    shape = [100]
-    axis = None
-    out0 = False
-    n0 = None
-    _run_tests(op, n0, shape, dt, axis, out0, outtype)
-
-
-def test_empty_inputs():
+def test_empty_inputs(op):
     in_np = np.ones(10)
     in_np[5:] = 0
-    in_num = num.array(in_np).nonzero()[0]
-    in_np = in_np.nonzero()[0]
-
-    out_np = np.cumsum(in_np)
-    out_num = num.cumsum(in_num)
-
+    in_num = num.array(in_np)
+    out_np = getattr(np, op)(in_np)
+    out_num = getattr(num, op)(in_num)
     assert np.array_equal(out_np, out_num)
+
+
+@pytest.mark.parametrize("op", ops)
+def test_empty_array(op):
+    A = []
+    out_np = getattr(np, op)(A)
+    out_num = getattr(num, op)(A)
+    assert np.array_equal(out_np, out_num)
+
+
+@pytest.mark.parametrize("op", ops)
+def test_scalar(op):
+    A = 1
+    out_np = getattr(np, op)(A)
+    out_num = getattr(num, op)(A)
+    assert np.array_equal(out_np, out_num)
+
+
+class TestScanErrors:
+    @pytest.mark.parametrize("op", ("cumsum", "cumprod"))
+    def test_array_with_nan(self, op):
+        expected_exc = TypeError
+        A = [1, 2, None, 4]
+        with pytest.raises(expected_exc):
+            getattr(np, op)(A)
+        with pytest.raises(expected_exc):
+            getattr(num, op)(A)
+
+    @pytest.mark.parametrize(
+        "axis", (-2, 1), ids=lambda axis: f"(axis={axis})"
+    )
+    @pytest.mark.parametrize("op", ops)
+    def test_axis_out_of_bound(self, op, axis):
+        expected_exc = ValueError
+        A = [1, 2, 3, 4]
+        with pytest.raises(expected_exc):
+            getattr(np, op)(A, axis=axis)
+        with pytest.raises(expected_exc):
+            getattr(num, op)(A, axis=axis)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize(
+        "out_shape",
+        ((1,), (2, 3)),
+        ids=lambda out_shape: f"(out_shape={out_shape})",
+    )
+    @pytest.mark.parametrize("op", ops)
+    def test_out_invalid_shape(self, op, out_shape):
+        # for all ops and all out_shape,
+        # in Numpy, it raises ValueError
+        # in cuNumeric, it raises NotImplementedError
+        expected_exc = ValueError
+        A = [1, 2, 3, 4]
+        out_np = np.zeros(out_shape)
+        out_num = num.zeros(out_shape)
+        with pytest.raises(expected_exc):
+            getattr(np, op)(A, out=out_np)
+        with pytest.raises(expected_exc):
+            getattr(num, op)(A, out=out_num)
 
 
 if __name__ == "__main__":

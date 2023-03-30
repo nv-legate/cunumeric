@@ -3,9 +3,9 @@
     "legate_core" : {
       "version": "23.03.00",
       "git_url" : "https://github.com/nv-legate/legate.core.git",
-      "git_tag" : "37596159b1f8f06439fdc95d6090bbc4315c302c",
       "git_shallow": false,
       "always_download": false
+      "git_tag" : "78c61d836906611bf18348b4335f6e039f944340"
     }
   }
 }
