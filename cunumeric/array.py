@@ -33,7 +33,7 @@ from typing import (
 
 import legate.core.types as ty
 import numpy as np
-import pyarrow  # type: ignore  [import]
+import pyarrow
 from legate.core import Array
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
     normalize_axis_index,

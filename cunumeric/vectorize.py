@@ -426,7 +426,7 @@ class vectorize:
 
         # add all scalar arguments first
         for a in self._scalar_args:
-            dtype = convert_to_cunumeric_dtype(type(a).__name__)
+            dtype = convert_to_cunumeric_dtype(type(a))
             task.add_scalar_arg(a, dtype)
 
         num_args = len(self._args)
