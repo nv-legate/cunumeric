@@ -327,7 +327,8 @@ class vectorize:
         # we compute index for sparse data access when using Legion's
         # pointer.
         # a[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
-        loop_lines = f"""    for local_i in range({_SIZE_VAR}):
+        loop_lines = f"""\
+    for local_i in range({_SIZE_VAR}):
         {_LOOP_VAR}:int = 0
         j:int = local_i
         for p in range({_DIM_VAR}-1):

@@ -9,4 +9,4 @@ class CPointer(Type):
 
 uint32 = Integer("uint32")
 uint64 = Integer("uint64")
-void = none
+void = None
