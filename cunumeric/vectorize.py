@@ -248,7 +248,8 @@ class vectorize:
         # we compute index for sparse data access when using Legion's
         # pointer.
         # a[x][y][z]=a[x*strides[0] + y*strides[1] + z*strides[2]]
-        loop_lines = f"""    local_i = cuda.grid(1)
+        loop_lines = f"""\
+    local_i = cuda.grid(1)
     if local_i >= {_SIZE_VAR}:
         return
     {_LOOP_VAR}:int = 0
