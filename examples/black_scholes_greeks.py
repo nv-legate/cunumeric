@@ -178,7 +178,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-m",
-        "--money_tesps",
+        "--money_steps",
         type=int,
         default=60,
         dest="n_money_steps",
