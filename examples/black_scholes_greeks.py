@@ -47,8 +47,8 @@ class Greeks(IntEnum):
 
 
 def initialize(n_vol_steps, n_t_steps, n_money_steps, D):
-    steps = (n_t_steps, n_vol_steps, n_money_steps) 
-    
+    steps = (n_t_steps, n_vol_steps, n_money_steps)
+
     CALL = np.zeros((N_GREEKS,) + steps, dtype=D)
     PUT = np.zeros((N_GREEKS,) + steps, dtype=D)
     S = np.full(steps, S0, dtype=D)
