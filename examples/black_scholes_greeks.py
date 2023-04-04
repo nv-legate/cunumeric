@@ -153,7 +153,7 @@ def run_black_scholes(n_vol_steps, n_t_steps, n_money_steps):
             black_scholes(PUT[g.value], S, K, R, T, V, -1, g)
 
     total = (timer.stop()) / (NUM_ITERS - WARMUP_ITER)
-    print("Elapsed Time: {} ms".format(total))
+    print(f"Elapsed Time: {total} ms")
     return total
 
 
