@@ -192,7 +192,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "-t",
-        "--time_tesps",
+        "--time_steps",
         type=int,
         default=3650,
         dest="n_time_steps",
