@@ -82,14 +82,9 @@ def test_axis_tuple(axis):
     assert np.array_equal(out_np, out_num)
 
 
-@pytest.mark.parametrize(
-    "keepdims", (False, pytest.param(True, marks=pytest.mark.xfail))
-)
+@pytest.mark.parametrize("keepdims", (False, True))
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_axis_keepdims(size, keepdims):
-    # In all cases except for (1,) ,(DIM,), (DIM,DIM) and (DIM, DIM, DIM),
-    # in Numpy, pass
-    # in cuNumeric, raises AssertionError
     arr_np = np.random.randint(-5, 5, size=size)
     arr_num = num.array(arr_np)
     ndim = arr_np.ndim
