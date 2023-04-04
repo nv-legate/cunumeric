@@ -34,6 +34,7 @@ money_step = 0.01
 RISKFREE = 0.02
 S0 = 100.0
 N_GREEKS = 7
+RSQRT2PI = 0.39894228040143267793994605993438
 
 
 class Greeks(IntEnum):
@@ -80,15 +81,16 @@ def initialize(n_vol_steps, n_t_steps, n_money_steps, D):
     return CALL, PUT, S, K, T, R, V
 
 
-# Cumulative distribution function
-# https://en.wikipedia.org/wiki/Cumulative_distribution_function
+# A cumulative distribution function (CDF) describes the probabilities
+# of a random variable having values less than or equal to X
+# from Deisenroth, Marc Peter; Faisal, A. Aldo; Ong, Cheng Soon (2020).
+# Mathematics for Machine Learning
 def normCDF(d):
     A1 = 0.31938153
     A2 = -0.356563782
     A3 = 1.781477937
     A4 = -1.821255978
     A5 = 1.330274429
-    RSQRT2PI = 0.39894228040143267793994605993438
 
     K = 1.0 / (1.0 + 0.2316419 * np.absolute(d))
 
@@ -101,14 +103,15 @@ def normCDF(d):
     return np.where(d > 0, 1.0 - cnd, cnd)
 
 
-# Probability density function.
-# https://en.wikipedia.org/wiki/Probability_density_function
+# In order to compute this efficiently, an expansion approximation
+# from John C. Hull (1997) “Options, Futures, and Other Derivatives”) is used.
 def normPDF(d):
-    RSQRT2PI = 0.39894228040143267793994605993438
     return RSQRT2PI * np.exp(-0.5 * d * d)
 
 
-# https://en.wikipedia.org/wiki/Black–Scholes_model
+# Black Scholes Model estimates the theoretical value of derivatives
+# based on other investment instruments, taking into account the
+# impact of time and other risk factors.
 def black_scholes(out, S, K, R, T, V, CP, greek):
     stdev = V * np.sqrt(T)
     df = np.exp(-R * T)
@@ -117,6 +120,12 @@ def black_scholes(out, S, K, R, T, V, CP, greek):
     nd1 = normCDF(CP * d1)
     nd2 = normCDF(CP * d2)
 
+    # the Greeks are the quantities representing the sensitivity of the
+    # price of derivatives such as options to a change in underlying
+    # parameters on which the value of an instrument or portfolio of
+    # financial instruments is dependent.
+    # from Haug, Espen Gaardner (2007). The Complete Guide to Option Pricing
+    # Formulas. McGraw-Hill Professional. ISBN 9780071389976.
     if greek == Greeks.PREM:
         out[...] = CP * (S * nd1 - K * df * nd2)
     elif greek == Greeks.DELTA:
@@ -137,7 +146,7 @@ def black_scholes(out, S, K, R, T, V, CP, greek):
         raise RuntimeError("Wrong greek name is passed")
 
 
-def run_black_scholes(n_vol_steps, n_t_steps, n_money_steps):
+def run_black_scholes_benchmark(n_vol_steps, n_t_steps, n_money_steps):
     timer = CuNumericTimer()
     print("Start black_scholes")
     CALL, PUT, S, K, T, R, V = initialize(
@@ -188,7 +197,7 @@ if __name__ == "__main__":
     args, np, timer = parse_args(parser)
 
     run_benchmark(
-        run_black_scholes,
+        run_black_scholes_benchmark,
         args.benchmark,
         "Black Scholes",
         (args.n_vol_steps, args.n_time_steps, args.n_money_steps),
