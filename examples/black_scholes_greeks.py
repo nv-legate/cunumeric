@@ -161,7 +161,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v",
-        "--vol_tesps",
+        "--vol_steps",
         type=int,
         default=40,
         dest="n_vol_steps",
