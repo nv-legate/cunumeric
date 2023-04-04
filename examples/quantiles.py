@@ -78,10 +78,7 @@ def run_quantiles(
         print("UNKNOWN type " + str(newtype))
         assert False
 
-    q = np.ndarray(
-        shape=(2, 4),
-        buffer=np.array([0.0, 0.37, 0.42, 0.5, 0.67, 0.83, 0.99, 1.0]).data,
-    )
+    q = np.array([0.0, 0.37, 0.42, 0.5, 0.67, 0.83, 0.99, 1.0])
 
     timer.start()
     q_out = num.quantile(
