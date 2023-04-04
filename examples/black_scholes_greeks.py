@@ -47,33 +47,11 @@ class Greeks(IntEnum):
 
 
 def initialize(n_vol_steps, n_t_steps, n_money_steps, D):
-    CALL = np.zeros(
-        (
-            N_GREEKS,
-            n_t_steps,
-            n_vol_steps,
-            n_money_steps,
-        ),
-        dtype=D,
-    )
-    PUT = np.zeros(
-        (
-            N_GREEKS,
-            n_t_steps,
-            n_vol_steps,
-            n_money_steps,
-        ),
-        dtype=D,
-    )
-    S = np.full(
-        (
-            n_t_steps,
-            n_vol_steps,
-            n_money_steps,
-        ),
-        S0,
-        dtype=D,
-    )
+    steps = (n_t_steps, n_vol_steps, n_money_steps) 
+    
+    CALL = np.zeros((N_GREEKS,) + steps, dtype=D)
+    PUT = np.zeros((N_GREEKS,) + steps, dtype=D)
+    S = np.full(steps, S0, dtype=D)
     temp_arr = np.arange((n_vol_steps * n_t_steps * n_money_steps), dtype=int)
     k_temp = (temp_arr % n_money_steps) * money_step
     k_temp = k_temp.reshape(
