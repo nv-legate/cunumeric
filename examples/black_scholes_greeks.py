@@ -181,7 +181,7 @@ if __name__ == "__main__":
         "-t",
         "--time_steps",
         type=int,
-        default=3650,
+        default=365,
         dest="n_time_steps",
         help="number of time steps",
     )
