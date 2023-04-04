@@ -17,12 +17,13 @@
 #pragma once
 
 #include "cunumeric/cunumeric.h"
+#include "cunumeric/unary/nanargmax_util.h"
 
 namespace cunumeric {
 
 struct NanArgMaxArgs {
   const Array& input;
-  float identity;
+  NanRedCode op_code;
 };
 
 class NanArgMaxTask : public CuNumericTask<NanArgMaxTask> {

@@ -14,15 +14,26 @@
  *
  */
 
-#include "cunumeric/execution_policy/indexing/replace_nan_omp.h"
-#include "cunumeric/unary/nanargmax.h"
-#include "cunumeric/unary/nanargmax_template.inl"
+#pragma once
+
+#include "cunumeric/cunumeric.h"
+#include "cunumeric/execution_policy/indexing/replace_nan.h"
+#include "cunumeric/omp_help.h"
+
+#include <omp.h>
 
 namespace cunumeric {
 
-/*static*/ void NanArgMaxTask::omp_variant(TaskContext& context)
-{
-  nanargmax_template<VariantKind::OMP>(context);
-}
+template <class Tag>
+struct ReplaceNanPolicy<VariantKind::OMP, Tag> {
+  template <class RECT, class LHS, class KERNEL>
+  void operator()(const RECT& rect, LHS& identity, KERNEL&& kernel)
+  {
+    auto result         = identity;
+    const size_t volume = rect.volume();
+#pragma omp for schedule(static)
+    for (size_t idx = 0; idx < volume; ++idx) { kernel(idx, result, Tag{}); }
+  }
+};
 
 }  // namespace cunumeric

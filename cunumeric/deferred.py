@@ -3593,8 +3593,11 @@ class DeferredArray(NumPyThunk):
         task.add_input(self.base)
         task.add_output(self.base)
 
+        # the argument 1 corresponds to CUNUMERIC_RED_NANARGMAX
+        task.add_scalar_arg(1, ty.int32)
+
         # this mimics the identity
-        task.add_scalar_arg(-1, ty.float32)
+        # task.add_scalar_arg(-1, ty.float32)
 
         # no need for alignment
         task.execute()

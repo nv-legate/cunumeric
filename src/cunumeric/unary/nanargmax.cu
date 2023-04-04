@@ -14,7 +14,7 @@
  *
  */
 
-#include "cunumeric/execution_policy/indexing/parallel_loop.cuh"
+#include "cunumeric/execution_policy/indexing/replace_nan.cuh"
 #include "cunumeric/unary/nanargmax.h"
 #include "cunumeric/unary/nanargmax_template.inl"
 
