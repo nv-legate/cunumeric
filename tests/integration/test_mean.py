@@ -53,9 +53,10 @@ def test_empty_arr(arr):
     assert np.isnan(res_np) and np.isnan(res_num)
 
 
-def test_scalar():
-    res_np = np.mean(10)
-    res_num = num.mean(10)
+@pytest.mark.parametrize("val", (0.0, 10.0, -5, 1 + 1j))
+def test_scalar(val):
+    res_np = np.mean(val)
+    res_num = num.mean(val)
     assert np.array_equal(res_np, res_num)
 
 
@@ -109,7 +110,7 @@ def test_dtype(size, array_dt, dt):
     np.array_equal(res_np, res_num)
 
 
-@pytest.mark.parametrize("out_dt", (np.int32, np.float32))
+@pytest.mark.parametrize("out_dt", (np.int32, np.float32, np.complex128))
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_out(size, out_dt):
     arr_np = np.random.randint(-5, 5, size=size)
@@ -117,8 +118,8 @@ def test_out(size, out_dt):
     ndim = arr_np.ndim
     for axis in (-1, ndim - 1, None):
         out_shape = gen_out_shape(size, axis)
-        out_np = np.zeros(out_shape, dtype=out_dt)
-        out_num = num.ones(out_shape, dtype=out_dt)
+        out_np = np.empty(out_shape, dtype=out_dt)
+        out_num = num.empty(out_shape, dtype=out_dt)
         np.mean(arr_np, axis=axis, out=out_np)
         num.mean(arr_num, axis=axis, out=out_num)
         np.array_equal(out_np, out_num)
@@ -151,8 +152,8 @@ class TestMeanErrors:
     def test_out_invalid_shape(self, axis_out_shape):
         axis, out_shape = axis_out_shape
         expected_exc = ValueError
-        out_np = np.zeros(out_shape)
-        out_num = num.zeros(out_shape)
+        out_np = np.empty(out_shape)
+        out_num = num.empty(out_shape)
         with pytest.raises(expected_exc):
             np.mean(self.arr_np, axis=axis, out=out_np)
         with pytest.raises(expected_exc):

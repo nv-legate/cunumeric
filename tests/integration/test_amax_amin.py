@@ -22,12 +22,42 @@ import cunumeric as num
 FUNCS = ("amax", "amin")
 
 
+@pytest.mark.parametrize("initial", (None, -2, 0, 0.5, 2))
 @pytest.mark.parametrize("keepdims", [True, False])
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
 @pytest.mark.parametrize("func_name", FUNCS)
-def test_basic(func_name, ndim, keepdims):
+def test_basic(func_name, ndim, keepdims, initial):
     shape = (5,) * ndim
-    in_np = np.random.random(shape)
+    in_np = np.random.randint(-5, 5, size=shape)
+    in_num = num.array(in_np)
+
+    func_np = getattr(np, func_name)
+    func_num = getattr(num, func_name)
+    kw = {} if initial is None else dict(initial=initial)
+
+    res_np = func_np(in_np, keepdims=keepdims, **kw)
+    res_num = func_num(in_num, keepdims=keepdims, **kw)
+
+    assert np.array_equal(res_np, res_num)
+
+
+@pytest.mark.parametrize(
+    "src_dt",
+    (
+        np.int32,
+        np.float64,
+        pytest.param(np.complex128, marks=pytest.mark.xfail),
+    ),
+)
+@pytest.mark.parametrize("keepdims", [True, False])
+@pytest.mark.parametrize("func_name", FUNCS)
+def test_src_dt(func_name, keepdims, src_dt):
+    # For src_dt=np.complex128,
+    # In Numpy, it pass
+    # In cuNumeric, it raises NotImplementedError
+    ndim = 3
+    shape = (5,) * ndim
+    in_np = np.random.randint(-5, 5, size=shape).astype(src_dt)
     in_num = num.array(in_np)
 
     func_np = getattr(np, func_name)
@@ -38,37 +68,27 @@ def test_basic(func_name, ndim, keepdims):
         func_num(in_num, keepdims=keepdims),
     )
 
-    for val in (-2, 0.5, 2):
-        assert np.array_equal(
-            func_np(in_np, keepdims=keepdims, initial=val),
-            func_num(in_num, keepdims=keepdims, initial=val),
-        )
 
-
+@pytest.mark.parametrize("initial", (None, -2, 0, 0.5, 2))
 @pytest.mark.parametrize("keepdims", [True, False])
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
 @pytest.mark.parametrize("func_name", FUNCS)
-def test_axis(func_name, ndim, keepdims):
+def test_axis(func_name, ndim, keepdims, initial):
     shape = (5,) * ndim
-    in_np = np.random.random(shape)
+    in_np = np.random.randint(-5, 5, size=shape)
     in_num = num.array(in_np)
 
     func_np = getattr(np, func_name)
     func_num = getattr(num, func_name)
+    kw = {} if initial is None else dict(initial=initial)
 
     axis_list = list(range(in_num.ndim))
     axis_list.append(-ndim)
 
     for axis in axis_list:
-        res_np = func_np(in_np, axis=axis, keepdims=keepdims)
-        res_num = func_num(in_num, axis=axis, keepdims=keepdims)
+        res_np = func_np(in_np, axis=axis, keepdims=keepdims, **kw)
+        res_num = func_num(in_num, axis=axis, keepdims=keepdims, **kw)
         assert np.array_equal(res_np, res_num)
-
-        for val in (-2, 0.5, 2):
-            assert np.array_equal(
-                func_np(in_np, keepdims=keepdims, initial=val),
-                func_num(in_num, keepdims=keepdims, initial=val),
-            )
 
 
 @pytest.mark.xfail
@@ -79,7 +99,7 @@ def test_axis_tuple(func_name, keepdims, axes):
     # In Numpy, it pass
     # In cuNumeric, it raises NotImplementedError
     shape = (3, 4, 5)
-    in_np = np.random.random(shape)
+    in_np = np.random.randint(-5, 5, size=shape)
     in_num = num.array(in_np)
 
     func_np = getattr(np, func_name)
@@ -94,14 +114,14 @@ def test_axis_tuple(func_name, keepdims, axes):
 @pytest.mark.parametrize("func_name", FUNCS)
 def test_out_dim0(func_name, keepdims):
     shape = (5,) * 0
-    in_np = np.random.random(shape)
+    in_np = np.random.randint(-5, 5, size=shape)
     in_num = num.array(in_np)
 
     func_np = getattr(np, func_name)
     func_num = getattr(num, func_name)
 
-    res_np = np.random.randint(1, 10, size=())
-    res_num = num.random.randint(1, 10, size=())
+    res_np = np.empty(())
+    res_num = num.empty(())
 
     func_np(in_np, out=res_np, keepdims=keepdims)
     func_num(in_num, out=res_num, keepdims=keepdims)
@@ -113,14 +133,15 @@ def test_out_dim0(func_name, keepdims):
 @pytest.mark.parametrize("func_name", FUNCS)
 def test_out_dim1(func_name, keepdims):
     shape = (5,) * 1
-    in_np = np.random.random(shape)
+    in_np = np.random.randint(-5, 5, size=shape)
     in_num = num.array(in_np)
 
     func_np = getattr(np, func_name)
     func_num = getattr(num, func_name)
 
-    res_np = np.random.randint(1, 10, size=(1,) if keepdims else ())
-    res_num = num.random.randint(1, 10, size=(1,) if keepdims else ())
+    res_shape = (1,) if keepdims else ()
+    res_np = np.empty(res_shape)
+    res_num = num.empty(res_shape)
 
     func_np(in_np, axis=0, out=res_np, keepdims=keepdims)
     func_num(in_num, axis=0, out=res_num, keepdims=keepdims)
@@ -128,12 +149,50 @@ def test_out_dim1(func_name, keepdims):
     assert np.array_equal(res_np, res_num)
 
 
+@pytest.mark.parametrize("initial", (None, -2, 0, 0.5, 2))
 @pytest.mark.parametrize("keepdims", [True, False])
 @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
 @pytest.mark.parametrize("func_name", FUNCS)
-def test_out(func_name, ndim, keepdims):
+def test_out(func_name, ndim, keepdims, initial):
     shape = (5,) * ndim
-    in_np = np.random.random(shape)
+    in_np = np.random.randint(-5, 5, size=shape)
+    in_num = num.array(in_np)
+
+    func_np = getattr(np, func_name)
+    func_num = getattr(num, func_name)
+    kw = {} if initial is None else dict(initial=initial)
+
+    for axis in range(in_num.ndim):
+        shape_list = list(shape)
+        shape_list[axis] = 1
+        shape_true = tuple(shape_list)
+
+        res_shape = shape_true if keepdims else (5,) * (ndim - 1)
+        res_np = np.empty(res_shape)
+        res_num = num.empty(res_shape)
+
+        func_np(in_np, axis=axis, out=res_np, keepdims=keepdims, **kw)
+        func_num(in_num, axis=axis, out=res_num, keepdims=keepdims, **kw)
+        assert np.array_equal(res_np, res_num)
+
+
+@pytest.mark.parametrize(
+    "out_dt",
+    (
+        np.int32,
+        np.float64,
+        pytest.param(np.complex128, marks=pytest.mark.xfail),
+    ),
+)
+@pytest.mark.parametrize("keepdims", [True, False])
+@pytest.mark.parametrize("func_name", FUNCS)
+def test_out_with_dtype(func_name, keepdims, out_dt):
+    # For out_dt=np.complex128
+    # In Numpy, it pass
+    # In cuNumeric, it raises KeyError
+    ndim = 3
+    shape = (5,) * ndim
+    in_np = np.random.randint(-5, 5, size=shape)
     in_num = num.array(in_np)
 
     func_np = getattr(np, func_name)
@@ -144,22 +203,12 @@ def test_out(func_name, ndim, keepdims):
         shape_list[axis] = 1
         shape_true = tuple(shape_list)
 
-        res_np = np.random.randint(
-            1, 10, size=shape_true if keepdims else (5,) * (ndim - 1)
-        )
-        res_num = num.random.randint(
-            1, 10, size=shape_true if keepdims else (5,) * (ndim - 1)
-        )
+        res_shape = shape_true if keepdims else (5,) * (ndim - 1)
+        res_np = np.empty(res_shape, dtype=out_dt)
+        res_num = num.empty(res_shape, dtype=out_dt)
 
         func_np(in_np, axis=axis, out=res_np, keepdims=keepdims)
         func_num(in_num, axis=axis, out=res_num, keepdims=keepdims)
-        assert np.array_equal(res_np, res_num)
-
-        val = 0.5
-        func_np(in_np, axis=axis, out=res_np, keepdims=keepdims, initial=val)
-        func_num(
-            in_num, axis=axis, out=res_num, keepdims=keepdims, initial=val
-        )
         assert np.array_equal(res_np, res_num)
 
 
@@ -169,7 +218,7 @@ def test_where(func_name):
     # In Numpy, it pass
     # In cuNumeric, it raises NotImplementedError
     shape = (3, 4, 5)
-    in_np = np.random.random(shape)
+    in_np = np.random.randint(-5, 5, size=shape)
     in_num = num.array(in_np)
     where_np = in_np > 0.5
     where_num = num.array(where_np)
@@ -193,10 +242,13 @@ class TestAmaxAminErrors:
     @pytest.mark.parametrize("func_name", FUNCS)
     def test_empty_array(self, func_name):
         expected_exc = ValueError
+        func_np = getattr(np, func_name)
+        func_num = getattr(num, func_name)
+
         with pytest.raises(expected_exc):
-            getattr(np, func_name)([])
+            func_np([])
         with pytest.raises(expected_exc):
-            getattr(num, func_name)([])
+            func_num([])
 
     @pytest.mark.parametrize(
         "axis", (-4, 3), ids=lambda axis: f"(axis={axis})"
@@ -204,10 +256,13 @@ class TestAmaxAminErrors:
     @pytest.mark.parametrize("func_name", FUNCS)
     def test_axis_out_of_bound(self, func_name, axis):
         expected_exc = ValueError
+        func_np = getattr(np, func_name)
+        func_num = getattr(num, func_name)
+
         with pytest.raises(expected_exc):
-            getattr(np, func_name)(self.arr_np, axis=axis)
+            func_np(self.arr_np, axis=axis)
         with pytest.raises(expected_exc):
-            getattr(num, func_name)(self.arr_num, axis=axis)
+            func_num(self.arr_num, axis=axis)
 
     @pytest.mark.parametrize(
         "axis_out_shape",
@@ -221,13 +276,15 @@ class TestAmaxAminErrors:
     def test_out_invalid_shape(self, func_name, axis_out_shape):
         axis, out_shape = axis_out_shape
         expected_exc = ValueError
-        out_np = np.zeros(out_shape)
-        out_num = num.zeros(out_shape)
+        out_np = np.empty(out_shape)
+        out_num = num.empty(out_shape)
+        func_np = getattr(np, func_name)
+        func_num = getattr(num, func_name)
 
         with pytest.raises(expected_exc):
-            getattr(np, func_name)(self.arr_np, axis=axis, out=out_np)
+            func_np(self.arr_np, axis=axis, out=out_np)
         with pytest.raises(expected_exc):
-            getattr(num, func_name)(self.arr_num, axis=axis, out=out_num)
+            func_num(self.arr_num, axis=axis, out=out_num)
 
 
 if __name__ == "__main__":
