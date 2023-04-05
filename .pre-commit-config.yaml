@@ -34,7 +34,8 @@ repos:
           pass_filenames: false
 
 ci:
-  skip: [mypy]
+    skip: [mypy]
+    autoupdate_schedule: quarterly
 
 default_language_version:
     python: python3
