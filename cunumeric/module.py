@@ -6765,15 +6765,11 @@ def quantile_impl(
         # (non-flattening approach)
         #
         if len(index) == 0:
-            left = (1.0 - gamma) * arr_1D_lvals.reshape(
-                qs_all.shape
-            )
+            left = (1.0 - gamma) * arr_1D_lvals.reshape(qs_all.shape)
             right = gamma * arr_1D_rvals.reshape(qs_all.shape)
             qs_all[...] = left + right
         else:
-            left = (1.0 - gamma) * arr_1D_lvals.reshape(
-                qs_all[index].shape
-            )
+            left = (1.0 - gamma) * arr_1D_lvals.reshape(qs_all[index].shape)
             right = gamma * arr_1D_rvals.reshape(qs_all[index].shape)
             qs_all[index] = left + right
 
