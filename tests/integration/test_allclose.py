@@ -31,16 +31,19 @@ SCALARS_TRUE_INF = (
 
 
 @pytest.mark.parametrize(
-    "ab",
+    ("a", "b"),
     SCALARS_TRUE_DEFAULT + SCALARS_TRUE_INF,
-    ids=lambda ab: f"(a={ab[0]},b={ab[1]})",
 )
-def test_scalar_true(ab):
-    a, b = ab
+def test_scalar_true(a, b):
     res_np = np.allclose(a, b)
     res_num = num.allclose(a, b)
     assert res_np is True
     assert res_np == res_num
+
+    res_np_swapped = np.allclose(b, a)
+    res_num_swapped = num.allclose(b, a)
+    assert res_np_swapped is True
+    assert res_np_swapped == res_num_swapped
 
 
 SCALARS_FALSE_DEFAULT = (
@@ -53,20 +56,22 @@ SCALARS_FALSE_INF = ((np.inf, -np.inf),)
 
 
 @pytest.mark.parametrize(
-    "ab",
+    ("a", "b"),
     SCALARS_FALSE_DEFAULT + SCALARS_FALSE_INF,
-    ids=lambda ab: f"(a={ab[0]},b={ab[1]})",
 )
-def test_scalar_false(ab):
-    a, b = ab
+def test_scalar_false(a, b):
     res_np = np.allclose(a, b)
     res_num = num.allclose(a, b)
-
     assert res_np is False
     assert res_np == res_num
 
+    res_np_swapped = np.allclose(b, a)
+    res_num_swapped = num.allclose(b, a)
+    assert res_np_swapped is False
+    assert res_np_swapped == res_num_swapped
 
-SHPAES = (
+
+SHAPES = (
     (1,),
     (6,),
     (1, 1),
@@ -75,7 +80,7 @@ SHPAES = (
 )
 
 
-@pytest.mark.parametrize("shape", SHPAES, ids=lambda shape: f"(shape={shape})")
+@pytest.mark.parametrize("shape", SHAPES, ids=lambda shape: f"(shape={shape})")
 def test_array_true(shape):
     len_scalars = len(SCALARS_TRUE_DEFAULT)
     size = np.prod(shape)
@@ -87,12 +92,16 @@ def test_array_true(shape):
 
     res_np = np.allclose(a_np, b_np)
     res_num = num.allclose(a_num, b_num)
-
     assert res_np is True
     assert res_np == res_num
 
+    res_np_swapped = np.allclose(b_np, a_np)
+    res_num_swapped = num.allclose(b_num, a_num)
+    assert res_np_swapped is True
+    assert res_np_swapped == res_num_swapped
 
-@pytest.mark.parametrize("shape", SHPAES, ids=lambda shape: f"(shape={shape})")
+
+@pytest.mark.parametrize("shape", SHAPES, ids=lambda shape: f"(shape={shape})")
 def test_array_true_inf(shape):
     tup_scalars_true = SCALARS_TRUE_DEFAULT + SCALARS_TRUE_INF
     len_scalars = len(tup_scalars_true)
@@ -105,12 +114,16 @@ def test_array_true_inf(shape):
 
     res_np = np.allclose(a_np, b_np)
     res_num = num.allclose(a_num, b_num)
-
     assert res_np is True
     assert res_np == res_num
 
+    res_np_swapped = np.allclose(b_np, a_np)
+    res_num_swapped = num.allclose(b_num, a_num)
+    assert res_np_swapped is True
+    assert res_np_swapped == res_num_swapped
 
-@pytest.mark.parametrize("shape", SHPAES, ids=lambda shape: f"(shape={shape})")
+
+@pytest.mark.parametrize("shape", SHAPES, ids=lambda shape: f"(shape={shape})")
 def test_array_false(shape):
     len_scalars = len(SCALARS_TRUE_DEFAULT)
     size = np.prod(shape)
@@ -123,12 +136,16 @@ def test_array_false(shape):
 
     res_np = np.allclose(a_np, b_np)
     res_num = num.allclose(a_num, b_num)
-
     assert res_np is False
     assert res_np == res_num
 
+    res_np_swapped = np.allclose(b_np, a_np)
+    res_num_swapped = num.allclose(b_num, a_num)
+    assert res_np_swapped is False
+    assert res_np_swapped == res_num_swapped
 
-SHPAES_BROADCASTING1 = (
+
+SHAPES_BROADCASTING1 = (
     (1, 3),
     (2, 3),
     (1, 2, 3),
@@ -138,9 +155,9 @@ SHPAES_BROADCASTING1 = (
 
 @pytest.mark.xfail
 @pytest.mark.parametrize(
-    "shape_b", SHPAES_BROADCASTING1, ids=lambda shape_b: f"(shape_b={shape_b})"
+    "shape_b", SHAPES_BROADCASTING1, ids=lambda shape_b: f"(shape_b={shape_b})"
 )
-def test_boradcast_true1(shape_b):
+def test_broadcast_true1(shape_b):
     # for all cases,
     # In Numpy, it pass
     # In cuNumeric, it raises AttributeError:
@@ -165,7 +182,7 @@ def test_boradcast_true1(shape_b):
     assert res_np == res_num
 
 
-SHPAES_BROADCASTING2 = (
+SHAPES_BROADCASTING2 = (
     (1,),
     (1, 1),
     (1, 2, 1),
@@ -175,9 +192,9 @@ SHPAES_BROADCASTING2 = (
 
 @pytest.mark.xfail
 @pytest.mark.parametrize(
-    "shape_b", SHPAES_BROADCASTING2, ids=lambda shape_b: f"(shape_b={shape_b})"
+    "shape_b", SHAPES_BROADCASTING2, ids=lambda shape_b: f"(shape_b={shape_b})"
 )
-def test_boradcast_true2(shape_b):
+def test_broadcast_true2(shape_b):
     # for all cases,
     # In Numpy, it pass
     # In cuNumeric, it raises AttributeError:
@@ -228,10 +245,10 @@ EMPTY_ARRAY_PAIRS = (
 
 
 @pytest.mark.parametrize(
-    "ab", EMPTY_ARRAY_PAIRS, ids=lambda ab: f"(a={ab[0]},b={ab[1]})"
+    ("a", "b"),
+    EMPTY_ARRAY_PAIRS,
 )
-def test_empty_array(ab):
-    a, b = ab
+def test_empty_array(a, b):
     res_np = np.allclose(a, b)
     res_num = num.allclose(a, b)
 
@@ -247,14 +264,14 @@ SCALAR_BROADCASTING = (
 
 @pytest.mark.xfail
 @pytest.mark.parametrize(
-    "ab", SCALAR_BROADCASTING, ids=lambda ab: f"(a={ab[0]},b={ab[1]})"
+    ("a", "b"),
+    SCALAR_BROADCASTING,
 )
-def test_scalar_broadcasting(ab):
+def test_scalar_broadcasting(a, b):
     # for all cases,
     # In Numpy, it pass
     # In cuNumeric, it raises AttributeError:
     # 'Store' object has no attribute '_broadcast'
-    a, b = ab
     res_np = np.allclose(a, b)
     res_num = num.allclose(a, b)
 
@@ -263,10 +280,10 @@ def test_scalar_broadcasting(ab):
 
 
 @pytest.mark.parametrize(
-    "ab", SCALARS_FALSE_DEFAULT, ids=lambda ab: f"(a={ab[0]},b={ab[1]})"
+    ("a", "b"),
+    SCALARS_FALSE_DEFAULT,
 )
-def test_scalar_rtol_atol_true(ab):
-    a, b = ab
+def test_scalar_rtol_atol_true(a, b):
     rtol = 1e-04
     atol = 1e-06
 
@@ -274,6 +291,21 @@ def test_scalar_rtol_atol_true(ab):
     res_num = num.allclose(a, b, rtol=rtol, atol=atol)
 
     assert res_np is True
+    assert res_np == res_num
+
+
+@pytest.mark.parametrize(
+    ("a", "b"),
+    SCALARS_TRUE_DEFAULT,
+)
+def test_scalar_rtol_atol_false(a, b):
+    rtol = 1e-06
+    atol = 1e-09
+
+    res_np = np.allclose(a, b, rtol=rtol, atol=atol)
+    res_num = num.allclose(a, b, rtol=rtol, atol=atol)
+
+    assert res_np is False
     assert res_np == res_num
 
 

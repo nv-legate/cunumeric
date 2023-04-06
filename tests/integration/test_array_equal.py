@@ -42,17 +42,17 @@ ARRAYS = (
 )
 
 
-@pytest.mark.parametrize(
-    "arrays",
-    ARRAYS,
-    ids=lambda arrays: f"(array1={arrays[0]}--array2={arrays[1]})",
-)
-def test_unequal_arrays(arrays):
-    arr1, arr2 = arrays
+@pytest.mark.parametrize(("arr1", "arr2"), ARRAYS, ids=str)
+def test_unequal_arrays(arr1, arr2):
     res_np = np.array_equal(arr1, arr2)
     res_num = num.array_equal(arr1, arr2)
     assert res_np is False
     assert res_np == res_num
+
+    res_np_swapped = np.array_equal(arr2, arr1)
+    res_num_swapped = num.array_equal(arr2, arr1)
+    assert res_np_swapped is False
+    assert res_np_swapped == res_num_swapped
 
 
 DTYPES = (
@@ -61,13 +61,8 @@ DTYPES = (
 )
 
 
-@pytest.mark.parametrize(
-    "dtypes",
-    DTYPES,
-    ids=lambda dtypes: f"(dtype1={dtypes[0]}--dtype2={dtypes[1]})",
-)
-def test_equal_values_with_different_dtype(dtypes):
-    dtype1, dtype2 = dtypes
+@pytest.mark.parametrize(("dtype1", "dtype2"), DTYPES, ids=str)
+def test_equal_values_with_different_dtype(dtype1, dtype2):
     array = [1, 2, 3]
     np_arr1 = np.array(array, dtype=dtype1)
     np_arr2 = np.array(array, dtype=dtype2)
@@ -76,8 +71,11 @@ def test_equal_values_with_different_dtype(dtypes):
 
     res_np = np.array_equal(np_arr1, np_arr2)
     res_num = num.array_equal(num_arr1, num_arr2)
-
     assert res_np == res_num
+
+    res_np_swapped = np.array_equal(np_arr2, np_arr1)
+    res_num_swapped = num.array_equal(num_arr2, num_arr1)
+    assert res_np_swapped == res_num_swapped
 
 
 @pytest.mark.parametrize(
