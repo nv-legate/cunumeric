@@ -1491,6 +1491,10 @@ class EagerArray(NumPyThunk):
             np.argmin(
                 rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
             )
+        elif op == UnaryRedCode.NANARGMAX:
+            np.nanargmax(
+                rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
+            )
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
         elif op == UnaryRedCode.COUNT_NONZERO:
@@ -1632,13 +1636,6 @@ class EagerArray(NumPyThunk):
                 np.nancumprod(rhs.array, axis, dtype, self.array)
         else:
             raise RuntimeError(f"unsupported scan op {op}")
-
-    def nanargmax(self) -> None:
-        if self.deferred is not None:
-            self.deferred.nanargmax()
-        else:
-            # this will call numpy's nanargmax: np.nanargmax(self.array)
-            print("Skipping eager execution for nanargmax")
 
     def unique(self) -> NumPyThunk:
         if self.deferred is not None:

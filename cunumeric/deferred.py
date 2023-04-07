@@ -169,6 +169,7 @@ _UNARY_RED_TO_REDUCTION_OPS: Dict[int, int] = {
     UnaryRedCode.MIN: ReductionOp.MIN,
     UnaryRedCode.ARGMAX: CuNumericRedopCode.ARGMAX,
     UnaryRedCode.ARGMIN: CuNumericRedopCode.ARGMIN,
+    UnaryRedCode.NANARGMAX: CuNumericRedopCode.NANARGMAX,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
     UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
     UnaryRedCode.ALL: ReductionOp.MUL,
@@ -217,6 +218,10 @@ _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
     UnaryRedCode.COUNT_NONZERO: lambda _: 0,
     UnaryRedCode.ALL: lambda _: True,
     UnaryRedCode.ANY: lambda _: False,
+    UnaryRedCode.NANARGMAX: lambda ty: (
+        np.iinfo(np.int64).min,
+        max_identity(ty),
+    ),
 }
 
 
@@ -3130,7 +3135,11 @@ class DeferredArray(NumPyThunk):
         rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
 
-        argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
+        argred = op in (
+            UnaryRedCode.ARGMAX,
+            UnaryRedCode.ARGMIN,
+            UnaryRedCode.NANARGMAX,
+        )
 
         if argred:
             argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
@@ -3587,17 +3596,3 @@ class DeferredArray(NumPyThunk):
         copy.add_source_indirect(indirect.base)
         copy.add_output(self.base)
         copy.execute()
-
-    def nanargmax(self) -> None:
-        task = self.context.create_auto_task(CuNumericOpCode.NANARGMAX)
-        task.add_input(self.base)
-        task.add_output(self.base)
-
-        # the argument 1 corresponds to CUNUMERIC_RED_NANARGMAX
-        task.add_scalar_arg(1, ty.int32)
-
-        # this mimics the identity
-        # task.add_scalar_arg(-1, ty.float32)
-
-        # no need for alignment
-        task.execute()

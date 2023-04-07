@@ -19,6 +19,7 @@
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/arg.h"
 #include "cunumeric/arg.inl"
+#include "cunumeric/unary/isnan.h"
 
 namespace cunumeric {
 
@@ -31,6 +32,7 @@ enum class UnaryRedCode : int {
   COUNT_NONZERO = CUNUMERIC_RED_COUNT_NONZERO,
   MAX           = CUNUMERIC_RED_MAX,
   MIN           = CUNUMERIC_RED_MIN,
+  NANARGMAX     = CUNUMERIC_RED_NANARGMAX,
   PROD          = CUNUMERIC_RED_PROD,
   SUM           = CUNUMERIC_RED_SUM,
 };
@@ -41,6 +43,8 @@ template <>
 struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {};
 template <>
 struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {};
+template <>
+struct is_arg_reduce<UnaryRedCode::NANARGMAX> : std::true_type {};
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&... args)
@@ -62,6 +66,8 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::MIN:
       return f.template operator()<UnaryRedCode::MIN>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::NANARGMAX:
+      return f.template operator()<UnaryRedCode::NANARGMAX>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::PROD:
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
@@ -301,6 +307,46 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
     int64_t idx = 0;
     for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
     return VAL(idx, rhs);
+  }
+};
+
+template <legate::LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE> {
+  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = Argval<RHS>;
+  using OP  = ArgmaxReduction<RHS>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 int32_t collapsed_dim,
+                                 const RHS& rhs)
+  {
+    // auto identity = OP::identity;
+    auto identity      = (RHS)-1.7E308;
+    auto sanitized_rhs = is_nan(rhs) ? identity : rhs;
+    return VAL(point[collapsed_dim], sanitized_rhs);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 const legate::Point<DIM>& shape,
+                                 const RHS& rhs)
+  {
+    int64_t idx = 0;
+    // auto identity = OP::identity;
+    auto identity      = (RHS)-1.7E308;
+    auto sanitized_rhs = is_nan(rhs) ? identity : rhs;
+
+    for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
+    return VAL(idx, sanitized_rhs);
   }
 };
 

@@ -160,7 +160,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/mapper.cc
   src/cunumeric/cephes/chbevl.cc
   src/cunumeric/cephes/i0.cc
-  src/cunumeric/unary/nanargmax.cc
+  #src/cunumeric/unary/nanargmax.cc
 )
 
 if(Legion_USE_OpenMP)
@@ -206,7 +206,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/stat/bincount_omp.cc
     src/cunumeric/convolution/convolve_omp.cc
     src/cunumeric/transform/flip_omp.cc
-    src/cunumeric/unary/nanargmax_omp.cc
+    #src/cunumeric/unary/nanargmax_omp.cc
   )
 endif()
 
@@ -258,7 +258,7 @@ if(Legion_USE_CUDA)
     src/cunumeric/transform/flip.cu
     src/cunumeric/cudalibs.cu
     src/cunumeric/cunumeric.cu
-    src/cunumeric/unary/nanargmax.cu
+    #src/cunumeric/unary/nanargmax.cu
   )
 endif()
 

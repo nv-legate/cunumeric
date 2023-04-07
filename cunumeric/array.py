@@ -4083,6 +4083,7 @@ class ndarray:
                 UnaryRedCode.ARGMIN,
                 UnaryRedCode.MAX,
                 UnaryRedCode.MIN,
+                UnaryRedCode.NANARGMAX,
             )
             and src.dtype.kind == "c"
         ):

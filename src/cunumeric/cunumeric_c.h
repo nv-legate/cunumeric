@@ -142,6 +142,7 @@ enum CuNumericUnaryRedCode {
   CUNUMERIC_RED_COUNT_NONZERO,
   CUNUMERIC_RED_MAX,
   CUNUMERIC_RED_MIN,
+  CUNUMERIC_RED_NANARGMAX,
   CUNUMERIC_RED_PROD,
   CUNUMERIC_RED_SUM,
 };
@@ -198,8 +199,9 @@ enum CuNumericWindowOpCode {
 
 // Match these to CuNumericRedopCode in config.py
 enum CuNumericRedopID {
-  CUNUMERIC_ARGMAX_REDOP = 1,
-  CUNUMERIC_ARGMIN_REDOP = 2,
+  CUNUMERIC_ARGMAX_REDOP    = 1,
+  CUNUMERIC_ARGMIN_REDOP    = 2,
+  CUNUMERIC_NANARGMAX_REDOP = 3,
 };
 
 // Match these to CuNumericTunable in config.py
@@ -232,9 +234,9 @@ enum CuNumericConvertCode {
 
 // Match these to ConvertCode in config.py
 // Also, sort these alphabetically for easy lookup later
-enum CuNumericNanUnaryRedCode {
-  CUNUMERIC_RED_NANARGMAX = 1,
-};
+// enum CuNumericNanUnaryRedCode {
+//  CUNUMERIC_RED_NANARGMAX = 1,
+// };
 
 // Match these to BitGeneratorOperation in config.py
 enum CuNumericBitGeneratorOperation {

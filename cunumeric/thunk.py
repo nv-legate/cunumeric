@@ -732,7 +732,3 @@ class NumPyThunk(ABC):
     @abstractmethod
     def _wrap(self, src: Any, new_len: int) -> None:
         ...
-
-    @abstractmethod
-    def nanargmax(self) -> None:
-        ...
