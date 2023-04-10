@@ -24,7 +24,7 @@ namespace cunumeric {
 
 static const char* const cunumeric_library_name = "cunumeric";
 
-/*static*/ TaskRegistrar& CuNumeric::get_registrar()
+/*static*/ TaskRegistrar& CuNumericRegistrar::get_registrar()
 {
   static TaskRegistrar registrar;
   return registrar;
@@ -41,7 +41,7 @@ void registration_callback()
 
   auto context = Runtime::get_runtime()->create_library(cunumeric_library_name, config);
 
-  CuNumeric::get_registrar().register_all_tasks(*context);
+  CuNumericRegistrar::get_registrar().register_all_tasks(*context);
 
   // Register our special reduction functions
   register_reduction_operators(*context);
