@@ -37,13 +37,11 @@ SCALARS_TRUE_INF = (
 def test_scalar_true(a, b):
     res_np = np.allclose(a, b)
     res_num = num.allclose(a, b)
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
     res_np_swapped = np.allclose(b, a)
     res_num_swapped = num.allclose(b, a)
-    assert res_np_swapped is True
-    assert res_np_swapped == res_num_swapped
+    assert res_np_swapped is bool(res_num_swapped) is True
 
 
 SCALARS_FALSE_DEFAULT = (
@@ -62,13 +60,11 @@ SCALARS_FALSE_INF = ((np.inf, -np.inf),)
 def test_scalar_false(a, b):
     res_np = np.allclose(a, b)
     res_num = num.allclose(a, b)
-    assert res_np is False
-    assert res_np == res_num
+    assert res_np is bool(res_num) is False
 
     res_np_swapped = np.allclose(b, a)
     res_num_swapped = num.allclose(b, a)
-    assert res_np_swapped is False
-    assert res_np_swapped == res_num_swapped
+    assert res_np_swapped is bool(res_num_swapped) is False
 
 
 SHAPES = (
@@ -92,18 +88,16 @@ def test_array_true(shape):
 
     res_np = np.allclose(a_np, b_np)
     res_num = num.allclose(a_num, b_num)
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
     res_np_swapped = np.allclose(b_np, a_np)
     res_num_swapped = num.allclose(b_num, a_num)
-    assert res_np_swapped is True
-    assert res_np_swapped == res_num_swapped
+    assert res_np_swapped is bool(res_num_swapped) is True
 
 
 @pytest.mark.parametrize("shape", SHAPES, ids=lambda shape: f"(shape={shape})")
 def test_array_true_inf(shape):
-    tup_scalars_true = SCALARS_TRUE_DEFAULT + SCALARS_TRUE_INF
+    tup_scalars_true = SCALARS_TRUE_INF + SCALARS_TRUE_DEFAULT
     len_scalars = len(tup_scalars_true)
     size = np.prod(shape)
     array = [tup_scalars_true[i % len_scalars] for i in range(size)]
@@ -114,13 +108,11 @@ def test_array_true_inf(shape):
 
     res_np = np.allclose(a_np, b_np)
     res_num = num.allclose(a_num, b_num)
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
     res_np_swapped = np.allclose(b_np, a_np)
     res_num_swapped = num.allclose(b_num, a_num)
-    assert res_np_swapped is True
-    assert res_np_swapped == res_num_swapped
+    assert res_np_swapped is bool(res_num_swapped) is True
 
 
 @pytest.mark.parametrize("shape", SHAPES, ids=lambda shape: f"(shape={shape})")
@@ -136,13 +128,11 @@ def test_array_false(shape):
 
     res_np = np.allclose(a_np, b_np)
     res_num = num.allclose(a_num, b_num)
-    assert res_np is False
-    assert res_np == res_num
+    assert res_np is bool(res_num) is False
 
     res_np_swapped = np.allclose(b_np, a_np)
     res_num_swapped = num.allclose(b_num, a_num)
-    assert res_np_swapped is False
-    assert res_np_swapped == res_num_swapped
+    assert res_np_swapped is bool(res_num_swapped) is False
 
 
 SHAPES_BROADCASTING1 = (
@@ -178,8 +168,7 @@ def test_broadcast_true1(shape_b):
     res_np = np.allclose(a_np, b_np)
     res_num = num.allclose(a_num, b_num)
 
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
 
 SHAPES_BROADCASTING2 = (
@@ -216,8 +205,7 @@ def test_broadcast_true2(shape_b):
     res_np = np.allclose(a_np, b_np)
     res_num = num.allclose(a_num, b_num)
 
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
 
 @pytest.mark.parametrize(
@@ -252,8 +240,7 @@ def test_empty_array(a, b):
     res_np = np.allclose(a, b)
     res_num = num.allclose(a, b)
 
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
 
 SCALAR_BROADCASTING = (
@@ -275,8 +262,7 @@ def test_scalar_broadcasting(a, b):
     res_np = np.allclose(a, b)
     res_num = num.allclose(a, b)
 
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
 
 @pytest.mark.parametrize(
@@ -290,8 +276,7 @@ def test_scalar_rtol_atol_true(a, b):
     res_np = np.allclose(a, b, rtol=rtol, atol=atol)
     res_num = num.allclose(a, b, rtol=rtol, atol=atol)
 
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
 
 @pytest.mark.parametrize(
@@ -305,8 +290,7 @@ def test_scalar_rtol_atol_false(a, b):
     res_np = np.allclose(a, b, rtol=rtol, atol=atol)
     res_num = num.allclose(a, b, rtol=rtol, atol=atol)
 
-    assert res_np is False
-    assert res_np == res_num
+    assert res_np is bool(res_num) is False
 
 
 if __name__ == "__main__":

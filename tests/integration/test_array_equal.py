@@ -25,8 +25,7 @@ import cunumeric as num
 def test_equal_arrays(arr):
     res_np = np.array_equal(arr, arr)
     res_num = num.array_equal(arr, arr)
-    assert res_np is True
-    assert res_np == res_num
+    assert res_np is bool(res_num) is True
 
 
 ARRAYS = (
@@ -46,13 +45,11 @@ ARRAYS = (
 def test_unequal_arrays(arr1, arr2):
     res_np = np.array_equal(arr1, arr2)
     res_num = num.array_equal(arr1, arr2)
-    assert res_np is False
-    assert res_np == res_num
+    assert res_np is bool(res_num) is False
 
     res_np_swapped = np.array_equal(arr2, arr1)
     res_num_swapped = num.array_equal(arr2, arr1)
-    assert res_np_swapped is False
-    assert res_np_swapped == res_num_swapped
+    assert res_np_swapped is bool(res_num_swapped) is False
 
 
 DTYPES = (
