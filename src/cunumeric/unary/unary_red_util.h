@@ -310,6 +310,9 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   }
 };
 
+// enable_if_t floating point type would go here
+//
+
 template <legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE> {
   static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
@@ -327,12 +330,30 @@ struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  int32_t collapsed_dim,
+                                 const VAL identity,
                                  const RHS& rhs)
   {
-    // auto identity = OP::identity;
-    auto identity      = (RHS)-1.7E308;
-    auto sanitized_rhs = is_nan(rhs) ? identity : rhs;
-    return VAL(point[collapsed_dim], sanitized_rhs);
+    return is_nan(rhs) ? identity : VAL(point[collapsed_dim], rhs);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 int32_t collapsed_dim,
+                                 const RHS& rhs)
+  {
+    return VAL(point[collapsed_dim], rhs);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 const legate::Point<DIM>& shape,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    int64_t idx = 0;
+
+    for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
+    return is_nan(rhs) ? identity : VAL(idx, rhs);
   }
 
   template <int32_t DIM>
@@ -341,12 +362,8 @@ struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE> {
                                  const RHS& rhs)
   {
     int64_t idx = 0;
-    // auto identity = OP::identity;
-    auto identity      = (RHS)-1.7E308;
-    auto sanitized_rhs = is_nan(rhs) ? identity : rhs;
-
     for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
-    return VAL(idx, sanitized_rhs);
+    return VAL(idx, rhs);
   }
 };
 

@@ -92,7 +92,12 @@ struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
     for (size_t o_idx = 0; o_idx < split.outer; ++o_idx)
       for (size_t i_idx = 0; i_idx < split.inner; ++i_idx) {
         auto point = splitter.combine(o_idx, i_idx, rect.lo);
-        lhs.reduce(point, OP::convert(point, collapsed_dim, rhs[point]));
+        if constexpr (OP_CODE == UnaryRedCode::NANARGMAX) {
+          auto identity = LG_OP::identity;
+          lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
+        } else {
+          lhs.reduce(point, OP::convert(point, collapsed_dim, rhs[point]));
+        }
       }
   }
 };

@@ -36,7 +36,12 @@ struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   {
     for (size_t idx = 0; idx < volume; ++idx) {
       auto point = pitches.unflatten(idx, rect.lo);
-      lhs.reduce(point, OP::convert(point, collapsed_dim, rhs[point]));
+      if constexpr (OP_CODE == UnaryRedCode::NANARGMAX) {
+        auto identity = LG_OP::identity;
+        lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
+      } else {
+        lhs.reduce(point, OP::convert(point, collapsed_dim, rhs[point]));
+      }
     }
   }
 };
