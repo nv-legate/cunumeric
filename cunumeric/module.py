@@ -5330,8 +5330,8 @@ def nanargmax(
         res_dtype=np.dtype(np.int64),
     )
 
-    # Error handling: we return identity when the array contains
-    # only NaNs, so warn the user.
+    # Error handling: we return identity when the array or a slice
+    # contains only NaNs, so raise an error
     identity = np.iinfo(np.int64).min
     if index_array.size == 1:
         if index_array == identity:
