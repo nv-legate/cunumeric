@@ -174,7 +174,7 @@ if __name__ == "__main__":
         type=int,
         default=40,
         dest="n_vol_steps",
-        help="number of voltivity steps",
+        help="number of volatility steps",
     )
 
     parser.add_argument(
