@@ -5318,7 +5318,10 @@ def nanargmax(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
 ) -> ndarray:
-    return a._perform_unary_reduction(
+    """
+    Placeholder for doc
+    """
+    index_array = a._perform_unary_reduction(
         UnaryRedCode.NANARGMAX,
         a,
         axis=axis,
@@ -5326,6 +5329,18 @@ def nanargmax(
         keepdims=keepdims,
         res_dtype=np.dtype(np.int64),
     )
+
+    # Error handling: we return identity when the array contains
+    # only NaNs, so warn the user.
+    identity = np.iinfo(np.int64).min
+    if index_array.size == 1:
+        if index_array == identity:
+            raise ValueError("Array contains only NaNs")
+    else:
+        if identity in index_array:
+            raise ValueError("Array contains only NaNs")
+
+    return index_array
 
 
 # Exponents and logarithms
