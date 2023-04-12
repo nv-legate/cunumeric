@@ -96,10 +96,20 @@ function(find_or_configure_tblis)
       message(VERBOSE "cunumeric: ENV{CC}=\"$ENV{CC}\"")
       message(VERBOSE "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
 
+      set(tblis_verbosity "--enable-silent-rules")
+      if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.25")
+        cmake_language(GET_MESSAGE_LOG_LEVEL log_level)
+        if(${log_level} STREQUAL "VERBOSE" OR
+           ${log_level} STREQUAL "DEBUG" OR
+           ${log_level} STREQUAL "TRACE")
+             set(tblis_verbosity "--disable-silent-rules")
+        endif()
+      endif()
+
       execute_process(
         COMMAND ./configure
           ${tblis_thread_model}
-          --enable-silent-rules
+          ${tblis_verbosity}
           --disable-option-checking
           --with-label-type=int32_t
           --with-length-type=int64_t
