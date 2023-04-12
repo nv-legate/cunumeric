@@ -31,18 +31,14 @@ ARRAYS = (
     ((1, 2),),
     [(1, 2), (3, 4.1)],
     (
-        [
-            1,
-            2.1,
-        ],
+        [1, 2.1],
         [3, 4 + 4j],
     ),
 )
 
 
-def COMPARE_ARRAY(a, b):
-    assert np.array_equal(a, b)
-    assert a.dtype == b.dtype
+def strict_type_equal(a, b):
+    return np.array_equal(a, b) and a.dtype == b.dtype
 
 
 @pytest.mark.parametrize(
@@ -53,14 +49,14 @@ def COMPARE_ARRAY(a, b):
 def test_array_basic(object):
     res_np = np.array(object)
     res_num = num.array(object)
-    COMPARE_ARRAY(res_np, res_num)
+    assert strict_type_equal(res_np, res_num)
 
 
 def test_array_ndarray():
     object = [[1, 2], [3, 4]]
     res_np = np.array(np.array(object))
     res_num = num.array(num.array(object))
-    COMPARE_ARRAY(res_np, res_num)
+    assert strict_type_equal(res_np, res_num)
 
 
 DTYPES = (
@@ -79,7 +75,7 @@ DTYPES = (
 def test_array_dtype(object, dtype):
     res_np = np.array(object, dtype=dtype)
     res_num = num.array(object, dtype=dtype)
-    COMPARE_ARRAY(res_np, res_num)
+    assert strict_type_equal(res_np, res_num)
 
 
 @pytest.mark.xfail
@@ -100,7 +96,7 @@ def test_array_ndmin(object, ndmin):
     # 'NoneType' object cannot be interpreted as an integer
     res_np = np.array(object, ndmin=ndmin)
     res_num = num.array(object, ndmin=ndmin)
-    COMPARE_ARRAY(res_np, res_num)
+    assert strict_type_equal(res_np, res_num)
 
 
 @pytest.mark.parametrize(
@@ -116,7 +112,7 @@ def test_array_copy(copy):
     xc_num = num.array(x_num, copy=copy)
     x_num[0, :] = [7, 8, 9]
 
-    COMPARE_ARRAY(xc_np, xc_num)
+    assert strict_type_equal(xc_np, xc_num)
 
 
 class TestArrayErrors:
@@ -144,14 +140,14 @@ class TestArrayErrors:
 def test_asarray_basic(object):
     res_np = np.asarray(object)
     res_num = num.asarray(object)
-    COMPARE_ARRAY(res_np, res_num)
+    assert strict_type_equal(res_np, res_num)
 
 
 def test_asarray_ndarray():
     object = [[1, 2], [3, 4]]
     res_np = np.asarray(np.array(object))
     res_num = num.asarray(num.array(object))
-    COMPARE_ARRAY(res_np, res_num)
+    assert strict_type_equal(res_np, res_num)
 
 
 @pytest.mark.parametrize("dtype", DTYPES, ids=lambda dtype: f"(dtype={dtype})")
@@ -163,7 +159,7 @@ def test_asarray_ndarray():
 def test_asarray_dtype(object, dtype):
     res_np = np.asarray(object, dtype=dtype)
     res_num = num.asarray(object, dtype=dtype)
-    COMPARE_ARRAY(res_np, res_num)
+    assert strict_type_equal(res_np, res_num)
 
 
 class TestAsArrayErrors:

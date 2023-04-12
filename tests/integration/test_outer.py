@@ -57,7 +57,7 @@ def test_out(shape_a, shape_b):
     size_b = np.prod(shape_b).astype(int)
     shape_out = (size_a, size_b)
     res_np = np.empty(shape_out)
-    res_num = num.array(res_np)
+    res_num = num.empty(shape_out)
 
     np.outer(a_np, b_np, out=res_np)
     num.outer(a_num, b_num, out=res_num)
@@ -82,7 +82,7 @@ def test_out_dtype(out_dt):
     size_b = np.prod(shape_b)
     shape_out = (size_a, size_b)
     res_np = np.empty(shape_out, dtype=out_dt)
-    res_num = num.array(res_np)
+    res_num = num.empty(shape_out, dtype=out_dt)
 
     np.outer(a_np, b_np, out=res_np)
     num.outer(a_num, b_num, out=res_num)
