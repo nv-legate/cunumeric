@@ -5312,10 +5312,18 @@ def nancumsum(
 
 
 @add_boilerplate("a")
-def nanargmax(a: ndarray) -> ndarray:
+def nanargmax(
+    a: ndarray,
+    axis: Any = None,
+    out: Union[ndarray, None] = None,
+    keepdims: bool = False,
+) -> ndarray:
     return a._perform_unary_reduction(
         UnaryRedCode.NANARGMAX,
         a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
         res_dtype=np.dtype(np.int64),
     )
 
