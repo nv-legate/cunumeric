@@ -18,10 +18,7 @@
 import argparse
 from enum import IntEnum
 
-from benchmark import CuNumericTimer, parse_args, run_benchmark
-
-NUM_ITERS = 10
-WARMUP_ITER = 2
+from benchmark import parse_args, run_benchmark
 
 vol_start = 0.1
 vol_step = 0.01
@@ -38,12 +35,12 @@ RSQRT2PI = 0.39894228040143267793994605993438
 
 
 class Greeks(IntEnum):
-    PREM = (0,)
-    DELTA = (1,)
-    VEGA = (2,)
-    GAMMA = (3,)
-    VANNA = (4,)
-    VOLGA = (5,)
+    PREM = 0
+    DELTA = 1
+    VEGA = 2
+    GAMMA = 3
+    VANNA = 4
+    VOLGA = 5
     THETA = 6
 
 
@@ -55,26 +52,14 @@ def initialize(n_vol_steps, n_t_steps, n_money_steps, D):
     S = np.full(steps, S0, dtype=D)
     temp_arr = np.arange((n_vol_steps * n_t_steps * n_money_steps), dtype=int)
     k_temp = (temp_arr % n_money_steps) * money_step
-    k_temp = k_temp.reshape(
-        (
-            n_t_steps,
-            n_vol_steps,
-            n_money_steps,
-        )
-    )
+    k_temp = k_temp.reshape(steps)
     K = (k_temp + (1 + money_start)) * S0
 
     t_temp = (temp_arr % (n_vol_steps * n_money_steps)) * vol_step
-    t_temp = t_temp.reshape(
-        (
-            n_t_steps,
-            n_vol_steps,
-            n_money_steps,
-        )
-    )
+    t_temp = t_temp.reshape(steps)
     T = t_temp + t_start
     R = 0.02
-    V = np.full((n_t_steps, n_vol_steps, n_money_steps), vol_start, dtype=D)
+    V = np.full(steps, vol_start, dtype=D)
     for i in range(n_vol_steps):
         V[:, i, :] += i * vol_step
 
@@ -146,22 +131,23 @@ def black_scholes(out, S, K, R, T, V, CP, greek):
         raise RuntimeError("Wrong greek name is passed")
 
 
-def run_black_scholes_benchmark(n_vol_steps, n_t_steps, n_money_steps):
-    timer = CuNumericTimer()
+def run_black_scholes_benchmark(
+    n_vol_steps, n_t_steps, n_money_steps, iters, warmup
+):
     print("Start black_scholes")
     CALL, PUT, S, K, T, R, V = initialize(
         n_vol_steps, n_t_steps, n_money_steps, np.float32
     )
 
-    print("After the initialization")
-    for i in range(NUM_ITERS):
-        if i == WARMUP_ITER:
+    timer.start()
+    for i in range(-warmup, iters):
+        if i == 0:
             timer.start()
         for g in Greeks:
             black_scholes(CALL[g.value], S, K, R, T, V, 1, g)
             black_scholes(PUT[g.value], S, K, R, T, V, -1, g)
 
-    total = (timer.stop()) / (NUM_ITERS - WARMUP_ITER)
+    total = (timer.stop()) / iters
     print(f"Elapsed Time: {total} ms")
     return total
 
@@ -170,7 +156,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-v",
-        "--vol_steps",
+        "--vol-steps",
         type=int,
         default=40,
         dest="n_vol_steps",
@@ -179,7 +165,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "-t",
-        "--time_steps",
+        "--time-steps",
         type=int,
         default=365,
         dest="n_time_steps",
@@ -187,11 +173,27 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "-m",
-        "--money_steps",
+        "--money-steps",
         type=int,
         default=60,
         dest="n_money_steps",
         help="number of money steps",
+    )
+    parser.add_argument(
+        "-i",
+        "--iters",
+        type=int,
+        default=10,
+        dest="iters",
+        help="number of iterations",
+    )
+    parser.add_argument(
+        "-w",
+        "--warmup",
+        type=int,
+        default=5,
+        dest="warmup",
+        help="warm-up iterations",
     )
 
     args, np, timer = parse_args(parser)
@@ -200,5 +202,11 @@ if __name__ == "__main__":
         run_black_scholes_benchmark,
         args.benchmark,
         "Black Scholes",
-        (args.n_vol_steps, args.n_time_steps, args.n_money_steps),
+        (
+            args.n_vol_steps,
+            args.n_time_steps,
+            args.n_money_steps,
+            args.iters,
+            args.warmup,
+        ),
     )
