@@ -80,8 +80,18 @@ function(find_or_configure_tblis)
       # Use ENV{CC/CXX} to tell TBLIS to use the same compilers as the
       # rest of the build.
       # TODO: Consider doing the same for CMAKE_C/CXX_FLAGS
-      set(_CC "${CMAKE_C_COMPILER}")
-      set(_CXX "${CMAKE_CXX_COMPILER}")
+      set(CC_ORIG "$ENV{CC}")
+      set(CXX_ORIG "$ENV{CXX}")
+      set(_CC "${CC_ORIG}")
+      set(_CXX "${CXX_ORIG}")
+
+      # Don't override these env vars if the user has set them.
+      if ("${_CC}" STREQUAL "")
+        set(_CC "${CMAKE_C_COMPILER}")
+      endif()
+      if ("${_CXX}" STREQUAL "")
+        set(_CXX "${CMAKE_CXX_COMPILER}")
+      endif()
 
       # Use the caching compiler (if provided) to speed up tblis builds
       if(CMAKE_C_COMPILER_LAUNCHER)
