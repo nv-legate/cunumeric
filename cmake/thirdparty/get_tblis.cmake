@@ -84,24 +84,24 @@ function(find_or_configure_tblis)
 
       set(CC_ORIG "$ENV{CC}")
       set(CXX_ORIG "$ENV{CXX}")
-      set(_CC "${CMAKE_C_COMPILER}")
-      set(_CXX "${CMAKE_CXX_COMPILER}")
+      set(_CC "${CC_ORIG}")
+      set(_CXX "${CXX_ORIG}")
 
       if(CC_ORIG MATCHES "^.*\/cc$")
-        file(REAL_PATH "${_CC}" _CC EXPAND_TILDE)
-        file(REAL_PATH "${_CXX}" _CXX EXPAND_TILDE)
-        set(ENV{CC} "${_CC}")
-        set(ENV{CXX} "${_CXX}")
+        set(_CC "${CMAKE_C_COMPILER}")
+        set(_CXX "${CMAKE_CXX_COMPILER}")
       endif()
 
       # Use the caching compiler (if provided) to speed up tblis builds
       if(CMAKE_C_COMPILER_LAUNCHER)
-        set(ENV{CC} "${CMAKE_C_COMPILER_LAUNCHER} ${_CC}")
+        set(_CC "${CMAKE_C_COMPILER_LAUNCHER} ${_CC}")
       endif()
       if(CMAKE_CXX_COMPILER_LAUNCHER)
-        set(ENV{CXX} "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
+        set(_CXX "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
       endif()
 
+      set(ENV{CC} "${_CC}")
+      set(ENV{CXX} "${_CXX}")
       message(VERBOSE "cunumeric: ENV{CC}=\"$ENV{CC}\"")
       message(VERBOSE "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
 
