@@ -37,18 +37,8 @@ DTYPE_ALL = [
     "D",
 ]
 VALUES = [0, 1, 2, 100]
-NEGATIVE_VALUE = [
-    None,
-    np.inf,
-    -np.inf,
-    -1,
-    -2,
-    -3.5,
-    3.5,
-    5j,
-    10 + 20j,
-    -100 - 100j,
-]
+NEGATIVE_TYPE = [None, np.inf, -np.inf, -3.5, 3.5, 5j, 10 + 20j, -100 - 100j]
+NEGATIVE_VALUE = [-1, -2]
 
 
 def to_dtype(s):
@@ -62,8 +52,17 @@ def test_value(val):
     assert np.array_equal(res_np, res_num)
 
 
+@pytest.mark.parametrize("neg_type", NEGATIVE_TYPE)
+def test_value_negative_type(neg_type):
+    expected_exc = TypeError
+    with pytest.raises(expected_exc):
+        np.identity(neg_type)
+    with pytest.raises(expected_exc):
+        num.identity(neg_type)
+
+
 @pytest.mark.parametrize("neg_val", NEGATIVE_VALUE)
-def test_value_negative(neg_val):
+def test_value_negative_value(neg_val):
     expected_exc = ValueError
     with pytest.raises(expected_exc):
         np.identity(neg_val)
