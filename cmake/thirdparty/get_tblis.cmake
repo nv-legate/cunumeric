@@ -77,20 +77,11 @@ function(find_or_configure_tblis)
         set(tblis_thread_model "--enable-thread-model=openmp")
       endif()
 
-      # CMake sets `ENV{CC}` to /usr/bin/cc if it's not set. This causes tblis'
-      # `./configure` to fail. For now, detect this case and reset ENV{CC/CXX}.
-      # Remove this workaround when we can use `cmake_policy(SET CMP0132 NEW)`:
-      # https://gitlab.kitware.com/cmake/cmake/-/merge_requests/7108
-
-      set(CC_ORIG "$ENV{CC}")
-      set(CXX_ORIG "$ENV{CXX}")
-      set(_CC "${CC_ORIG}")
-      set(_CXX "${CXX_ORIG}")
-
-      if(CC_ORIG MATCHES "^.*\/cc$")
-        set(_CC "${CMAKE_C_COMPILER}")
-        set(_CXX "${CMAKE_CXX_COMPILER}")
-      endif()
+      # Use ENV{CC/CXX} to tell TBLIS to use the same compilers as the
+      # rest of the build.
+      # TODO: Consider doing the same for CMAKE_C/CXX_FLAGS
+      set(_CC "${CMAKE_C_COMPILER}")
+      set(_CXX "${CMAKE_CXX_COMPILER}")
 
       # Use the caching compiler (if provided) to speed up tblis builds
       if(CMAKE_C_COMPILER_LAUNCHER)
