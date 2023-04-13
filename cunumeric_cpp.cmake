@@ -45,7 +45,7 @@ rapids_cmake_support_conda_env(conda_env MODIFY_PREFIX_PATH)
 # - Dependencies -------------------------------------------------------------
 
 # add third party dependencies using CPM
-rapids_cpm_init()
+rapids_cpm_init(OVERRIDE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/versions.json)
 
 find_package(OpenMP)
 

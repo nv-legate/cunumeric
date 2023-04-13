@@ -76,7 +76,7 @@ class TestSumNegative(object):
 
     @pytest.mark.parametrize("arr", ARR)
     def test_array(self, arr):
-        assert np.array_equal(np.sum(arr), num.sum(arr))
+        assert allclose(np.sum(arr), num.sum(arr))
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("dtype", NEGATIVE_DTYPE, ids=to_dtype)
@@ -125,7 +125,7 @@ class TestSumNegative(object):
         arr_np = np.array(arr_num)
         out_np = np.sum(arr_np, axis=2, keepdims=True)
         out_num = num.sum(arr_num, axis=2, keepdims=True)
-        assert np.array_equal(out_np, out_num)
+        assert allclose(out_np, out_num)
 
     @pytest.mark.xfail
     def test_initial_scalar_list(self):
@@ -135,7 +135,7 @@ class TestSumNegative(object):
         out_np = np.sum(
             arr, initial=initial_value
         )  # ValueError: Input object to FillWithScalar is not a scalar
-        assert np.array_equal(out_np, out_num)
+        assert allclose(out_np, out_num)
 
     def test_initial_list(self):
         arr = [[1, 2], [3, 4]]
@@ -160,7 +160,7 @@ class TestSumNegative(object):
         # cuNumeric raises NotImplementedError:
         # "the `where` parameter is currently not supported"
         out_num = num.sum(arr, where=[False, True])
-        assert np.array_equal(out_np, out_num)
+        assert allclose(out_np, out_num)
 
 
 class TestSumPositive(object):

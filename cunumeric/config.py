@@ -20,7 +20,7 @@ from enum import IntEnum, unique
 from typing import TYPE_CHECKING, Any, List, Union, cast
 
 import numpy as np
-from legate.core import Library, ResourceConfig, get_legate_runtime
+from legate.core import Library, get_legate_runtime
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -311,16 +311,6 @@ class CuNumericLib(Library):
         assert self.runtime is None
         assert self.shared_object is not None
         self.runtime = runtime
-
-    def get_resource_configuration(self) -> ResourceConfig:
-        assert self.shared_object is not None
-        config = ResourceConfig()
-        config.max_tasks = self.shared_object.CUNUMERIC_MAX_TASKS
-        config.max_mappers = self.shared_object.CUNUMERIC_MAX_MAPPERS
-        config.max_reduction_ops = self.shared_object.CUNUMERIC_MAX_REDOPS
-        config.max_projections = 0
-        config.max_shardings = 0
-        return config
 
     def destroy(self) -> None:
         if self.runtime is not None:

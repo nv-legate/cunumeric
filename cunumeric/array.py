@@ -2580,7 +2580,7 @@ class ndarray:
             # default values for axis
             axes = (0, 1)
         elif (axis1 is None) or (axis2 is None):
-            raise ValueError("both axes should be passed")
+            raise TypeError("both axes should be passed")
         else:
             axes = (axis1, axis2)
 
@@ -3050,7 +3050,7 @@ class ndarray:
             divisor = self.shape[axis]
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
-        if dtype.kind == "f":
+        if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
                 np.array(divisor, dtype=sum_array.dtype),
             )
