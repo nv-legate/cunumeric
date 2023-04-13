@@ -29,19 +29,13 @@ enum class VariantKind : int {
   GPU = 2,
 };
 
-struct CuNumeric {
- public:
-  template <typename... Args>
-  static void record_variant(Args&&... args)
-  {
-    get_registrar().record_variant(std::forward<Args>(args)...);
-  }
+struct CuNumericRegistrar {
   static legate::TaskRegistrar& get_registrar();
 };
 
 template <typename T>
 struct CuNumericTask : public legate::LegateTask<T> {
-  using Registrar = CuNumeric;
+  using Registrar = CuNumericRegistrar;
 };
 
 }  // namespace cunumeric
