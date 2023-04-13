@@ -147,7 +147,7 @@ def run_black_scholes_benchmark(
             black_scholes(CALL[g.value], S, K, R, T, V, 1, g)
             black_scholes(PUT[g.value], S, K, R, T, V, -1, g)
 
-    total = (timer.stop()) / iters
+    total = timer.stop()
     print(f"Elapsed Time: {total} ms")
     return total
 
