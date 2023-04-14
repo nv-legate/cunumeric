@@ -77,38 +77,41 @@ function(find_or_configure_tblis)
         set(tblis_thread_model "--enable-thread-model=openmp")
       endif()
 
-      # CMake sets `ENV{CC}` to /usr/bin/cc if it's not set. This causes tblis'
-      # `./configure` to fail. For now, detect this case and reset ENV{CC/CXX}.
-      # Remove this workaround when we can use `cmake_policy(SET CMP0132 NEW)`:
-      # https://gitlab.kitware.com/cmake/cmake/-/merge_requests/7108
-
+      # Use ENV{CC/CXX} to tell TBLIS to use the same compilers as the
+      # rest of the build.
+      # TODO: Consider doing the same for CMAKE_C/CXX_FLAGS
       set(CC_ORIG "$ENV{CC}")
       set(CXX_ORIG "$ENV{CXX}")
       set(_CC "${CMAKE_C_COMPILER}")
       set(_CXX "${CMAKE_CXX_COMPILER}")
 
-      if(CC_ORIG MATCHES "^.*\/cc$")
-        file(REAL_PATH "${_CC}" _CC EXPAND_TILDE)
-        file(REAL_PATH "${_CXX}" _CXX EXPAND_TILDE)
-        set(ENV{CC} "${_CC}")
-        set(ENV{CXX} "${_CXX}")
-      endif()
-
       # Use the caching compiler (if provided) to speed up tblis builds
       if(CMAKE_C_COMPILER_LAUNCHER)
-        set(ENV{CC} "${CMAKE_C_COMPILER_LAUNCHER} ${_CC}")
+        set(_CC "${CMAKE_C_COMPILER_LAUNCHER} ${_CC}")
       endif()
       if(CMAKE_CXX_COMPILER_LAUNCHER)
-        set(ENV{CXX} "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
+        set(_CXX "${CMAKE_CXX_COMPILER_LAUNCHER} ${_CXX}")
       endif()
 
+      set(ENV{CC} "${_CC}")
+      set(ENV{CXX} "${_CXX}")
       message(VERBOSE "cunumeric: ENV{CC}=\"$ENV{CC}\"")
       message(VERBOSE "cunumeric: ENV{CXX}=\"$ENV{CXX}\"")
+
+      set(tblis_verbosity "--enable-silent-rules")
+      if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.25")
+        cmake_language(GET_MESSAGE_LOG_LEVEL log_level)
+        if(${log_level} STREQUAL "VERBOSE" OR
+           ${log_level} STREQUAL "DEBUG" OR
+           ${log_level} STREQUAL "TRACE")
+             set(tblis_verbosity "--disable-silent-rules")
+        endif()
+      endif()
 
       execute_process(
         COMMAND ./configure
           ${tblis_thread_model}
-          --enable-silent-rules
+          ${tblis_verbosity}
           --disable-option-checking
           --with-label-type=int32_t
           --with-length-type=int64_t
