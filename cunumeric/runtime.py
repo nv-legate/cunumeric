@@ -21,7 +21,13 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
 import legate.core.types as ty
 import numpy as np
-from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime, legion
+from legate.core import (
+    LEGATE_MAX_DIM,
+    ProcessorKind,
+    Rect,
+    get_legate_runtime,
+    legion,
+)
 from legate.core.context import Context as LegateContext
 from typing_extensions import TypeGuard
 
@@ -89,7 +95,7 @@ class Runtime(object):
 
     @property
     def num_gpus(self) -> int:
-        return self.legate_runtime.num_gpus
+        return self.legate_runtime.machine.count(ProcessorKind.GPU)
 
     def _register_dtypes(self) -> None:
         type_system = self.legate_context.type_system
