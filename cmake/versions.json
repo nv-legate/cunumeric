@@ -2,10 +2,10 @@
   "packages" : {
     "legate_core" : {
       "version": "23.03.00",
-      "git_url" : "https://github.com/magnatelee/legate.core.git",
+      "git_url" : "https://github.com/nv-legate/legate.core.git",
       "git_shallow": false,
       "always_download": false,
-      "git_tag" : "776899d3b2b50879bfdd0012838a1c5fc8871c29"
+      "git_tag" : "c133b2506c1136ff52920f2a9d9e4dbcf27d3c8c"
     }
   }
 }
