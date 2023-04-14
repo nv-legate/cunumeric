@@ -462,17 +462,37 @@ class Runtime(object):
                 shape=array.shape,
                 optimize_scalar=False,
             )
-            store.attach_external_allocation(
-                self.legate_context,
-                array.data,
-                share,
-            )
-            return DeferredArray(
-                self,
-                store,
-                dtype=array.dtype,
-                numpy_array=array if share else None,
-            )
+            # If the attach hack is enabled, do writes from the input array
+            # into the resulting array. Otherwise, do an attach. The attach
+            # hack enables scaling to multiple nodes when restricted
+            # attaches must be performed.
+            if settings.attach_hack():
+                assert not share
+                thunk = DeferredArray(
+                    self,
+                    store,
+                    dtype=array.dtype,
+                )
+                for index in np.ndindex(array.shape):
+                    thunk.set_item(
+                        index,
+                        self.create_wrapped_scalar(
+                            array[index], array.dtype, ()
+                        ),
+                    )
+                return thunk
+            else:
+                store.attach_external_allocation(
+                    self.legate_context,
+                    array.data,
+                    share,
+                )
+                return DeferredArray(
+                    self,
+                    store,
+                    dtype=array.dtype,
+                    numpy_array=array if share else None,
+                )
 
         assert not defer
         # Make this into an eager evaluated thunk

@@ -1160,6 +1160,21 @@ def reshape(
     return a.reshape(newshape, order=order)
 
 
+# Support a very basic (and incorrect in the general case) version of
+# broadcast_to that only works if we don't perform direct writes to
+# the underlying array.
+@add_boilerplate("array")
+def broadcast_to(
+    array: ndarray, shape: NdShapeLike, subok: bool = False
+) -> ndarray:
+    from .deferred import DeferredArray
+
+    thunk = array._thunk
+    store = thunk._broadcast(shape)  # type: ignore
+    new_thunk = DeferredArray(thunk.runtime, store, array.dtype)
+    return ndarray(shape, dtype=array.dtype, thunk=new_thunk)
+
+
 # Transpose-like operations
 
 

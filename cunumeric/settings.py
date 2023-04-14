@@ -53,6 +53,18 @@ class CunumericRuntimeSettings(Settings):
         """,
     )
 
+    attach_hack: PrioritizedSetting[bool] = PrioritizedSetting(
+        "attach-hack",
+        "CUNUMERIC_ATTACH_HACK",
+        default=False,
+        convert=convert_bool,
+        help="""
+        Enable the attach hack which avoids attaching in certain cases by doing
+        direct writes. This may be needed for multi-node runs of some
+        applications.
+        """,
+    )
+
     report_coverage: PrioritizedSetting[bool] = PrioritizedSetting(
         "report_coverage",
         "CUNUMERIC_REPORT_COVERAGE",
