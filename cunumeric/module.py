@@ -6145,6 +6145,11 @@ def argmax(
     --------
     numpy.argmax
 
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    when the array contains NaN(s).
+
     Availability
     --------
     Multiple GPUs, Multiple CPUs
@@ -6188,6 +6193,11 @@ def argmin(
     See Also
     --------
     numpy.argmin
+
+    Notes
+    -----
+    CuNumeric's parallel implementation may yield different results from NumPy
+    when the array contains NaN(s).
 
     Availability
     --------
