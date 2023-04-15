@@ -30,7 +30,7 @@ static const char* const cunumeric_library_name = "cunumeric";
   return registrar;
 }
 
-extern void register_reduction_operators(LibraryContext& context);
+extern void register_reduction_operators(LibraryContext* context);
 
 void registration_callback()
 {
@@ -41,10 +41,10 @@ void registration_callback()
   auto context = Runtime::get_runtime()->create_library(
     cunumeric_library_name, config, std::make_unique<CuNumericMapper>());
 
-  CuNumericRegistrar::get_registrar().register_all_tasks(*context);
+  CuNumericRegistrar::get_registrar().register_all_tasks(context);
 
   // Register our special reduction functions
-  register_reduction_operators(*context);
+  register_reduction_operators(context);
 }
 
 }  // namespace cunumeric
