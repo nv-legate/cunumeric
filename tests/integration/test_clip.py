@@ -20,39 +20,58 @@ from utils.generators import mk_seq_array
 
 import cunumeric as num
 
-# cunumeric.clip(array, a_min, a_max, out=None, **kwargs)
 
+class TestClipErrors:
+    @pytest.mark.xfail
+    def test_none_array(self):
+        expected_exc = TypeError
+        with pytest.raises(expected_exc):
+            np.clip(None, a_min=0, a_max=0)
+        with pytest.raises(expected_exc):
+            # cunumeric raises
+            # AttributeError: 'NoneType' object has no attribute 'clip'
+            num.clip(None, a_min=0, a_max=0)
 
-@pytest.mark.xfail
-def test_none_array():
-    expected_exc = TypeError
-    with pytest.raises(expected_exc):
-        np.clip(None, a_min=0, a_max=0)
-    with pytest.raises(expected_exc):
-        # cunumeric raises
-        # AttributeError: 'NoneType' object has no attribute 'clip'
-        num.clip(None, a_min=0, a_max=0)
+    @pytest.mark.xfail
+    def test_value_none(self):
+        array = np.arange(0, 10)
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            # Numpy raises:
+            # ValueError: One of max or min must be given
+            np.clip(array, a_min=None, a_max=None)
+        with pytest.raises(expected_exc):
+            # cunumeric raises:
+            # TypeError: int() argument must be a string,
+            # a bytes-like object or a real number, not 'NoneType'
+            num.clip(array, a_min=None, a_max=None)
+
+    def test_value_list(self):
+        array = np.arange(0, 10)
+        amin = [2, 3, 4, 5, 1]
+        amax = 8
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            np.clip(array, a_min=amin, a_max=amax)
+        with pytest.raises(expected_exc):
+            num.clip(array, a_min=amin, a_max=amax)
+
+    def test_out(self):
+        array = np.arange(0, 5)
+        out_a = np.arange(0, 3)
+        amin = [2, 3, 4, 5, 1]
+        amax = 8
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            np.clip(array, a_min=amin, a_max=amax, out=out_a)
+        with pytest.raises(expected_exc):
+            num.clip(array, a_min=amin, a_max=amax, out=out_a)
 
 
 def test_empty_array():
-    res_np = np.clip([0], a_min=0, a_max=0)
-    res_num = num.clip([0], a_min=0, a_max=0)
+    res_np = np.clip([], a_min=0, a_max=0)
+    res_num = num.clip([], a_min=0, a_max=0)
     assert np.array_equal(res_np, res_num)
-
-
-@pytest.mark.xfail
-def test_value_none():
-    array = np.arange(0, 10)
-    expected_exc = ValueError
-    with pytest.raises(expected_exc):
-        # Numpy raises:
-        # ValueError: One of max or min must be given
-        np.clip(array, a_min=None, a_max=None)
-    with pytest.raises(expected_exc):
-        # cunumeric raises:
-        # TypeError: int() argument must be a string, a bytes-like object
-        # or a real number, not 'NoneType'
-        num.clip(array, a_min=None, a_max=None)
 
 
 @pytest.mark.xfail
@@ -74,7 +93,8 @@ def test_amin_value(amin):
     res_np = np.clip(array, a_min=amin, a_max=8.5)
     res_num = num.clip(array, a_min=amin, a_max=8.5)
     # res_np is not match res_num
-    # in Numpy, if a_min or a_max is float, all data are marked as float,
+    # in Numpy, when one of a_min of a_max is float,
+    # all data are marked as float,
     # while in cunumeric, all datas are int.
     # for example, amin = 5
     # array = array([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
@@ -89,7 +109,7 @@ def test_amin_complex():
     amin = 5 + 5j
     res_np = np.clip(array, a_min=amin, a_max=8.5)
     #  res_np = array([5. +5.j, 5. +5.j, 5. +5.j, 5. +5.j, 5. +5.j,
-    #   5. +5.j, 6. +0.j, 7. +0.j, 8. +0.j, 8.5+0.j])
+    #  5. +5.j, 6. +0.j, 7. +0.j, 8. +0.j, 8.5+0.j])
     res_num = num.clip(array, a_min=amin, a_max=8.5)
     # cunumeric raises:
     # TypeError: int() argument must be a string, a bytes-like object
@@ -106,31 +126,7 @@ def test_value_list():
     assert np.array_equal(res_np, res_num)
 
 
-def test_value_list_negative():
-    array = np.arange(0, 10)
-    amin = [2, 3, 4, 5, 1]
-    amax = 8
-    expected_exc = ValueError
-    with pytest.raises(expected_exc):
-        np.clip(array, a_min=amin, a_max=amax)
-        # ValueError: operands could not be broadcast together
-    with pytest.raises(expected_exc):
-        num.clip(array, a_min=amin, a_max=amax)
-
-
-def test_out_negative():
-    array = np.arange(0, 5)
-    out_a = np.arange(0, 3)
-    amin = [2, 3, 4, 5, 1]
-    amax = 8
-    expected_exc = ValueError
-    with pytest.raises(expected_exc):
-        np.clip(array, a_min=amin, a_max=amax, out=out_a)
-    with pytest.raises(expected_exc):
-        num.clip(array, a_min=amin, a_max=amax, out=out_a)
-
-
-def test_out_negative_ndim():
+def test_out_ndim():
     array = [[2, 3, 4], [3, 4, 5], [6, 6, 12]]
     np_arr = np.array(array)
     num_arr = num.array(array)
@@ -152,6 +148,7 @@ def test_basic(ndim):
 
     amin = int(np.prod(shape) / 2)
     amax = np.prod(shape) - 1
+
     res_np = np.clip(np_arr, amin, amax)
     res_num = num.clip(num_arr, amin, amax)
     assert np.array_equal(res_num, res_np)
@@ -163,13 +160,15 @@ def test_out(ndim):
     np_arr = mk_seq_array(np, shape)
     num_arr = mk_seq_array(num, shape)
 
-    out_np = np.zeros(shape)
-    out_num = num.zeros(shape)
+    out_np = np.empty(shape)
+    out_num = num.empty(shape)
 
     amin = int(np.prod(shape) / 2)
     amax = np.prod(shape) - 1
+
     np.clip(np_arr, amin, amax, out=out_np)
     num.clip(num_arr, amin, amax, out=out_num)
+
     assert np.array_equal(out_np, out_num)
 
 

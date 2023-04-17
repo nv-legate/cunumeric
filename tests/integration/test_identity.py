@@ -18,31 +18,23 @@ import pytest
 
 import cunumeric as num
 
-# cunumeric.identity(n, dtype=None, *, like=None)
-
 DTYPE_ALL = [
-    "l",
-    "L",
-    "f",
-    "e",
-    "d",
-    "h",
-    "i",
-    "H",
-    "I",
-    "?",
-    "b",
-    "B",
-    "F",
-    "D",
+    np.int8,
+    np.int16,
+    np.int32,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+    np.float16,
+    np.float32,
+    np.float64,
+    np.bool,
+    np.complex64,
+    np.complex128,
 ]
 VALUES = [0, 1, 2, 100]
 NEGATIVE_TYPE = [None, np.inf, -np.inf, -3.5, 3.5, 5j, 10 + 20j, -100 - 100j]
 NEGATIVE_VALUE = [-1, -2]
-
-
-def to_dtype(s):
-    return str(np.dtype(s))
 
 
 @pytest.mark.parametrize("val", VALUES)
@@ -70,7 +62,7 @@ def test_value_negative_value(neg_val):
         num.identity(neg_val)
 
 
-@pytest.mark.parametrize("dtype", DTYPE_ALL, ids=to_dtype)
+@pytest.mark.parametrize("dtype", DTYPE_ALL)
 def test_dtype(dtype):
     res_np = np.identity(5, dtype=dtype)
     res_num = num.identity(5, dtype=dtype)
