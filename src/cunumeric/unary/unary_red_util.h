@@ -310,12 +310,10 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   }
 };
 
-// enable_if_t floating point type would go here
-//
-
-template <legate::LegateTypeCode TYPE_CODE>
+template <typename legate::LegateTypeCode TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE> {
-  static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
+  static constexpr bool valid =
+    (legate::is_floating_point<TYPE_CODE>::value || TYPE_CODE == legate::LegateTypeCode::HALF_LT);
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = Argval<RHS>;

@@ -5337,8 +5337,21 @@ def nanargmax(
     """
     Placeholder for doc
     """
+
+    # if the datatype is not floating point, then call argmax
+    allowed_types: list[np.dtype[Any]] = [
+        np.dtype(np.float16),
+        np.dtype(np.float32),
+        np.dtype(np.float64),
+    ]
+
+    if a.dtype in allowed_types:
+        unary_reduction_code = UnaryRedCode.NANARGMAX
+    else:
+        unary_reduction_code = UnaryRedCode.ARGMAX
+
     index_array = a._perform_unary_reduction(
-        UnaryRedCode.NANARGMAX,
+        unary_reduction_code,
         a,
         axis=axis,
         out=out,
