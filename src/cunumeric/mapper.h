@@ -22,7 +22,7 @@
 
 namespace cunumeric {
 
-class CuNumericMapper : public legate::mapping::LegateMapper {
+class CuNumericMapper : public legate::mapping::Mapper {
  public:
   CuNumericMapper();
   virtual ~CuNumericMapper(void) {}

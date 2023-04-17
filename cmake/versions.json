@@ -5,7 +5,7 @@
       "git_url" : "https://github.com/nv-legate/legate.core.git",
       "git_shallow": false,
       "always_download": false,
-      "git_tag" : "2afa4c7"
+      "git_tag" : "611f6ff1fa22f42a22809a4be86821b43c4ab6ea"
     }
   }
 }
