@@ -5392,13 +5392,15 @@ def nanargmax(
         res_dtype=np.dtype(np.int64),
     )
 
-    # Error handling: we return identity when the array or a slice
-    # contains only NaNs, so raise an error
+    # Error handling: Raise a ValueError when the array or a slice
+    # contains only NaNs.
     identity = np.iinfo(np.int64).min
     if index_array.size == 1:
         if index_array == identity:
             raise ValueError("Array contains only NaNs")
     else:
+        # Note that there is a UnaryRedCode.CONTAINS operation here
+        # to emit validation errors.
         if identity in index_array:
             raise ValueError("Array contains only NaNs")
 
