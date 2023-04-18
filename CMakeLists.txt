@@ -33,6 +33,14 @@ if(POLICY CMP0135)
   set(CMAKE_POLICY_DEFAULT_CMP0135 NEW)
 endif()
 
+if(POLICY CMP0132)
+  # Avoid an inconsistency, where cmake would only set the CC/CXX env vars on
+  # the first run, but not subsequent ones. This would come up when building
+  # TBLIS.
+  cmake_policy(SET CMP0132 NEW)
+  set(CMAKE_POLICY_DEFAULT_CMP0132 NEW)
+endif()
+
 ##############################################################################
 # - Download and initialize RAPIDS CMake helpers -----------------------------
 

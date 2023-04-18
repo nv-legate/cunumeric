@@ -212,9 +212,8 @@ enum CuNumericTunable {
 };
 
 enum CuNumericBounds {
-  CUNUMERIC_MAX_MAPPERS = 1,
-  CUNUMERIC_MAX_REDOPS  = 1024,
-  CUNUMERIC_MAX_TASKS   = 1048576,
+  CUNUMERIC_MAX_REDOPS = 1024,
+  CUNUMERIC_MAX_TASKS  = 1048576,
 };
 
 // Match these to ScanCode in config.py
