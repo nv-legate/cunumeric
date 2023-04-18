@@ -138,6 +138,14 @@ constexpr decltype(auto) op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&..
   return f.template operator()<BinaryOpCode::ADD>(std::forward<Fnargs>(args)...);
 }
 
+template <typename FloatFunc>
+__CUDA_HD__ __half lift(const __half& _a, const __half& _b, FloatFunc func)
+{
+  float a = _a;
+  float b = _b;
+  return __half{func(a, b)};
+}
+
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) reduce_op_dispatch(BinaryOpCode op_code, Functor f, Fnargs&&... args)
 {
@@ -168,6 +176,7 @@ struct BinaryOp<BinaryOpCode::ARCTAN2, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
 
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr decltype(auto) operator()(const T& a, const T& b) const
@@ -179,14 +188,12 @@ struct BinaryOp<BinaryOpCode::ARCTAN2, CODE> {
 
 template <>
 struct BinaryOp<BinaryOpCode::ARCTAN2, legate::Type::FLOAT16> {
-  using T                     = __half;
   static constexpr bool valid = true;
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
   {
-    using std::atan2;
-    return __half{atan2(static_cast<float>(a), static_cast<float>(b))};
+    return lift(a, b, BinaryOp<BinaryOpCode::ARCTAN2, legate::Type::FLOAT32>{});
   }
 };
 
@@ -233,6 +240,7 @@ template <legate::Type CODE>
 struct BinaryOp<BinaryOpCode::COPYSIGN, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr T operator()(const T& a, const T& b) const
@@ -250,8 +258,7 @@ struct BinaryOp<BinaryOpCode::COPYSIGN, legate::Type::FLOAT16> {
 
   __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
   {
-    using std::copysign;
-    return __half{copysign(static_cast<float>(a), static_cast<float>(b))};
+    return lift(a, b, BinaryOp<BinaryOpCode::COPYSIGN, legate::Type::FLOAT32>{});
   }
 };
 
@@ -310,6 +317,8 @@ template <legate::Type CODE>
 struct BinaryOp<BinaryOpCode::FMOD, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = not(CODE == legate::Type::BOOL or legate::is_complex<CODE>::value);
+
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   template <typename _T = T, std::enable_if_t<std::is_integral<_T>::value>* = nullptr>
@@ -332,8 +341,7 @@ struct BinaryOp<BinaryOpCode::FMOD, legate::Type::FLOAT16> {
   BinaryOp(const std::vector<legate::Store>& args) {}
   __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
   {
-    using std::fmod;
-    return __half{fmod(static_cast<float>(a), static_cast<float>(b))};
+    return lift(a, b, BinaryOp<BinaryOpCode::FMOD, legate::Type::FLOAT32>{});
   }
 };
 
@@ -436,12 +444,25 @@ struct BinaryOp<BinaryOpCode::HYPOT, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
 
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr decltype(auto) operator()(const T& a, const T& b) const
   {
     using std::hypot;
     return hypot(a, b);
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::HYPOT, legate::Type::FLOAT16> {
+  static constexpr bool valid = true;
+
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
+  {
+    return lift(a, b, BinaryOp<BinaryOpCode::HYPOT, legate::Type::FLOAT32>{});
   }
 };
 
@@ -562,6 +583,7 @@ struct BinaryOp<BinaryOpCode::LOGADDEXP, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
 
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr decltype(auto) operator()(const T& a, const T& b) const
@@ -578,11 +600,24 @@ struct BinaryOp<BinaryOpCode::LOGADDEXP, CODE> {
   }
 };
 
+template <>
+struct BinaryOp<BinaryOpCode::LOGADDEXP, legate::Type::FLOAT16> {
+  static constexpr bool valid = true;
+
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
+  {
+    return lift(a, b, BinaryOp<BinaryOpCode::LOGADDEXP, legate::Type::FLOAT32>{});
+  }
+};
+
 template <legate::Type CODE>
 struct BinaryOp<BinaryOpCode::LOGADDEXP2, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
 
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr decltype(auto) operator()(const T& a, const T& b) const
@@ -595,6 +630,18 @@ struct BinaryOp<BinaryOpCode::LOGADDEXP2, CODE> {
       return a + T{1.0};
     else
       return fmax(a, b) + log2(T{1} + exp2(-fabs(a - b)));
+  }
+};
+
+template <>
+struct BinaryOp<BinaryOpCode::LOGADDEXP2, legate::Type::FLOAT16> {
+  static constexpr bool valid = true;
+
+  BinaryOp(const std::vector<legate::Store>& args) {}
+
+  __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
+  {
+    return lift(a, b, BinaryOp<BinaryOpCode::LOGADDEXP2, legate::Type::FLOAT32>{});
   }
 };
 
@@ -688,6 +735,7 @@ template <legate::Type CODE>
 struct BinaryOp<BinaryOpCode::MOD, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = true;
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   template <typename _T                                                                  = T,
@@ -718,7 +766,7 @@ struct BinaryOp<BinaryOpCode::MOD, legate::Type::FLOAT16> {
   BinaryOp(const std::vector<legate::Store>& args) {}
   __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
   {
-    return static_cast<__half>(real_mod(static_cast<float>(a), static_cast<float>(b)));
+    return lift(a, b, BinaryOp<BinaryOpCode::MOD, legate::Type::FLOAT32>{});
   }
 };
 
@@ -744,6 +792,7 @@ template <legate::Type CODE>
 struct BinaryOp<BinaryOpCode::NEXTAFTER, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr T operator()(const T& a, const T& b) const
@@ -761,8 +810,7 @@ struct BinaryOp<BinaryOpCode::NEXTAFTER, legate::Type::FLOAT16> {
 
   __CUDA_HD__ __half operator()(const __half& a, const __half& b) const
   {
-    using std::nextafter;
-    return __half{nextafter(static_cast<float>(a), static_cast<float>(b))};
+    return lift(a, b, BinaryOp<BinaryOpCode::NEXTAFTER, legate::Type::FLOAT32>{});
   }
 };
 
