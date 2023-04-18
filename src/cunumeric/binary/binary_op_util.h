@@ -618,7 +618,7 @@ struct BinaryOp<BinaryOpCode::LOGADDEXP2, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
 
-  BinaryOp() {}
+  __CUDA_HD__ BinaryOp() {}
   BinaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr decltype(auto) operator()(const T& a, const T& b) const
