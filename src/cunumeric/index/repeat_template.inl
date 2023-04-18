@@ -24,12 +24,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, Type CODE, int DIM>
 struct RepeatImplBody;
 
 template <VariantKind KIND>
 struct RepeatImpl {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type CODE, int DIM>
   void operator()(RepeatArgs& args) const
   {
     using VAL       = legate_type_of<CODE>;

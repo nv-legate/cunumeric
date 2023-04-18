@@ -54,7 +54,7 @@ struct FillImpl {
     FillImplBody<KIND, VAL, DIM>{}(out, fill_value, pitches, rect, dense);
   }
 
-  template <LegateTypeCode CODE, int DIM>
+  template <Type CODE, int DIM>
   void operator()(FillArgs& args) const
   {
     if (args.is_argval) {

@@ -141,7 +141,7 @@ class Runtime(object):
 
             for redop in CuNumericRedopCode:
                 redop_id = self.legate_context.get_reduction_op_id(
-                    redop.value * legion.MAX_TYPE_NUMBER + code
+                    redop.value * (legion.COMPLEX128_LT + 1) + code
                 )
                 dtype.register_reduction_op(redop, redop_id)
         return arg_dtype

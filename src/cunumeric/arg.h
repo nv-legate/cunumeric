@@ -64,7 +64,7 @@ class ArgmaxReduction {
 
   static const Argval<T> identity;
   static const int32_t REDOP_ID =
-    CUNUMERIC_ARGMAX_REDOP * MAX_TYPE_NUMBER + legate::legate_type_code_of<T>;
+    CUNUMERIC_ARGMAX_REDOP * MAX_TYPE_NUMBER + static_cast<int32_t>(legate::legate_type_code_of<T>);
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ inline static void apply(LHS& lhs, RHS rhs)
@@ -86,7 +86,7 @@ class ArgminReduction {
 
   static const Argval<T> identity;
   static const int32_t REDOP_ID =
-    CUNUMERIC_ARGMIN_REDOP * MAX_TYPE_NUMBER + legate::legate_type_code_of<T>;
+    CUNUMERIC_ARGMIN_REDOP * MAX_TYPE_NUMBER + static_cast<int32_t>(legate::legate_type_code_of<T>);
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ inline static void apply(LHS& lhs, RHS rhs)

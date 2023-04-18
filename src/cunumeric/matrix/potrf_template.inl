@@ -23,23 +23,23 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type CODE>
 struct PotrfImplBody;
 
-template <LegateTypeCode CODE>
+template <Type CODE>
 struct support_potrf : std::false_type {};
 template <>
-struct support_potrf<LegateTypeCode::DOUBLE_LT> : std::true_type {};
+struct support_potrf<Type::FLOAT64> : std::true_type {};
 template <>
-struct support_potrf<LegateTypeCode::FLOAT_LT> : std::true_type {};
+struct support_potrf<Type::FLOAT32> : std::true_type {};
 template <>
-struct support_potrf<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
+struct support_potrf<Type::COMPLEX64> : std::true_type {};
 template <>
-struct support_potrf<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
+struct support_potrf<Type::COMPLEX128> : std::true_type {};
 
 template <VariantKind KIND>
 struct PotrfImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<support_potrf<CODE>::value>* = nullptr>
+  template <Type CODE, std::enable_if_t<support_potrf<CODE>::value>* = nullptr>
   void operator()(Array& array) const
   {
     using VAL = legate_type_of<CODE>;
@@ -58,7 +58,7 @@ struct PotrfImpl {
     PotrfImplBody<KIND, CODE>()(arr, m, n);
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!support_potrf<CODE>::value>* = nullptr>
+  template <Type CODE, std::enable_if_t<!support_potrf<CODE>::value>* = nullptr>
   void operator()(Array& array) const
   {
     assert(false);

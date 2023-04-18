@@ -24,7 +24,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM>
+template <Type CODE, int DIM>
 struct ConvolveImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 

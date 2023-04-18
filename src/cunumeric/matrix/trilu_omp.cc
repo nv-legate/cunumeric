@@ -21,7 +21,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <LegateTypeCode CODE, int32_t DIM, bool LOWER>
+template <Type CODE, int32_t DIM, bool LOWER>
 struct TriluImplBody<VariantKind::OMP, CODE, DIM, LOWER> {
   using VAL = legate_type_of<CODE>;
 

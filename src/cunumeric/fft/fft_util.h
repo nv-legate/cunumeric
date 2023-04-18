@@ -44,45 +44,45 @@ constexpr decltype(auto) fft_dispatch(CuNumericFFTType type, Functor f, Fnargs&&
   return f.template operator()<CUNUMERIC_FFT_C2C>(std::forward<Fnargs>(args)...);
 }
 
-template <CuNumericFFTType TYPE, LegateTypeCode CODE_IN>
+template <CuNumericFFTType TYPE, Type CODE_IN>
 struct FFT {
   static constexpr bool valid = false;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_R2C, LegateTypeCode::FLOAT_LT> {
-  static constexpr bool valid              = true;
-  static constexpr LegateTypeCode CODE_OUT = LegateTypeCode::COMPLEX64_LT;
+struct FFT<CUNUMERIC_FFT_R2C, Type::FLOAT32> {
+  static constexpr bool valid    = true;
+  static constexpr Type CODE_OUT = Type::COMPLEX64;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_C2R, LegateTypeCode::COMPLEX64_LT> {
-  static constexpr bool valid              = true;
-  static constexpr LegateTypeCode CODE_OUT = LegateTypeCode::FLOAT_LT;
+struct FFT<CUNUMERIC_FFT_C2R, Type::COMPLEX64> {
+  static constexpr bool valid    = true;
+  static constexpr Type CODE_OUT = Type::FLOAT32;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_C2C, LegateTypeCode::COMPLEX64_LT> {
-  static constexpr bool valid              = true;
-  static constexpr LegateTypeCode CODE_OUT = LegateTypeCode::COMPLEX64_LT;
+struct FFT<CUNUMERIC_FFT_C2C, Type::COMPLEX64> {
+  static constexpr bool valid    = true;
+  static constexpr Type CODE_OUT = Type::COMPLEX64;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_D2Z, LegateTypeCode::DOUBLE_LT> {
-  static constexpr bool valid              = true;
-  static constexpr LegateTypeCode CODE_OUT = LegateTypeCode::COMPLEX128_LT;
+struct FFT<CUNUMERIC_FFT_D2Z, Type::FLOAT64> {
+  static constexpr bool valid    = true;
+  static constexpr Type CODE_OUT = Type::COMPLEX128;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_Z2D, LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid              = true;
-  static constexpr LegateTypeCode CODE_OUT = LegateTypeCode::DOUBLE_LT;
+struct FFT<CUNUMERIC_FFT_Z2D, Type::COMPLEX128> {
+  static constexpr bool valid    = true;
+  static constexpr Type CODE_OUT = Type::FLOAT64;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_Z2Z, LegateTypeCode::COMPLEX128_LT> {
-  static constexpr bool valid              = true;
-  static constexpr LegateTypeCode CODE_OUT = LegateTypeCode::COMPLEX128_LT;
+struct FFT<CUNUMERIC_FFT_Z2Z, Type::COMPLEX128> {
+  static constexpr bool valid    = true;
+  static constexpr Type CODE_OUT = Type::COMPLEX128;
 };
 
 }  // namespace cunumeric

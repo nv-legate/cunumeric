@@ -183,20 +183,20 @@ constexpr decltype(auto) op_dispatch(UnaryOpCode op_code, Functor f, Fnargs&&...
   return f.template operator()<UnaryOpCode::ABSOLUTE>(std::forward<Fnargs>(args)...);
 }
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 static constexpr bool is_floating_point =
-  legate::is_floating_point<CODE>::value || CODE == legate::LegateTypeCode::HALF_LT;
+  legate::is_floating_point<CODE>::value || CODE == legate::Type::FLOAT16;
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 static constexpr bool is_floating_or_complex =
   is_floating_point<CODE> || legate::is_complex<CODE>::value;
 
-template <UnaryOpCode OP_CODE, legate::LegateTypeCode CODE>
+template <UnaryOpCode OP_CODE, legate::Type CODE>
 struct UnaryOp {
   static constexpr bool valid = false;
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -235,7 +235,7 @@ struct UnaryOp<UnaryOpCode::ABSOLUTE, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ARCCOS, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -249,7 +249,7 @@ struct UnaryOp<UnaryOpCode::ARCCOS, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ARCCOSH, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -264,7 +264,7 @@ struct UnaryOp<UnaryOpCode::ARCCOSH, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::ARCCOSH, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::ARCCOSH, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -277,7 +277,7 @@ struct UnaryOp<UnaryOpCode::ARCCOSH, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ARCSIN, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -291,7 +291,7 @@ struct UnaryOp<UnaryOpCode::ARCSIN, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ARCSINH, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -306,7 +306,7 @@ struct UnaryOp<UnaryOpCode::ARCSINH, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::ARCSINH, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::ARCSINH, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -319,7 +319,7 @@ struct UnaryOp<UnaryOpCode::ARCSINH, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ARCTAN, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -333,7 +333,7 @@ struct UnaryOp<UnaryOpCode::ARCTAN, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ARCTANH, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -348,7 +348,7 @@ struct UnaryOp<UnaryOpCode::ARCTANH, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::ARCTANH, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::ARCTANH, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -361,7 +361,7 @@ struct UnaryOp<UnaryOpCode::ARCTANH, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::CBRT, CODE> {
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
   using T                     = legate::legate_type_of<CODE>;
@@ -376,7 +376,7 @@ struct UnaryOp<UnaryOpCode::CBRT, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::CBRT, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::CBRT, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -389,7 +389,7 @@ struct UnaryOp<UnaryOpCode::CBRT, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::CEIL, CODE> {
   static constexpr bool valid = is_floating_point<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -403,7 +403,7 @@ struct UnaryOp<UnaryOpCode::CEIL, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::CLIP, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -421,7 +421,7 @@ struct UnaryOp<UnaryOpCode::CLIP, CODE> {
   T max;
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::CONJ, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = true;
@@ -441,7 +441,7 @@ struct UnaryOp<UnaryOpCode::CONJ, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::COPY, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -451,7 +451,7 @@ struct UnaryOp<UnaryOpCode::COPY, CODE> {
   constexpr T operator()(const T& x) const { return x; }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::COS, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -465,7 +465,7 @@ struct UnaryOp<UnaryOpCode::COS, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::COSH, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -480,7 +480,7 @@ struct UnaryOp<UnaryOpCode::COSH, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::COSH, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::COSH, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -493,7 +493,7 @@ struct UnaryOp<UnaryOpCode::COSH, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::DEG2RAD, CODE> {
   static constexpr bool valid = is_floating_point<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -504,7 +504,7 @@ struct UnaryOp<UnaryOpCode::DEG2RAD, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::DEG2RAD, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::DEG2RAD, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -516,7 +516,7 @@ struct UnaryOp<UnaryOpCode::DEG2RAD, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::EXP, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -530,7 +530,7 @@ struct UnaryOp<UnaryOpCode::EXP, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::EXP2, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -558,7 +558,7 @@ struct UnaryOp<UnaryOpCode::EXP2, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::EXP2, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::EXP2, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -571,7 +571,7 @@ struct UnaryOp<UnaryOpCode::EXP2, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::EXPM1, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -594,7 +594,7 @@ struct UnaryOp<UnaryOpCode::EXPM1, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::EXPM1, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::EXPM1, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -607,7 +607,7 @@ struct UnaryOp<UnaryOpCode::EXPM1, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::FLOOR, CODE> {
   static constexpr bool valid = is_floating_point<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -621,7 +621,7 @@ struct UnaryOp<UnaryOpCode::FLOOR, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::GETARG, CODE> {
   using T                     = Argval<legate::legate_type_of<CODE>>;
   static constexpr bool valid = true;
@@ -631,7 +631,7 @@ struct UnaryOp<UnaryOpCode::GETARG, CODE> {
   constexpr decltype(auto) operator()(const T& x) const { return x.arg; }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::IMAG, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_complex_type<T>::value;
@@ -641,18 +641,17 @@ struct UnaryOp<UnaryOpCode::IMAG, CODE> {
   constexpr decltype(auto) operator()(const T& x) const { return x.imag(); }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::INVERT, CODE> {
-  static constexpr bool valid =
-    legate::is_integral<CODE>::value && CODE != legate::LegateTypeCode::BOOL_LT;
-  using T = legate::legate_type_of<CODE>;
+  static constexpr bool valid = legate::is_integral<CODE>::value && CODE != legate::Type::BOOL;
+  using T                     = legate::legate_type_of<CODE>;
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
   constexpr T operator()(const T& x) const { return ~x; }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ISFINITE, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -680,7 +679,7 @@ struct UnaryOp<UnaryOpCode::ISFINITE, CODE> {
   __CUDA_HD__ bool operator()(const __half& x) const { return isfinite(static_cast<float>(x)); }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ISINF, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -708,7 +707,7 @@ struct UnaryOp<UnaryOpCode::ISINF, CODE> {
   __CUDA_HD__ bool operator()(const __half& x) const { return isinf(x); }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::ISNAN, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -737,7 +736,7 @@ struct UnaryOp<UnaryOpCode::ISNAN, CODE> {
   __CUDA_HD__ bool operator()(const __half& x) const { return isnan(x); }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::LOG, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   ;
@@ -752,7 +751,7 @@ struct UnaryOp<UnaryOpCode::LOG, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::LOG10, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   ;
@@ -768,7 +767,7 @@ struct UnaryOp<UnaryOpCode::LOG10, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::LOG10, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::LOG10, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -781,7 +780,7 @@ struct UnaryOp<UnaryOpCode::LOG10, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::LOG1P, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   ;
@@ -805,7 +804,7 @@ struct UnaryOp<UnaryOpCode::LOG1P, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::LOG1P, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::LOG1P, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -818,7 +817,7 @@ struct UnaryOp<UnaryOpCode::LOG1P, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::LOG2, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   ;
@@ -842,7 +841,7 @@ struct UnaryOp<UnaryOpCode::LOG2, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::LOG2, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::LOG2, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -855,7 +854,7 @@ struct UnaryOp<UnaryOpCode::LOG2, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::LOGICAL_NOT, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -875,7 +874,7 @@ struct UnaryOp<UnaryOpCode::LOGICAL_NOT, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::NEGATIVE, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -885,7 +884,7 @@ struct UnaryOp<UnaryOpCode::NEGATIVE, CODE> {
   constexpr T operator()(const T& x) const { return -x; }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::RAD2DEG, CODE> {
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
   using T                     = legate::legate_type_of<CODE>;
@@ -896,7 +895,7 @@ struct UnaryOp<UnaryOpCode::RAD2DEG, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::RAD2DEG, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::RAD2DEG, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -908,7 +907,7 @@ struct UnaryOp<UnaryOpCode::RAD2DEG, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::REAL, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = legate::is_complex_type<T>::value;
@@ -918,7 +917,7 @@ struct UnaryOp<UnaryOpCode::REAL, CODE> {
   constexpr decltype(auto) operator()(const T& x) const { return x.real(); }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::RECIPROCAL, CODE> {
   using T                     = legate::legate_type_of<CODE>;
   static constexpr bool valid = true;
@@ -933,7 +932,7 @@ struct UnaryOp<UnaryOpCode::RECIPROCAL, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::RECIPROCAL, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::RECIPROCAL, legate::Type::FLOAT16> {
   using T                     = __half;
   static constexpr bool valid = true;
 
@@ -945,7 +944,7 @@ struct UnaryOp<UnaryOpCode::RECIPROCAL, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::RINT, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -966,7 +965,7 @@ struct UnaryOp<UnaryOpCode::RINT, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::RINT, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::RINT, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -995,7 +994,7 @@ constexpr T sign(const T& x)
 
 }  // namespace detail
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::SIGN, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -1020,7 +1019,7 @@ struct UnaryOp<UnaryOpCode::SIGN, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::SIGN, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::SIGN, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -1032,7 +1031,7 @@ struct UnaryOp<UnaryOpCode::SIGN, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::SIGNBIT, CODE> {
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
   using T                     = legate::legate_type_of<CODE>;
@@ -1047,7 +1046,7 @@ struct UnaryOp<UnaryOpCode::SIGNBIT, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::SIGNBIT, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::SIGNBIT, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -1060,7 +1059,7 @@ struct UnaryOp<UnaryOpCode::SIGNBIT, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::SIN, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -1074,7 +1073,7 @@ struct UnaryOp<UnaryOpCode::SIN, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::SINH, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -1089,7 +1088,7 @@ struct UnaryOp<UnaryOpCode::SINH, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::SINH, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::SINH, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -1102,7 +1101,7 @@ struct UnaryOp<UnaryOpCode::SINH, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::SQUARE, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -1112,7 +1111,7 @@ struct UnaryOp<UnaryOpCode::SQUARE, CODE> {
   constexpr T operator()(const T& x) const { return x * x; }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::SQRT, CODE> {
   static constexpr bool valid = true;
   using T                     = legate::legate_type_of<CODE>;
@@ -1126,7 +1125,7 @@ struct UnaryOp<UnaryOpCode::SQRT, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::TAN, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -1140,7 +1139,7 @@ struct UnaryOp<UnaryOpCode::TAN, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::TANH, CODE> {
   static constexpr bool valid = is_floating_or_complex<CODE>;
   using T                     = legate::legate_type_of<CODE>;
@@ -1154,7 +1153,7 @@ struct UnaryOp<UnaryOpCode::TANH, CODE> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct UnaryOp<UnaryOpCode::TRUNC, CODE> {
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
   using T                     = legate::legate_type_of<CODE>;
@@ -1169,7 +1168,7 @@ struct UnaryOp<UnaryOpCode::TRUNC, CODE> {
 };
 
 template <>
-struct UnaryOp<UnaryOpCode::TRUNC, legate::LegateTypeCode::HALF_LT> {
+struct UnaryOp<UnaryOpCode::TRUNC, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using T                     = __half;
 
@@ -1182,12 +1181,12 @@ struct UnaryOp<UnaryOpCode::TRUNC, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <UnaryOpCode OP_CODE, legate::LegateTypeCode CODE>
+template <UnaryOpCode OP_CODE, legate::Type CODE>
 struct MultiOutUnaryOp {
   static constexpr bool valid = false;
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct MultiOutUnaryOp<UnaryOpCode::FREXP, CODE> {
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
   using RHS1                  = legate::legate_type_of<CODE>;
@@ -1202,7 +1201,7 @@ struct MultiOutUnaryOp<UnaryOpCode::FREXP, CODE> {
 };
 
 template <>
-struct MultiOutUnaryOp<UnaryOpCode::FREXP, legate::LegateTypeCode::HALF_LT> {
+struct MultiOutUnaryOp<UnaryOpCode::FREXP, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using RHS1                  = __half;
   using RHS2                  = int32_t;
@@ -1215,7 +1214,7 @@ struct MultiOutUnaryOp<UnaryOpCode::FREXP, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type CODE>
 struct MultiOutUnaryOp<UnaryOpCode::MODF, CODE> {
   static constexpr bool valid = legate::is_floating_point<CODE>::value;
   using RHS1                  = legate::legate_type_of<CODE>;
@@ -1230,7 +1229,7 @@ struct MultiOutUnaryOp<UnaryOpCode::MODF, CODE> {
 };
 
 template <>
-struct MultiOutUnaryOp<UnaryOpCode::MODF, legate::LegateTypeCode::HALF_LT> {
+struct MultiOutUnaryOp<UnaryOpCode::MODF, legate::Type::FLOAT16> {
   static constexpr bool valid = true;
   using RHS1                  = __half;
   using RHS2                  = __half;
