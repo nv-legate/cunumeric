@@ -14,9 +14,12 @@
 #
 from __future__ import annotations
 
+from pathlib import Path
+
 import numpy as np
 import pytest
-from legate.util.settings import PrioritizedSetting
+from legate.util.fs import read_c_define
+from legate.util.settings import EnvOnlySetting, PrioritizedSetting
 
 import cunumeric.settings as m
 
@@ -27,7 +30,22 @@ _expected_settings = (
     "report_coverage",
     "report_dump_callstack",
     "report_dump_csv",
+    "fast_math",
+    "min_gpu_chunk",
+    "min_cpu_chunk",
+    "min_omp_chunk",
+    "eager_fraction",
 )
+
+_settings_with_test_defaults = (
+    "fast_math",
+    "min_gpu_chunk",
+    "min_cpu_chunk",
+    "min_omp_chunk",
+    "eager_fraction",
+)
+
+ENV_HEADER = Path(__file__).parents[3] / "src" / "env_defaults.h"
 
 
 class TestSettings:
@@ -35,7 +53,7 @@ class TestSettings:
         settings = [
             k
             for k, v in m.settings.__class__.__dict__.items()
-            if isinstance(v, PrioritizedSetting)
+            if isinstance(v, (PrioritizedSetting, EnvOnlySetting))
         ]
         assert set(settings) == set(_expected_settings)
 
@@ -43,11 +61,6 @@ class TestSettings:
     def test_prefix(self, name: str) -> None:
         ps = getattr(m.settings, name)
         assert ps.env_var.startswith("CUNUMERIC_")
-
-    @pytest.mark.parametrize("name", _expected_settings)
-    def test_parent(self, name: str) -> None:
-        ps = getattr(m.settings, name)
-        assert ps._parent == m.settings
 
     def test_types(self) -> None:
         assert m.settings.test.convert_type == "bool"
@@ -76,6 +89,20 @@ class TestDefaults:
 
     def test_report_dump_csv(self) -> None:
         assert m.settings.report_dump_csv.default is None
+
+    @pytest.mark.parametrize("name", _settings_with_test_defaults)
+    def test_default(self, name: str) -> None:
+        setting = getattr(m.settings, name)
+        define = setting.env_var.removeprefix("LEGATE_") + "_DEFAULT"
+        expected = setting._convert(read_c_define(ENV_HEADER, define))
+        assert setting.default == expected
+
+    @pytest.mark.parametrize("name", _settings_with_test_defaults)
+    def test_test_default(self, name: str) -> None:
+        setting = getattr(m.settings, name)
+        define = setting.env_var.removeprefix("LEGATE_") + "_TEST"
+        expected = setting._convert(read_c_define(ENV_HEADER, define))
+        assert setting.test_default == expected
 
 
 if __name__ == "__main__":

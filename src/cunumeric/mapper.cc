@@ -14,6 +14,7 @@
  *
  */
 
+#include "env_defaults.h"
 #include "cunumeric/mapper.h"
 
 using namespace legate;
@@ -22,10 +23,14 @@ using namespace legate::mapping;
 namespace cunumeric {
 
 CuNumericMapper::CuNumericMapper()
-  : min_gpu_chunk(extract_env("CUNUMERIC_MIN_GPU_CHUNK", 1 << 20, 2)),
-    min_cpu_chunk(extract_env("CUNUMERIC_MIN_CPU_CHUNK", 1 << 14, 2)),
-    min_omp_chunk(extract_env("CUNUMERIC_MIN_OMP_CHUNK", 1 << 17, 2)),
-    eager_fraction(extract_env("CUNUMERIC_EAGER_FRACTION", 16, 1))
+  : min_gpu_chunk(
+      extract_env("CUNUMERIC_MIN_GPU_CHUNK", MIN_GPU_CHUNK_DEFAULT, MIN_GPU_CHUNK_TEST)),
+    min_cpu_chunk(
+      extract_env("CUNUMERIC_MIN_CPU_CHUNK", MIN_CPU_CHUNK_DEFAULT, MIN_CPU_CHUNK_TEST)),
+    min_omp_chunk(
+      extract_env("CUNUMERIC_MIN_OMP_CHUNK", MIN_OMP_CHUNK_DEFAULT, MIN_OMP_CHUNK_TEST)),
+    eager_fraction(
+      extract_env("CUNUMERIC_EAGER_FRACTION", EAGER_FRACTION_DEFAULT, EAGER_FRACTION_TEST))
 {
 }
 

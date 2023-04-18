@@ -14,7 +14,13 @@
 #
 from __future__ import annotations
 
-from legate.util.settings import PrioritizedSetting, Settings, convert_bool
+from legate.util.settings import (
+    EnvOnlySetting,
+    PrioritizedSetting,
+    Settings,
+    convert_bool,
+    convert_int,
+)
 
 __all__ = ("settings",)
 
@@ -79,6 +85,69 @@ class CunumericRuntimeSettings(Settings):
         default=None,
         help="""
         Save a coverage report to a specified CSV file
+        """,
+    )
+
+    fast_math: EnvOnlySetting[int] = EnvOnlySetting(
+        "fast_math",
+        "CUNUMERIC_FAST_MATH",
+        convert=convert_bool,
+        help="""
+        Whether to use fast-math.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    min_gpu_chunk: EnvOnlySetting[int] = EnvOnlySetting(
+        "min_gpu_chunk",
+        "CUNUMERIC_MIN_GPU_CHUNK",
+        default=1048576,  # 1 << 20
+        test_default=2,
+        convert=convert_int,
+        help="""
+        Minimum chunk size to enable GPU execution.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    min_cpu_chunk: EnvOnlySetting[int] = EnvOnlySetting(
+        "min_cpu_chunk",
+        "CUNUMERIC_MIN_CPU_CHUNK",
+        default=16384,  # 1 << 14
+        test_default=2,
+        convert=convert_int,
+        help="""
+        Minimum chunk size to enable CPU execution.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    min_omp_chunk: EnvOnlySetting[int] = EnvOnlySetting(
+        "min_omp_chunk",
+        "CUNUMERIC_MIN_OMP_CHUNK",
+        default=131072,  # 1 << 17
+        test_default=2,
+        convert=convert_int,
+        help="""
+        Minimum chunk size to enable CPU execution.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    eager_fraction: EnvOnlySetting[int] = EnvOnlySetting(
+        "eager_fraction",
+        "CUNUMERIC_EAGER_FRACTION",
+        default=16,
+        test_default=1,
+        convert=convert_int,
+        help="""
+        Eager fraction
+
+        This is a read-only environment variable setting used by the runtime.
         """,
     )
 
