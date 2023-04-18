@@ -145,6 +145,7 @@ Calculation
 
    ndarray.max
    ndarray.argmax
+   ndarray.nanargmax
    ndarray.min
    ndarray.argmin
    .. ndarray.ptp
