@@ -98,7 +98,7 @@ struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs != RHS(0);
   }
@@ -121,7 +121,7 @@ struct UnaryRedOp<UnaryRedCode::ANY, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs != RHS(0);
   }
@@ -144,7 +144,7 @@ struct UnaryRedOp<UnaryRedCode::COUNT_NONZERO, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return static_cast<VAL>(rhs != RHS(0));
   }
@@ -167,7 +167,7 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
@@ -190,7 +190,7 @@ struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
@@ -213,7 +213,7 @@ struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
@@ -236,7 +236,7 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
@@ -261,6 +261,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  int32_t collapsed_dim,
+                                 const VAL,
                                  const RHS& rhs)
   {
     return VAL(point[collapsed_dim], rhs);
@@ -269,6 +270,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  const legate::Point<DIM>& shape,
+                                 const VAL,
                                  const RHS& rhs)
   {
     int64_t idx = 0;
@@ -294,6 +296,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  int32_t collapsed_dim,
+                                 const VAL,
                                  const RHS& rhs)
   {
     return VAL(point[collapsed_dim], rhs);
@@ -302,6 +305,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  const legate::Point<DIM>& shape,
+                                 const VAL,
                                  const RHS& rhs)
   {
     int64_t idx = 0;
@@ -336,14 +340,6 @@ struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE> {
 
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
-                                 int32_t collapsed_dim,
-                                 const RHS& rhs)
-  {
-    return VAL(point[collapsed_dim], rhs);
-  }
-
-  template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  const legate::Point<DIM>& shape,
                                  const VAL identity,
                                  const RHS& rhs)
@@ -352,16 +348,6 @@ struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE> {
 
     for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
     return is_nan(rhs) ? identity : VAL(idx, rhs);
-  }
-
-  template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
-                                 const legate::Point<DIM>& shape,
-                                 const RHS& rhs)
-  {
-    int64_t idx = 0;
-    for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
-    return VAL(idx, rhs);
   }
 };
 
