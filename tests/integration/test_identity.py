@@ -28,7 +28,7 @@ DTYPE_ALL = [
     np.float16,
     np.float32,
     np.float64,
-    np.bool,
+    bool,
     np.complex64,
     np.complex128,
 ]
