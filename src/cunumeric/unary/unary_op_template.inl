@@ -24,18 +24,18 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, UnaryOpCode OP_CODE, Type CODE, int DIM>
+template <VariantKind KIND, UnaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryOpImplBody;
 
 template <VariantKind KIND, typename VAL, int DIM>
 struct PointCopyImplBody;
 
-template <VariantKind KIND, UnaryOpCode OP_CODE, Type CODE, int DIM>
+template <VariantKind KIND, UnaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct MultiOutUnaryOpImplBody;
 
 template <VariantKind KIND, UnaryOpCode OP_CODE>
 struct UnaryOpImpl {
-  template <Type CODE, int DIM, std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(UnaryOpArgs& args) const
   {
     using OP  = UnaryOp<OP_CODE, CODE>;
@@ -64,7 +64,7 @@ struct UnaryOpImpl {
     UnaryOpImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, pitches, rect, dense);
   }
 
-  template <Type CODE, int DIM, std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(UnaryOpArgs& args) const
   {
     assert(false);
@@ -73,7 +73,9 @@ struct UnaryOpImpl {
 
 template <VariantKind KIND, UnaryOpCode OP_CODE>
 struct MultiOutUnaryOpImpl {
-  template <Type CODE, int DIM, std::enable_if_t<MultiOutUnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  template <Type::Code CODE,
+            int DIM,
+            std::enable_if_t<MultiOutUnaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(MultiOutUnaryOpArgs& args) const
   {
     using OP   = MultiOutUnaryOp<OP_CODE, CODE>;
@@ -106,7 +108,9 @@ struct MultiOutUnaryOpImpl {
       func, lhs, rhs1, rhs2, pitches, rect, dense);
   }
 
-  template <Type CODE, int DIM, std::enable_if_t<!MultiOutUnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  template <Type::Code CODE,
+            int DIM,
+            std::enable_if_t<!MultiOutUnaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(MultiOutUnaryOpArgs& args) const
   {
     assert(false);
@@ -115,7 +119,7 @@ struct MultiOutUnaryOpImpl {
 
 template <VariantKind KIND>
 struct UnaryCopyImpl {
-  template <Type CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(UnaryOpArgs& args) const
   {
     using VAL = legate_type_of<CODE>;

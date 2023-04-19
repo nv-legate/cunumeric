@@ -24,35 +24,35 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, Type CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct MatVecMulImplBody;
 
-template <Type CODE>
+template <Type::Code CODE>
 struct support_matvecmul : std::false_type {};
 template <>
-struct support_matvecmul<Type::FLOAT64> : std::true_type {
+struct support_matvecmul<Type::Code::FLOAT64> : std::true_type {
   using ACC_TYPE = double;
 };
 template <>
-struct support_matvecmul<Type::FLOAT32> : std::true_type {
+struct support_matvecmul<Type::Code::FLOAT32> : std::true_type {
   using ACC_TYPE = float;
 };
 template <>
-struct support_matvecmul<Type::FLOAT16> : std::true_type {
+struct support_matvecmul<Type::Code::FLOAT16> : std::true_type {
   using ACC_TYPE = float;
 };
 template <>
-struct support_matvecmul<Type::COMPLEX64> : std::true_type {
+struct support_matvecmul<Type::Code::COMPLEX64> : std::true_type {
   using ACC_TYPE = complex<float>;
 };
 template <>
-struct support_matvecmul<Type::COMPLEX128> : std::true_type {
+struct support_matvecmul<Type::Code::COMPLEX128> : std::true_type {
   using ACC_TYPE = complex<double>;
 };
 
 template <VariantKind KIND>
 struct MatVecMulImpl {
-  template <Type CODE, std::enable_if_t<support_matvecmul<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<support_matvecmul<CODE>::value>* = nullptr>
   void operator()(MatVecMulArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -86,7 +86,7 @@ struct MatVecMulImpl {
       m, n, lhs, mat, vec, mat_stride, transpose_mat, args.lhs.is_readable());
   }
 
-  template <Type CODE, std::enable_if_t<!support_matvecmul<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!support_matvecmul<CODE>::value>* = nullptr>
   void operator()(MatVecMulArgs& args) const
   {
     assert(false);

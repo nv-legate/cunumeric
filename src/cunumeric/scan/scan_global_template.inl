@@ -21,12 +21,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, ScanCode OP_CODE, Type CODE, int DIM>
+template <VariantKind KIND, ScanCode OP_CODE, Type::Code CODE, int DIM>
 struct ScanGlobalImplBody;
 
 template <VariantKind KIND, ScanCode OP_CODE>
 struct ScanGlobalImpl {
-  template <Type CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(ScanGlobalArgs& args) const
   {
     using OP  = ScanOp<OP_CODE, CODE>;

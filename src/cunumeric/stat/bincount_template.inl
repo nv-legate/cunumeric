@@ -23,12 +23,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, Type CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct BincountImplBody;
 
 template <VariantKind KIND>
 struct BincountImpl {
-  template <Type CODE, std::enable_if_t<is_integral<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<is_integral<CODE>::value>* = nullptr>
   void operator()(BincountArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -50,7 +50,7 @@ struct BincountImpl {
     }
   }
 
-  template <Type CODE, std::enable_if_t<!is_integral<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!is_integral<CODE>::value>* = nullptr>
   void operator()(BincountArgs& args) const
   {
     assert(false);

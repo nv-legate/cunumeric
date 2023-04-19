@@ -44,45 +44,45 @@ constexpr decltype(auto) fft_dispatch(CuNumericFFTType type, Functor f, Fnargs&&
   return f.template operator()<CUNUMERIC_FFT_C2C>(std::forward<Fnargs>(args)...);
 }
 
-template <CuNumericFFTType TYPE, Type CODE_IN>
+template <CuNumericFFTType TYPE, Type::Code CODE_IN>
 struct FFT {
   static constexpr bool valid = false;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_R2C, Type::FLOAT32> {
-  static constexpr bool valid    = true;
-  static constexpr Type CODE_OUT = Type::COMPLEX64;
+struct FFT<CUNUMERIC_FFT_R2C, Type::Code::FLOAT32> {
+  static constexpr bool valid          = true;
+  static constexpr Type::Code CODE_OUT = Type::Code::COMPLEX64;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_C2R, Type::COMPLEX64> {
-  static constexpr bool valid    = true;
-  static constexpr Type CODE_OUT = Type::FLOAT32;
+struct FFT<CUNUMERIC_FFT_C2R, Type::Code::COMPLEX64> {
+  static constexpr bool valid          = true;
+  static constexpr Type::Code CODE_OUT = Type::Code::FLOAT32;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_C2C, Type::COMPLEX64> {
-  static constexpr bool valid    = true;
-  static constexpr Type CODE_OUT = Type::COMPLEX64;
+struct FFT<CUNUMERIC_FFT_C2C, Type::Code::COMPLEX64> {
+  static constexpr bool valid          = true;
+  static constexpr Type::Code CODE_OUT = Type::Code::COMPLEX64;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_D2Z, Type::FLOAT64> {
-  static constexpr bool valid    = true;
-  static constexpr Type CODE_OUT = Type::COMPLEX128;
+struct FFT<CUNUMERIC_FFT_D2Z, Type::Code::FLOAT64> {
+  static constexpr bool valid          = true;
+  static constexpr Type::Code CODE_OUT = Type::Code::COMPLEX128;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_Z2D, Type::COMPLEX128> {
-  static constexpr bool valid    = true;
-  static constexpr Type CODE_OUT = Type::FLOAT64;
+struct FFT<CUNUMERIC_FFT_Z2D, Type::Code::COMPLEX128> {
+  static constexpr bool valid          = true;
+  static constexpr Type::Code CODE_OUT = Type::Code::FLOAT64;
 };
 
 template <>
-struct FFT<CUNUMERIC_FFT_Z2Z, Type::COMPLEX128> {
-  static constexpr bool valid    = true;
-  static constexpr Type CODE_OUT = Type::COMPLEX128;
+struct FFT<CUNUMERIC_FFT_Z2Z, Type::Code::COMPLEX128> {
+  static constexpr bool valid          = true;
+  static constexpr Type::Code CODE_OUT = Type::Code::COMPLEX128;
 };
 
 }  // namespace cunumeric

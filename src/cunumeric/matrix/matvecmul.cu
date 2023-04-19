@@ -22,7 +22,7 @@
 namespace cunumeric {
 
 template <>
-struct MatVecMulImplBody<VariantKind::GPU, Type::FLOAT32> {
+struct MatVecMulImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(size_t m,
                   size_t n,
                   float* lhs,
@@ -75,7 +75,7 @@ struct MatVecMulImplBody<VariantKind::GPU, Type::FLOAT32> {
 };
 
 template <>
-struct MatVecMulImplBody<VariantKind::GPU, Type::FLOAT64> {
+struct MatVecMulImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(size_t m,
                   size_t n,
                   double* lhs,
@@ -122,7 +122,7 @@ struct MatVecMulImplBody<VariantKind::GPU, Type::FLOAT64> {
 };
 
 template <>
-struct MatVecMulImplBody<VariantKind::GPU, Type::FLOAT16> {
+struct MatVecMulImplBody<VariantKind::GPU, Type::Code::FLOAT16> {
   void operator()(size_t m,
                   size_t n,
                   float* lhs,
@@ -164,7 +164,7 @@ struct MatVecMulImplBody<VariantKind::GPU, Type::FLOAT16> {
 };
 
 template <>
-struct MatVecMulImplBody<VariantKind::GPU, Type::COMPLEX64> {
+struct MatVecMulImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(size_t m,
                   size_t n,
                   complex<float>* lhs_,
@@ -218,7 +218,7 @@ struct MatVecMulImplBody<VariantKind::GPU, Type::COMPLEX64> {
 };
 
 template <>
-struct MatVecMulImplBody<VariantKind::GPU, Type::COMPLEX128> {
+struct MatVecMulImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(size_t m,
                   size_t n,
                   complex<double>* lhs_,

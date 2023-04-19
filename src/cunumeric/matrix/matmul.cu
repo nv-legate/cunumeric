@@ -28,7 +28,7 @@ namespace cunumeric {
 // for this matrix shape and GPU.
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, Type::FLOAT32> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -73,7 +73,7 @@ struct MatMulImplBody<VariantKind::GPU, Type::FLOAT32> {
 };
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, Type::FLOAT64> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -114,7 +114,7 @@ struct MatMulImplBody<VariantKind::GPU, Type::FLOAT64> {
 };
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, Type::FLOAT16> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::FLOAT16> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -158,7 +158,7 @@ struct MatMulImplBody<VariantKind::GPU, Type::FLOAT16> {
 };
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, Type::COMPLEX64> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -206,7 +206,7 @@ struct MatMulImplBody<VariantKind::GPU, Type::COMPLEX64> {
 };
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, Type::COMPLEX128> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,

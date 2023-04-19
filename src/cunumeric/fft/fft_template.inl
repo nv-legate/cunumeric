@@ -25,12 +25,16 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, CuNumericFFTType FFT_TYPE, Type CODE_OUT, Type CODE_IN, int32_t DIM>
+template <VariantKind KIND,
+          CuNumericFFTType FFT_TYPE,
+          Type::Code CODE_OUT,
+          Type::Code CODE_IN,
+          int32_t DIM>
 struct FFTImplBody;
 
 template <VariantKind KIND, CuNumericFFTType FFT_TYPE>
 struct FFTImpl {
-  template <Type CODE_IN,
+  template <Type::Code CODE_IN,
             int32_t DIM,
             std::enable_if_t<((DIM <= 3) && FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
   void operator()(FFTArgs& args) const
@@ -50,7 +54,7 @@ struct FFTImpl {
   }
 
   // We only support up to 3D FFTs for now
-  template <Type CODE_IN,
+  template <Type::Code CODE_IN,
             int32_t DIM,
             std::enable_if_t<((DIM > 3) || !FFT<FFT_TYPE, CODE_IN>::valid)>* = nullptr>
   void operator()(FFTArgs& args) const

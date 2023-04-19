@@ -23,23 +23,23 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, Type CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct TrsmImplBody;
 
-template <Type CODE>
+template <Type::Code CODE>
 struct support_trsm : std::false_type {};
 template <>
-struct support_trsm<Type::FLOAT64> : std::true_type {};
+struct support_trsm<Type::Code::FLOAT64> : std::true_type {};
 template <>
-struct support_trsm<Type::FLOAT32> : std::true_type {};
+struct support_trsm<Type::Code::FLOAT32> : std::true_type {};
 template <>
-struct support_trsm<Type::COMPLEX64> : std::true_type {};
+struct support_trsm<Type::Code::COMPLEX64> : std::true_type {};
 template <>
-struct support_trsm<Type::COMPLEX128> : std::true_type {};
+struct support_trsm<Type::Code::COMPLEX128> : std::true_type {};
 
 template <VariantKind KIND>
 struct TrsmImpl {
-  template <Type CODE, std::enable_if_t<support_trsm<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<support_trsm<CODE>::value>* = nullptr>
   void operator()(Array& lhs_array, Array& rhs_array) const
   {
     using VAL = legate_type_of<CODE>;
@@ -62,7 +62,7 @@ struct TrsmImpl {
     TrsmImplBody<KIND, CODE>()(lhs, rhs, m, n);
   }
 
-  template <Type CODE, std::enable_if_t<!support_trsm<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!support_trsm<CODE>::value>* = nullptr>
   void operator()(Array& lhs_array, Array& rhs_array) const
   {
     assert(false);
