@@ -38,7 +38,8 @@ _expected_settings = (
 )
 
 _settings_with_test_defaults = (
-    "fast_math",
+    # skip fast math which uses getenv instead of extract_env
+    # "fast_math",
     "min_gpu_chunk",
     "min_cpu_chunk",
     "min_omp_chunk",
@@ -63,11 +64,14 @@ class TestSettings:
         assert ps.env_var.startswith("CUNUMERIC_")
 
     def test_types(self) -> None:
-        assert m.settings.test.convert_type == "bool"
-        assert m.settings.preload_cudalibs.convert_type == "bool"
-        assert m.settings.warn.convert_type == "bool"
-        assert m.settings.report_coverage.convert_type == "bool"
-        assert m.settings.report_dump_callstack.convert_type == "bool"
+        assert m.settings.test.convert_type == 'bool ("0" or "1")'
+        assert m.settings.preload_cudalibs.convert_type == 'bool ("0" or "1")'
+        assert m.settings.warn.convert_type == 'bool ("0" or "1")'
+        assert m.settings.report_coverage.convert_type == 'bool ("0" or "1")'
+        assert (
+            m.settings.report_dump_callstack.convert_type
+            == 'bool ("0" or "1")'
+        )
         assert m.settings.report_dump_csv.convert_type == "str"
 
 
@@ -93,14 +97,14 @@ class TestDefaults:
     @pytest.mark.parametrize("name", _settings_with_test_defaults)
     def test_default(self, name: str) -> None:
         setting = getattr(m.settings, name)
-        define = setting.env_var.removeprefix("LEGATE_") + "_DEFAULT"
+        define = setting.env_var.removeprefix("CUNUMERIC_") + "_DEFAULT"
         expected = setting._convert(read_c_define(ENV_HEADER, define))
         assert setting.default == expected
 
     @pytest.mark.parametrize("name", _settings_with_test_defaults)
     def test_test_default(self, name: str) -> None:
         setting = getattr(m.settings, name)
-        define = setting.env_var.removeprefix("LEGATE_") + "_TEST"
+        define = setting.env_var.removeprefix("CUNUMERIC_") + "_TEST"
         expected = setting._convert(read_c_define(ENV_HEADER, define))
         assert setting.test_default == expected
 
