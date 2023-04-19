@@ -106,7 +106,8 @@ class CunumericRuntimeSettings(Settings):
         test_default=2,
         convert=convert_int,
         help="""
-        Minimum chunk size to enable GPU execution.
+        If using GPUs, any task operating on arrays smaller than this will
+        not be parallelized across more than one GPU.
 
         This is a read-only environment variable setting used by the runtime.
         """,
@@ -119,7 +120,8 @@ class CunumericRuntimeSettings(Settings):
         test_default=2,
         convert=convert_int,
         help="""
-        Minimum chunk size to enable CPU execution.
+        If using CPUs, any task operating on arrays smaller than this will
+        not be parallelized across more than one core.
 
         This is a read-only environment variable setting used by the runtime.
         """,
@@ -132,7 +134,8 @@ class CunumericRuntimeSettings(Settings):
         test_default=2,
         convert=convert_int,
         help="""
-        Minimum chunk size to enable CPU execution.
+        If using OpenMP, any task operating on arrays smaller than this will
+        not be parallelized across more than one OpenMP group.
 
         This is a read-only environment variable setting used by the runtime.
         """,
