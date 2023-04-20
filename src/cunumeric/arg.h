@@ -100,4 +100,31 @@ class ArgminReduction {
   }
 };
 
+struct register_reduction_op_fn {
+  template <legate::Type::Code CODE, std::enable_if_t<!legate::is_complex<CODE>::value>* = nullptr>
+  void operator()(int32_t type_uid)
+  {
+    using VAL = legate::legate_type_of<CODE>;
+
+    auto runtime = legate::Runtime::get_runtime();
+    auto context = runtime->find_library("cunumeric");
+    {
+      auto redop_id = context->register_reduction_operator<ArgmaxReduction<VAL>>();
+      auto op_kind  = static_cast<int32_t>(legate::ReductionOpKind::MAX);
+      runtime->record_reduction_operator(type_uid, op_kind, redop_id);
+    }
+    {
+      auto redop_id = context->register_reduction_operator<ArgminReduction<VAL>>();
+      auto op_kind  = static_cast<int32_t>(legate::ReductionOpKind::MIN);
+      runtime->record_reduction_operator(type_uid, op_kind, redop_id);
+    }
+  }
+
+  template <legate::Type::Code CODE, std::enable_if_t<legate::is_complex<CODE>::value>* = nullptr>
+  void operator()(int32_t type_uid)
+  {
+    LEGATE_ABORT;
+  }
+};
+
 }  // namespace cunumeric

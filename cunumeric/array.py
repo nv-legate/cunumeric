@@ -56,7 +56,7 @@ from .config import (
 from .coverage import FALLBACK_WARNING, clone_class
 from .runtime import runtime
 from .types import NdShape
-from .utils import deep_apply, dot_modes
+from .utils import deep_apply, dot_modes, to_core_dtype
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -242,9 +242,15 @@ class ndarray:
                         for inp in inputs
                         if isinstance(inp, ndarray)
                     ]
-                self._thunk = runtime.create_empty_thunk(
-                    sanitized_shape, dtype, inputs
-                )
+                core_dtype = to_core_dtype(dtype)
+                if core_dtype is not None:
+                    self._thunk = runtime.create_empty_thunk(
+                        sanitized_shape, core_dtype, inputs
+                    )
+                else:
+                    self._thunk = runtime.create_eager_thunk(
+                        sanitized_shape, dtype
+                    )
         else:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
