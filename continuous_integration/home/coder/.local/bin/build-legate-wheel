@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+build_legate_wheel() {
+    set -e;
+
+    mkdir -p /tmp/out;
+
+    local pip_args=(-vv);
+    pip_args+=(--wheel-dir /tmp/out);
+
+    if type conda 2>&1 >/dev/null; then
+        pip_args+=(--no-deps);
+        pip_args+=(--no-build-isolation);
+    fi
+
+    local cmake_args=(${CMAKE_ARGS:-});
+    cmake_args+=("-DFIND_LEGATE_CORE_CPP=ON");
+    cmake_args+=("-Dlegate_core_ROOT=$HOME/legate/build");
+
+    # Build + package legate.core Python wheel
+    CMAKE_ARGS="${cmake_args[@]}" \
+        pip wheel ${pip_args[@]} ~/legate;
+
+    { set +x; } 2>/dev/null;
+}
+
+build_legate_wheel "$@";

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+clone_legion() {
+    set -e;
+
+    glab repo clone StanfordLegion/legion ~/legion -- --branch control_replication
+
+    git -C ~/legion checkout e1f1ef61e29c3160419d0cd528950b2d565c2a0d
+
+    { set +x; } 2>/dev/null;
+}
+
+clone_legion "$@";

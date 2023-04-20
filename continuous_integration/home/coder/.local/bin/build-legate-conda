@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+build_legate_conda_package() {
+    set -e;
+
+    local python_version="${PYTHON_VERSION:-}";
+
+    if [ -z "${python_version}" ]; then
+        python_version="$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f3 --complement)";
+    fi
+
+    local conda_build_args=();
+    conda_build_args+=(--override-channels);
+    conda_build_args+=(-c conda-forge);
+    conda_build_args+=(-c nvidia);
+    conda_build_args+=(--croot /tmp/conda-build/legate_core);
+    conda_build_args+=(--numpy 1.22);
+    conda_build_args+=(--python ${python_version});
+    conda_build_args+=(--no-test);
+    conda_build_args+=(--no-verify);
+    conda_build_args+=(--no-build-id);
+    conda_build_args+=("--build-id-pat=''");
+    conda_build_args+=(--no-include-recipe);
+    conda_build_args+=(--no-anaconda-upload);
+    conda_build_args+=(--variants "{gpu_enabled:true,python:${python_version}}");
+
+    rm -rf /tmp/conda-build/legate_core;
+    mkdir -p /tmp/conda-build/legate_core;
+
+    # Synthesize new legate_core conda-build build.sh script
+
+    cat <<EOF >> ~/legate/conda/conda-build/conda_build_config.yaml
+
+numpy:
+  - 1.22
+
+package_version:
+  - "$(git -C ~/legate describe --abbrev=0 --tags | sed 's/[a-zA-Z]//g' | cut -d '.' -f -2).00"
+EOF
+
+    cat <<EOF > ~/legate/conda/conda-build/build.sh
+# Install legate_core C++ libs
+tar -C "\$PREFIX" --exclude="*.a" --strip-components=1 -xf /tmp/out/legate_core-*-Linux.tar.gz;
+sed -E -i "s@$HOME/\.conda/envs/legate@\$PREFIX@g" "\$PREFIX/share/Legion/cmake/LegionConfigCommon.cmake";
+sed -E -i "s@$HOME/legate/build/_CPack_Packages/Linux/TGZ/legate_core-(.*)-Linux@\$PREFIX@g" "\$SP_DIR/legion_canonical_cffi.py";
+
+# Install legate_core Python wheel
+pip install --no-deps --root / --prefix "\$PREFIX" /tmp/out/legate.core-*.whl;
+
+# Legion leaves .egg-info files, which confuses conda trying to pick up the information
+# Remove them so legate-core is the only egg-info file added.
+rm -rf "\$SP_DIR"/legion*egg-info;
+EOF
+
+    git -C ~/legate add .;
+    git -C ~/legate commit --allow-empty --allow-empty-message -n -m "";
+
+    # Build legate_core conda package
+    CUDA=${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR} \
+    conda mambabuild ${conda_build_args[@]} ~/legate/conda/conda-build;
+
+    git -C ~/legate reset --hard HEAD~1;
+
+    cp /tmp/conda-build/legate_core/linux-64/legate-*.tar.bz2 /tmp/out/;
+
+    { set +x; } 2>/dev/null;
+}
+
+build_legate_conda_package "$@";
