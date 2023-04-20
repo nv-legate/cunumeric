@@ -1,0 +1,69 @@
+name: Build cunumeric on GH
+
+concurrency:
+  group: ci-gpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches-ignore:
+      - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
+  # NOTE: this workflow will not work for pull_requests since GH pull requests do not have access to secrets.
+
+jobs:
+  build:
+    permissions: read-all
+    # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
+    runs-on: ${{ github.repository == 'nv-legate/cunumeric' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+    container:
+      options: -u root
+      image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
+      env:
+        PYTHONDONTWRITEBYTECODE: 1
+        SCCACHE_REGION: us-east-2
+        SCCACHE_BUCKET: rapids-sccache-devs
+        SCCACHE_S3_KEY_PREFIX: legate-cunumeric-dev
+        VAULT_HOST: https://vault.ops.k8s.rapids.ai
+        GH_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
+        GITHUB_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN}}"
+      volumes:
+        - ${{ github.workspace }}/out:/tmp/out
+    steps:
+       # TODO: checkout a specific version of legate.core.
+      - name: Checkout legate.core
+        uses: actions/checkout@v3
+        with:
+          repository: nv-legate/legate.core
+          fetch-depth: 0
+          path: legate
+
+      - name: Checkout cunumeric (= this repo)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: cunumeric
+        
+      - name: Build
+        shell: bash -eo pipefail {0}
+        run: |
+          apt update;
+          DEBIAN_FRONTEND=noninteractive \
+          apt install -y --no-install-recommends \
+              numactl rlwrap;
+          
+          mv legate /home/coder/legate
+          mv cunumeric/continuous_integration/home/coder/.gitconfig /home/coder/.gitconfig;
+          mv cunumeric/continuous_integration/home/coder/.local /home/coder/.local;
+          mv cunumeric /home/coder/cunumeric
+
+          chmod a+x /home/coder/.local/bin/*;
+          chown -R coder:coder /home/coder/;
+          chown -R coder:coder /tmp/out;
+
+          su coder -Pc "~/.local/bin/entrypoint bash -ic 'PATH=$CUDA_HOME/bin:\$PATH build-all'";
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v3
+        with:
+          name: cunumeric-build-output
+          path: ./out/*

@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+clone_cunumeric() {
+    set -e;
+
+    gh repo clone nv-legate/cunumeric ~/cunumeric -- --branch branch-23.05
+
+    git -C ~/cunumeric checkout 7b3d72dcf858f36bcfae965d5e70fd773262c0f1
+
+    { set +x; } 2>/dev/null;
+}
+
+clone_cunumeric "$@";

@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+
+build_legate_cpp() {
+    set -e;
+
+    # Build + package legate.core C++ libs
+    local cmake_args=(${CMAKE_ARGS:-});
+    cmake_args+=(-DBUILD_SHARED_LIBS=ON);
+    cmake_args+=(-DBUILD_MARCH=${BUILD_MARCH:-haswell});
+    cmake_args+=(-DCMAKE_BUILD_TYPE=Release);
+    cmake_args+=(-DCMAKE_CUDA_ARCHITECTURES=RAPIDS);
+    cmake_args+=(-DLegion_NETWORKS=);
+    cmake_args+=(-DLegion_USE_Python=ON);
+    cmake_args+=(-DLegion_REDOP_HALF=ON);
+    cmake_args+=(-DLegion_REDOP_COMPLEX=ON);
+    cmake_args+=(-DLegion_BUILD_JUPYTER=ON);
+    cmake_args+=(-DLegion_BUILD_BINDINGS=ON);
+    cmake_args+=(-DLegion_BOUNDS_CHECKS=${BOUNDS_CHECKS:-OFF});
+    cmake_args+=(-DLegion_EMBED_GASNet_CONFIGURE_ARGS=${GASNet_CONFIGURE_ARGS:---with-ibv-max-hcas=8});
+    cmake_args+=(-DLegion_MAX_DIM=${MAX_DIM:-4});
+    cmake_args+=(-DLegion_MAX_FIELDS=${MAX_FIELDS:-256});
+    cmake_args+=(-DLegion_SPY=${USE_SPY:-OFF});
+    cmake_args+=(-DLegion_USE_CUDA=${USE_CUDA:-ON});
+    cmake_args+=(-DLegion_USE_HDF5=${USE_HDF5:-OFF});
+    cmake_args+=(-DLegion_USE_LLVM=${USE_LLVM:-OFF});
+    cmake_args+=(-DLegion_USE_OpenMP=${USE_OPENMP:-OFF});
+    cmake_args+=(-Dlegate_core_BUILD_DOCS=ON);
+    cmake_args+=(-DCMAKE_BUILD_PARALLEL_LEVEL=${JOBS:-$(nproc --ignore=1)});
+    cmake_args+=(${@});
+
+    cmake -S ~/legate -B ~/legate/build "${cmake_args[@]}" -GNinja;
+
+    sed -i \
+        's/= unknown/= unknown + ["--prefix", args.prefix]/' \
+        ~/legate/build/_deps/legion-src/bindings/python/setup.py;
+
+    sccache --show-stats;
+
+    time cmake --build ~/legate/build --verbose --parallel ${JOBS:-$(nproc --ignore=1)};
+
+    sccache --show-stats;
+
+    (
+    mkdir -p /tmp/out;
+    cd ~/legate/build;
+    cpack -G TGZ;
+    cp ./*-Linux.tar.gz /tmp/out/;
+    );
+
+    { set +x; } 2>/dev/null;
+}
+
+build_legate_cpp "$@";
