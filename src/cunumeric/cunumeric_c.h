@@ -50,7 +50,6 @@ enum CuNumericOpCode {
   CUNUMERIC_MATMUL,
   CUNUMERIC_MATVECMUL,
   CUNUMERIC_NONZERO,
-  CUNUMERIC_NANARGMAX,
   CUNUMERIC_PACKBITS,
   CUNUMERIC_POTRF,
   CUNUMERIC_PUTMASK,
@@ -230,12 +229,6 @@ enum CuNumericConvertCode {
   CUNUMERIC_CONVERT_NAN_PROD,
   CUNUMERIC_CONVERT_NAN_SUM,
 };
-
-// Match these to ConvertCode in config.py
-// Also, sort these alphabetically for easy lookup later
-// enum CuNumericNanUnaryRedCode {
-//  CUNUMERIC_RED_NANARGMAX = 1,
-// };
 
 // Match these to BitGeneratorOperation in config.py
 enum CuNumericBitGeneratorOperation {

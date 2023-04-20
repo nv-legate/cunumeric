@@ -225,7 +225,11 @@ def test_RandGenCode() -> None:
 
 
 def test_CuNumericRedopCode() -> None:
-    assert (set(m.CuNumericRedopCode.__members__)) == {"ARGMIN", "ARGMAX"}
+    assert (set(m.CuNumericRedopCode.__members__)) == {
+        "ARGMIN",
+        "ARGMAX",
+        "NANARGMAX",
+    }
 
 
 def test_CuNumericTunable() -> None:

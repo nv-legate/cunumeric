@@ -5371,7 +5371,7 @@ def nanargmax(
     Multiple GPUs, Multiple CPUs
     """
 
-    # raise error for disallowed types
+    # raise error for disallowed datatypes
     disallowed_dtypes: list[np.dtype[Any]] = [
         np.dtype(np.complex64),
         np.dtype(np.complex128),
