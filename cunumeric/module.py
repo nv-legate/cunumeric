@@ -5371,14 +5371,24 @@ def nanargmax(
     Multiple GPUs, Multiple CPUs
     """
 
-    # if the datatype is not floating point, then call argmax
-    allowed_types: list[np.dtype[Any]] = [
+    # raise error for disallowed types
+    disallowed_dtypes: list[np.dtype[Any]] = [
+        np.dtype(np.complex64),
+        np.dtype(np.complex128),
+        np.dtype(np.complex256),
+    ]
+    if a.dtype in disallowed_dtypes:
+        raise NotImplementedError(
+            "operation is not supported for complex-type arrays"
+        )
+
+    # use argmax if the datatype is not floating point type
+    allowed_dtypes: list[np.dtype[Any]] = [
         np.dtype(np.float16),
         np.dtype(np.float32),
         np.dtype(np.float64),
     ]
-
-    if a.dtype in allowed_types:
+    if a.dtype in allowed_dtypes:
         unary_reduction_code = UnaryRedCode.NANARGMAX
     else:
         unary_reduction_code = UnaryRedCode.ARGMAX
@@ -5392,17 +5402,17 @@ def nanargmax(
         res_dtype=np.dtype(np.int64),
     )
 
-    # Error handling: Raise a ValueError when the array or a slice
+    # error handling: raise ValueError when the array or a slice
     # contains only NaNs.
     identity = np.iinfo(np.int64).min
     if index_array.size == 1:
         if index_array == identity:
-            raise ValueError("Array contains only NaNs")
+            raise ValueError("Array/Slice contains only NaNs")
     else:
         # Note that there is a UnaryRedCode.CONTAINS operation here
         # to emit validation errors.
         if identity in index_array:
-            raise ValueError("Array contains only NaNs")
+            raise ValueError("Array/Slice contains only NaNs")
 
     return index_array
 
