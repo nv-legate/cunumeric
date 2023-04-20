@@ -92,7 +92,6 @@ class CunumericRuntimeSettings(Settings):
         "fast_math",
         "CUNUMERIC_FAST_MATH",
         default=False,
-        test_default=False,
         convert=convert_bool,
         help="""
         Whether to use fast-math.
