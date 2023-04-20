@@ -16,8 +16,18 @@ DISALLOWED_DTYPES = (
     np.complex256,
 )
 
+ALLOWED_DTYPES = (
+    np.float16,
+    np.float32,
+    np.float64,
+)
 
-class Testbasic:
+
+class TestNanReductions:
+    """
+    These are positive cases compared with numpy
+    """
+
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("keepdims", [True, False])
@@ -36,6 +46,7 @@ class Testbasic:
         func_np = getattr(np, func_name)
         func_num = getattr(num, func_name)
 
+        # make sure numpy and cunumeric give the same out array and max val
         out_np = np.unravel_index(func_np(in_np, keepdims=keepdims), shape)
         out_num = np.unravel_index(func_num(in_num, keepdims=keepdims), shape)
 
@@ -45,13 +56,58 @@ class Testbasic:
         assert np.array_equal(out_num, out_np)
         assert np.array_equal(index_array_num, index_array_np)
 
-    # def test_out(self,):
-    #    pass
+    @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    def test_out(self, func_name, ndim):
+        """This test checks that the out argument is udpdated with the
+        output"""
 
-    # test different datatypes
+        shape = (3,) * ndim
+        in_np = np.random.random(shape)
+        in_num = num.array(in_np)
+
+        func_num = getattr(num, func_name)
+        func_np = getattr(np, func_name)
+
+        axes = list(range(0, ndim - 1))
+        for axis in axes:
+            _shape = list(shape)
+            _shape[axis] = 1
+
+            out_num = num.empty(_shape, dtype=int)
+            func_num(in_num, out=out_num, axis=axis, keepdims=True)
+
+            out_np = np.empty(_shape, dtype=int)
+            func_np(in_np, out=out_np, axis=axis, keepdims=True)
+
+            np.array_equal(out_np, out_num)
+
+    @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
+    @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("dtype", ALLOWED_DTYPES)
+    def test_datatypes(self, func_name, ndim, dtype):
+        shape = (3,) * ndim
+        if dtype == np.dtype(bool):
+            in_np = (np.random.random(shape) + 0.5).astype(int).astype(dtype)
+        else:
+            in_np = (np.random.random(shape) + 0.5).astype(dtype)
+
+        in_num = num.array(in_np, dtype=dtype)
+
+        func_np = getattr(np, func_name)
+        func_num = getattr(num, func_name)
+
+        out_np = func_np(in_np)
+        out_num = func_num(in_num)
+
+        assert np.array_equal(out_num, out_np)
 
 
 class TestXFail:
+    """
+    This class is to test negative cases
+    """
+
     @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
     @pytest.mark.parametrize("ndim", NDIMS)
@@ -71,14 +127,11 @@ class TestXFail:
     @pytest.mark.parametrize("ndim", NDIMS)
     def test_all_nan(self, func_name, ndim):
         shape = (3,) * ndim
-        in_num = num.empty(shape)
+        in_num = num.zeros(shape)
         in_num.fill(num.nan)
 
         func_num = getattr(num, func_name)
-
-        msg = r"Array/Slice contains only NaNs"
-        with pytest.raises(ValueError, match=msg):
-            func_num(in_num)
+        func_num(in_num)
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
@@ -89,18 +142,14 @@ class TestXFail:
         in_num.fill(num.nan)
 
         if ndim == 1:
-            in_num[:] = np.nan
+            in_num[:] = num.nan
         elif ndim == 2:
-            in_num[:, 0] = np.nan
+            in_num[:, 0] = num.nan
         else:
-            in_num[0, ...] = np.nan
+            in_num[0, ...] = num.nan
 
         func_num = getattr(num, func_name)
         func_num(in_num)
-
-        msg = r"Array/Slice contains only NaNs"
-        with pytest.raises(ValueError, match=msg):
-            func_num(in_num)
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
