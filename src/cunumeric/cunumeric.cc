@@ -30,24 +30,21 @@ static const char* const cunumeric_library_name = "cunumeric";
   return registrar;
 }
 
-extern void register_reduction_operators(LibraryContext& context);
+extern void register_reduction_operators(LibraryContext* context);
 
 void registration_callback()
 {
   ResourceConfig config;
-  config.max_mappers       = CUNUMERIC_MAX_MAPPERS;
   config.max_tasks         = CUNUMERIC_MAX_TASKS;
   config.max_reduction_ops = CUNUMERIC_MAX_REDOPS;
 
-  auto context = Runtime::get_runtime()->create_library(cunumeric_library_name, config);
+  auto context = Runtime::get_runtime()->create_library(
+    cunumeric_library_name, config, std::make_unique<CuNumericMapper>());
 
-  CuNumericRegistrar::get_registrar().register_all_tasks(*context);
+  CuNumericRegistrar::get_registrar().register_all_tasks(context);
 
   // Register our special reduction functions
-  register_reduction_operators(*context);
-
-  // Now we can register our mapper with the runtime
-  context->register_mapper(std::make_unique<CuNumericMapper>(), 0);
+  register_reduction_operators(context);
 }
 
 }  // namespace cunumeric
