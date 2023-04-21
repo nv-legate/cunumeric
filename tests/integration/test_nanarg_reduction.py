@@ -6,7 +6,7 @@ from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
 
-NAN_ARG_FUNCS = ("nanargmax",)
+NAN_ARG_FUNCS = ("nanargmax", "nanargmin")
 
 NDIMS = range(LEGATE_MAX_DIM + 1)
 

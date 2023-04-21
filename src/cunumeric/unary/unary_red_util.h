@@ -33,6 +33,7 @@ enum class UnaryRedCode : int {
   MAX           = CUNUMERIC_RED_MAX,
   MIN           = CUNUMERIC_RED_MIN,
   NANARGMAX     = CUNUMERIC_RED_NANARGMAX,
+  NANARGMIN     = CUNUMERIC_RED_NANARGMIN,
   PROD          = CUNUMERIC_RED_PROD,
   SUM           = CUNUMERIC_RED_SUM,
 };
@@ -45,6 +46,8 @@ template <>
 struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {};
 template <>
 struct is_arg_reduce<UnaryRedCode::NANARGMAX> : std::true_type {};
+template <>
+struct is_arg_reduce<UnaryRedCode::NANARGMIN> : std::true_type {};
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&... args)
@@ -68,6 +71,8 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::MIN>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::NANARGMAX:
       return f.template operator()<UnaryRedCode::NANARGMAX>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::NANARGMIN:
+      return f.template operator()<UnaryRedCode::NANARGMIN>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::PROD:
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
@@ -322,6 +327,43 @@ struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE> {
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = Argval<RHS>;
   using OP  = ArgmaxReduction<RHS>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 int32_t collapsed_dim,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    return is_nan(rhs) ? identity : VAL(point[collapsed_dim], rhs);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 const legate::Point<DIM>& shape,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    int64_t idx = 0;
+
+    for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
+    return is_nan(rhs) ? identity : VAL(idx, rhs);
+  }
+};
+
+template <typename legate::LegateTypeCode TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::NANARGMIN, TYPE_CODE> {
+  static constexpr bool valid =
+    (legate::is_floating_point<TYPE_CODE>::value || TYPE_CODE == legate::LegateTypeCode::HALF_LT);
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = Argval<RHS>;
+  using OP  = ArgminReduction<RHS>;
 
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL& a, VAL b)

@@ -76,7 +76,7 @@ struct ScalarUnaryRed {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
       if (inptr[idx] == to_find) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
-                         OP_CODE == UnaryRedCode::NANARGMAX) {
+                         OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
     } else {
@@ -90,7 +90,7 @@ struct ScalarUnaryRed {
       auto point = pitches.unflatten(idx, origin);
       if (in[point] == to_find) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
-                         OP_CODE == UnaryRedCode::NANARGMAX) {
+                         OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
     } else {

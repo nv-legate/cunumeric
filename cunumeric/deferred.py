@@ -170,6 +170,7 @@ _UNARY_RED_TO_REDUCTION_OPS: Dict[int, int] = {
     UnaryRedCode.ARGMAX: CuNumericRedopCode.ARGMAX,
     UnaryRedCode.ARGMIN: CuNumericRedopCode.ARGMIN,
     UnaryRedCode.NANARGMAX: CuNumericRedopCode.ARGMAX,
+    UnaryRedCode.NANARGMIN: CuNumericRedopCode.ARGMIN,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
     UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
     UnaryRedCode.ALL: ReductionOp.MUL,
@@ -221,6 +222,10 @@ _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
     UnaryRedCode.NANARGMAX: lambda ty: (
         np.iinfo(np.int64).min,
         max_identity(ty),
+    ),
+    UnaryRedCode.NANARGMIN: lambda ty: (
+        np.iinfo(np.int64).min,
+        min_identity(ty),
     ),
 }
 
@@ -3139,6 +3144,7 @@ class DeferredArray(NumPyThunk):
             UnaryRedCode.ARGMAX,
             UnaryRedCode.ARGMIN,
             UnaryRedCode.NANARGMAX,
+            UnaryRedCode.NANARGMIN,
         )
 
         if argred:

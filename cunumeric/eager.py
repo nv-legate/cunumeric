@@ -1495,6 +1495,10 @@ class EagerArray(NumPyThunk):
             np.nanargmax(
                 rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
             )
+        elif op == UnaryRedCode.NANARGMIN:
+            np.nanargmin(
+                rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
+            )
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
         elif op == UnaryRedCode.COUNT_NONZERO:

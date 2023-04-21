@@ -5417,6 +5417,96 @@ def nanargmax(
     return index_array
 
 
+@add_boilerplate("a")
+def nanargmin(
+    a: ndarray,
+    axis: Any = None,
+    out: Union[ndarray, None] = None,
+    *,
+    keepdims: bool = False,
+) -> ndarray:
+    """
+
+    Return the indices of the minimum values in the specified axis ignoring
+    NaNs. For all-NaN slices ValueError is raised. Warning: the results cannot
+    be trusted if a slice contains only NaNs and -Infs.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int, optional
+        By default, the index corresponds to the flattened array, otherwise
+        along the specified axis.
+    out : ndarray, optional
+        If provided, the result will be inserted into this array. It should
+        be of the appropriate shape and dtype.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the array.
+
+    Returns
+    -------
+    index_array : ndarray[int]
+        Array of indices into the array. It has the same shape as `a.shape`
+        with the dimension along `axis` removed.
+
+    See Also
+    --------
+    numpy.nanargmin
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    # raise error for disallowed datatypes
+    disallowed_dtypes: list[np.dtype[Any]] = [
+        np.dtype(np.complex64),
+        np.dtype(np.complex128),
+        np.dtype(np.complex256),
+    ]
+    if a.dtype in disallowed_dtypes:
+        raise NotImplementedError(
+            "operation is not supported for complex-type arrays"
+        )
+
+    # use argmax if the datatype is not floating point type
+    allowed_dtypes: list[np.dtype[Any]] = [
+        np.dtype(np.float16),
+        np.dtype(np.float32),
+        np.dtype(np.float64),
+    ]
+    if a.dtype in allowed_dtypes:
+        unary_reduction_code = UnaryRedCode.NANARGMIN
+    else:
+        unary_reduction_code = UnaryRedCode.ARGMIN
+
+    index_array = a._perform_unary_reduction(
+        unary_reduction_code,
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        res_dtype=np.dtype(np.int64),
+    )
+
+    # error handling: raise ValueError when the array or a slice
+    # contains only NaNs.
+    identity = np.iinfo(np.int64).min
+    if index_array.size == 1:
+        if index_array == identity:
+            raise ValueError("Array/Slice contains only NaNs")
+    else:
+        # Note that there is a UnaryRedCode.CONTAINS operation here
+        # to emit validation errors.
+        if identity in index_array:
+            raise ValueError("Array/Slice contains only NaNs")
+
+    return index_array
+
+
 # Exponents and logarithms
 
 

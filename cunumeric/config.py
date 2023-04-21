@@ -179,6 +179,7 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_MAX: int
     CUNUMERIC_RED_MIN: int
     CUNUMERIC_RED_NANARGMAX: int
+    CUNUMERIC_RED_NANARGMIN: int
     CUNUMERIC_RED_PROD: int
     CUNUMERIC_RED_SUM: int
     CUNUMERIC_REPEAT: int
@@ -441,6 +442,7 @@ class UnaryRedCode(IntEnum):
     MAX = _cunumeric.CUNUMERIC_RED_MAX
     MIN = _cunumeric.CUNUMERIC_RED_MIN
     NANARGMAX = _cunumeric.CUNUMERIC_RED_NANARGMAX
+    NANARGMIN = _cunumeric.CUNUMERIC_RED_NANARGMIN
     PROD = _cunumeric.CUNUMERIC_RED_PROD
     SUM = _cunumeric.CUNUMERIC_RED_SUM
 
