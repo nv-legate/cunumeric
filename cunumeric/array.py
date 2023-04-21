@@ -31,10 +31,8 @@ from typing import (
     cast,
 )
 
-import legate.core.types as ty
 import numpy as np
-import pyarrow  # type: ignore  [import]
-from legate.core import Array
+from legate.core import Array, Field
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
     normalize_axis_index,
 )
@@ -174,21 +172,6 @@ def maybe_convert_to_np_ndarray(obj: Any) -> Any:
     return obj
 
 
-# FIXME: we can't give an accurate return type as mypy thinks
-# the pyarrow import can be ignored, and can't override the check
-# either, because no-any-unimported needs Python >= 3.10. We can
-# fix it once we bump up the Python version
-def convert_numpy_dtype_to_pyarrow(dtype: np.dtype[Any]) -> Any:
-    if dtype.kind != "c":
-        return pyarrow.from_numpy_dtype(dtype)
-    elif dtype == np.complex64:
-        return ty.complex64
-    elif dtype == np.complex128:
-        return ty.complex128
-    else:
-        raise ValueError(f"Unsupported NumPy dtype: {dtype}")
-
-
 NDARRAY_INTERNAL = {
     "__array_finalize__",
     "__array_function__",
@@ -286,24 +269,17 @@ class ndarray:
     @property
     def __legate_data_interface__(self) -> dict[str, Any]:
         if self._legate_data is None:
-            # All of our thunks implement the Legate Store interface
-            # so we just need to convert our type and stick it in
-            # a Legate Array
-            arrow_type = convert_numpy_dtype_to_pyarrow(self.dtype)
             # If the thunk is an eager array, we need to convert it to a
             # deferred array so we can extract a legate store
             deferred_thunk = runtime.to_deferred_array(self._thunk)
             # We don't have nullable data for the moment
             # until we support masked arrays
-            array = Array(arrow_type, [None, deferred_thunk.base])
+            dtype = deferred_thunk.base.type
+            array = Array(dtype, [None, deferred_thunk.base])
             self._legate_data = dict()
             self._legate_data["version"] = 1
-            data = dict()
-            field = pyarrow.field(
-                "cuNumeric Array", arrow_type, nullable=False
-            )
-            data[field] = array
-            self._legate_data["data"] = data
+            field = Field("cuNumeric Array", dtype)
+            self._legate_data["data"] = {field: array}
         return self._legate_data
 
     # Properties for ndarray
