@@ -228,7 +228,6 @@ def test_CuNumericRedopCode() -> None:
     assert (set(m.CuNumericRedopCode.__members__)) == {
         "ARGMIN",
         "ARGMAX",
-        "NANARGMAX",
     }
 
 
