@@ -124,7 +124,7 @@ class Runtime(object):
     def get_arg_dtype(self, value_dtype: ty.Dtype) -> ty.Dtype:
         if value_dtype in self._arg_dtypes:
             return self._arg_dtypes[value_dtype]
-        arg_dtype = ty.struct_type([ty.int64, value_dtype])
+        arg_dtype = ty.struct_type([ty.int64, value_dtype], True)
         self._arg_dtypes[value_dtype] = arg_dtype
         self.cunumeric_lib.cunumeric_register_reduction_op(
             arg_dtype.uid, value_dtype.code
