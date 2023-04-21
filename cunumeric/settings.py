@@ -45,7 +45,7 @@ class CunumericRuntimeSettings(Settings):
         convert=convert_bool,
         help="""
         Preload and initialize handles of all CUDA libraries (cuBLAS, cuSOLVER,
-        etc.) used in cuNumeric
+        etc.) used in cuNumeric.
         """,
     )
 
@@ -55,7 +55,7 @@ class CunumericRuntimeSettings(Settings):
         default=False,
         convert=convert_bool,
         help="""
-        Turn on warnings
+        Turn on warnings.
         """,
     )
 
@@ -65,7 +65,7 @@ class CunumericRuntimeSettings(Settings):
         default=False,
         convert=convert_bool,
         help="""
-        Print an overall percentage of cunumeric coverage
+        Print an overall percentage of cunumeric coverage.
         """,
     )
 
@@ -75,7 +75,7 @@ class CunumericRuntimeSettings(Settings):
         default=False,
         convert=convert_bool,
         help="""
-        Print an overall percentage of cunumeric coverage with call stack info
+        Print an overall percentage of cunumeric coverage with call stack info.
         """,
     )
 
@@ -84,7 +84,7 @@ class CunumericRuntimeSettings(Settings):
         "CUNUMERIC_REPORT_DUMP_CSV",
         default=None,
         help="""
-        Save a coverage report to a specified CSV file
+        Save a coverage report to a specified CSV file.
         """,
     )
 
@@ -94,7 +94,10 @@ class CunumericRuntimeSettings(Settings):
         default=False,
         convert=convert_bool,
         help="""
-        Whether to use fast-math.
+        Enable certain optimized execution modes for floating-point math
+        operations, that may violate strict IEEE specifications. Currently this
+        flag enables the acceleration of single-precision cuBLAS routines using
+        TF32 tensor cores.
 
         This is a read-only environment variable setting used by the runtime.
         """,
@@ -107,8 +110,10 @@ class CunumericRuntimeSettings(Settings):
         test_default=2,
         convert=convert_int,
         help="""
-        If using GPUs, any task operating on arrays smaller than this will
-        not be parallelized across more than one GPU.
+        Legate will fall back to vanilla NumPy when handling arrays smaller
+        than this, rather than attempt to accelerate using GPUs, as the
+        offloading overhead would likely not be offset by the accelerated
+        operation code.
 
         This is a read-only environment variable setting used by the runtime.
         """,
@@ -121,8 +126,10 @@ class CunumericRuntimeSettings(Settings):
         test_default=2,
         convert=convert_int,
         help="""
-        If using CPUs, any task operating on arrays smaller than this will
-        not be parallelized across more than one core.
+        Legate will fall back to vanilla NumPy when handling arrays smaller
+        than this, rather than attempt to accelerate using native CPU code, as
+        the offloading overhead would likely not be offset by the accelerated
+        operation code.
 
         This is a read-only environment variable setting used by the runtime.
         """,
@@ -135,8 +142,10 @@ class CunumericRuntimeSettings(Settings):
         test_default=2,
         convert=convert_int,
         help="""
-        If using OpenMP, any task operating on arrays smaller than this will
-        not be parallelized across more than one OpenMP group.
+        Legate will fall back to vanilla NumPy when handling arrays smaller
+        than this, rather than attempt to accelerate using OpenMP, as the
+        offloading overhead would likely not be offset by the accelerated
+        operation code.
 
         This is a read-only environment variable setting used by the runtime.
         """,
