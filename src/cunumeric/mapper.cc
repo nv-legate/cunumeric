@@ -27,10 +27,7 @@ CuNumericMapper::CuNumericMapper()
       extract_env("CUNUMERIC_MIN_GPU_CHUNK", MIN_GPU_CHUNK_DEFAULT, MIN_GPU_CHUNK_TEST)),
     min_cpu_chunk(
       extract_env("CUNUMERIC_MIN_CPU_CHUNK", MIN_CPU_CHUNK_DEFAULT, MIN_CPU_CHUNK_TEST)),
-    min_omp_chunk(
-      extract_env("CUNUMERIC_MIN_OMP_CHUNK", MIN_OMP_CHUNK_DEFAULT, MIN_OMP_CHUNK_TEST)),
-    eager_fraction(
-      extract_env("CUNUMERIC_EAGER_FRACTION", EAGER_FRACTION_DEFAULT, EAGER_FRACTION_TEST))
+    min_omp_chunk(extract_env("CUNUMERIC_MIN_OMP_CHUNK", MIN_OMP_CHUNK_DEFAULT, MIN_OMP_CHUNK_TEST))
 {
 }
 
@@ -61,14 +58,12 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
     case CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME: {
       int32_t eager_volume = 0;
       // TODO: make these profile guided
-      if (eager_fraction > 0) {
-        if (!machine->gpus().empty())
-          eager_volume = min_gpu_chunk / eager_fraction;
-        else if (!machine->omps().empty())
-          eager_volume = min_omp_chunk / eager_fraction;
-        else
-          eager_volume = min_cpu_chunk / eager_fraction;
-      }
+      if (!machine->gpus().empty())
+        eager_volume = min_gpu_chunk;
+      else if (!machine->omps().empty())
+        eager_volume = min_omp_chunk;
+      else
+        eager_volume = min_cpu_chunk;
       return Scalar(eager_volume);
     }
     default: break;

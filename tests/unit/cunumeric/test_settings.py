@@ -34,7 +34,6 @@ _expected_settings = (
     "min_gpu_chunk",
     "min_cpu_chunk",
     "min_omp_chunk",
-    "eager_fraction",
 )
 
 _settings_with_test_defaults = (
@@ -43,7 +42,6 @@ _settings_with_test_defaults = (
     "min_gpu_chunk",
     "min_cpu_chunk",
     "min_omp_chunk",
-    "eager_fraction",
 )
 
 ENV_HEADER = Path(__file__).parents[3] / "src" / "env_defaults.h"

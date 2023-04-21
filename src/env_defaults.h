@@ -19,17 +19,14 @@
 // values agree. If these values are modified, the corresponding Python values
 // must also be updated.
 
-// 1 << 20 (need actual number for python to parse)
-#define MIN_GPU_CHUNK_DEFAULT 1048576
+// 1 << 16 (need actual number for python to parse)
+#define MIN_GPU_CHUNK_DEFAULT 65536
 #define MIN_GPU_CHUNK_TEST 2
 
-// 1 << 14 (need actual number for python to parse)
-#define MIN_CPU_CHUNK_DEFAULT 16384
+// 1 << 10 (need actual number for python to parse)
+#define MIN_CPU_CHUNK_DEFAULT 1024
 #define MIN_CPU_CHUNK_TEST 2
 
-// 1 << 17 (need actual number for python to parse)
-#define MIN_OMP_CHUNK_DEFAULT 131072
+// 1 << 13 (need actual number for python to parse)
+#define MIN_OMP_CHUNK_DEFAULT 8192
 #define MIN_OMP_CHUNK_TEST 2
-
-#define EAGER_FRACTION_DEFAULT 16
-#define EAGER_FRACTION_TEST 1

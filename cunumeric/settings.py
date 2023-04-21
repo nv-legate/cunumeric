@@ -106,7 +106,7 @@ class CunumericRuntimeSettings(Settings):
     min_gpu_chunk: EnvOnlySetting[int] = EnvOnlySetting(
         "min_gpu_chunk",
         "CUNUMERIC_MIN_GPU_CHUNK",
-        default=1048576,  # 1 << 20
+        default=65536,  # 1 << 16
         test_default=2,
         convert=convert_int,
         help="""
@@ -122,7 +122,7 @@ class CunumericRuntimeSettings(Settings):
     min_cpu_chunk: EnvOnlySetting[int] = EnvOnlySetting(
         "min_cpu_chunk",
         "CUNUMERIC_MIN_CPU_CHUNK",
-        default=16384,  # 1 << 14
+        default=1024,  # 1 << 10
         test_default=2,
         convert=convert_int,
         help="""
@@ -138,7 +138,7 @@ class CunumericRuntimeSettings(Settings):
     min_omp_chunk: EnvOnlySetting[int] = EnvOnlySetting(
         "min_omp_chunk",
         "CUNUMERIC_MIN_OMP_CHUNK",
-        default=131072,  # 1 << 17
+        default=8192,  # 1 << 13
         test_default=2,
         convert=convert_int,
         help="""
@@ -146,19 +146,6 @@ class CunumericRuntimeSettings(Settings):
         than this, rather than attempt to accelerate using OpenMP, as the
         offloading overhead would likely not be offset by the accelerated
         operation code.
-
-        This is a read-only environment variable setting used by the runtime.
-        """,
-    )
-
-    eager_fraction: EnvOnlySetting[int] = EnvOnlySetting(
-        "eager_fraction",
-        "CUNUMERIC_EAGER_FRACTION",
-        default=16,
-        test_default=1,
-        convert=convert_int,
-        help="""
-        Eager fraction
 
         This is a read-only environment variable setting used by the runtime.
         """,
