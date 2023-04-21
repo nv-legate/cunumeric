@@ -198,9 +198,8 @@ enum CuNumericWindowOpCode {
 
 // Match these to CuNumericRedopCode in config.py
 enum CuNumericRedopID {
-  CUNUMERIC_ARGMAX_REDOP    = 1,
-  CUNUMERIC_ARGMIN_REDOP    = 2,
-  CUNUMERIC_NANARGMAX_REDOP = 3,
+  CUNUMERIC_ARGMAX_REDOP = 1,
+  CUNUMERIC_ARGMIN_REDOP = 2,
 };
 
 // Match these to CuNumericTunable in config.py

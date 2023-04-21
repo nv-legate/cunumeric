@@ -169,7 +169,7 @@ _UNARY_RED_TO_REDUCTION_OPS: Dict[int, int] = {
     UnaryRedCode.MIN: ReductionOp.MIN,
     UnaryRedCode.ARGMAX: CuNumericRedopCode.ARGMAX,
     UnaryRedCode.ARGMIN: CuNumericRedopCode.ARGMIN,
-    UnaryRedCode.NANARGMAX: CuNumericRedopCode.NANARGMAX,
+    UnaryRedCode.NANARGMAX: CuNumericRedopCode.ARGMAX,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
     UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
     UnaryRedCode.ALL: ReductionOp.MUL,

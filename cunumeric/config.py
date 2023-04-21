@@ -429,7 +429,7 @@ class UnaryOpCode(IntEnum):
     TRUNC = _cunumeric.CUNUMERIC_UOP_TRUNC
 
 
-# Match these to CuNumericRedopCode in cunumeric_c.h
+# Match these to CuNumericUnaryRedCode in cunumeric_c.h
 @unique
 class UnaryRedCode(IntEnum):
     ALL = _cunumeric.CUNUMERIC_RED_ALL
@@ -507,7 +507,6 @@ class RandGenCode(IntEnum):
 class CuNumericRedopCode(IntEnum):
     ARGMAX = 1
     ARGMIN = 2
-    NANARGMAX = 3
 
 
 # Match these to CuNumericTunable in cunumeric_c.h
