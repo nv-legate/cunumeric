@@ -14,9 +14,7 @@
  *
  */
 
-#include "cunumeric.h"
-#include "arg.h"
-#include "arg.inl"
+#include "cunumeric/arg_redop_register.h"
 
 extern "C" {
 

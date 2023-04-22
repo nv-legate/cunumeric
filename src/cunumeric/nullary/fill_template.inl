@@ -76,8 +76,8 @@ static void fill_template(TaskContext& context)
 #ifdef DEBUG_CUNUMERIC
     assert(args.is_argval);
 #endif
-    auto* field_type = static_cast<const StructType*>(args.out.type())->field_type(1);
-    code             = field_type->code;
+    auto& field_type = static_cast<const StructType&>(args.out.type()).field_type(1);
+    code             = field_type.code;
   }
   double_dispatch(args.out.dim(), code, FillImpl<KIND>{}, args);
 }

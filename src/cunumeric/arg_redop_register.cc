@@ -14,8 +14,7 @@
  *
  */
 
-#include "cunumeric/arg.h"
-#include "cunumeric/arg.inl"
+#include "cunumeric/arg_redop_register.h"
 
 namespace cunumeric {
 
@@ -45,6 +44,16 @@ DEFINE_IDENTITIES(uint8_t)
 DEFINE_IDENTITIES(uint16_t)
 DEFINE_IDENTITIES(uint32_t)
 DEFINE_IDENTITIES(uint64_t)
+
+#undef DEFINE_ARGMAX_IDENTITY
+#undef DEFINE_ARGMIN_IDENTITY
+#undef DEFINE_IDENTITIES
+
+/*static*/ int32_t register_reduction_op_fn::register_reduction_op_fn::next_reduction_operator_id()
+{
+  static int32_t next_redop_id = 0;
+  return next_redop_id++;
+}
 
 }  // namespace cunumeric
 
