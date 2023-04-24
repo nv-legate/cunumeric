@@ -4084,6 +4084,7 @@ class ndarray:
                 UnaryRedCode.MAX,
                 UnaryRedCode.MIN,
                 UnaryRedCode.NANARGMAX,
+                UnaryRedCode.NANARGMIN,
             )
             and src.dtype.kind == "c"
         ):
