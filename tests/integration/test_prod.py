@@ -78,10 +78,8 @@ NO_EMPTY_SIZE = [
 
 ARR = ([], [[]], [[], []], np.inf, np.Inf, -10.3, 0, 200, 5 + 8j)
 
-DTYPE = ["l", "L", "f", "e", "d"]
-COMPLEX_TYPE = ["F"]
-NEGATIVE_COMPLEX_TYPE = ["D"]
-NEGATIVE_DTYPE = ["h", "i", "H", "I", "?", "b", "B"]
+DTYPE = ("l", "L", "f", "e", "d")
+INTEGER_DTYPE = ("h", "i", "H", "I", "?", "b", "B")
 
 
 def to_dtype(s):
@@ -97,48 +95,11 @@ class TestProdNegative(object):
     def test_array(self, arr):
         assert allclose(np.prod(arr), num.prod(arr))
 
-    @pytest.mark.xfail
-    @pytest.mark.parametrize("dtype", NEGATIVE_DTYPE, ids=to_dtype)
-    def test_dtype_negative(self, dtype):
-        size = (5, 5, 5)
-        arr = np.random.random(size) * 10 + 2
-        arr_np = np.array(arr, dtype=dtype)
-        arr_num = num.array(arr_np)
-        out_np = np.prod(arr_np)  # Numpy return product of all datas
-        out_num = num.prod(arr_num)
-        # cuNumeric return an array with a different data
-        assert allclose(out_np, out_num)
-
-    @pytest.mark.skip
-    @pytest.mark.parametrize("dtype", NEGATIVE_COMPLEX_TYPE, ids=to_dtype)
-    def test_dtype_complex_negative(self, dtype):
-        arr = (num.random.rand(5, 5) * 10 + 2) + (
-            num.random.rand(5, 5) * 10 * 1.0j + 0.2j
-        )
-        arr_np = np.array(arr, dtype=dtype)
-        arr_num = num.array(arr_np)
-        out_np = np.prod(arr_np)
-        out_num = num.prod(arr_num)
-        assert allclose(out_np, out_num)
-
     def test_axis_out_bound(self):
         arr = [-1, 0, 1, 2, 10]
         msg = r"bounds"
         with pytest.raises(np.AxisError, match=msg):
             num.prod(arr, axis=2)
-
-    @pytest.mark.xfail
-    @pytest.mark.parametrize("axis", ((-1, 1), (0, 1), (1, 2), (0, 2)))
-    def test_axis_tuple(self, axis):
-        size = (5, 5, 5)
-        arr_np = np.random.random(size) * 10
-        arr_num = num.array(arr_np)
-        out_np = np.prod(arr_np, axis=axis)
-        # cuNumeric raises NotImplementedError:
-        # Need support for reducing multiple dimensions.
-        # Numpy get results.
-        out_num = num.prod(arr_num, axis=axis)
-        assert allclose(out_np, out_num)
 
     def test_out_negative(self):
         in_shape = (2, 3, 4)
@@ -206,6 +167,7 @@ class TestProdPositive(object):
         out_np = np.prod(arr_np)
         out_num = np.prod(arr_num)
         assert allclose(out_np, out_num)
+        assert allclose(out_num, arr_num.prod())
 
     @pytest.mark.parametrize("dtype", DTYPE, ids=to_dtype)
     def test_dtype(self, dtype):
@@ -217,15 +179,43 @@ class TestProdPositive(object):
         out_num = num.prod(arr_num)
         assert allclose(out_np, out_num)
 
-    @pytest.mark.parametrize("dtype", COMPLEX_TYPE, ids=to_dtype)
-    def test_dtype_complex(self, dtype):
-        arr = (num.random.rand(5, 5) * 10 + 2) + (
-            num.random.rand(5, 5) * 10 * 1.0j + 0.2j
-        )
-        arr_np = np.array(arr, dtype=dtype)
-        arr_num = num.array(arr_np)
+    @pytest.mark.xfail(reason="numpy and cunumeric return different dtypes")
+    @pytest.mark.parametrize("dtype", INTEGER_DTYPE, ids=to_dtype)
+    def test_dtype_integer_precision(self, dtype):
+        arr_np = np.arange(0, 5).astype(dtype)
+        arr_num = num.arange(0, 5).astype(dtype)
         out_np = np.prod(arr_np)
         out_num = num.prod(arr_num)
+        assert allclose(out_num, arr_num.prod())
+        # When input precision is less than default platform integer
+        # NumPy returns the product with dtype of platform integer
+        # cuNumeric returns the product with dtype of the input array
+        assert allclose(out_np, out_num)
+
+    @pytest.mark.parametrize(
+        "dtype",
+        (
+            "F",
+            pytest.param("D", marks=pytest.mark.xfail),
+            pytest.param("G", marks=pytest.mark.xfail),
+        ),
+        ids=to_dtype,
+    )
+    def test_dtype_complex(self, dtype):
+        arr = (np.random.rand(5, 5) * 10 + 2) + (
+            np.random.rand(5, 5) * 10 * 1.0j + 0.2j
+        )
+        arr_np = np.array(arr, dtype=dtype)
+        arr_num = num.array(arr, dtype=dtype)
+        out_np = np.prod(arr_np)
+        # cunumeric always returns [1+0.j] when LEGATE_TEST=1
+        out_num = num.prod(arr_num)
+        # When running tests with CUNUMERIC_TEST=1 and dtype is complex256,
+        # allclose hits assertion error:
+        # File "/legate/cunumeric/cunumeric/eager.py", line 293,
+        # in to_deferred_array
+        #   assert self.runtime.is_supported_type(self.array.dtype)
+        #   AssertionError
         assert allclose(out_np, out_num)
 
     @pytest.mark.parametrize("axis", (_ for _ in range(-2, 3, 1)))
@@ -235,6 +225,23 @@ class TestProdPositive(object):
         arr_num = num.array(arr_np)
         out_num = num.prod(arr_num, axis=axis)
         out_np = np.prod(arr_np, axis=axis)
+        assert allclose(out_np, out_num)
+
+    @pytest.mark.xfail(reason="cunumeric raises exceptions when LEGATE_TEST=1")
+    @pytest.mark.parametrize(
+        "axis", ((-1, 1), (0, 1), (1, 2), (0, 2)), ids=str
+    )
+    def test_axis_tuple(self, axis):
+        size = (5, 5, 5)
+        arr_np = np.random.random(size) * 10
+        arr_num = num.array(arr_np)
+        out_np = np.prod(arr_np, axis=axis)
+        # when LEGATE_TEST = 1 cuNumeric raises two types of exceptions
+        # (-1, 1): ValueError: Invalid promotion on dimension 2 for a 1-D store
+        # others:
+        # NotImplementedError: Need support for reducing multiple dimensions
+        # Numpy get results.
+        out_num = num.prod(arr_num, axis=axis)
         assert allclose(out_np, out_num)
 
     @pytest.mark.parametrize("size", SIZES)

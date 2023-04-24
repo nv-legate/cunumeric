@@ -205,8 +205,8 @@ def test_place_mask_reshape(shape, vals):
     arr_np = mk_seq_array(np, shape)
     arr_num = mk_seq_array(num, shape)
 
-    mask_np = (arr_np % 2).astype(bool)
-    mask_num = (arr_np % 2).astype(bool)
+    mask_np = np.arange(0, arr_np.size)
+    mask_num = num.arange(0, arr_num.size)
 
     vals_np = np.array(vals).astype(arr_np.dtype)
     vals_num = num.array(vals_np)
