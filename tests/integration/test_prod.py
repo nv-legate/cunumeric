@@ -96,19 +96,25 @@ class TestProdNegative(object):
         assert allclose(np.prod(arr), num.prod(arr))
 
     def test_axis_out_bound(self):
+        expected_exc = np.AxisError
         arr = [-1, 0, 1, 2, 10]
-        msg = r"bounds"
-        with pytest.raises(np.AxisError, match=msg):
+        with pytest.raises(expected_exc):
+            np.prod(arr, axis=2)
+        with pytest.raises(expected_exc):
             num.prod(arr, axis=2)
 
     def test_out_negative(self):
+        expected_exc = ValueError
         in_shape = (2, 3, 4)
         out_shape = (2, 3, 3)
-        arr_num = num.random.random(in_shape) * 10
-        arr_out = num.random.random(out_shape) * 10
-        msg = r"shapes do not match"
-        with pytest.raises(ValueError, match=msg):
-            num.prod(arr_num, out=arr_out, axis=2)
+        arr_np = np.ndarray(in_shape)
+        out_np = np.ndarray(out_shape)
+        arr_num = num.ndarray(in_shape)
+        out_num = num.ndarray(out_shape)
+        with pytest.raises(expected_exc):
+            np.prod(arr_np, out=out_np, axis=2)
+        with pytest.raises(expected_exc):
+            num.prod(arr_num, out=out_num, axis=2)
 
     def test_keepdims(self):
         in_shape = (2, 3, 4)
@@ -118,23 +124,21 @@ class TestProdNegative(object):
         out_num = num.prod(arr_num, axis=2, keepdims=True)
         assert allclose(out_np, out_num)
 
-    @pytest.mark.xfail
-    def test_initial_scalar_list(self):
+    @pytest.mark.parametrize(
+        "initial",
+        ([2, 3], pytest.param([3], marks=pytest.mark.xfail)),
+        ids=str,
+    )
+    def test_initial_list(self, initial):
+        expected_exc = ValueError
         arr = [[1, 2], [3, 4]]
-        initial_value = [3]
-
-        out_num = num.prod(arr, initial=initial_value)  # array(72)
         # Numpy raises ValueError:
         # Input object to FillWithScalar is not a scalar
-        out_np = np.prod(arr, initial=initial_value)
-
-        assert allclose(out_np, out_num)
-
-    def test_initial_list(self):
-        arr = [[1, 2], [3, 4]]
-        initial_value = [2, 3]
-        with pytest.raises(ValueError):
-            num.prod(arr, initial=initial_value)
+        with pytest.raises(expected_exc):
+            np.prod(arr, initial=initial)
+        # when LEGATE_TEST=1, cuNumeric casts list to scalar and proceeds
+        with pytest.raises(expected_exc):
+            num.prod(arr, initial=initial)
 
     def test_initial_empty_array(self):
         size = (1, 0)
