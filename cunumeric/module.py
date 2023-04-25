@@ -6361,7 +6361,7 @@ def bincount(
         else:
             out = zeros((minlength,), dtype=weights.dtype)
             index = x[0]
-            out[index] = weights[index]
+            out[index] = weights[0]
     else:
         # Normal case of bincount
         if weights is None:

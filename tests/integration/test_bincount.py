@@ -27,34 +27,90 @@ DTYPES = [np.int64, np.int32, np.int16]
 MINLENGTHS = [0, 5, 15]
 
 
-def test_dtype_negative():
-    arr = num.arange(5, dtype=float)
-    msg = r"integer type"
-    with pytest.raises(TypeError, match=msg):
-        num.bincount(arr)
+class TestBincountNegative:
+    def test_dtype_negative(self):
+        expected_exc = TypeError
+        arr_np = np.arange(5, dtype=float)
+        arr_num = num.arange(5, dtype=float)
+        with pytest.raises(expected_exc):
+            np.bincount(arr_np)
+        with pytest.raises(expected_exc):
+            num.bincount(arr_num)
 
+    def test_array_negative(self):
+        expected_exc = ValueError
+        arr_np = np.array((-1, 2, 5))
+        arr_num = num.array((-1, 2, 5))
+        with pytest.raises(expected_exc):
+            np.bincount(arr_np)
+        with pytest.raises(expected_exc):
+            num.bincount(arr_num)
 
-def test_weight_mismatch():
-    v_num = num.random.randint(0, 9, size=N)
-    w_num = num.random.randn(N + 1)
-    msg = r"same shape"
-    with pytest.raises(ValueError, match=msg):
-        num.bincount(v_num, weights=w_num)
+    def test_array_ndim(self):
+        expected_exc = ValueError
+        size = (2,) * 3
+        arr_np = np.random.randint(0, high=9, size=size)
+        arr_num = num.random.randint(0, high=9, size=size)
+        with pytest.raises(expected_exc):
+            np.bincount(arr_np)
+        with pytest.raises(expected_exc):
+            num.bincount(arr_num)
+
+    def test_minlength_negative(self):
+        expected_exc = ValueError
+        minlength = -5
+        arr_np = np.arange(5)
+        arr_num = num.arange(5)
+        with pytest.raises(expected_exc):
+            np.bincount(arr_np, minlength=minlength)
+        with pytest.raises(expected_exc):
+            num.bincount(arr_num, minlength=minlength)
+
+    def test_weight_mismatch(self):
+        expected_exc = ValueError
+        v_np = np.random.randint(0, 9, size=N)
+        w_np = np.random.randn(N + 1)
+        v_num = num.random.randint(0, 9, size=N)
+        w_num = num.random.randn(N + 1)
+        with pytest.raises(expected_exc):
+            np.bincount(v_np, weights=w_np)
+        with pytest.raises(expected_exc):
+            num.bincount(v_num, weights=w_num)
+
+    @pytest.mark.parametrize(
+        "weight",
+        [
+            ("1", "2"),
+            ("2", "x"),
+            (b"x", b"y"),
+            (np.datetime64(1, "Y"), np.datetime64(123, "Y")),
+            np.array((5, 3), dtype="F"),
+        ],
+    )
+    @pytest.mark.xfail(
+        reason="different behavior when casting weight to float64"
+    )
+    def test_weight_dtype(self, weight):
+        expected_exc = TypeError
+        arr_np = np.arange(2)
+        arr_num = num.arange(2)
+        w_np = np.array(weight)
+        w_num = num.array(weight)
+        with pytest.raises(expected_exc):
+            # TypeError: Cannot cast array data from dtype('<U1') to
+            # dtype('float64') according to the rule 'safe'
+            np.bincount(arr_np, weights=w_np)
+        with pytest.raises(expected_exc):
+            # - does not raise exception when the values can be casted float64
+            # - raises ValueError when weights are complex types
+            # - other dtype will hit ValueError that bubbles from eager.py:
+            #   could not convert string to float: 'x'
+            num.bincount(arr_num, weights=w_num)
 
 
 def test_out_size():
     arr = num.array([0, 1, 1, 3, 2, 1, 7, 23])
     assert num.bincount(arr).size == num.amax(arr) + 1
-
-
-@pytest.mark.skip()
-def test_array_ndim():
-    size = (2,) * 3
-    arr = num.random.randint(0, high=9, size=size)
-    # Numpy raises : ValueError: object too deep for desired array
-    # cuNumeric run aborted
-    with pytest.raises(ValueError):
-        num.bincount(arr)
 
 
 @pytest.mark.parametrize("dtype", DTYPES)
@@ -103,6 +159,23 @@ def test_bincount_weights_high_bins(dtype):
     out_np = np.bincount(v_np, weights=w_np)
 
     assert allclose(out_np, out_num)
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        None,
+        np.array((0.5,)),
+        np.array((22,)),
+    ],
+    ids=str,
+)
+def test_bincount_size_one(weights):
+    arr_np = np.random.randint(0, 255, size=1)
+    arr_num = num.array(arr_np)
+    bins_np = np.bincount(arr_np, weights=weights)
+    bins_num = num.bincount(arr_num, weights=weights)
+    assert np.array_equal(bins_np, bins_num)
 
 
 if __name__ == "__main__":
