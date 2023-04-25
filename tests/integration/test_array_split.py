@@ -66,6 +66,16 @@ class TestArraySplitErrors:
         with pytest.raises(IndexError):
             num.array_split(ary, len(ary) // 2, -2)
 
+    def test_indices_str_type(self):
+        expected_exc = ValueError
+        arr_np = np.arange(10)
+        arr_num = num.arange(10)
+        # Split points in the passed `indices` should be integer
+        with pytest.raises(expected_exc):
+            num.array_split(arr_np, ["a", "b"])
+        with pytest.raises(expected_exc):
+            num.array_split(arr_num, ["a", "b"])
+
 
 @pytest.mark.parametrize("size", SIZES, ids=str)
 def test_array_split(size):

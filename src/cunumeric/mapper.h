@@ -47,7 +47,6 @@ class CuNumericMapper : public legate::mapping::Mapper {
   const int32_t min_gpu_chunk;
   const int32_t min_cpu_chunk;
   const int32_t min_omp_chunk;
-  const int32_t eager_fraction;
 };
 
 }  // namespace cunumeric
