@@ -525,7 +525,7 @@ def array(
     elif copy and obj is result:
         result = result.copy()
     if result.ndim < ndmin:
-        shape = (np.newaxis,) * (ndmin - result.ndim) + result.shape
+        shape = (1,) * (ndmin - result.ndim) + result.shape
         result = result.reshape(shape)
     return result
 
