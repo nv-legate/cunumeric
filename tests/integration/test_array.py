@@ -78,7 +78,6 @@ def test_array_dtype(object, dtype):
     assert strict_type_equal(res_np, res_num)
 
 
-@pytest.mark.xfail
 @pytest.mark.parametrize(
     "ndmin",
     range(-1, LEGATE_MAX_DIM + 1),
@@ -90,10 +89,6 @@ def test_array_dtype(object, dtype):
     ids=lambda object: f"(object={object})",
 )
 def test_array_ndmin(object, ndmin):
-    # if dim of object is smaller than ndmin,
-    # In Numpy, it pass
-    # In cuNumeric, it raises TypeError:
-    # 'NoneType' object cannot be interpreted as an integer
     res_np = np.array(object, ndmin=ndmin)
     res_num = num.array(object, ndmin=ndmin)
     assert strict_type_equal(res_np, res_num)
