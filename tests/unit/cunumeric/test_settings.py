@@ -24,7 +24,6 @@ from legate.util.settings import EnvOnlySetting, PrioritizedSetting
 import cunumeric.settings as m
 
 _expected_settings = (
-    "test",
     "preload_cudalibs",
     "warn",
     "report_coverage",
@@ -62,7 +61,6 @@ class TestSettings:
         assert ps.env_var.startswith("CUNUMERIC_")
 
     def test_types(self) -> None:
-        assert m.settings.test.convert_type == 'bool ("0" or "1")'
         assert m.settings.preload_cudalibs.convert_type == 'bool ("0" or "1")'
         assert m.settings.warn.convert_type == 'bool ("0" or "1")'
         assert m.settings.report_coverage.convert_type == 'bool ("0" or "1")'
@@ -74,9 +72,6 @@ class TestSettings:
 
 
 class TestDefaults:
-    def test_test(self) -> None:
-        assert m.settings.test.default is False
-
     def test_preload_cudalibs(self) -> None:
         assert m.settings.preload_cudalibs.default is False
 

@@ -26,18 +26,6 @@ __all__ = ("settings",)
 
 
 class CunumericRuntimeSettings(Settings):
-    test: PrioritizedSetting[bool] = PrioritizedSetting(
-        "test",
-        "CUNUMERIC_TEST",
-        default=False,
-        convert=convert_bool,
-        help="""
-        Enable test mode. In test mode, all cuNumeric ndarrays are managed by
-        the distributed runtime and the NumPy fallback for small arrays is
-        turned off.
-        """,
-    )
-
     preload_cudalibs: PrioritizedSetting[bool] = PrioritizedSetting(
         "preload_cudalibs",
         "CUNUMERIC_PRELOAD_CUDALIBS",

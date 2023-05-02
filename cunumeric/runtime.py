@@ -23,6 +23,7 @@ import legate.core.types as ty
 import numpy as np
 from legate.core import LEGATE_MAX_DIM, ProcessorKind, Rect, get_legate_runtime
 from legate.core.context import Context as LegateContext
+from legate.settings import settings as legate_settings
 from typing_extensions import TypeGuard
 
 from .config import (
@@ -74,7 +75,7 @@ class Runtime(object):
         self.cunumeric_lib = cunumeric_lib.shared_object
         self.has_curand = cunumeric_lib.shared_object.cunumeric_has_curand()
 
-        settings.warn = settings.warn() or settings.test()
+        settings.warn = settings.warn() or legate_settings.test()
 
         if self.num_gpus > 0 and settings.preload_cudalibs():
             self._load_cudalibs()
@@ -483,7 +484,7 @@ class Runtime(object):
         if volume == 0:
             return True
         # If we're testing then the answer is always no
-        if settings.test():
+        if legate_settings.test():
             return False
         if len(shape) > LEGATE_MAX_DIM:
             return True
