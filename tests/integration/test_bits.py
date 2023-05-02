@@ -125,6 +125,17 @@ class TestUnpackbits(object):
         with pytest.raises(ValueError):
             num.unpackbits(in_num, bitorder=bitorder)
 
+    def test_count_type(self):
+        expected_exc = TypeError
+        shape = (3, 3)
+        in_np = np.random.randint(low=0, high=255, size=shape, dtype="B")
+        in_num = num.array(in_np)
+        # count must be an integer or None
+        with pytest.raises(expected_exc):
+            np.unpackbits(in_np, count="1")
+        with pytest.raises(expected_exc):
+            num.unpackbits(in_num, count="1")
+
     @pytest.mark.parametrize("arr", ([], [[]]))
     @pytest.mark.parametrize("bitorder", ("little", "big"))
     def test_arr(self, arr, bitorder):
