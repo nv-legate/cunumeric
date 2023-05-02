@@ -25,9 +25,12 @@ ARRAYS_INF = ([np.inf, -np.inf, np.nan, 0],)
 
 
 @pytest.mark.parametrize("x", SCALARS_INF + ARRAYS_INF)
-def test_inf_basic(x):
-    assert np.array_equal(np.isposinf(x), num.isposinf(x))
-    assert np.array_equal(np.isneginf(x), num.isneginf(x))
+@pytest.mark.parametrize("func_name", ("isposinf", "isneginf"))
+def test_inf_basic(func_name, x):
+    func_np = getattr(np, func_name)
+    func_num = getattr(num, func_name)
+
+    assert np.array_equal(func_np(x), func_num(x))
 
 
 @pytest.mark.parametrize("out_dt", (bool, int, float))
@@ -73,27 +76,34 @@ ARRAYS = (
 
 
 @pytest.mark.parametrize("x", SCALARS + ARRAYS)
-def test_real_complex(x):
+@pytest.mark.parametrize("func_name", ("isreal", "iscomplex"))
+def test_real_complex(func_name, x):
     # for x is 'a string', np.isreal is False, num.isreal is Array(True)
-    assert np.array_equal(np.isreal(x), num.isreal(x))
-    assert np.array_equal(np.iscomplex(x), num.iscomplex(x))
+    func_np = getattr(np, func_name)
+    func_num = getattr(num, func_name)
+
+    assert np.array_equal(func_np(x), func_num(x))
 
 
 @pytest.mark.parametrize("x", SCALARS)
-def test_real_complex_object_scalar(x):
-    assert np.array_equal(np.isrealobj(x), num.isrealobj(x))
-    assert np.array_equal(np.iscomplexobj(x), num.iscomplexobj(x))
+@pytest.mark.parametrize("func_name", ("isrealobj", "iscomplexobj"))
+def test_real_complex_object_scalar(func_name, x):
+    func_np = getattr(np, func_name)
+    func_num = getattr(num, func_name)
+
+    assert np.array_equal(func_np(x), func_num(x))
 
 
 @pytest.mark.parametrize("x", ARRAYS)
-def test_real_complex_object_array(x):
+@pytest.mark.parametrize("func_name", ("isrealobj", "iscomplexobj"))
+def test_real_complex_object_array(func_name, x):
     in_np = np.array(x)
     in_num = num.array(x)
+    func_np = getattr(np, func_name)
+    func_num = getattr(num, func_name)
 
-    assert np.array_equal(np.isrealobj(in_np), num.isrealobj(in_num))
-    assert np.array_equal(np.isrealobj(in_np), num.isrealobj(in_np))
-    assert np.array_equal(np.iscomplexobj(in_np), num.iscomplexobj(in_num))
-    assert np.array_equal(np.iscomplexobj(in_np), num.iscomplexobj(in_np))
+    assert np.array_equal(func_np(in_np), func_num(in_num))
+    assert np.array_equal(func_np(in_np), func_num(in_np))
 
 
 @pytest.mark.parametrize("x", (1.0, True, [1, 2, 3]))
@@ -226,10 +236,10 @@ def test_isclose_euqal_nan(equal_nan):
     # If equal_nan is True,
     # In Numpy, it pass
     # In cuNumeric, it raises NotImplementedError
-    weird_values = [np.inf, -np.inf, np.nan, 0.0, -0.0]
-    weird_pairs = tuple(combinations_with_replacement(weird_values, 2))
-    in1_np = np.array([x for x, _ in weird_pairs])
-    in2_np = np.array([y for _, y in weird_pairs])
+    values = [np.inf, -np.inf, np.nan, 0.0, -0.0]
+    pairs = tuple(combinations_with_replacement(values, 2))
+    in1_np = np.array([x for x, _ in pairs])
+    in2_np = np.array([y for _, y in pairs])
     in1_num = num.array(in1_np)
     in2_num = num.array(in2_np)
 
