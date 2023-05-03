@@ -3121,7 +3121,7 @@ class DeferredArray(NumPyThunk):
         argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
 
         if argred:
-            argred_dtype = self.runtime.get_arg_dtype(rhs_array.base.type)
+            argred_dtype = self.runtime.get_argred_type(rhs_array.base.type)
             lhs_array = self.runtime.create_empty_thunk(
                 lhs_array.shape,
                 dtype=argred_dtype,

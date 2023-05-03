@@ -47,6 +47,9 @@ if TYPE_CHECKING:
     from .array import ndarray
 
 
+DIMENSION = int
+
+
 class Runtime(object):
     def __init__(self, legate_context: LegateContext) -> None:
         self.legate_context = legate_context
@@ -88,16 +91,17 @@ class Runtime(object):
         if self.num_gpus > 0 and settings.preload_cudalibs():
             self._load_cudalibs()
 
-        self._point_dtypes: dict[int, ty.Dtype] = dict()
-        self._all_point_dtypes: set[ty.Dtype] = set()
-        self._arg_dtypes: dict[ty.Dtype, ty.Dtype] = dict()
+        # Maps dimensions to point types
+        self._cached_point_types: dict[DIMENSION, ty.Dtype] = dict()
+        # Maps value types to struct types used in argmin/argmax
+        self._cached_argred_types: dict[ty.Dtype, ty.Dtype] = dict()
 
-    def get_point_type(self, n: int) -> ty.Dtype:
-        if n in self._point_dtypes:
-            return self._point_dtypes[n]
-        point_dtype = ty.array_type(ty.int64, n) if n > 1 else ty.int64
-        self._point_dtypes[n] = point_dtype
-        self._all_point_dtypes.add(point_dtype)
+    def get_point_type(self, dim: DIMENSION) -> ty.Dtype:
+        cached = self._cached_point_types.get(dim)
+        if cached is not None:
+            return cached
+        point_dtype = ty.array_type(ty.int64, dim) if dim > 1 else ty.int64
+        self._cached_point_types[dim] = point_dtype
         return point_dtype
 
     def record_api_call(
@@ -121,15 +125,16 @@ class Runtime(object):
         )
         task.execute()
 
-    def get_arg_dtype(self, value_dtype: ty.Dtype) -> ty.Dtype:
-        if value_dtype in self._arg_dtypes:
-            return self._arg_dtypes[value_dtype]
-        arg_dtype = ty.struct_type([ty.int64, value_dtype], True)
-        self._arg_dtypes[value_dtype] = arg_dtype
+    def get_argred_type(self, value_dtype: ty.Dtype) -> ty.Dtype:
+        cached = self._cached_argred_types.get(value_dtype)
+        if cached is not None:
+            return cached
+        argred_dtype = ty.struct_type([ty.int64, value_dtype], True)
+        self._cached_argred_types[value_dtype] = argred_dtype
         self.cunumeric_lib.cunumeric_register_reduction_op(
-            arg_dtype.uid, value_dtype.code
+            argred_dtype.uid, value_dtype.code
         )
-        return arg_dtype
+        return argred_dtype
 
     def _report_coverage(self) -> None:
         total = len(self.api_calls)
