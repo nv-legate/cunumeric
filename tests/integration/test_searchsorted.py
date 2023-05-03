@@ -176,6 +176,52 @@ def test_ndim(ndim, side):
     check_api(a, None, v, side)
 
 
+def test_ndim_positive():
+    a = np.random.random((5, 5, 5))
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        num.searchsorted(a, 5)
+    with pytest.raises(expected_exc):
+        np.searchsorted(a, 5)
+
+
+@pytest.mark.xfail
+def test_sorter_ndim():
+    a = np.random.randint(-100, 100, size=100)
+    v = np.random.randint(-100, 100, size=10)
+    a_argsorted = np.random.random((5, 5, 5))
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        num.searchsorted(a, v, sorter=a_argsorted)
+    with pytest.raises(expected_exc):
+        # Numpy raises TypeError
+        np.searchsorted(a, v, sorter=a_argsorted)
+
+
+def test_sorter_shape():
+    a = np.random.randint(-100, 100, size=100)
+    v = np.random.randint(-100, 100, size=10)
+    a_argsorted = np.random.randint(-100, 100, size=10)
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        num.searchsorted(a, v, sorter=a_argsorted)
+    with pytest.raises(expected_exc):
+        np.searchsorted(a, v, sorter=a_argsorted)
+
+
+@pytest.mark.xfail
+def test_sorter_dtype():
+    a = np.random.randint(-100, 100, size=100)
+    v = np.random.randint(-100, 100, size=10)
+    a_argsorted = np.random.random(size=100)
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        num.searchsorted(a, v, sorter=a_argsorted)
+    with pytest.raises(expected_exc):
+        # Numpy raises TypeError
+        np.searchsorted(a, v, sorter=a_argsorted)
+
+
 if __name__ == "__main__":
     import sys
 
