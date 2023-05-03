@@ -205,8 +205,27 @@ def test_place_mask_reshape(shape, vals):
     arr_np = mk_seq_array(np, shape)
     arr_num = mk_seq_array(num, shape)
 
-    mask_np = np.arange(0, arr_np.size)
-    mask_num = num.arange(0, arr_num.size)
+    mask_np = np.arange(0, arr_np.size).astype(bool)
+    mask_num = num.arange(0, arr_num.size).astype(bool)
+
+    vals_np = np.array(vals).astype(arr_np.dtype)
+    vals_num = num.array(vals_np)
+
+    np.place(arr_np, mask_np, vals_np)
+    num.place(arr_num, mask_num, vals_num)
+
+    assert np.array_equal(arr_np, arr_num)
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.complex64), ids=str)
+def test_place_mask_dtype(dtype):
+    shape = (3, 2, 3)
+    vals = [42 + 3j]
+    arr_np = mk_seq_array(np, shape)
+    arr_num = mk_seq_array(num, shape)
+
+    mask_np = mk_seq_array(np, shape).astype(dtype)
+    mask_num = mk_seq_array(num, shape).astype(dtype)
 
     vals_np = np.array(vals).astype(arr_np.dtype)
     vals_num = num.array(vals_np)
