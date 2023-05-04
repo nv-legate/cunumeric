@@ -21,7 +21,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <BinaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct BinaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP  = BinaryOp<OP_CODE, CODE>;
   using ARG = legate_type_of<CODE>;

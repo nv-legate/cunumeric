@@ -24,12 +24,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, Type::Code CODE, int DIM>
 struct WhereImplBody;
 
 template <VariantKind KIND>
 struct WhereImpl {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(WhereArgs& args) const
   {
     using VAL = legate_type_of<CODE>;

@@ -27,12 +27,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryRedImplBody;
 
 template <VariantKind KIND, UnaryRedCode OP_CODE>
 struct UnaryRedImpl {
-  template <LegateTypeCode CODE,
+  template <Type::Code CODE,
             int DIM,
             std::enable_if_t<(DIM > 1) && UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(UnaryRedArgs& args) const
@@ -53,7 +53,7 @@ struct UnaryRedImpl {
       lhs, rhs, rect, pitches, args.collapsed_dim, volume);
   }
 
-  template <LegateTypeCode CODE,
+  template <Type::Code CODE,
             int DIM,
             std::enable_if_t<DIM <= 1 || !UnaryRedOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(UnaryRedArgs& args) const

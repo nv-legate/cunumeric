@@ -136,7 +136,7 @@ __global__ static void __launch_bounds__((TILE_DIM * BLOCK_ROWS), MIN_CTAS_PER_S
   }
 }
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct TransposeImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
 

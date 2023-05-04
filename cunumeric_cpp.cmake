@@ -156,7 +156,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/stat/bincount.cc
   src/cunumeric/convolution/convolve.cc
   src/cunumeric/transform/flip.cc
-  src/cunumeric/arg.cc
+  src/cunumeric/arg_redop_register.cc
   src/cunumeric/mapper.cc
   src/cunumeric/cephes/chbevl.cc
   src/cunumeric/cephes/i0.cc
@@ -254,8 +254,8 @@ if(Legion_USE_CUDA)
     src/cunumeric/convolution/convolve.cu
     src/cunumeric/fft/fft.cu
     src/cunumeric/transform/flip.cu
+    src/cunumeric/arg_redop_register.cu
     src/cunumeric/cudalibs.cu
-    src/cunumeric/cunumeric.cu
   )
 endif()
 

@@ -1409,7 +1409,7 @@ struct UseCUFFT {
   static constexpr bool value = 1 <= DIM && DIM <= 3 && std::is_floating_point<VAL>::value;
 };
 
-template <LegateTypeCode CODE, int DIM>
+template <Type::Code CODE, int DIM>
 struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
