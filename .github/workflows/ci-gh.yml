@@ -27,10 +27,11 @@ jobs:
         VAULT_HOST: ${{ secrets.PERSONAL_ACCESS_TOKEN && 'https://vault.ops.k8s.rapids.ai' || '' }}
         GH_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
         GITHUB_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN}}"
+        # TODO: extract this from cmake/versions.json
+        LEGATE_SHA: b3e280d6212aa2ec0af619b6fee3ac24d069897e
       volumes:
         - ${{ github.workspace }}/out:/tmp/out
     steps:
-       # TODO: checkout a specific version of legate.core.
       - name: Checkout legate.core
         uses: actions/checkout@v3
         with:
@@ -51,6 +52,8 @@ jobs:
           DEBIAN_FRONTEND=noninteractive \
           apt install -y --no-install-recommends \
               numactl rlwrap;
+
+          git -C /home/coder/legate checkout ${{ env.LEGATE_SHA }}
           
           mv legate /home/coder/legate
           mv cunumeric/continuous_integration/home/coder/.gitconfig /home/coder/.gitconfig;
