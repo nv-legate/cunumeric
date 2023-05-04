@@ -53,9 +53,9 @@ jobs:
           apt install -y --no-install-recommends \
               numactl rlwrap;
 
+          mv legate /home/coder/legate
           git -C /home/coder/legate checkout ${{ env.LEGATE_SHA }}
           
-          mv legate /home/coder/legate
           mv cunumeric/continuous_integration/home/coder/.gitconfig /home/coder/.gitconfig;
           mv cunumeric/continuous_integration/home/coder/.local /home/coder/.local;
           mv cunumeric /home/coder/cunumeric
