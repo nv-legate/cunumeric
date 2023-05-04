@@ -25,23 +25,23 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct SolveImplBody;
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct support_solve : std::false_type {};
 template <>
-struct support_solve<LegateTypeCode::DOUBLE_LT> : std::true_type {};
+struct support_solve<Type::Code::FLOAT64> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::FLOAT_LT> : std::true_type {};
+struct support_solve<Type::Code::FLOAT32> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
+struct support_solve<Type::Code::COMPLEX64> : std::true_type {};
 template <>
-struct support_solve<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
+struct support_solve<Type::Code::COMPLEX128> : std::true_type {};
 
 template <VariantKind KIND>
 struct SolveImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<support_solve<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<support_solve<CODE>::value>* = nullptr>
   void operator()(Array& a_array, Array& b_array) const
   {
     using VAL = legate_type_of<CODE>;
@@ -95,7 +95,7 @@ struct SolveImpl {
     SolveImplBody<KIND, CODE>()(m, n, nrhs, a, b);
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!support_solve<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!support_solve<CODE>::value>* = nullptr>
   void operator()(Array& a_array, Array& b_array) const
   {
     assert(false);

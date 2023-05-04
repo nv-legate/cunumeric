@@ -67,7 +67,7 @@ struct TileImpl {
 
 template <VariantKind KIND>
 struct TileDispatch {
-  template <LegateTypeCode CODE>
+  template <Type::Code CODE>
   void operator()(TileArgs& args) const
   {
     using VAL = legate_type_of<CODE>;

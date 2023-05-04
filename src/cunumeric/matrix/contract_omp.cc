@@ -26,7 +26,7 @@ namespace cunumeric {
 using namespace tblis;
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
+struct ContractImplBody<VariantKind::OMP, Type::Code::FLOAT32> {
   void operator()(float* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -58,7 +58,7 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
+struct ContractImplBody<VariantKind::OMP, Type::Code::FLOAT64> {
   void operator()(double* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -90,7 +90,7 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
+struct ContractImplBody<VariantKind::OMP, Type::Code::FLOAT16> {
   void operator()(__half* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -126,29 +126,29 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::HALF_LT> {
     float* rhs2_copy_data = allocate_buffer(rhs2_size);
     half_tensor_to_float(rhs2_copy_data, rhs2_data, rhs2_ndim, rhs2_shape, rhs2_strides);
 
-    ContractImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT>{}(lhs_copy_data,
-                                                                   lhs_ndim,
-                                                                   lhs_shape,
-                                                                   lhs_copy_strides.data(),
-                                                                   lhs_modes,
-                                                                   rhs1_copy_data,
-                                                                   rhs1_ndim,
-                                                                   rhs1_shape,
-                                                                   rhs1_copy_strides.data(),
-                                                                   rhs1_modes,
-                                                                   rhs2_copy_data,
-                                                                   rhs2_ndim,
-                                                                   rhs2_shape,
-                                                                   rhs2_copy_strides.data(),
-                                                                   rhs2_modes,
-                                                                   lhs_overwritable);
+    ContractImplBody<VariantKind::OMP, Type::Code::FLOAT32>{}(lhs_copy_data,
+                                                              lhs_ndim,
+                                                              lhs_shape,
+                                                              lhs_copy_strides.data(),
+                                                              lhs_modes,
+                                                              rhs1_copy_data,
+                                                              rhs1_ndim,
+                                                              rhs1_shape,
+                                                              rhs1_copy_strides.data(),
+                                                              rhs1_modes,
+                                                              rhs2_copy_data,
+                                                              rhs2_ndim,
+                                                              rhs2_shape,
+                                                              rhs2_copy_strides.data(),
+                                                              rhs2_modes,
+                                                              lhs_overwritable);
 
     float_tensor_to_half(lhs_data, lhs_copy_data, lhs_ndim, lhs_shape, lhs_strides);
   }
 };
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
+struct ContractImplBody<VariantKind::OMP, Type::Code::COMPLEX64> {
   void operator()(complex<float>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -191,7 +191,7 @@ struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
+struct ContractImplBody<VariantKind::OMP, Type::Code::COMPLEX128> {
   void operator()(complex<double>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,

@@ -52,16 +52,16 @@ constexpr decltype(auto) op_dispatch(ScanCode op_code,
   return f.template operator()<ScanCode::SUM, false>(std::forward<Fnargs>(args)...);
 }
 
-template <ScanCode OP_CODE, legate::LegateTypeCode CODE>
+template <ScanCode OP_CODE, legate::Type::Code CODE>
 struct ScanOp {};
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type::Code CODE>
 struct ScanOp<ScanCode::SUM, CODE> : thrust::plus<legate::legate_type_of<CODE>> {
   static constexpr int nan_identity = 0;
   ScanOp() {}
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type::Code CODE>
 struct ScanOp<ScanCode::PROD, CODE> : thrust::multiplies<legate::legate_type_of<CODE>> {
   static constexpr int nan_identity = 1;
   ScanOp() {}

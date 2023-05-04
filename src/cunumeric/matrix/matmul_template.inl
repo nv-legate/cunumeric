@@ -24,35 +24,35 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct MatMulImplBody;
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct support_matmul : std::false_type {};
 template <>
-struct support_matmul<LegateTypeCode::DOUBLE_LT> : std::true_type {
+struct support_matmul<Type::Code::FLOAT64> : std::true_type {
   using ACC_TYPE = double;
 };
 template <>
-struct support_matmul<LegateTypeCode::FLOAT_LT> : std::true_type {
+struct support_matmul<Type::Code::FLOAT32> : std::true_type {
   using ACC_TYPE = float;
 };
 template <>
-struct support_matmul<LegateTypeCode::HALF_LT> : std::true_type {
+struct support_matmul<Type::Code::FLOAT16> : std::true_type {
   using ACC_TYPE = float;
 };
 template <>
-struct support_matmul<LegateTypeCode::COMPLEX64_LT> : std::true_type {
+struct support_matmul<Type::Code::COMPLEX64> : std::true_type {
   using ACC_TYPE = complex<float>;
 };
 template <>
-struct support_matmul<LegateTypeCode::COMPLEX128_LT> : std::true_type {
+struct support_matmul<Type::Code::COMPLEX128> : std::true_type {
   using ACC_TYPE = complex<double>;
 };
 
 template <VariantKind KIND>
 struct MatMulImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<support_matmul<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<support_matmul<CODE>::value>* = nullptr>
   void operator()(MatMulArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -105,7 +105,7 @@ struct MatMulImpl {
                                  args.lhs.is_readable());
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!support_matmul<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!support_matmul<CODE>::value>* = nullptr>
   void operator()(MatMulArgs& args) const
   {
     assert(false);

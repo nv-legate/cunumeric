@@ -49,7 +49,7 @@ static inline void potrf_template(
 }
 
 template <>
-struct PotrfImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
+struct PotrfImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(float* array, int32_t m, int32_t n)
   {
     potrf_template(cusolverDnSpotrf_bufferSize, cusolverDnSpotrf, array, m, n);
@@ -57,7 +57,7 @@ struct PotrfImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct PotrfImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
+struct PotrfImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(double* array, int32_t m, int32_t n)
   {
     potrf_template(cusolverDnDpotrf_bufferSize, cusolverDnDpotrf, array, m, n);
@@ -65,7 +65,7 @@ struct PotrfImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct PotrfImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+struct PotrfImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(complex<float>* array, int32_t m, int32_t n)
   {
     potrf_template(
@@ -74,7 +74,7 @@ struct PotrfImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct PotrfImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+struct PotrfImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(complex<double>* array, int32_t m, int32_t n)
   {
     potrf_template(cusolverDnZpotrf_bufferSize,

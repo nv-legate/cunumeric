@@ -24,7 +24,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int32_t DIM>
+template <VariantKind KIND, Type::Code CODE, int32_t DIM>
 struct SortImplBody;
 
 static int get_rank(Domain domain, DomainPoint index_point)
@@ -41,7 +41,7 @@ static int get_rank(Domain domain, DomainPoint index_point)
 
 template <VariantKind KIND>
 struct SortImpl {
-  template <LegateTypeCode CODE, int32_t DIM>
+  template <Type::Code CODE, int32_t DIM>
   void operator()(SortArgs& args, std::vector<comm::Communicator>& comms) const
   {
     using VAL = legate_type_of<CODE>;
