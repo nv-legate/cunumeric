@@ -23,12 +23,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct TransposeImplBody;
 
 template <VariantKind KIND>
 struct TransposeImpl {
-  template <LegateTypeCode CODE>
+  template <Type::Code CODE>
   void operator()(TransposeArgs& args) const
   {
     using VAL = legate_type_of<CODE>;

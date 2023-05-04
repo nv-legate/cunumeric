@@ -24,12 +24,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int32_t DIM>
+template <VariantKind KIND, Type::Code CODE, int32_t DIM>
 struct SearchSortedImplBody;
 
 template <VariantKind KIND>
 struct SearchSortedImpl {
-  template <LegateTypeCode CODE, int32_t DIM>
+  template <Type::Code CODE, int32_t DIM>
   void operator()(SearchSortedArgs& args) const
   {
     using VAL = legate_type_of<CODE>;

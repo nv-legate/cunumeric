@@ -50,7 +50,7 @@ def solve(output: DeferredArray, a: DeferredArray, b: DeferredArray) -> None:
 
     a_copy = cast(
         DeferredArray,
-        runtime.create_empty_thunk(a.shape, dtype=a.dtype, inputs=(a,)),
+        runtime.create_empty_thunk(a.shape, dtype=a.base.type, inputs=(a,)),
     )
     transpose_copy_single(context, a.base, a_copy.base)
 

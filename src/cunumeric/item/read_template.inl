@@ -28,7 +28,7 @@ struct ReadImplBody;
 
 template <VariantKind KIND>
 struct ReadImpl {
-  template <LegateTypeCode CODE>
+  template <Type::Code CODE>
   void operator()(const Array& out_arr, const Array& in_arr) const
   {
     using VAL = legate_type_of<CODE>;

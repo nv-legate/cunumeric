@@ -37,7 +37,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   sum_val[0] = out[0];
 }
 
-template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <ScanCode OP_CODE, Type::Code CODE, int DIM>
 struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;
@@ -77,7 +77,7 @@ struct ScanLocalImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   }
 };
 
-template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <ScanCode OP_CODE, Type::Code CODE, int DIM>
 struct ScanLocalNanImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;

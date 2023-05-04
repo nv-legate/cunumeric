@@ -46,7 +46,7 @@ static __global__ void __launch_bounds__(1, 1) copy_kernel(Buffer result, RedAcc
   out.reduce(0, result.read());
 }
 
-template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <BinaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct BinaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = BinaryOp<OP_CODE, CODE>;
   using ARG = legate_type_of<CODE>;

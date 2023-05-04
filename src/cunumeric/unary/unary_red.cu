@@ -293,7 +293,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (result != identity) out.reduce(point, result);
 }
 
-template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;

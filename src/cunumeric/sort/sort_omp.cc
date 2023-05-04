@@ -29,7 +29,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <LegateTypeCode CODE, int32_t DIM>
+template <Type::Code CODE, int32_t DIM>
 struct SortImplBody<VariantKind::OMP, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 

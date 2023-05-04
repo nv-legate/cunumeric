@@ -26,7 +26,7 @@ namespace cunumeric {
 using namespace legate;
 
 template <>
-struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
+struct PotrfImplBody<VariantKind::OMP, Type::Code::FLOAT32> {
   void operator()(float* array, int32_t m, int32_t n)
   {
     char uplo    = 'L';
@@ -37,7 +37,7 @@ struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
+struct PotrfImplBody<VariantKind::OMP, Type::Code::FLOAT64> {
   void operator()(double* array, int32_t m, int32_t n)
   {
     char uplo    = 'L';
@@ -48,7 +48,7 @@ struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
+struct PotrfImplBody<VariantKind::OMP, Type::Code::COMPLEX64> {
   void operator()(complex<float>* array, int32_t m, int32_t n)
   {
     char uplo    = 'L';
@@ -59,7 +59,7 @@ struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct PotrfImplBody<VariantKind::OMP, LegateTypeCode::COMPLEX128_LT> {
+struct PotrfImplBody<VariantKind::OMP, Type::Code::COMPLEX128> {
   void operator()(complex<double>* array, int32_t m, int32_t n)
   {
     char uplo    = 'L';

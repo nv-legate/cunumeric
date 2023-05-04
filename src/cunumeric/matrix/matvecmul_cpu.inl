@@ -28,7 +28,7 @@ using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND>
-struct MatVecMulImplBody<KIND, LegateTypeCode::FLOAT_LT> {
+struct MatVecMulImplBody<KIND, Type::Code::FLOAT32> {
   void operator()(size_t m,
                   size_t n,
                   float* lhs,
@@ -46,7 +46,7 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::FLOAT_LT> {
 };
 
 template <VariantKind KIND>
-struct MatVecMulImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
+struct MatVecMulImplBody<KIND, Type::Code::FLOAT64> {
   void operator()(size_t m,
                   size_t n,
                   double* lhs,
@@ -63,7 +63,7 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <VariantKind KIND>
-struct MatVecMulImplBody<KIND, LegateTypeCode::HALF_LT> {
+struct MatVecMulImplBody<KIND, Type::Code::FLOAT16> {
   void operator()(size_t m,
                   size_t n,
                   float* lhs,
@@ -81,13 +81,13 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::HALF_LT> {
     half_matrix_to_float(mat_copy, mat, m, n, mat_stride);
     half_vector_to_float(vec_copy, vec, vec_size);
 
-    MatVecMulImplBody<KIND, LegateTypeCode::FLOAT_LT>{}(
+    MatVecMulImplBody<KIND, Type::Code::FLOAT32>{}(
       m, n, lhs, mat_copy, vec_copy, n, transpose_mat, lhs_overwritable);
   }
 };
 
 template <VariantKind KIND>
-struct MatVecMulImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
+struct MatVecMulImplBody<KIND, Type::Code::COMPLEX64> {
   void operator()(size_t m,
                   size_t n,
                   complex<float>* lhs_,
@@ -109,7 +109,7 @@ struct MatVecMulImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <VariantKind KIND>
-struct MatVecMulImplBody<KIND, LegateTypeCode::COMPLEX128_LT> {
+struct MatVecMulImplBody<KIND, Type::Code::COMPLEX128> {
   void operator()(size_t m,
                   size_t n,
                   complex<double>* lhs_,

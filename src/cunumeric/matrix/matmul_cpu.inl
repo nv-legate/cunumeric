@@ -28,7 +28,7 @@ using namespace Legion;
 using namespace legate;
 
 template <VariantKind KIND>
-struct MatMulImplBody<KIND, LegateTypeCode::FLOAT_LT> {
+struct MatMulImplBody<KIND, Type::Code::FLOAT32> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -61,7 +61,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::FLOAT_LT> {
 };
 
 template <VariantKind KIND>
-struct MatMulImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
+struct MatMulImplBody<KIND, Type::Code::FLOAT64> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -93,7 +93,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <VariantKind KIND>
-struct MatMulImplBody<KIND, LegateTypeCode::HALF_LT> {
+struct MatMulImplBody<KIND, Type::Code::FLOAT16> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -138,7 +138,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::HALF_LT> {
 };
 
 template <VariantKind KIND>
-struct MatMulImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
+struct MatMulImplBody<KIND, Type::Code::COMPLEX64> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -176,7 +176,7 @@ struct MatMulImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <VariantKind KIND>
-struct MatMulImplBody<KIND, LegateTypeCode::COMPLEX128_LT> {
+struct MatMulImplBody<KIND, Type::Code::COMPLEX128> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,

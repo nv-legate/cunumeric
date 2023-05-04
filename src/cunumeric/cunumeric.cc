@@ -30,8 +30,6 @@ static const char* const cunumeric_library_name = "cunumeric";
   return registrar;
 }
 
-extern void register_reduction_operators(LibraryContext* context);
-
 void registration_callback()
 {
   ResourceConfig config;
@@ -42,9 +40,6 @@ void registration_callback()
     cunumeric_library_name, config, std::make_unique<CuNumericMapper>());
 
   CuNumericRegistrar::get_registrar().register_all_tasks(context);
-
-  // Register our special reduction functions
-  register_reduction_operators(context);
 }
 
 }  // namespace cunumeric

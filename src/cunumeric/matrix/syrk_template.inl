@@ -23,23 +23,23 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct SyrkImplBody;
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct support_syrk : std::false_type {};
 template <>
-struct support_syrk<LegateTypeCode::DOUBLE_LT> : std::true_type {};
+struct support_syrk<Type::Code::FLOAT64> : std::true_type {};
 template <>
-struct support_syrk<LegateTypeCode::FLOAT_LT> : std::true_type {};
+struct support_syrk<Type::Code::FLOAT32> : std::true_type {};
 template <>
-struct support_syrk<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
+struct support_syrk<Type::Code::COMPLEX64> : std::true_type {};
 template <>
-struct support_syrk<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
+struct support_syrk<Type::Code::COMPLEX128> : std::true_type {};
 
 template <VariantKind KIND>
 struct SyrkImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<support_syrk<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<support_syrk<CODE>::value>* = nullptr>
   void operator()(Array& lhs_array, Array& rhs_array) const
   {
     using VAL = legate_type_of<CODE>;
@@ -62,7 +62,7 @@ struct SyrkImpl {
     SyrkImplBody<KIND, CODE>()(lhs, rhs, m, n);
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!support_syrk<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!support_syrk<CODE>::value>* = nullptr>
   void operator()(Array& lhs_array, Array& rhs_array) const
   {
     assert(false);

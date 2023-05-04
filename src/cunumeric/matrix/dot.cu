@@ -43,7 +43,7 @@ static __global__ void __launch_bounds__(1, 1) copy_kernel(Buffer result, RedAcc
   out.reduce(0, result.read());
 }
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct DotImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
   using ACC = acc_type_of<VAL>;

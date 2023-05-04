@@ -24,7 +24,7 @@ namespace cunumeric {
 // algorithm, but it is commented out in favor of the faster one
 // that is blocked for caches
 #if 0
-template <LegateTypeCode CODE, int DIM>
+template <Type::Code CODE, int DIM>
 struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
@@ -73,7 +73,7 @@ struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
 };
 #endif
 
-template <LegateTypeCode CODE, int DIM>
+template <Type::Code CODE, int DIM>
 struct ConvolveImplBody<VariantKind::CPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
