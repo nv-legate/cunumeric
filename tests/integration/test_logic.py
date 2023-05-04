@@ -76,34 +76,42 @@ ARRAYS = (
 
 
 @pytest.mark.parametrize("x", SCALARS + ARRAYS)
-@pytest.mark.parametrize("func_name", ("isreal", "iscomplex"))
-def test_real_complex(func_name, x):
+def test_isreal(x):
     # for x is 'a string', np.isreal is False, num.isreal is Array(True)
-    func_np = getattr(np, func_name)
-    func_num = getattr(num, func_name)
+    assert np.array_equal(np.isreal(x), num.isreal(x))
 
-    assert np.array_equal(func_np(x), func_num(x))
+
+@pytest.mark.parametrize("x", SCALARS + ARRAYS)
+def test_iscomplex(x):
+    assert np.array_equal(np.iscomplex(x), num.iscomplex(x))
 
 
 @pytest.mark.parametrize("x", SCALARS)
-@pytest.mark.parametrize("func_name", ("isrealobj", "iscomplexobj"))
-def test_real_complex_object_scalar(func_name, x):
-    func_np = getattr(np, func_name)
-    func_num = getattr(num, func_name)
+def test_isrealobj_scalar(x):
+    assert np.array_equal(np.isrealobj(x), num.isrealobj(x))
 
-    assert np.array_equal(func_np(x), func_num(x))
+
+@pytest.mark.parametrize("x", SCALARS)
+def test_iscomplexobj_scalar(x):
+    assert np.array_equal(np.iscomplexobj(x), num.iscomplexobj(x))
 
 
 @pytest.mark.parametrize("x", ARRAYS)
-@pytest.mark.parametrize("func_name", ("isrealobj", "iscomplexobj"))
-def test_real_complex_object_array(func_name, x):
+def test_isrealobj_array(x):
     in_np = np.array(x)
     in_num = num.array(x)
-    func_np = getattr(np, func_name)
-    func_num = getattr(num, func_name)
 
-    assert np.array_equal(func_np(in_np), func_num(in_num))
-    assert np.array_equal(func_np(in_np), func_num(in_np))
+    assert np.array_equal(np.isrealobj(in_np), num.isrealobj(in_num))
+    assert np.array_equal(np.isrealobj(in_np), num.isrealobj(in_np))
+
+
+@pytest.mark.parametrize("x", ARRAYS)
+def test_iscomplexobj_array(x):
+    in_np = np.array(x)
+    in_num = num.array(x)
+
+    assert np.array_equal(np.iscomplexobj(in_np), num.iscomplexobj(in_num))
+    assert np.array_equal(np.iscomplexobj(in_np), num.iscomplexobj(in_np))
 
 
 @pytest.mark.parametrize("x", (1.0, True, [1, 2, 3]))
