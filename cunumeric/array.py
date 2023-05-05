@@ -4204,8 +4204,18 @@ class ndarray:
         out: Union[ndarray, None] = None,
         nan_to_identity: bool = False,
     ) -> ndarray:
+        # for non-floating point datatypes,there is no NaN,
+        # so we don't need to convert nan to identity
         if src.dtype.kind != "c" and src.dtype.kind != "f":
             nan_to_identity = False
+
+        # If dtype is not specified, we run into the following three cases:
+        #  - out is not given and src array is of type int:
+        #        use platform int
+        #  - out is not given and src array is of type int:
+        #        use src array's datatype
+        #  - if out is given:
+        #        use datatype of output array
         if dtype is None:
             if out is None:
                 if src.dtype.kind == "i":
@@ -4215,6 +4225,7 @@ class ndarray:
                     dtype = src.dtype
             else:
                 dtype = out.dtype
+
         # flatten input when axis is None
         if axis is None:
             axis = 0
@@ -4222,6 +4233,9 @@ class ndarray:
         else:
             axis = normalize_axis_index(axis, src.ndim)
             src_arr = src
+
+        # When both out and dtype are specified:
+        #   - dtype of out takes precedence.
         if out is not None:
             if dtype != out.dtype:
                 # if out array is specified, its type overrules dtype

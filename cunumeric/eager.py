@@ -113,6 +113,10 @@ _UNARY_RED_OPS: Dict[UnaryRedCode, Any] = {
     UnaryRedCode.MIN: np.min,
     UnaryRedCode.PROD: np.prod,
     UnaryRedCode.SUM: np.sum,
+    UnaryRedCode.NANMAX: np.nanmax,
+    UnaryRedCode.NANMIN: np.nanmin,
+    UnaryRedCode.NANPROD: np.nanprod,
+    UnaryRedCode.NANSUM: np.nansum,
 }
 
 _BINARY_OPS: Dict[BinaryOpCode, Any] = {

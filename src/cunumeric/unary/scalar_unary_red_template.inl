@@ -80,7 +80,7 @@ struct ScalarUnaryRed {
       auto p = pitches.unflatten(idx, origin);
       OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
     } else {
-      OP::template fold<true>(lhs, OP::convert(inptr[idx]));
+      OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
     }
   }
 
@@ -95,7 +95,7 @@ struct ScalarUnaryRed {
       OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
     } else {
       auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(in[p]));
+      OP::template fold<true>(lhs, OP::convert(in[p], identity));
     }
   }
 

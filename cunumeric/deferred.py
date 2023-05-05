@@ -171,6 +171,10 @@ _UNARY_RED_TO_REDUCTION_OPS: Dict[int, int] = {
     UnaryRedCode.ARGMIN: CuNumericRedopCode.ARGMIN,
     UnaryRedCode.NANARGMAX: CuNumericRedopCode.ARGMAX,
     UnaryRedCode.NANARGMIN: CuNumericRedopCode.ARGMIN,
+    UnaryRedCode.NANMAX: ReductionOp.MAX,
+    UnaryRedCode.NANMIN: ReductionOp.MIN,
+    UnaryRedCode.NANPROD: ReductionOp.MUL,
+    UnaryRedCode.NANSUM: ReductionOp.ADD,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
     UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
     UnaryRedCode.ALL: ReductionOp.MUL,
@@ -227,6 +231,10 @@ _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
         np.iinfo(np.int64).min,
         min_identity(ty),
     ),
+    UnaryRedCode.NANMAX: max_identity,
+    UnaryRedCode.NANMIN: min_identity,
+    UnaryRedCode.NANPROD: lambda _: 1,
+    UnaryRedCode.NANSUM: lambda _: 0,
 }
 
 

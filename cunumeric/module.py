@@ -19,7 +19,16 @@ import operator
 import re
 from collections import Counter
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Dict,
+    Literal,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
@@ -5327,6 +5336,56 @@ def nancumsum(
     )
 
 
+# TODO: clean this up
+def _handle_disallowed_types_in_nan_unary_red_ops(
+    dtype: npt.DTypeLike, unary_reduction_code: UnaryRedCode
+) -> UnaryRedCode:
+    # Does the following:
+    # - Raise an error if datatype of the input array belongs to
+    #   disallowed datatypes
+    # -  if the datatype is allowed for the operation, then use
+    #    the nan* based API
+    # - if the datatype is allowed for the operation, then use the
+    #   equivalent non-nan API
+
+    _EQUIVALENT_NON_NAN_UNARY_RED_OPS: Dict[UnaryRedCode, UnaryRedCode] = {
+        UnaryRedCode.NANARGMAX: UnaryRedCode.ARGMAX,
+        UnaryRedCode.NANARGMIN: UnaryRedCode.ARGMIN,
+        UnaryRedCode.NANMAX: UnaryRedCode.MAX,
+        UnaryRedCode.NANMIN: UnaryRedCode.MIN,
+        UnaryRedCode.NANPROD: UnaryRedCode.PROD,
+        UnaryRedCode.NANSUM: UnaryRedCode.SUM,
+    }
+
+    assert unary_reduction_code in _EQUIVALENT_NON_NAN_UNARY_RED_OPS
+
+    # raise error for disallowed datatypes
+    disallowed_dtypes: list[np.dtype[Any]] = [
+        np.dtype(np.complex64),
+        np.dtype(np.complex128),
+        np.dtype(np.complex256),
+    ]
+    if dtype in disallowed_dtypes:
+        raise NotImplementedError(
+            "operation is not supported for complex-type arrays"
+        )
+
+    # use non-NaN API if the datatype is not floating point type
+    allowed_dtypes: list[np.dtype[Any]] = [
+        np.dtype(np.float16),
+        np.dtype(np.float32),
+        np.dtype(np.float64),
+    ]
+    if dtype in allowed_dtypes:
+        reduction_code = unary_reduction_code
+    else:
+        reduction_code = _EQUIVALENT_NON_NAN_UNARY_RED_OPS[
+            unary_reduction_code
+        ]
+
+    return reduction_code
+
+
 @add_boilerplate("a")
 def nanargmax(
     a: ndarray,
@@ -5461,6 +5520,10 @@ def nanargmin(
     Multiple GPUs, Multiple CPUs
     """
 
+    # TODO: check the compatibility matrix
+    # complex64 id disallowed only for arg* routines
+    # sum is supported for complex64 and complex128
+
     # raise error for disallowed datatypes
     disallowed_dtypes: list[np.dtype[Any]] = [
         np.dtype(np.complex64),
@@ -5503,6 +5566,372 @@ def nanargmin(
         # to emit validation errors.
         if identity in index_array:
             raise ValueError("Array/Slice contains only NaNs")
+
+    return index_array
+
+
+@add_boilerplate("a")
+def nanmin(
+    a: ndarray,
+    axis: Any = None,
+    out: Union[ndarray, None] = None,
+    keepdims: bool = False,
+    initial: Optional[Union[int, float]] = None,
+    where: Any = True,
+) -> ndarray:
+    """
+    Return minimum of an array or minimum along an axis, ignoring any
+    NaNs. When all-NaN slices are encountered a RuntimeWarning is
+    raised and Identity is returned for that slice.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose minimum is desired. If a is not an
+        array, a conversion is attempted.
+
+    axis : {int, tuple of int, None}, optional
+        Axis or axes along which the minimum is computed. The default is to
+        compute the minimum of the flattened array.
+
+    out : ndarray, optional
+        Alternative output array in which to place the result.  Must
+        be of the same shape and buffer length as the expected output.
+        See `ufuncs-output-type` for more details.
+
+    keepdims : bool, Optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+
+        If the default value is passed, then `keepdims` will not be
+        passed through to the `amin` method of sub-classes of
+        `ndarray`, however any non-default value will be.  If the
+        sub-class' method does not implement `keepdims` any
+        exceptions will be raised.
+
+    initial : scalar, optional
+        The maximum value of an output element. Must be present to allow
+        computation on empty slice. See `~cunumeric.ufunc.reduce` for details.
+
+    where : array_like[bool], optional
+        Elements to compare for the minimum. See `~cunumeric.ufunc.reduce`
+        for details.
+
+    Returns
+    -------
+    nanmin : ndarray or scalar
+        Minimum of `a`. If `axis` is None, the result is a scalar value.
+        If `axis` is given, the result is an array of dimension
+        ``a.ndim - 1``.
+
+    Notes
+    -----
+    CuNumeric's implementation will return identity for slices with
+    all-NaNs but numpy will return NaN
+
+    See Also
+    --------
+    numpy.nanmin, numpy.nanmax, numpy.min, numpy.max, numpy.isnan,
+    numpy.maximum
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    unary_reduction_code = UnaryRedCode.NANMIN
+    index_array = a._perform_unary_reduction(
+        unary_reduction_code,
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
+
+    return index_array
+
+
+@add_boilerplate("a")
+def nanmax(
+    a: ndarray,
+    axis: Any = None,
+    out: Union[ndarray, None] = None,
+    keepdims: bool = False,
+    initial: Optional[Union[int, float]] = None,
+    where: Any = True,
+) -> ndarray:
+    """
+    Return the maximum of an array or maximum along an axis, ignoring
+    any NaNs.  When all-NaN slices are encountered a RuntimeWarning is
+    raised and identity is returned for that slice.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose maximum is desired. If a is not
+        an array, a conversion is attempted.
+    axis : None or int or tuple[int], optional
+        Axis or axes along which to operate.  By default, flattened input is
+        used.
+
+        If this is a tuple of ints, the maximum is selected over multiple axes,
+        instead of a single axis or all the axes as before.
+    out : ndarray, optional
+        Alternative output array in which to place the result.  Must
+        be of the same shape and buffer length as the expected output.
+        See `ufuncs-output-type` for more details.
+
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+
+        If the default value is passed, then `keepdims` will not be
+        passed through to the `amax` method of sub-classes of
+        `ndarray`, however any non-default value will be.  If the
+        sub-class' method does not implement `keepdims` any
+        exceptions will be raised.
+
+    initial : scalar, optional
+        The minimum value of an output element. Must be present to allow
+        computation on empty slice. See `~cunumeric.ufunc.reduce` for details.
+
+    where : array_like[bool], optional
+        Elements to compare for the maximum. See `~cunumeric.ufunc.reduce`
+        for details.
+
+    Returns
+    -------
+    nanmax : ndarray or scalar
+        An array with the same shape as `a`, with the specified axis
+        removed. If `a` is 0-d array, of if axis is None, an ndarray
+        scalar is returned. The same dtype as `a` is returned.
+
+    Notes
+    -----
+    CuNumeric's implementation will return identity for slices with
+    all-NaNs but numpy will return NaN
+
+    See Also
+    --------
+    numpy.nanmin, numpy.amax, numpy.isnan, numpy.fmax, numpy.maximum,
+    numpy.isfinite
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    unary_reduction_code = UnaryRedCode.NANMAX
+    index_array = a._perform_unary_reduction(
+        unary_reduction_code,
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
+
+    return index_array
+
+
+@add_boilerplate("a")
+def nanprod(
+    a: ndarray,
+    axis: Any = None,
+    dtype: Any = None,
+    out: Union[ndarray, None] = None,
+    keepdims: bool = False,
+    initial: Optional[Union[int, float]] = None,
+    where: Any = True,
+) -> ndarray:
+    """
+    Return the product of array elements over a given axis treating
+    Not a Numbers (NaNs) as ones.
+
+    One is returned for slices that are all-NaN or empty.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array.
+    axis : int, optional
+         Axis or axes along which the product is computed. The
+         default is to compute the product of the flattened array.
+    dtype : data-type, optional
+         The type of the returned array and of the accumulator in
+         which the elements are summed. By default, the dtype of a
+         is used. An exception is when a has an integer type with
+         less precision than the platform (u)intp. In that case,
+         the default will be either (u)int32 or (u)int64 depending
+         on whether the platform is 32 or 64 bits. For inexact
+         inputs, dtype must be inexact.
+    out : ndarray, optional
+        Alternate output array in which to place the result. The
+        default is None. If provided, it must have the same shape as
+        the expected output, but the type will be cast if necessary.
+        See Output type determination for more details. The casting of
+        NaN to integer can yield unexpected results.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left in the
+        result as dimensions with size one. With this option, the result
+        will broadcast correctly against the input array.
+
+        If the default value is passed, then `keepdims` will not be
+        passed through to the `prod` method of sub-classes of
+        `ndarray`, however any non-default value will be.  If the
+        sub-class' method does not implement `keepdims` any
+        exceptions will be raised.
+    initial : scalar, optional
+        The starting value for this product. See `~cunumeric.ufunc.reduce` for
+        details.
+    where : array_like[bool], optional
+        Elements to include in the product. See `~cunumeric.ufunc.reduce` for
+        details.
+
+    Returns
+    -------
+    nanprod: ndarray, see `dtype` parameter above.
+        A new array holding the result is returned unless out is
+        specified, in which case it is returned.
+
+    See Also
+    --------
+    numpy.prod, numpy.isnan
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+
+    # Note: if the datatype of the input array is int and less
+    # than that of the platform int, then a convert task is launched
+    # in np.prod to take care of the type casting
+
+    # raise error for disallowed datatypes
+    disallowed_dtypes: list[np.dtype[Any]] = [
+        np.dtype(np.complex128),
+        np.dtype(np.complex256),
+    ]
+    if a.dtype in disallowed_dtypes:
+        raise NotImplementedError(
+            "operation is not supported for complex-type arrays"
+        )
+
+    # use argmax if the datatype is not floating point type
+    allowed_dtypes: list[np.dtype[Any]] = [
+        np.dtype(np.float16),
+        np.dtype(np.float32),
+        np.dtype(np.float64),
+    ]
+    if a.dtype in allowed_dtypes:
+        unary_reduction_code = UnaryRedCode.NANPROD
+    else:
+        unary_reduction_code = UnaryRedCode.PROD
+
+    index_array = a._perform_unary_reduction(
+        unary_reduction_code,
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
+
+    return index_array
+
+
+@add_boilerplate("a")
+def nansum(
+    a: ndarray,
+    axis: Any = None,
+    dtype: Any = None,
+    out: Union[ndarray, None] = None,
+    keepdims: bool = False,
+    initial: Optional[Union[int, float]] = None,
+    where: Any = True,
+) -> ndarray:
+    """
+    Return the sum of array elements over a given axis treating
+    Not a Numbers (NaNs) as ones.
+
+    Zero is returned for slices that are all-NaN or empty.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose product is desired. If a is not
+        an array, a conversion is attempted.
+
+    axis : None or int or tuple[int], optional
+        Axis or axes along which a sum is performed.  The default,
+        axis=None, will sum all of the elements of the input array.
+        If axis is negative it counts from the last to the first axis.
+
+        If axis is a tuple of ints, a sum is performed on all of the
+        axes specified in the tuple instead of a single axis or all
+        the axes as before.
+
+    dtype : data-type, optional
+        The type of the returned array and of the accumulator in which
+        the elements are summed.  The dtype of `a` is used by default
+        unless `a` has an integer dtype of less precision than the
+        default platform integer.  In that case, if `a` is signed then
+        the platform integer is used while if `a` is unsigned then an
+        unsigned integer of the same precision as the platform integer
+        is used.
+
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must
+        have the same shape as the expected output, but the type of
+        the output values will be cast if necessary.
+
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+
+    initial : scalar, optional
+        Starting value for the sum. See `~cunumeric.ufunc.reduce` for
+        details.
+
+    where : array_like[bool], optional
+        Elements to include in the sum. See `~cunumeric.ufunc.reduce` for
+        details.
+
+    Returns
+    -------
+    nansum : ndarray, see `dtype` parameter above.
+        A new array holding the result is returned unless out is
+        specified, in which case it is returned. The result has the
+        same size as a, and the same shape as a if axis is not None or
+        a is a 1-d array.
+
+    See Also
+    --------
+    numpy.nansum, numpy.isnan, numpy.isfinite
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    unary_reduction_code = UnaryRedCode.NANSUM
+    index_array = a._perform_unary_reduction(
+        unary_reduction_code,
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
 
     return index_array
 
