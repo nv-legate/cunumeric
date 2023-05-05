@@ -44,7 +44,7 @@ SUPPORTED_DTYPES = {
 
 
 def to_core_dtype(dtype: Union[str, np.dtype[Any]]) -> Optional[ty.Dtype]:
-    return SUPPORTED_DTYPES.get(np.dtype(dtype), None)
+    return SUPPORTED_DTYPES.get(np.dtype(dtype))
 
 
 def is_advanced_indexing(key: Any) -> bool:
