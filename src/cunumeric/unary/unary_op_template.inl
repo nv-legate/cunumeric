@@ -24,20 +24,18 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, UnaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryOpImplBody;
 
 template <VariantKind KIND, typename VAL, int DIM>
 struct PointCopyImplBody;
 
-template <VariantKind KIND, UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, UnaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct MultiOutUnaryOpImplBody;
 
 template <VariantKind KIND, UnaryOpCode OP_CODE>
 struct UnaryOpImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(UnaryOpArgs& args) const
   {
     using OP  = UnaryOp<OP_CODE, CODE>;
@@ -66,9 +64,7 @@ struct UnaryOpImpl {
     UnaryOpImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, pitches, rect, dense);
   }
 
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<!UnaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(UnaryOpArgs& args) const
   {
     assert(false);
@@ -77,7 +73,7 @@ struct UnaryOpImpl {
 
 template <VariantKind KIND, UnaryOpCode OP_CODE>
 struct MultiOutUnaryOpImpl {
-  template <LegateTypeCode CODE,
+  template <Type::Code CODE,
             int DIM,
             std::enable_if_t<MultiOutUnaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(MultiOutUnaryOpArgs& args) const
@@ -112,7 +108,7 @@ struct MultiOutUnaryOpImpl {
       func, lhs, rhs1, rhs2, pitches, rect, dense);
   }
 
-  template <LegateTypeCode CODE,
+  template <Type::Code CODE,
             int DIM,
             std::enable_if_t<!MultiOutUnaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(MultiOutUnaryOpArgs& args) const
@@ -123,17 +119,17 @@ struct MultiOutUnaryOpImpl {
 
 template <VariantKind KIND>
 struct UnaryCopyImpl {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(UnaryOpArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
     execute_copy<VAL, DIM>(args);
   }
 
-  template <CuNumericTypeCodes CODE, int DIM>
+  template <int POINT_DIM, int DIM>
   void operator()(UnaryOpArgs& args) const
   {
-    using VAL = cunumeric_type_of<CODE>;
+    using VAL = Point<POINT_DIM>;
     execute_copy<VAL, DIM>(args);
   }
 
@@ -168,12 +164,13 @@ struct UnaryOpDispatch {
   void operator()(UnaryOpArgs& args) const
   {
     auto dim = std::max(args.in.dim(), 1);
-    if ((OP_CODE == UnaryOpCode::COPY) &&
-        (args.in.code<int32_t>() > LegateTypeCode::MAX_TYPE_NUMBER))
-      cunumeric::double_dispatch(
-        dim, args.in.code<CuNumericTypeCodes>(), UnaryCopyImpl<KIND>{}, args);
-    else
-      legate::double_dispatch(dim, args.in.code(), UnaryOpImpl<KIND, OP_CODE>{}, args);
+    if ((OP_CODE == UnaryOpCode::COPY) && (args.in.code() == Type::Code::FIXED_ARRAY)) {
+      auto& type = static_cast<const FixedArrayType&>(args.in.type());
+      cunumeric::double_dispatch(dim, type.num_elements(), UnaryCopyImpl<KIND>{}, args);
+    } else {
+      auto code = OP_CODE == UnaryOpCode::GETARG ? args.out.code() : args.in.code();
+      legate::double_dispatch(dim, code, UnaryOpImpl<KIND, OP_CODE>{}, args);
+    }
   }
 };
 

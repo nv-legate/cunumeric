@@ -363,7 +363,7 @@ __host__ static inline void cufft_over_axis_r2c_c2r(AccessorWO<OUTPUT_TYPE, DIM>
   CHECK_CUFFT(cufftDestroy(plan));
 }
 
-template <CuNumericFFTType FFT_TYPE, LegateTypeCode CODE_OUT, LegateTypeCode CODE_IN, int32_t DIM>
+template <CuNumericFFTType FFT_TYPE, Type::Code CODE_OUT, Type::Code CODE_IN, int32_t DIM>
 struct FFTImplBody<VariantKind::GPU, FFT_TYPE, CODE_OUT, CODE_IN, DIM> {
   using INPUT_TYPE  = legate_type_of<CODE_IN>;
   using OUTPUT_TYPE = legate_type_of<CODE_OUT>;

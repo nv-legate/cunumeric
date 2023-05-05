@@ -62,7 +62,7 @@ static inline void complex_gemm_template(
 }
 
 template <>
-struct GemmImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
+struct GemmImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(float* lhs, const float* rhs1, const float* rhs2, int32_t m, int32_t n, int32_t k)
   {
     gemm_template(cublasSgemm, lhs, rhs1, rhs2, m, n, k);
@@ -70,7 +70,7 @@ struct GemmImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct GemmImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
+struct GemmImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(
     double* lhs, const double* rhs1, const double* rhs2, int32_t m, int32_t n, int32_t k)
   {
@@ -79,7 +79,7 @@ struct GemmImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct GemmImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+struct GemmImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(complex<float>* lhs_,
                   const complex<float>* rhs1_,
                   const complex<float>* rhs2_,
@@ -96,7 +96,7 @@ struct GemmImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct GemmImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+struct GemmImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(complex<double>* lhs_,
                   const complex<double>* rhs1_,
                   const complex<double>* rhs2_,

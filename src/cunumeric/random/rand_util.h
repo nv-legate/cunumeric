@@ -46,15 +46,15 @@ constexpr decltype(auto) op_dispatch(RandGenCode gen_code, Functor f, Fnargs&&..
   return f.template operator()<RandGenCode::UNIFORM>(std::forward<Fnargs>(args)...);
 }
 
-template <RandGenCode GEN_CODE, legate::LegateTypeCode CODE>
+template <RandGenCode GEN_CODE, legate::Type::Code CODE>
 struct RandomGenerator {
   static constexpr bool valid = false;
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type::Code CODE>
 struct RandomGenerator<RandGenCode::UNIFORM, CODE> {
   using RNG                   = Philox_2x32<10>;
-  static constexpr bool valid = CODE == legate::LegateTypeCode::DOUBLE_LT;
+  static constexpr bool valid = CODE == legate::Type::Code::FLOAT64;
 
   RandomGenerator(uint32_t ep, const std::vector<legate::Store>& args) : epoch(ep) {}
 
@@ -66,10 +66,10 @@ struct RandomGenerator<RandGenCode::UNIFORM, CODE> {
   uint32_t epoch;
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type::Code CODE>
 struct RandomGenerator<RandGenCode::NORMAL, CODE> {
   using RNG                   = Philox_2x32<10>;
-  static constexpr bool valid = CODE == legate::LegateTypeCode::DOUBLE_LT;
+  static constexpr bool valid = CODE == legate::Type::Code::FLOAT64;
 
   RandomGenerator(uint32_t ep, const std::vector<legate::Store>& args) : epoch(ep) {}
 
@@ -174,7 +174,7 @@ struct RandomGenerator<RandGenCode::NORMAL, CODE> {
   uint32_t epoch;
 };
 
-template <legate::LegateTypeCode CODE>
+template <legate::Type::Code CODE>
 struct RandomGenerator<RandGenCode::INTEGER, CODE> {
   using RNG = Philox_2x32<10>;
   using VAL = legate::legate_type_of<CODE>;

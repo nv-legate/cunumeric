@@ -31,7 +31,7 @@ struct EyeImplBody;
 
 template <VariantKind KIND>
 struct EyeImpl {
-  template <LegateTypeCode CODE>
+  template <Type::Code CODE>
   void operator()(EyeArgs& args) const
   {
     using VAL = legate_type_of<CODE>;

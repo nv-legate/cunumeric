@@ -60,7 +60,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   }
 }
 
-template <LegateTypeCode CODE, int DIM>
+template <Type::Code CODE, int DIM>
 struct DiagImplBody<VariantKind::GPU, CODE, DIM, true> {
   using VAL = legate_type_of<CODE>;
 
@@ -92,7 +92,7 @@ struct DiagImplBody<VariantKind::GPU, CODE, DIM, true> {
 };
 
 // not extract (create a new 2D matrix with diagonal from vector)
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct DiagImplBody<VariantKind::GPU, CODE, 2, false> {
   using VAL = legate_type_of<CODE>;
 

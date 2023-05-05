@@ -61,7 +61,7 @@ static inline void solve_template(GetrfBufferSize getrf_buffer_size,
 }
 
 template <>
-struct SolveImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
+struct SolveImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, float* a, float* b)
   {
     solve_template(
@@ -70,7 +70,7 @@ struct SolveImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct SolveImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
+struct SolveImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, double* a, double* b)
   {
     solve_template(
@@ -79,7 +79,7 @@ struct SolveImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct SolveImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+struct SolveImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, complex<float>* a, complex<float>* b)
   {
     solve_template(cusolverDnCgetrf_bufferSize,
@@ -94,7 +94,7 @@ struct SolveImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct SolveImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+struct SolveImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, complex<double>* a, complex<double>* b)
   {
     solve_template(cusolverDnZgetrf_bufferSize,

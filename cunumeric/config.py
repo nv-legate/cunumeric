@@ -17,7 +17,7 @@ from __future__ import annotations
 import os
 from abc import abstractmethod
 from enum import IntEnum, unique
-from typing import TYPE_CHECKING, Any, List, Union, cast
+from typing import TYPE_CHECKING, Union, cast
 
 import numpy as np
 from legate.core import Library, get_legate_runtime
@@ -203,15 +203,6 @@ class _CunumericSharedLib:
     CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME: int
     CUNUMERIC_TUNABLE_NUM_GPUS: int
     CUNUMERIC_TUNABLE_NUM_PROCS: int
-    CUNUMERIC_TYPE_POINT1: int
-    CUNUMERIC_TYPE_POINT2: int
-    CUNUMERIC_TYPE_POINT3: int
-    CUNUMERIC_TYPE_POINT4: int
-    CUNUMERIC_TYPE_POINT5: int
-    CUNUMERIC_TYPE_POINT6: int
-    CUNUMERIC_TYPE_POINT7: int
-    CUNUMERIC_TYPE_POINT8: int
-    CUNUMERIC_TYPE_POINT9: int
     CUNUMERIC_UNARY_OP: int
     CUNUMERIC_UNARY_RED: int
     CUNUMERIC_UNIQUE: int
@@ -278,6 +269,12 @@ class _CunumericSharedLib:
 
     @abstractmethod
     def cunumeric_has_curand(self) -> int:
+        ...
+
+    @abstractmethod
+    def cunumeric_register_reduction_op(
+        self, type_uid: int, elem_type_code: int
+    ) -> None:
         ...
 
 
@@ -510,13 +507,6 @@ class RandGenCode(IntEnum):
     UNIFORM = 1
     NORMAL = 2
     INTEGER = 3
-
-
-# Match these to CuNumericRedopID in cunumeric_c.h
-@unique
-class CuNumericRedopCode(IntEnum):
-    ARGMAX = 1
-    ARGMIN = 2
 
 
 # Match these to CuNumericTunable in cunumeric_c.h
@@ -786,33 +776,3 @@ class FFTNormalization(IntEnum):
             return "forward"
         else:
             return in_string
-
-
-# Match these to CuNumericTypeCodes in cunumeric_c.h
-# we start from POINT2 type since POINT1 is int8 type
-_CUNUMERIC_DTYPES: List[tuple[np.dtype[Any], int, int]] = [
-    (np.dtype("i8, i8"), 16, _cunumeric.CUNUMERIC_TYPE_POINT2),
-    (np.dtype("i8, i8, i8"), 24, _cunumeric.CUNUMERIC_TYPE_POINT3),
-    (np.dtype("i8, i8, i8, i8"), 32, _cunumeric.CUNUMERIC_TYPE_POINT4),
-    (np.dtype("i8, i8, i8, i8, i8"), 40, _cunumeric.CUNUMERIC_TYPE_POINT5),
-    (
-        np.dtype("i8, i8, i8, i8, i8, i8"),
-        48,
-        _cunumeric.CUNUMERIC_TYPE_POINT6,
-    ),
-    (
-        np.dtype("i8, i8, i8, i8, i8, i8, i8"),
-        56,
-        _cunumeric.CUNUMERIC_TYPE_POINT7,
-    ),
-    (
-        np.dtype("i8, i8, i8, i8, i8, i8, i8, i8"),
-        64,
-        _cunumeric.CUNUMERIC_TYPE_POINT8,
-    ),
-    (
-        np.dtype("i8, i8, i8, i8, i8, i8, i8, i8, i8"),
-        72,
-        _cunumeric.CUNUMERIC_TYPE_POINT9,
-    ),
-]
