@@ -352,9 +352,7 @@ def test_diagonal_axis1():
     a = mk_seq_array(num, shape)
     an = mk_seq_array(np, shape)
 
-    # cuNumeric hits assertion
-    # File "/legate/cunumeric/cunumeric/array.py", line 2357, in _diag_helper
-    # assert axes is not None
+    # cuNumeric hits AssertionError in _diag_helper: assert axes is not None
     b = num.diagonal(a, axis1=2)
     # NumPy passes
     bn = np.diagonal(an, axis1=2)
@@ -432,9 +430,10 @@ class TestDiagonalErrors:
             num.diagonal(self.a, axes=(0,))
 
     def test_duplicate_axes(self):
-        with pytest.raises(ValueError):
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
             num.diagonal(self.a, axis1=1, axes=(0, 1))
-        with pytest.raises(ValueError):
+        with pytest.raises(expected_exc):
             num.diagonal(self.a, axis1=1, axis2=0, axes=(0, 1))
 
     def test_extra_axes(self):
