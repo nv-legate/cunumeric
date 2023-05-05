@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
 
 import legate.core.types as ty
 import numpy as np
-from legate.core import LEGATE_MAX_DIM, Rect, get_legate_runtime
+from legate.core import LEGATE_MAX_DIM, ProcessorKind, Rect, get_legate_runtime
 from legate.core.context import Context as LegateContext
 from typing_extensions import TypeGuard
 
@@ -66,18 +66,6 @@ class Runtime(object):
                 ty.int32,
             )
         )
-        self.num_procs = int(
-            self.legate_context.get_tunable(
-                CuNumericTunable.NUM_PROCS,
-                ty.int32,
-            )
-        )
-        self.num_gpus = int(
-            self.legate_context.get_tunable(
-                CuNumericTunable.NUM_GPUS,
-                ty.int32,
-            )
-        )
 
         # Make sure that our CuNumericLib object knows about us so it can
         # destroy us
@@ -95,6 +83,14 @@ class Runtime(object):
         self._cached_point_types: dict[DIMENSION, ty.Dtype] = dict()
         # Maps value types to struct types used in argmin/argmax
         self._cached_argred_types: dict[ty.Dtype, ty.Dtype] = dict()
+
+    @property
+    def num_procs(self) -> int:
+        return len(self.legate_runtime.machine)
+
+    @property
+    def num_gpus(self) -> int:
+        return self.legate_runtime.machine.count(ProcessorKind.GPU)
 
     def get_point_type(self, dim: DIMENSION) -> ty.Dtype:
         cached = self._cached_point_types.get(dim)
