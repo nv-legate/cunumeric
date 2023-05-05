@@ -99,7 +99,7 @@ def implemented(
     if reporting:
 
         @wraps(func)
-        @track_provenance(runtime.legate_context)
+        @track_provenance()
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(
                 not settings.report_dump_callstack()
@@ -114,7 +114,7 @@ def implemented(
     else:
 
         @wraps(func)
-        @track_provenance(runtime.legate_context)
+        @track_provenance()
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             return func(*args, **kwargs)
 
