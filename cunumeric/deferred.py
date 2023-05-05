@@ -3084,7 +3084,7 @@ class DeferredArray(NumPyThunk):
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
-        with Annotation(self.context, {"OpCode": op.name}):
+        with Annotation({"OpCode": op.name}):
             task = self.context.create_auto_task(CuNumericOpCode.UNARY_OP)
             task.add_output(lhs)
             task.add_input(rhs)
@@ -3146,9 +3146,7 @@ class DeferredArray(NumPyThunk):
             while lhs.ndim > 1:
                 lhs = lhs.project(0, 0)
 
-            with Annotation(
-                self.context, {"OpCode": op.name, "ArgRed?": str(argred)}
-            ):
+            with Annotation({"OpCode": op.name, "ArgRed?": str(argred)}):
                 task = self.context.create_auto_task(
                     CuNumericOpCode.SCALAR_UNARY_RED
                 )
@@ -3189,9 +3187,7 @@ class DeferredArray(NumPyThunk):
                     "Need support for reducing multiple dimensions"
                 )
 
-            with Annotation(
-                self.context, {"OpCode": op.name, "ArgRed?": str(argred)}
-            ):
+            with Annotation({"OpCode": op.name, "ArgRed?": str(argred)}):
                 task = self.context.create_auto_task(CuNumericOpCode.UNARY_RED)
 
                 task.add_input(rhs_array.base)
@@ -3237,7 +3233,7 @@ class DeferredArray(NumPyThunk):
         rhs1 = src1._broadcast(lhs.shape)
         rhs2 = src2._broadcast(lhs.shape)
 
-        with Annotation(self.context, {"OpCode": op_code.name}):
+        with Annotation({"OpCode": op_code.name}):
             # Populate the Legate launcher
             task = self.context.create_auto_task(CuNumericOpCode.BINARY_OP)
             task.add_output(lhs)
