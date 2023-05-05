@@ -14,7 +14,6 @@
  *
  */
 
-#include <iostream>
 #include "cunumeric/unary/unary_red.h"
 #include "cunumeric/unary/unary_red_template.inl"
 
