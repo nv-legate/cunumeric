@@ -27,8 +27,6 @@ jobs:
         VAULT_HOST: ${{ secrets.PERSONAL_ACCESS_TOKEN && 'https://vault.ops.k8s.rapids.ai' || '' }}
         GH_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
         GITHUB_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN}}"
-        # TODO: extract this from cmake/versions.json
-        LEGATE_SHA: b3e280d6212aa2ec0af619b6fee3ac24d069897e
       volumes:
         - ${{ github.workspace }}/out:/tmp/out
     steps:
@@ -54,7 +52,9 @@ jobs:
               numactl rlwrap;
 
           mv legate /home/coder/legate
-          git -C /home/coder/legate checkout ${{ env.LEGATE_SHA }}
+          export LEGATE_SHA=$(cat cunumeric/cmake/versions.json | jq -r '.packages.legate_core.git_tag')
+
+          git -C /home/coder/legate checkout $LEGATE_SHA
           
           mv cunumeric/continuous_integration/home/coder/.gitconfig /home/coder/.gitconfig;
           mv cunumeric/continuous_integration/home/coder/.local /home/coder/.local;
