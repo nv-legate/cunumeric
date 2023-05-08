@@ -6,7 +6,7 @@ from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
 
-NAN_ARG_FUNCS = ("nanargmax", "nanargmin")
+NAN_FUNCS = ("nanmax", "nanmin", "nanprod", "nansum")
 
 NDIMS = range(LEGATE_MAX_DIM + 1)
 
@@ -28,7 +28,7 @@ class TestNanReductions:
     These are positive cases compared with numpy
     """
 
-    @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
+    @pytest.mark.parametrize("func_name", NAN_FUNCS)
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("keepdims", [True, False])
     def test_basic(self, func_name, ndim, keepdims):
@@ -49,7 +49,27 @@ class TestNanReductions:
         out_np = func_np(in_np, keepdims=keepdims)
         out_num = func_num(in_num, keepdims=keepdims)
 
-        assert np.array_equal(out_num, out_np)
+        # relax criteria when doing floating ops with nans excluded
+        if func_np.__name__ == "nanprod" or func_np.__name__ == "nansum":
+            assert np.allclose(out_num, out_np, rtol=1e-4)
+        else:
+            assert np.array_equal(out_num, out_np)
+
+
+class TestCornerCases:
+    """
+    These are corner cases
+    """
+
+    def test_empty_for_min_max(self, func_name):
+        with pytest.raises(ValueError):
+            num.nanmin([])
+        with pytest.raises(ValueError):
+            num.nanmax([])
+
+    def test_empty_for_prod_sum(self):
+        assert num.nanprod([]) == 1.0
+        assert num.nansum([]) == 0.0
 
 
 if __name__ == "__main__":
