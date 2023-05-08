@@ -61,7 +61,7 @@ class TestCornerCases:
     These are corner cases
     """
 
-    def test_empty_for_min_max(self, func_name):
+    def test_empty_for_min_max(self):
         with pytest.raises(ValueError):
             num.nanmin([])
         with pytest.raises(ValueError):

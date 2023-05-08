@@ -5336,25 +5336,20 @@ def nancumsum(
     )
 
 
-# TODO: clean this up
-def _handle_disallowed_types_in_nan_unary_red_ops(
+def _get_non_nan_reduction_code_if_applicable(
     dtype: npt.DTypeLike, unary_reduction_code: UnaryRedCode
 ) -> UnaryRedCode:
-    # Does the following:
-    # - Raise an error if datatype of the input array belongs to
-    #   disallowed datatypes
-    # -  if the datatype is allowed for the operation, then use
-    #    the nan* based API
-    # - if the datatype is allowed for the operation, then use the
-    #   equivalent non-nan API
+    """
+    Return the equivalent non-nan reduction ops if the datatype of the array
+    isn't one of the allowed datatypes.  Raise an error if the datatype is
+    disallowed, which is currently complex64 and complex128.
+    """
 
     _EQUIVALENT_NON_NAN_UNARY_RED_OPS: Dict[UnaryRedCode, UnaryRedCode] = {
         UnaryRedCode.NANARGMAX: UnaryRedCode.ARGMAX,
         UnaryRedCode.NANARGMIN: UnaryRedCode.ARGMIN,
         UnaryRedCode.NANMAX: UnaryRedCode.MAX,
         UnaryRedCode.NANMIN: UnaryRedCode.MIN,
-        UnaryRedCode.NANPROD: UnaryRedCode.PROD,
-        UnaryRedCode.NANSUM: UnaryRedCode.SUM,
     }
 
     assert unary_reduction_code in _EQUIVALENT_NON_NAN_UNARY_RED_OPS
@@ -5363,11 +5358,10 @@ def _handle_disallowed_types_in_nan_unary_red_ops(
     disallowed_dtypes: list[np.dtype[Any]] = [
         np.dtype(np.complex64),
         np.dtype(np.complex128),
-        np.dtype(np.complex256),
     ]
     if dtype in disallowed_dtypes:
         raise NotImplementedError(
-            "operation is not supported for complex-type arrays"
+            "operation is not supported for complex64 and complex128 types"
         )
 
     # use non-NaN API if the datatype is not floating point type
@@ -5430,27 +5424,9 @@ def nanargmax(
     Multiple GPUs, Multiple CPUs
     """
 
-    # raise error for disallowed datatypes
-    disallowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.complex64),
-        np.dtype(np.complex128),
-        np.dtype(np.complex256),
-    ]
-    if a.dtype in disallowed_dtypes:
-        raise NotImplementedError(
-            "operation is not supported for complex-type arrays"
-        )
-
-    # use argmax if the datatype is not floating point type
-    allowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.float16),
-        np.dtype(np.float32),
-        np.dtype(np.float64),
-    ]
-    if a.dtype in allowed_dtypes:
-        unary_reduction_code = UnaryRedCode.NANARGMAX
-    else:
-        unary_reduction_code = UnaryRedCode.ARGMAX
+    unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
+        a.dtype, UnaryRedCode.NANARGMAX
+    )
 
     index_array = a._perform_unary_reduction(
         unary_reduction_code,
@@ -5520,31 +5496,9 @@ def nanargmin(
     Multiple GPUs, Multiple CPUs
     """
 
-    # TODO: check the compatibility matrix
-    # complex64 id disallowed only for arg* routines
-    # sum is supported for complex64 and complex128
-
-    # raise error for disallowed datatypes
-    disallowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.complex64),
-        np.dtype(np.complex128),
-        np.dtype(np.complex256),
-    ]
-    if a.dtype in disallowed_dtypes:
-        raise NotImplementedError(
-            "operation is not supported for complex-type arrays"
-        )
-
-    # use argmax if the datatype is not floating point type
-    allowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.float16),
-        np.dtype(np.float32),
-        np.dtype(np.float64),
-    ]
-    if a.dtype in allowed_dtypes:
-        unary_reduction_code = UnaryRedCode.NANARGMIN
-    else:
-        unary_reduction_code = UnaryRedCode.ARGMIN
+    unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
+        a.dtype, UnaryRedCode.NANARGMIN
+    )
 
     index_array = a._perform_unary_reduction(
         unary_reduction_code,
@@ -5640,7 +5594,10 @@ def nanmin(
     Multiple GPUs, Multiple CPUs
     """
 
-    unary_reduction_code = UnaryRedCode.NANMIN
+    unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
+        a.dtype, UnaryRedCode.NANMIN
+    )
+
     index_array = a._perform_unary_reduction(
         unary_reduction_code,
         a,
@@ -5725,7 +5682,10 @@ def nanmax(
     Multiple GPUs, Multiple CPUs
     """
 
-    unary_reduction_code = UnaryRedCode.NANMAX
+    unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
+        a.dtype, UnaryRedCode.NANMAX
+    )
+
     index_array = a._perform_unary_reduction(
         unary_reduction_code,
         a,
@@ -5816,14 +5776,13 @@ def nanprod(
     # raise error for disallowed datatypes
     disallowed_dtypes: list[np.dtype[Any]] = [
         np.dtype(np.complex128),
-        np.dtype(np.complex256),
     ]
     if a.dtype in disallowed_dtypes:
         raise NotImplementedError(
-            "operation is not supported for complex-type arrays"
+            "operation is not supported for complex128 arrays"
         )
 
-    # use argmax if the datatype is not floating point type
+    # use prod if the datatype is not floating point type
     allowed_dtypes: list[np.dtype[Any]] = [
         np.dtype(np.float16),
         np.dtype(np.float32),
@@ -5922,7 +5881,20 @@ def nansum(
     Multiple GPUs, Multiple CPUs
     """
 
-    unary_reduction_code = UnaryRedCode.NANSUM
+    # Note that np.nansum and np.sum allow complex datatypes
+    # so there are no "disallowed types" for this API
+
+    # use prod if the datatype is not floating point type
+    allowed_dtypes: list[np.dtype[Any]] = [
+        np.dtype(np.float16),
+        np.dtype(np.float32),
+        np.dtype(np.float64),
+    ]
+    if a.dtype in allowed_dtypes:
+        unary_reduction_code = UnaryRedCode.NANSUM
+    else:
+        unary_reduction_code = UnaryRedCode.SUM
+
     index_array = a._perform_unary_reduction(
         unary_reduction_code,
         a,

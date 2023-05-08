@@ -466,7 +466,8 @@ struct UnaryRedOp<UnaryRedCode::NANMAX, TYPE_CODE> {
 
 template <typename legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANPROD, TYPE_CODE> {
-  static constexpr bool valid = legate::is_floating_point<TYPE_CODE>::value;
+  static constexpr bool valid =
+    (legate::is_floating_point<TYPE_CODE>::value || TYPE_CODE == legate::Type::Code::COMPLEX64);
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -495,7 +496,8 @@ struct UnaryRedOp<UnaryRedCode::NANPROD, TYPE_CODE> {
 
 template <typename legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANSUM, TYPE_CODE> {
-  static constexpr bool valid = legate::is_floating_point<TYPE_CODE>::value;
+  static constexpr bool valid =
+    (legate::is_floating_point<TYPE_CODE>::value || legate::is_complex<TYPE_CODE>::value);
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
