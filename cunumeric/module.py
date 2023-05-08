@@ -5341,8 +5341,8 @@ def _get_non_nan_reduction_code_if_applicable(
 ) -> UnaryRedCode:
     """
     Return the equivalent non-nan reduction ops if the datatype of the array
-    isn't one of the allowed datatypes.  Raise an error if the datatype is
-    disallowed, which is currently complex64 and complex128.
+    doesn't belong to one of the allowed datatypes. Raise an error if the
+    datatype is disallowed, which is currently complex64 and complex128.
     """
 
     _EQUIVALENT_NON_NAN_UNARY_RED_OPS: Dict[UnaryRedCode, UnaryRedCode] = {
@@ -5424,6 +5424,9 @@ def nanargmax(
     Multiple GPUs, Multiple CPUs
     """
 
+    if a.size == 0:
+        raise ValueError("attempt to get nanargmax of an empty sequence")
+
     unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
         a.dtype, UnaryRedCode.NANARGMAX
     )
@@ -5496,6 +5499,9 @@ def nanargmin(
     Multiple GPUs, Multiple CPUs
     """
 
+    if a.size == 0:
+        raise ValueError("attempt to get nanargmin of an empty sequence")
+
     unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
         a.dtype, UnaryRedCode.NANARGMIN
     )
@@ -5536,7 +5542,8 @@ def nanmin(
     """
     Return minimum of an array or minimum along an axis, ignoring any
     NaNs. When all-NaN slices are encountered a RuntimeWarning is
-    raised and Identity is returned for that slice.
+    raised and Identity is returned for that slice. Empty slices will
+    raise a ValueError
 
     Parameters
     ----------
@@ -5582,7 +5589,7 @@ def nanmin(
     Notes
     -----
     CuNumeric's implementation will return identity for slices with
-    all-NaNs but numpy will return NaN
+    all-NaNs but numpy will return NaN.
 
     See Also
     --------
@@ -5623,7 +5630,8 @@ def nanmax(
     """
     Return the maximum of an array or maximum along an axis, ignoring
     any NaNs.  When all-NaN slices are encountered a RuntimeWarning is
-    raised and identity is returned for that slice.
+    raised and identity is returned for that slice. Empty slices will
+    raise a ValueError
 
     Parameters
     ----------
