@@ -61,6 +61,8 @@ Sums, products, differences
    cumsum
    nancumprod
    nancumsum
+   nanprod
+   nansum
 
 
 Exponents and logarithms
@@ -150,6 +152,8 @@ Extrema Finding
    minimum
    fmin
    amin
+   nanmin
+   nanmax
 
 
 Miscellaneous
