@@ -5340,8 +5340,8 @@ def _get_non_nan_reduction_code_if_applicable(
     dtype: npt.DTypeLike, unary_reduction_code: UnaryRedCode
 ) -> UnaryRedCode:
     """
-    Return the equivalent non-nan reduction ops if the datatype of the array
-    doesn't belong to one of the allowed datatypes. Raise an error if the
+    Return the equivalent non-nan reduction op codes if the datatype of the
+    array doesn't belong to one of the allowed datatypes. Raise an error if the
     datatype is disallowed, which is currently complex64 and complex128.
     """
 
@@ -5391,8 +5391,8 @@ def nanargmax(
     """
 
     Return the indices of the maximum values in the specified axis ignoring
-    NaNs. For all-NaN slices ValueError is raised. Warning: the results cannot
-    be trusted if a slice contains only NaNs and -Infs.
+    NaNs. For empty arrays and all-NaN slices, a ValueError is raised. Warning:
+    the results cannot be trusted if a slice contains only NaNs and -Infs.
 
     Parameters
     ----------
@@ -5417,7 +5417,7 @@ def nanargmax(
 
     See Also
     --------
-    numpy.nanargmax
+    numpy.nanargmin, numpy.nanargmax
 
     Availability
     --------
@@ -5492,7 +5492,7 @@ def nanargmin(
 
     See Also
     --------
-    numpy.nanargmin
+    numpy.nanargmin, numpy.nanargmax
 
     Availability
     --------

@@ -4186,18 +4186,18 @@ class ndarray:
         out: Union[ndarray, None] = None,
         nan_to_identity: bool = False,
     ) -> ndarray:
-        # for non-floating point datatypes,there is no NaN,
-        # so we don't need to convert nan to identity
+        # for non-floating point and non-complex datatypes,there is no
+        # NaN, so we don't need to convert nan to identity
         if src.dtype.kind != "c" and src.dtype.kind != "f":
             nan_to_identity = False
 
         # If dtype is not specified, we run into the following three cases:
         #  - out is not given and src array is of type int:
-        #        use platform int
-        #  - out is not given and src array is of type int:
-        #        use src array's datatype
+        #        use platform int for dtype
+        #  - out is not given and src array is not of type int:
+        #        use src array's datatype for dtype
         #  - if out is given:
-        #        use datatype of output array
+        #        use datatype of output array for dtype
         if dtype is None:
             if out is None:
                 if src.dtype.kind == "i":
