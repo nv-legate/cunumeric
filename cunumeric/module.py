@@ -5345,14 +5345,14 @@ def _get_non_nan_reduction_code_if_applicable(
     datatype is disallowed, which is currently complex64 and complex128.
     """
 
-    _EQUIVALENT_NON_NAN_UNARY_RED_OPS: Dict[UnaryRedCode, UnaryRedCode] = {
+    equivalent_non_nan_unary_red_ops: Dict[UnaryRedCode, UnaryRedCode] = {
         UnaryRedCode.NANARGMAX: UnaryRedCode.ARGMAX,
         UnaryRedCode.NANARGMIN: UnaryRedCode.ARGMIN,
         UnaryRedCode.NANMAX: UnaryRedCode.MAX,
         UnaryRedCode.NANMIN: UnaryRedCode.MIN,
     }
 
-    assert unary_reduction_code in _EQUIVALENT_NON_NAN_UNARY_RED_OPS
+    assert unary_reduction_code in equivalent_non_nan_unary_red_ops
 
     # raise error for disallowed datatypes
     disallowed_dtypes: list[np.dtype[Any]] = [
@@ -5373,11 +5373,33 @@ def _get_non_nan_reduction_code_if_applicable(
     if dtype in allowed_dtypes:
         reduction_code = unary_reduction_code
     else:
-        reduction_code = _EQUIVALENT_NON_NAN_UNARY_RED_OPS[
-            unary_reduction_code
-        ]
+        reduction_code = equivalent_non_nan_unary_red_ops[unary_reduction_code]
 
     return reduction_code
+
+
+def _warn_or_raise_error_if_needed(
+    out: ndarray, op: UnaryRedCode, identity: Union[int, np.floating[Any]]
+) -> None:
+    """Raise ValueError if NaN is found in a slice or in the entire
+    array for nanargmin and nanargmax. In case of nanmin and nanmax,
+    issue a RuntimeWarning.
+    """
+    supported_ops = [
+        UnaryRedCode.NANMIN,
+        UnaryRedCode.NANMAX,
+        UnaryRedCode.NANARGMIN,
+        UnaryRedCode.NANARGMAX,
+    ]
+
+    if op not in supported_ops:
+        return
+
+    if identity in out:
+        if op in [UnaryRedCode.NANMIN, UnaryRedCode.NANMAX]:
+            runtime.warn("Array/Slice contains only NaNs")
+        else:
+            raise ValueError("Array/Slice contains only NaNs")
 
 
 @add_boilerplate("a")
@@ -5440,17 +5462,8 @@ def nanargmax(
         res_dtype=np.dtype(np.int64),
     )
 
-    # error handling: raise ValueError when the array or a slice
-    # contains only NaNs.
     identity = np.iinfo(np.int64).min
-    if index_array.size == 1:
-        if index_array == identity:
-            raise ValueError("Array/Slice contains only NaNs")
-    else:
-        # Note that there is a UnaryRedCode.CONTAINS operation here
-        # to emit validation errors.
-        if identity in index_array:
-            raise ValueError("Array/Slice contains only NaNs")
+    _warn_or_raise_error_if_needed(index_array, unary_reduction_code, identity)
 
     return index_array
 
@@ -5466,8 +5479,8 @@ def nanargmin(
     """
 
     Return the indices of the minimum values in the specified axis ignoring
-    NaNs. For all-NaN slices ValueError is raised. Warning: the results cannot
-    be trusted if a slice contains only NaNs and -Infs.
+    NaNs. For empty arrays and all-NaN slices ValueError is raised. Warning:
+    the results cannot be trusted if a slice contains only NaNs and -Infs.
 
     Parameters
     ----------
@@ -5515,17 +5528,8 @@ def nanargmin(
         res_dtype=np.dtype(np.int64),
     )
 
-    # error handling: raise ValueError when the array or a slice
-    # contains only NaNs.
     identity = np.iinfo(np.int64).min
-    if index_array.size == 1:
-        if index_array == identity:
-            raise ValueError("Array/Slice contains only NaNs")
-    else:
-        # Note that there is a UnaryRedCode.CONTAINS operation here
-        # to emit validation errors.
-        if identity in index_array:
-            raise ValueError("Array/Slice contains only NaNs")
+    _warn_or_raise_error_if_needed(index_array, unary_reduction_code, identity)
 
     return index_array
 
@@ -5615,6 +5619,9 @@ def nanmin(
         where=where,
     )
 
+    identity = np.finfo(a.dtype).max
+    _warn_or_raise_error_if_needed(index_array, unary_reduction_code, identity)
+
     return index_array
 
 
@@ -5703,6 +5710,9 @@ def nanmax(
         initial=initial,
         where=where,
     )
+
+    identity = np.finfo(a.dtype).min
+    _warn_or_raise_error_if_needed(index_array, unary_reduction_code, identity)
 
     return index_array
 
