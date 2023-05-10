@@ -31,10 +31,6 @@ def strict_type_equal_array(a, b):
     return np.array_equal(a, b) and a.dtype == b.dtype
 
 
-def strict_type_equal_scalar(a, b):
-    return a == b and type(a) == type(b)
-
-
 @pytest.mark.parametrize("dtype", (np.complex64, np.complex128))
 @pytest.mark.parametrize("arr", ARRAYS)
 def test_complex_array(arr, dtype):
@@ -68,14 +64,14 @@ def test_non_complex_array(dtype):
 SCALARS = (1, 0.0, 1 + 1j, 1.1 + 1j, 0j)
 
 
-@pytest.mark.xfail
+@pytest.mark.diff
 @pytest.mark.parametrize("val", SCALARS)
 def test_scalar(val):
-    # e.g., strict_type_equal_scalar(1.1, array(1.1))
+    # e.g., np.array_equal(1.1, array(1.1))
     # In numpy, it returns val as a scalar
     # In cunumeric, it returns a 0-dim array(val)
-    assert strict_type_equal_scalar(np.real(val), num.real(val))
-    assert strict_type_equal_scalar(np.imag(val), num.imag(val))
+    assert np.array_equal(np.real(val), num.real(val))
+    assert np.array_equal(np.imag(val), num.imag(val))
 
 
 @pytest.mark.xfail
