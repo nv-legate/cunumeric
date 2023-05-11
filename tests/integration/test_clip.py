@@ -146,8 +146,8 @@ def test_out_np_array():
     amax = 6
     np_arr = np.array(array)
     num_arr = num.array(array)
-    out_np = np.zeros(np_arr.shape)
-    out_num = np.zeros(np_arr.shape)
+    out_np = np.empty(np_arr.shape)
+    out_num = np.empty(np_arr.shape)
     np_arr.clip(min=amin, max=amax, out=out_np)
     num_arr.clip(min=amin, max=amax, out=out_num)
     assert np.array_equal(out_np, out_num)
@@ -191,8 +191,8 @@ def test_out_with_array_amin():
     amax = 6
     np_arr = np.array(array)
     num_arr = num.array(array)
-    out_np = np.zeros(np_arr.shape)
-    out_num = num.zeros(np_arr.shape)
+    out_np = np.empty(np_arr.shape)
+    out_num = num.empty(np_arr.shape)
     np.clip(np_arr, a_min=amin, a_max=amax, out=out_np)
     num.clip(num_arr, a_min=amin, a_max=amax, out=out_num)
     assert np.array_equal(out_np, out_num)
