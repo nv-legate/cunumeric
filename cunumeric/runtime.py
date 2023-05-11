@@ -480,17 +480,29 @@ class Runtime(object):
 
     def is_eager_shape(self, shape: NdShape) -> bool:
         volume = calculate_volume(shape)
-        # Newly created empty arrays are ALWAYS eager
+
+        # Special cases that must always be eager:
+
+        # Newly created empty arrays
         if volume == 0:
             return True
-        # If we're testing then the answer is always no
-        if legate_settings.test():
-            return False
+
+        # Arrays with more dimensions than what Legion was compiled for
         if len(shape) > LEGATE_MAX_DIM:
             return True
+
+        # CUNUMERIC_FORCE_THUNK == "eager"
+        if settings.force_thunk() == "eager":
+            return True
+
+        if settings.force_thunk() == "deferred":
+            return False
+
+        # no forcing; auto mode
         if len(shape) == 0:
             return self.max_eager_volume > 0
-        # See if the volume is large enough
+
+        # Otherwise, see if the volume is large enough
         return volume <= self.max_eager_volume
 
     @staticmethod

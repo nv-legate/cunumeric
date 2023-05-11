@@ -139,5 +139,16 @@ class CunumericRuntimeSettings(Settings):
         """,
     )
 
+    force_thunk: EnvOnlySetting[str | None] = EnvOnlySetting(
+        "force_thunk",
+        "CUNUMERIC_FORCE_THUNK",
+        default=None,
+        test_default="deferred",
+        help="""
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
 
 settings = CunumericRuntimeSettings()

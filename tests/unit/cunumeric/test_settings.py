@@ -33,6 +33,7 @@ _expected_settings = (
     "min_gpu_chunk",
     "min_cpu_chunk",
     "min_omp_chunk",
+    "force_thunk",
 )
 
 _settings_with_test_defaults = (
