@@ -21,22 +21,25 @@ from utils.comparisons import allclose
 import cunumeric as num
 
 SHAPES = [(100,), (10, 10), (10, 10, 10)]
-
 FILTER_SHAPES = [(5,), (3, 5), (3, 5, 3)]
+MODES = ["same", "valid", "full"]
 
 
 @pytest.mark.xfail
 def test_none():
-    # Numpy raises:
-    # TypeError: unsupported operand type(s) for *: 'NoneType' and 'NoneType'
-    with pytest.raises(AttributeError):
+    expected_exc = AttributeError
+    with pytest.raises(expected_exc):
         num.convolve(None, None, mode="same")
+    with pytest.raises(expected_exc):
+        np.convolve(None, None, mode="same")
 
 
 def test_empty():
-    msg = r"empty"
-    with pytest.raises(ValueError, match=msg):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
         num.convolve([], [], mode="same")
+    with pytest.raises(expected_exc):
+        np.convolve([], [], mode="same")
 
 
 def test_diff_dims():
@@ -44,8 +47,11 @@ def test_diff_dims():
     shape2 = (5,) * 2
     arr1 = num.random.random(shape1)
     arr2 = num.random.random(shape2)
-    with pytest.raises(RuntimeError):
+    expected_exc = RuntimeError
+    with pytest.raises(expected_exc):
         num.convolve(arr1, arr2, mode="same")
+    with pytest.raises(expected_exc):
+        np.convolve(arr1, arr2, mode="same")
 
 
 def check_convolve(a, v):
@@ -80,6 +86,39 @@ def test_int(shape, filter_shape):
     v = num.random.randint(0, 5, filter_shape)
 
     check_convolve(a, v)
+
+
+def test_dtype():
+    shape = (5,) * 2
+    arr1 = num.random.randint(0, 5, shape)
+    arr2 = num.random.random(shape)
+    out_num = num.convolve(arr1, arr2, mode="same")
+    out_np = np.convolve(arr1, arr2, mode="same")
+    assert allclose(out_num, out_np)
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("mode", MODES)
+def test_modes(mode):
+    shape = (5,) * 2
+    arr1 = num.random.random(shape)
+    arr2 = num.random.random(shape)
+    out_num = num.convolve(arr1, arr2, mode=mode)
+    # when mode!="same", cunumeric raises
+    # NotImplementedError: Need to implement other convolution modes
+    out_np = np.convolve(arr1, arr2, mode=mode)
+    assert allclose(out_num, out_np)
+
+
+@pytest.mark.xfail
+def test_ndim():
+    shape = (5,) * 4
+    arr1 = num.random.random(shape)
+    arr2 = num.random.random(shape)
+    out_num = num.convolve(arr1, arr2, mode="same")
+    # cunumeric raises,  NotImplementedError: 4-D arrays are not yet supported
+    out_np = np.convolve(arr1, arr2, mode="same")
+    assert allclose(out_num, out_np)
 
 
 if __name__ == "__main__":
