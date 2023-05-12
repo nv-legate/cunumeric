@@ -71,7 +71,7 @@ static inline void qr_template(
 }
 
 template <VariantKind KIND>
-struct QrImplBody<KIND, LegateTypeCode::FLOAT_LT> {
+struct QrImplBody<KIND, Type::Code::FLOAT32> {
   void operator()(int32_t m, int32_t n, int32_t k, const float* a, float* q, float* r)
   {
     qr_template(LAPACK_sgeqrf, LAPACK_sorgqr, m, n, k, a, q, r);
@@ -79,7 +79,7 @@ struct QrImplBody<KIND, LegateTypeCode::FLOAT_LT> {
 };
 
 template <VariantKind KIND>
-struct QrImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
+struct QrImplBody<KIND, Type::Code::FLOAT64> {
   void operator()(int32_t m, int32_t n, int32_t k, const double* a, double* q, double* r)
   {
     qr_template(LAPACK_dgeqrf, LAPACK_dorgqr, m, n, k, a, q, r);
@@ -87,7 +87,7 @@ struct QrImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <VariantKind KIND>
-struct QrImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
+struct QrImplBody<KIND, Type::Code::COMPLEX64> {
   void operator()(
     int32_t m, int32_t n, int32_t k, const complex<float>* a, complex<float>* q, complex<float>* r)
   {
@@ -103,7 +103,7 @@ struct QrImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <VariantKind KIND>
-struct QrImplBody<KIND, LegateTypeCode::COMPLEX128_LT> {
+struct QrImplBody<KIND, Type::Code::COMPLEX128> {
   void operator()(int32_t m,
                   int32_t n,
                   int32_t k,

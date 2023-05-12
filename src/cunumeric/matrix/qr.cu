@@ -104,7 +104,7 @@ static inline void qr_template(GeqrfBufferSize geqrf_buffer_size,
 }
 
 template <>
-struct QrImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
+struct QrImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(int32_t m, int32_t n, int32_t k, const float* a, float* q, float* r)
   {
     qr_template(cusolverDnSgeqrf_bufferSize,
@@ -121,7 +121,7 @@ struct QrImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct QrImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
+struct QrImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(int32_t m, int32_t n, int32_t k, const double* a, double* q, double* r)
   {
     qr_template(cusolverDnDgeqrf_bufferSize,
@@ -138,7 +138,7 @@ struct QrImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct QrImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+struct QrImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(
     int32_t m, int32_t n, int32_t k, const complex<float>* a, complex<float>* q, complex<float>* r)
   {
@@ -156,7 +156,7 @@ struct QrImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct QrImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+struct QrImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(int32_t m,
                   int32_t n,
                   int32_t k,

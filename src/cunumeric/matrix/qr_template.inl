@@ -25,23 +25,23 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct QrImplBody;
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct support_qr : std::false_type {};
 template <>
-struct support_qr<LegateTypeCode::DOUBLE_LT> : std::true_type {};
+struct support_qr<Type::Code::FLOAT64> : std::true_type {};
 template <>
-struct support_qr<LegateTypeCode::FLOAT_LT> : std::true_type {};
+struct support_qr<Type::Code::FLOAT32> : std::true_type {};
 template <>
-struct support_qr<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
+struct support_qr<Type::Code::COMPLEX64> : std::true_type {};
 template <>
-struct support_qr<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
+struct support_qr<Type::Code::COMPLEX128> : std::true_type {};
 
 template <VariantKind KIND>
 struct QrImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<support_qr<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<support_qr<CODE>::value>* = nullptr>
   void operator()(Array& a_array, Array& q_array, Array& r_array) const
   {
     using VAL = legate_type_of<CODE>;
@@ -79,7 +79,7 @@ struct QrImpl {
     QrImplBody<KIND, CODE>()(m, n, k, a_acc.ptr(a_shape), q_acc.ptr(q_shape), r_acc.ptr(r_shape));
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!support_qr<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!support_qr<CODE>::value>* = nullptr>
   void operator()(Array& a_array, Array& q_array, Array& r_array) const
   {
     assert(false);
