@@ -25,14 +25,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, BinaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct BinaryOpImplBody;
 
 template <VariantKind KIND, BinaryOpCode OP_CODE>
 struct BinaryOpImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(BinaryOpArgs& args) const
   {
     using OP   = BinaryOp<OP_CODE, CODE>;
@@ -64,9 +62,7 @@ struct BinaryOpImpl {
     BinaryOpImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in1, in2, pitches, rect, dense);
   }
 
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<!BinaryOp<OP_CODE, CODE>::valid>* = nullptr>
   void operator()(BinaryOpArgs& args) const
   {
     assert(false);

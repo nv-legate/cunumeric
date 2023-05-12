@@ -43,7 +43,7 @@ static inline void trsm_template(
 }
 
 template <>
-struct TrsmImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
+struct TrsmImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(float* lhs, const float* rhs, int32_t m, int32_t n)
   {
     trsm_template(cublasStrsm, lhs, rhs, m, n, 1.0F);
@@ -51,7 +51,7 @@ struct TrsmImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct TrsmImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
+struct TrsmImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(double* lhs, const double* rhs, int32_t m, int32_t n)
   {
     trsm_template(cublasDtrsm, lhs, rhs, m, n, 1.0);
@@ -59,7 +59,7 @@ struct TrsmImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct TrsmImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+struct TrsmImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(complex<float>* lhs_, const complex<float>* rhs_, int32_t m, int32_t n)
   {
     auto lhs = reinterpret_cast<cuComplex*>(lhs_);
@@ -70,7 +70,7 @@ struct TrsmImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct TrsmImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+struct TrsmImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(complex<double>* lhs_, const complex<double>* rhs_, int32_t m, int32_t n)
   {
     auto lhs = reinterpret_cast<cuDoubleComplex*>(lhs_);

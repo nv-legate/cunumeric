@@ -143,7 +143,7 @@ static __global__ void weighted_bincount_kernel_rd_global(
   lhs[bin] <<= weights[idx + origin[0]];
 }
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct BincountImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
 

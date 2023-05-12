@@ -26,7 +26,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, Type::Code CODE, int DIM>
 struct Putmask {
   using T      = legate_type_of<CODE>;
   using IN     = AccessorRW<T, DIM>;
@@ -92,7 +92,7 @@ using namespace legate;
 
 template <VariantKind KIND>
 struct PutmaskImpl {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(PutmaskArgs& args) const
   {
     Putmask<KIND, CODE, DIM> putmask(args);

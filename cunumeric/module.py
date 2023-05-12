@@ -525,7 +525,7 @@ def array(
     elif copy and obj is result:
         result = result.copy()
     if result.ndim < ndmin:
-        shape = (np.newaxis,) * (ndmin - result.ndim) + result.shape
+        shape = (1,) * (ndmin - result.ndim) + result.shape
         result = result.reshape(shape)
     return result
 
@@ -1286,7 +1286,7 @@ def _reshape_recur(ndim: int, arr: ndarray) -> tuple[int, ...]:
 
 
 def _atleast_nd(
-    ndim: int, arys: tuple[ndarray, ...]
+    ndim: int, arys: Sequence[ndarray]
 ) -> Union[list[ndarray], ndarray]:
     inputs = list(convert_to_cunumeric_ndarray(arr) for arr in arys)
     # 'reshape' change the shape of arrays
@@ -1479,8 +1479,8 @@ def check_shape_with_axis(
     ndim = inputs[0].ndim
     shape = inputs[0].shape
 
+    axis = normalize_axis_index(axis, ndim)
     if ndim >= 1:
-        axis = normalize_axis_index(axis, ndim)
         if _builtin_any(
             shape[:axis] != inp.shape[:axis]
             or shape[axis + 1 :] != inp.shape[axis + 1 :]
@@ -1805,7 +1805,11 @@ def concatenate(
 
     # flatten arrays if axis == None and concatenate arrays on the first axis
     if axis is None:
-        inputs = list(inp.ravel() for inp in inputs)
+        # Reshape arrays in the `array_list` to handle scalars
+        reshaped = _atleast_nd(1, inputs)
+        if not isinstance(reshaped, list):
+            reshaped = [reshaped]
+        inputs = list(inp.ravel() for inp in reshaped)
         axis = 0
 
     # Check to see if we can build a new tuple of cuNumeric arrays
@@ -1912,7 +1916,7 @@ def vstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays in the `array_list` if needed before concatenation
-    reshaped = _atleast_nd(2, tuple(tup))
+    reshaped = _atleast_nd(2, tup)
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype_without_axis(
@@ -1960,7 +1964,14 @@ def hstack(tup: Sequence[ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
-    tup, common_info = check_shape_dtype_without_axis(tup, hstack.__name__)
+    # Reshape arrays in the `array_list` to handle scalars
+    reshaped = _atleast_nd(1, tup)
+    if not isinstance(reshaped, list):
+        reshaped = [reshaped]
+
+    tup, common_info = check_shape_dtype_without_axis(
+        reshaped, hstack.__name__
+    )
     check_shape_with_axis(
         tup, hstack.__name__, axis=(0 if common_info.ndim == 1 else 1)
     )
@@ -2008,7 +2019,7 @@ def dstack(tup: Sequence[ndarray]) -> ndarray:
     Multiple GPUs, Multiple CPUs
     """
     # Reshape arrays to (1,N,1) for ndim ==1 or (M,N,1) for ndim == 2:
-    reshaped = _atleast_nd(3, tuple(tup))
+    reshaped = _atleast_nd(3, tup)
     if not isinstance(reshaped, list):
         reshaped = [reshaped]
     tup, common_info = check_shape_dtype_without_axis(
@@ -2052,14 +2063,19 @@ def column_stack(tup: Sequence[ndarray]) -> ndarray:
     --------
     Multiple GPUs, Multiple CPUs
     """
+    # Reshape arrays in the `array_list` to handle scalars
+    reshaped = _atleast_nd(1, tup)
+    if not isinstance(reshaped, list):
+        reshaped = [reshaped]
+
     tup, common_info = check_shape_dtype_without_axis(
-        tup, column_stack.__name__
+        reshaped, column_stack.__name__
     )
-    # When ndim == 1, hstack concatenates arrays along the first axis
+
     if common_info.ndim == 1:
         tup = list(inp.reshape((inp.shape[0], 1)) for inp in tup)
         common_info.shape = tup[0].shape
-    check_shape_with_axis(tup, dstack.__name__, 1)
+    check_shape_with_axis(tup, column_stack.__name__, 1)
     return _concatenate(
         tup,
         common_info,
@@ -6345,7 +6361,7 @@ def bincount(
         else:
             out = zeros((minlength,), dtype=weights.dtype)
             index = x[0]
-            out[index] = weights[index]
+            out[index] = weights[0]
     else:
         # Normal case of bincount
         if weights is None:

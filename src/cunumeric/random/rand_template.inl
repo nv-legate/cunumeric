@@ -31,7 +31,7 @@ struct RandImplBody;
 
 template <RandGenCode GEN_CODE, VariantKind KIND>
 struct RandImpl {
-  template <LegateTypeCode CODE,
+  template <Type::Code CODE,
             int DIM,
             std::enable_if_t<RandomGenerator<GEN_CODE, CODE>::valid>* = nullptr>
   void operator()(RandArgs& args) const
@@ -53,7 +53,7 @@ struct RandImpl {
     RandImplBody<KIND, RNG, VAL, DIM>{}(out, rng, strides, pitches, rect);
   }
 
-  template <LegateTypeCode CODE,
+  template <Type::Code CODE,
             int DIM,
             std::enable_if_t<!RandomGenerator<GEN_CODE, CODE>::valid>* = nullptr>
   void operator()(RandArgs& args) const
