@@ -37,7 +37,7 @@ class ComparisonTable(CunumericDirective):
         "sections": lambda x: choice(x, ("numpy", "grouped")),
     }
 
-    def run(self) -> list(nodes.Node):
+    def run(self) -> list[nodes.Node]:
         if self.options.get("sections", "numpy") == "numpy":
             section_configs = NUMPY_CONFIGS
         else:
