@@ -28,7 +28,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
 struct ScalarUnaryRed {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
@@ -116,7 +116,7 @@ struct ScalarUnaryRed {
 
 template <VariantKind KIND, UnaryRedCode OP_CODE>
 struct ScalarUnaryRedImpl {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(ScalarUnaryRedArgs& args) const
   {
     // The operation is always valid for contains

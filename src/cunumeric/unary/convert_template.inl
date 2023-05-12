@@ -25,16 +25,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND,
-          ConvertCode NAN_OP,
-          LegateTypeCode DST_TYPE,
-          LegateTypeCode SRC_TYPE,
-          int DIM>
+template <VariantKind KIND, ConvertCode NAN_OP, Type::Code DST_TYPE, Type::Code SRC_TYPE, int DIM>
 struct ConvertImplBody;
 
-template <VariantKind KIND, ConvertCode NAN_OP, LegateTypeCode SRC_TYPE>
+template <VariantKind KIND, ConvertCode NAN_OP, Type::Code SRC_TYPE>
 struct ConvertImpl {
-  template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE != DST_TYPE>* = nullptr>
+  template <Type::Code DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE != DST_TYPE>* = nullptr>
   void operator()(ConvertArgs& args) const
   {
     using OP  = ConvertOp<NAN_OP, DST_TYPE, SRC_TYPE>;
@@ -63,14 +59,14 @@ struct ConvertImpl {
     ConvertImplBody<KIND, NAN_OP, DST_TYPE, SRC_TYPE, DIM>()(func, out, in, pitches, rect, dense);
   }
 
-  template <LegateTypeCode DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE == DST_TYPE>* = nullptr>
+  template <Type::Code DST_TYPE, int DIM, std::enable_if_t<SRC_TYPE == DST_TYPE>* = nullptr>
   void operator()(ConvertArgs& args) const
   {
     assert(false);
   }
 };
 
-template <VariantKind KIND, LegateTypeCode SRC_TYPE>
+template <VariantKind KIND, Type::Code SRC_TYPE>
 struct ConvertDispatch {
   template <ConvertCode NAN_OP,
             std::enable_if_t<(legate::is_floating_point<SRC_TYPE>::value ||
@@ -94,7 +90,7 @@ struct ConvertDispatch {
 
 template <VariantKind KIND>
 struct SourceTypeDispatch {
-  template <LegateTypeCode SRC_TYPE>
+  template <Type::Code SRC_TYPE>
   void operator()(ConvertArgs& args) const
   {
     op_dispatch(args.nan_op, ConvertDispatch<KIND, SRC_TYPE>{}, args);

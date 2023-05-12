@@ -23,23 +23,23 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct GemmImplBody;
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct support_gemm : std::false_type {};
 template <>
-struct support_gemm<LegateTypeCode::DOUBLE_LT> : std::true_type {};
+struct support_gemm<Type::Code::FLOAT64> : std::true_type {};
 template <>
-struct support_gemm<LegateTypeCode::FLOAT_LT> : std::true_type {};
+struct support_gemm<Type::Code::FLOAT32> : std::true_type {};
 template <>
-struct support_gemm<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
+struct support_gemm<Type::Code::COMPLEX64> : std::true_type {};
 template <>
-struct support_gemm<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
+struct support_gemm<Type::Code::COMPLEX128> : std::true_type {};
 
 template <VariantKind KIND>
 struct GemmImpl {
-  template <LegateTypeCode CODE, std::enable_if_t<support_gemm<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<support_gemm<CODE>::value>* = nullptr>
   void operator()(Array& lhs_array, Array& rhs1_array, Array& rhs2_array) const
   {
     using VAL = legate_type_of<CODE>;
@@ -67,7 +67,7 @@ struct GemmImpl {
     GemmImplBody<KIND, CODE>()(lhs, rhs1, rhs2, m, n, k);
   }
 
-  template <LegateTypeCode CODE, std::enable_if_t<!support_gemm<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!support_gemm<CODE>::value>* = nullptr>
   void operator()(Array& lhs_array, Array& rhs1_array, Array& rhs2_array) const
   {
     assert(false);

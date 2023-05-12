@@ -441,7 +441,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
   }
 }
 
-template <LegateTypeCode CODE, typename DerivedPolicy>
+template <Type::Code CODE, typename DerivedPolicy>
 void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                     Array& output_array_unbound,  // only for unbound usage when !rebalance
                     void* output_ptr,
@@ -552,7 +552,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
       /*comm::coll::collAllgather(p_samples + num_samples_l * my_sort_rank,
                                 p_samples,
                                 num_samples_l * sizeof(SegmentSample<VAL>),
-                                comm::coll::CollDataType::CollUint8,
+                                comm::coll::CollDataType::Code::CollUint8,
                                 comm);*/
 
       // workaround - using alltoallv to mimic allgather on subset
@@ -894,7 +894,7 @@ void sample_sort_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   }
 }
 
-template <LegateTypeCode CODE, int32_t DIM>
+template <Type::Code CODE, int32_t DIM>
 struct SortImplBodyCpu {
   using VAL = legate_type_of<CODE>;
 

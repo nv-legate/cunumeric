@@ -72,7 +72,7 @@ class Splitter {
   size_t pitches_[DIM];
 };
 
-template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;

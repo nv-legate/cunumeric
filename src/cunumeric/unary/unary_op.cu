@@ -63,7 +63,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = in[point];
 }
 
-template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP  = UnaryOp<OP_CODE, CODE>;
   using ARG = typename OP::T;
@@ -143,7 +143,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   lhs[point] = func(rhs1[point], rhs2.ptr(point));
 }
 
-template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct MultiOutUnaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP   = MultiOutUnaryOp<OP_CODE, CODE>;
   using RHS1 = typename OP::RHS1;

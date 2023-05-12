@@ -152,7 +152,7 @@ __host__ void contract(T* lhs_data,
 }
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
+struct ContractImplBody<VariantKind::GPU, Type::Code::FLOAT16> {
   void operator()(__half* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -190,7 +190,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
+struct ContractImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(float* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -228,7 +228,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
+struct ContractImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(double* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -266,7 +266,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+struct ContractImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(complex<float>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,
@@ -304,7 +304,7 @@ struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct ContractImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+struct ContractImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(complex<double>* lhs_data,
                   size_t lhs_ndim,
                   int64_t* lhs_shape,

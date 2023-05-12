@@ -42,14 +42,14 @@
 
 namespace cunumeric {
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct support_cub : std::true_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX64_LT> : std::false_type {};
+struct support_cub<Type::Code::COMPLEX64> : std::false_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {};
+struct support_cub<Type::Code::COMPLEX128> : std::false_type {};
 
-template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
+template <Type::Code CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
 void local_sort(const legate_type_of<CODE>* values_in,
                 legate_type_of<CODE>* values_out,
                 const int64_t* indices_in,
@@ -69,7 +69,7 @@ void local_sort(const legate_type_of<CODE>* values_in,
   }
 }
 
-template <LegateTypeCode CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
+template <Type::Code CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
 void local_sort(const legate_type_of<CODE>* values_in,
                 legate_type_of<CODE>* values_out,
                 const int64_t* indices_in,
@@ -566,7 +566,7 @@ struct negative_plus : public thrust::binary_function<int64_t, int64_t, int64_t>
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
   std::vector<SegmentMergePiece<legate_type_of<CODE>>>& merge_buffers,
   bool segmented,
@@ -1187,7 +1187,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                          Array& output_array_unbound,  // only for unbound usage when !rebalance
                          void* output_ptr,
@@ -1658,7 +1658,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <LegateTypeCode CODE, int32_t DIM>
+template <Type::Code CODE, int32_t DIM>
 struct SortImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
