@@ -14,6 +14,8 @@
 #
 from __future__ import annotations
 
+from typing import List
+
 from docutils import nodes
 from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
@@ -21,7 +23,7 @@ from sphinx.util.nodes import nested_parse_with_titles
 
 
 class CunumericDirective(SphinxDirective):
-    def parse(self, rst_text: str, annotation: str) -> nodes.Node:
+    def parse(self, rst_text: str, annotation: str) -> List[nodes.Node]:
         result = ViewList()
         for line in rst_text.split("\n"):
             result.append(line, annotation)
