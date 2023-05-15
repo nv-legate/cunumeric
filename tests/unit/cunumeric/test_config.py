@@ -15,7 +15,7 @@
 
 import numpy as np
 import pytest
-from legate.core import Library, ResourceConfig
+from legate.core import Library
 from legate.core.context import Context
 from mock import patch
 
@@ -91,22 +91,6 @@ class TestCuNumericLib:
         # error if runtime already set
         with pytest.raises(AssertionError):
             lib.set_runtime(runtime)
-
-    def test_get_resource_configuration(self) -> None:
-        lib = m.CuNumericLib("foo")
-
-        # error if not initialized
-        with pytest.raises(AssertionError):
-            lib.get_resource_configuration()
-
-        lib.initialize(_FakeSO)
-        config = lib.get_resource_configuration()
-        assert isinstance(config, ResourceConfig)
-        assert config.max_tasks == _FakeSO.CUNUMERIC_MAX_TASKS
-        assert config.max_mappers == _FakeSO.CUNUMERIC_MAX_MAPPERS
-        assert config.max_reduction_ops == _FakeSO.CUNUMERIC_MAX_REDOPS
-        assert config.max_projections == 0
-        assert config.max_shardings == 0
 
     @patch("cunumeric.runtime.destroy")
     def test_destroy(self, mock_destroy) -> None:
@@ -238,10 +222,6 @@ def test_UnaryOpCode() -> None:
 
 def test_RandGenCode() -> None:
     assert (set(m.RandGenCode.__members__)) == {"UNIFORM", "NORMAL", "INTEGER"}
-
-
-def test_CuNumericRedopCode() -> None:
-    assert (set(m.CuNumericRedopCode.__members__)) == {"ARGMIN", "ARGMAX"}
 
 
 def test_CuNumericTunable() -> None:

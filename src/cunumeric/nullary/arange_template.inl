@@ -31,7 +31,7 @@ struct ArangeImplBody;
 
 template <VariantKind KIND>
 struct ArangeImpl {
-  template <LegateTypeCode CODE>
+  template <Type::Code CODE>
   void operator()(ArangeArgs& args) const
   {
     using VAL = legate_type_of<CODE>;

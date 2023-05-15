@@ -23,9 +23,7 @@ import cunumeric as num
 def assert_partition(a_num, kth, axis):
     # compute volume
     shape = a_num.shape
-    volume = 1
-    for i in range(a_num.ndim):
-        volume *= shape[i]
+    volume = np.prod(shape)
 
     # move axis to end and flatten other
     sort_dim = shape[axis]
@@ -75,19 +73,17 @@ def check_api(a=None):
     a_num = num.array(a)
 
     shape = a.shape
-    volume = 1
-    for i in range(a.ndim):
-        volume *= shape[i]
+    volume = np.prod(shape)
 
     # partition axes
-    for i in range(a.ndim):
+    for i in range(-a.ndim, a.ndim):
         kth = shape[i] // 2
         print(f"partition axis {i}")
         assert_partition(num.partition(a_num, kth=kth, axis=i), kth, i)
 
     # flatten
     print("partition flattened")
-    kth = kth = volume // 2
+    kth = volume // 2
     assert_partition(num.partition(a_num, kth=kth, axis=None), kth, 0)
 
     # in-place partition
@@ -97,7 +93,7 @@ def check_api(a=None):
     assert_partition(copy_a_num, kth, a.ndim - 1)
 
     # argpartition
-    for i in range(a.ndim):
+    for i in range(-a.ndim, a.ndim):
         kth = shape[i] // 2
         print(f"argpartition axis {i}")
         assert_argpartition(
@@ -131,10 +127,7 @@ def check_api(a=None):
 
 def generate_random(shape, datatype):
     print(f"Generate random for {datatype}")
-    a_np = None
-    volume = 1
-    for i in shape:
-        volume *= i
+    volume = np.prod(shape)
 
     if np.issubdtype(datatype, np.integer):
         a_np = np.array(
@@ -168,6 +161,66 @@ CASES = [
 def test_dtypes(shape, dtype):
     print("\n\n -----------  dtype test ------------\n")
     check_api(generate_random(shape, dtype))
+
+
+class TestPartitionErrors:
+    def setup_method(self):
+        shape = (3, 4, 5)
+        volume = np.prod(shape)
+        self.a_np = np.array(np.random.random(size=volume)).reshape(shape)
+        self.a_num = num.array(self.a_np)
+
+    @pytest.mark.parametrize("axis", (-4, 3))
+    def test_axis_out_of_bound(self, axis):
+        expected_exc = ValueError
+        kth = 1
+        with pytest.raises(expected_exc):
+            np.partition(self.a_np, kth=kth, axis=axis)
+        with pytest.raises(expected_exc):
+            num.partition(self.a_num, kth=kth, axis=axis)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("kth", (-4, 3, (-4, 0), (0, 3), (3, 3)))
+    def test_kth_out_of_bound(self, kth):
+        # For all cases,
+        # In numpy, it raises ValueError
+        # In cunumeric, it pass
+        expected_exc = ValueError
+        axis = 0
+        with pytest.raises(expected_exc):
+            np.partition(self.a_np, kth=kth, axis=axis)
+        with pytest.raises(expected_exc):
+            num.partition(self.a_num, kth=kth, axis=axis)
+
+
+class TestArgPartitionErrors:
+    def setup_method(self):
+        shape = (3, 4, 5)
+        volume = np.prod(shape)
+        self.a_np = np.array(np.random.random(size=volume)).reshape(shape)
+        self.a_num = num.array(self.a_np)
+
+    @pytest.mark.parametrize("axis", (-4, 3))
+    def test_axis_out_of_bound(self, axis):
+        expected_exc = ValueError
+        kth = 1
+        with pytest.raises(expected_exc):
+            np.argpartition(self.a_np, kth=kth, axis=axis)
+        with pytest.raises(expected_exc):
+            num.argpartition(self.a_num, kth=kth, axis=axis)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("kth", (-4, 3, (-4, 0), (0, 3), (3, 3)))
+    def test_kth_out_of_bound(self, kth):
+        # For all cases,
+        # In numpy, it raises ValueError
+        # In cunumeric, it pass
+        expected_exc = ValueError
+        axis = 0
+        with pytest.raises(expected_exc):
+            np.argpartition(self.a_np, kth=kth, axis=axis)
+        with pytest.raises(expected_exc):
+            num.argpartition(self.a_num, kth=kth, axis=axis)
 
 
 if __name__ == "__main__":

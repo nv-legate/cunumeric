@@ -24,12 +24,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int32_t DIM, bool LOWER>
+template <VariantKind KIND, Type::Code CODE, int32_t DIM, bool LOWER>
 struct TriluImplBody;
 
 template <VariantKind KIND>
 struct TriluImpl {
-  template <LegateTypeCode CODE, int32_t DIM, std::enable_if_t<(DIM >= 2)>* = nullptr>
+  template <Type::Code CODE, int32_t DIM, std::enable_if_t<(DIM >= 2)>* = nullptr>
   void operator()(TriluArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -59,7 +59,7 @@ struct TriluImpl {
     }
   }
 
-  template <LegateTypeCode CODE, int32_t DIM, std::enable_if_t<(DIM < 2)>* = nullptr>
+  template <Type::Code CODE, int32_t DIM, std::enable_if_t<(DIM < 2)>* = nullptr>
   void operator()(TriluArgs& args) const
   {
     assert(false);

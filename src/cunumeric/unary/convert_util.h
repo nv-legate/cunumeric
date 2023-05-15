@@ -43,10 +43,10 @@ constexpr decltype(auto) op_dispatch(ConvertCode nan_op, Functor f, Fnargs&&... 
   return f.template operator()<ConvertCode::NOOP>(std::forward<Fnargs>(args)...);
 }
 
-template <ConvertCode NAN_OP, legate::LegateTypeCode DST_TYPE, legate::LegateTypeCode SRC_TYPE>
+template <ConvertCode NAN_OP, legate::Type::Code DST_TYPE, legate::Type::Code SRC_TYPE>
 struct ConvertOp {};
 
-template <legate::LegateTypeCode DST_TYPE, legate::LegateTypeCode SRC_TYPE>
+template <legate::Type::Code DST_TYPE, legate::Type::Code SRC_TYPE>
 struct ConvertOp<ConvertCode::NOOP, DST_TYPE, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
   using DST = legate::legate_type_of<DST_TYPE>;
@@ -64,7 +64,7 @@ struct ConvertOp<ConvertCode::NOOP, DST_TYPE, SRC_TYPE> {
                              !legate::is_complex_type<DST>::value>* = nullptr>
   constexpr DST operator()(const _SRC& src) const
   {
-    if constexpr (DST_TYPE == legate::LegateTypeCode::BOOL_LT)
+    if constexpr (DST_TYPE == legate::Type::Code::BOOL)
       return static_cast<DST>(src.real()) || static_cast<DST>(src.imag());
     else
       return static_cast<DST>(src.real());
@@ -74,8 +74,8 @@ struct ConvertOp<ConvertCode::NOOP, DST_TYPE, SRC_TYPE> {
   }
 };
 
-template <legate::LegateTypeCode SRC_TYPE>
-struct ConvertOp<ConvertCode::NOOP, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
+template <legate::Type::Code SRC_TYPE>
+struct ConvertOp<ConvertCode::NOOP, legate::Type::Code::FLOAT16, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
 
   template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex_type<_SRC>::value>* = nullptr>
@@ -91,8 +91,8 @@ struct ConvertOp<ConvertCode::NOOP, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
   }
 };
 
-template <legate::LegateTypeCode DST_TYPE>
-struct ConvertOp<ConvertCode::NOOP, DST_TYPE, legate::LegateTypeCode::HALF_LT> {
+template <legate::Type::Code DST_TYPE>
+struct ConvertOp<ConvertCode::NOOP, DST_TYPE, legate::Type::Code::FLOAT16> {
   using DST = legate::legate_type_of<DST_TYPE>;
 
   constexpr DST operator()(const __half& src) const
@@ -101,7 +101,7 @@ struct ConvertOp<ConvertCode::NOOP, DST_TYPE, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode DST_TYPE, legate::LegateTypeCode SRC_TYPE>
+template <legate::Type::Code DST_TYPE, legate::Type::Code SRC_TYPE>
 struct ConvertOp<ConvertCode::PROD, DST_TYPE, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
   using DST = legate::legate_type_of<DST_TYPE>;
@@ -123,8 +123,8 @@ struct ConvertOp<ConvertCode::PROD, DST_TYPE, SRC_TYPE> {
   }
 };
 
-template <legate::LegateTypeCode SRC_TYPE>
-struct ConvertOp<ConvertCode::PROD, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
+template <legate::Type::Code SRC_TYPE>
+struct ConvertOp<ConvertCode::PROD, legate::Type::Code::FLOAT16, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
 
   template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex_type<_SRC>::value>* = nullptr>
@@ -142,8 +142,8 @@ struct ConvertOp<ConvertCode::PROD, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
   }
 };
 
-template <legate::LegateTypeCode DST_TYPE>
-struct ConvertOp<ConvertCode::PROD, DST_TYPE, legate::LegateTypeCode::HALF_LT> {
+template <legate::Type::Code DST_TYPE>
+struct ConvertOp<ConvertCode::PROD, DST_TYPE, legate::Type::Code::FLOAT16> {
   using DST = legate::legate_type_of<DST_TYPE>;
 
   constexpr DST operator()(const __half& src) const
@@ -153,7 +153,7 @@ struct ConvertOp<ConvertCode::PROD, DST_TYPE, legate::LegateTypeCode::HALF_LT> {
   }
 };
 
-template <legate::LegateTypeCode DST_TYPE, legate::LegateTypeCode SRC_TYPE>
+template <legate::Type::Code DST_TYPE, legate::Type::Code SRC_TYPE>
 struct ConvertOp<ConvertCode::SUM, DST_TYPE, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
   using DST = legate::legate_type_of<DST_TYPE>;
@@ -175,8 +175,8 @@ struct ConvertOp<ConvertCode::SUM, DST_TYPE, SRC_TYPE> {
   }
 };
 
-template <legate::LegateTypeCode SRC_TYPE>
-struct ConvertOp<ConvertCode::SUM, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
+template <legate::Type::Code SRC_TYPE>
+struct ConvertOp<ConvertCode::SUM, legate::Type::Code::FLOAT16, SRC_TYPE> {
   using SRC = legate::legate_type_of<SRC_TYPE>;
 
   template <typename _SRC = SRC, std::enable_if_t<!legate::is_complex_type<_SRC>::value>* = nullptr>
@@ -194,8 +194,8 @@ struct ConvertOp<ConvertCode::SUM, legate::LegateTypeCode::HALF_LT, SRC_TYPE> {
   }
 };
 
-template <legate::LegateTypeCode DST_TYPE>
-struct ConvertOp<ConvertCode::SUM, DST_TYPE, legate::LegateTypeCode::HALF_LT> {
+template <legate::Type::Code DST_TYPE>
+struct ConvertOp<ConvertCode::SUM, DST_TYPE, legate::Type::Code::FLOAT16> {
   using DST = legate::legate_type_of<DST_TYPE>;
 
   constexpr DST operator()(const __half& src) const

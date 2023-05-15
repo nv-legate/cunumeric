@@ -24,7 +24,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <ScanCode OP_CODE, Type::Code CODE, int DIM>
 struct ScanGlobalImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP  = ScanOp<OP_CODE, CODE>;
   using VAL = legate_type_of<CODE>;

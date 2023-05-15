@@ -36,7 +36,7 @@ def sort_flattened(
     sort_result = cast(
         "DeferredArray",
         output.runtime.create_empty_thunk(
-            flattened.shape, dtype=output.dtype, inputs=(flattened,)
+            flattened.shape, dtype=output.base.type, inputs=(flattened,)
         ),
     )
     sort(sort_result, flattened, argsort, stable=stable)
@@ -59,7 +59,7 @@ def sort_swapped(
     swapped_copy = cast(
         "DeferredArray",
         output.runtime.create_empty_thunk(
-            swapped.shape, dtype=input.dtype, inputs=(input, swapped)
+            swapped.shape, dtype=input.base.type, inputs=(input, swapped)
         ),
     )
     swapped_copy.copy(swapped, deep=True)
@@ -69,7 +69,9 @@ def sort_swapped(
         sort_result = cast(
             "DeferredArray",
             output.runtime.create_empty_thunk(
-                swapped_copy.shape, dtype=output.dtype, inputs=(swapped_copy,)
+                swapped_copy.shape,
+                dtype=output.base.type,
+                inputs=(swapped_copy,),
             ),
         )
         sort(sort_result, swapped_copy, argsort, stable=stable)
@@ -91,7 +93,7 @@ def sort_task(
     task.add_input(input.base)
     if uses_unbound_output:
         unbound = output.runtime.create_unbound_thunk(
-            dtype=output.dtype, ndim=1
+            dtype=output.base.type, ndim=1
         )
         task.add_output(unbound.base)
     else:
@@ -103,9 +105,9 @@ def sort_task(
     elif output.runtime.num_gpus == 0 and output.runtime.num_procs > 1:
         task.add_cpu_communicator()
 
-    task.add_scalar_arg(argsort, bool)  # return indices flag
+    task.add_scalar_arg(argsort, ty.bool_)  # return indices flag
     task.add_scalar_arg(input.base.shape, (ty.int64,))
-    task.add_scalar_arg(stable, bool)
+    task.add_scalar_arg(stable, ty.bool_)
     task.execute()
 
     if uses_unbound_output:

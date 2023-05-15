@@ -179,6 +179,118 @@ def test_place_basic(shape, vals):
     assert np.array_equal(arr_np, arr_num)
 
 
+@pytest.mark.xfail(reason="cunumeric raises exception when vals is ndim")
+@pytest.mark.parametrize("vals", VALUES, ids=str)
+@pytest.mark.parametrize("ndim", range(2, DIM), ids=str)
+def test_place_vals_ndim(vals, ndim):
+    shape = (1, 2, 3)
+
+    arr_np = mk_seq_array(np, shape)
+    arr_num = mk_seq_array(num, shape)
+    mask_np = (arr_np % 2).astype(bool)
+    mask_num = (arr_np % 2).astype(bool)
+    vals_np = np.array(vals, ndmin=ndim).astype(arr_np.dtype)
+    vals_num = num.array(vals_np)
+
+    # NumPy pass, array([[[2, 2, 2], [2, 2, 2]]])
+    np.place(arr_np, mask_np, vals_np)
+    # cuNumeric raises ValueError: vals array has to be 1-dimensional
+    num.place(arr_num, mask_num, vals_num)
+    assert np.array_equal(arr_np, arr_num)
+
+
+@pytest.mark.parametrize("shape", SIZES, ids=str)
+@pytest.mark.parametrize("vals", VALUES, ids=str)
+def test_place_mask_reshape(shape, vals):
+    arr_np = mk_seq_array(np, shape)
+    arr_num = mk_seq_array(num, shape)
+
+    mask_np = np.arange(0, arr_np.size).astype(bool)
+    mask_num = num.arange(0, arr_num.size).astype(bool)
+
+    vals_np = np.array(vals).astype(arr_np.dtype)
+    vals_num = num.array(vals_np)
+
+    np.place(arr_np, mask_np, vals_np)
+    num.place(arr_num, mask_num, vals_num)
+
+    assert np.array_equal(arr_np, arr_num)
+
+
+@pytest.mark.parametrize("dtype", (np.float32, np.complex64), ids=str)
+def test_place_mask_dtype(dtype):
+    shape = (3, 2, 3)
+    vals = [42 + 3j]
+    arr_np = mk_seq_array(np, shape)
+    arr_num = mk_seq_array(num, shape)
+
+    mask_np = mk_seq_array(np, shape).astype(dtype)
+    mask_num = mk_seq_array(num, shape).astype(dtype)
+
+    vals_np = np.array(vals).astype(arr_np.dtype)
+    vals_num = num.array(vals_np)
+
+    np.place(arr_np, mask_np, vals_np)
+    num.place(arr_num, mask_num, vals_num)
+
+    assert np.array_equal(arr_np, arr_num)
+
+
+@pytest.mark.parametrize("shape", SIZES, ids=str)
+@pytest.mark.parametrize("vals", VALUES, ids=str)
+def test_place_mask_zeros(shape, vals):
+    arr_np = mk_seq_array(np, shape)
+    arr_num = mk_seq_array(num, shape)
+
+    mask_np = np.zeros(shape, dtype=bool)
+    mask_num = num.zeros(shape, dtype=bool)
+
+    vals_np = np.array(vals).astype(arr_np.dtype)
+    vals_num = num.array(vals).astype(arr_num.dtype)
+
+    np.place(arr_np, mask_np, vals_np)
+    num.place(arr_num, mask_num, vals_num)
+
+    assert np.array_equal(arr_np, arr_num)
+
+
+class TestPlaceErrors:
+    def test_arr_mask_size(self):
+        expected_exc = ValueError
+        arr_shape = (1, 2, 3)
+        mask_shape = (2, 2)
+        vals = (11, 12, 13)
+
+        arr_np = np.random.random(arr_shape)
+        arr_num = num.array(arr_np)
+        mask_np = np.random.random(mask_shape)
+        mask_num = num.array(mask_np)
+        vals_np = np.array(vals, dtype=arr_np.dtype)
+        vals_num = num.array(vals, dtype=arr_np.dtype)
+
+        with pytest.raises(expected_exc):
+            np.place(arr_np, mask_np, vals_np)
+        with pytest.raises(expected_exc):
+            num.place(arr_num, mask_num, vals_num)
+
+    def test_vals_empty(self):
+        expected_exc = ValueError
+        shape = (1, 2, 3)
+        val = []
+
+        arr_np = np.array(shape)
+        arr_num = num.array(shape)
+        mask_np = np.array(shape, dtype=bool)
+        mask_num = num.array(shape, dtype=bool)
+        vals_np = np.array(val, dtype=arr_np.dtype)
+        vals_num = num.array(val, dtype=arr_num.dtype)
+
+        with pytest.raises(expected_exc):
+            np.place(arr_np, mask_np, vals_np)
+        with pytest.raises(expected_exc):
+            num.place(arr_num, mask_num, vals_num)
+
+
 if __name__ == "__main__":
     import sys
 

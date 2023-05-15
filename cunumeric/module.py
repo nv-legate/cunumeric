@@ -525,7 +525,7 @@ def array(
     elif copy and obj is result:
         result = result.copy()
     if result.ndim < ndmin:
-        shape = (np.newaxis,) * (ndmin - result.ndim) + result.shape
+        shape = (1,) * (ndmin - result.ndim) + result.shape
         result = result.reshape(shape)
     return result
 
@@ -6361,7 +6361,7 @@ def bincount(
         else:
             out = zeros((minlength,), dtype=weights.dtype)
             index = x[0]
-            out[index] = weights[index]
+            out[index] = weights[0]
     else:
         # Normal case of bincount
         if weights is None:

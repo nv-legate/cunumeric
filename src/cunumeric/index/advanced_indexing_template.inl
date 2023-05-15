@@ -24,14 +24,14 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM, typename OUT_TYPE>
+template <VariantKind KIND, Type::Code CODE, int DIM, typename OUT_TYPE>
 struct AdvancedIndexingImplBody;
 
 template <VariantKind KIND>
 struct AdvancedIndexingImpl {
   // current implementaion of the ND-output regions requires all regions
   // to have the same DIM.
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(AdvancedIndexingArgs& args) const
   {
     using VAL       = legate_type_of<CODE>;

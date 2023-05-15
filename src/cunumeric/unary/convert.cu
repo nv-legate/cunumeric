@@ -40,7 +40,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = func(in[point]);
 }
 
-template <ConvertCode NAN_OP, LegateTypeCode DST_TYPE, LegateTypeCode SRC_TYPE, int DIM>
+template <ConvertCode NAN_OP, Type::Code DST_TYPE, Type::Code SRC_TYPE, int DIM>
 struct ConvertImplBody<VariantKind::GPU, NAN_OP, DST_TYPE, SRC_TYPE, DIM> {
   using OP  = ConvertOp<NAN_OP, DST_TYPE, SRC_TYPE>;
   using SRC = legate_type_of<SRC_TYPE>;

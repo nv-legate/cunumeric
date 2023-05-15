@@ -178,10 +178,10 @@ def tril_single(context: Context, output: Store) -> None:
     task = context.create_auto_task(CuNumericOpCode.TRILU)
     task.add_output(output)
     task.add_input(output)
-    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(True, ty.bool_)
     task.add_scalar_arg(0, ty.int32)
     # Add a fake task argument to indicate that this is for Cholesky
-    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(True, ty.bool_)
 
     task.execute()
 
@@ -194,10 +194,10 @@ def tril(context: Context, p_output: StorePartition, n: int) -> None:
 
     task.add_output(p_output)
     task.add_input(p_output)
-    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(True, ty.bool_)
     task.add_scalar_arg(0, ty.int32)
     # Add a fake task argument to indicate that this is for Cholesky
-    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(True, ty.bool_)
 
     task.execute()
 

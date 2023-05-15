@@ -57,52 +57,94 @@ DTYPE_CASES = [
 ]
 
 
-@pytest.mark.xfail
-def test_arr_none():
-    expected_exc = AttributeError
-    with pytest.raises(expected_exc):
-        np.searchsorted(None, 10)
-        # Numpy raises ValueError: object of too small depth for desired array
-    with pytest.raises(expected_exc):
-        num.searchsorted(None, 10)
-        # cuNemeric raises AttributeError: 'NoneType' object
-        # has no attribute 'searchsorted'
+class TestSearchSortedErrors(object):
+    @pytest.mark.xfail
+    def test_arr_none(self):
+        expected_exc = AttributeError
+        with pytest.raises(expected_exc):
+            np.searchsorted(None, 10)
+            # Numpy raises ValueError:
+            # object of too small depth for desired array
+        with pytest.raises(expected_exc):
+            num.searchsorted(None, 10)
+            # cuNemeric raises AttributeError: 'NoneType' object
+            # has no attribute 'searchsorted'
 
+    @pytest.mark.xfail
+    def test_val_none(self):
+        arr = [2, 3, 10, 9]
+        expected_exc = TypeError
+        with pytest.raises(expected_exc):
+            np.searchsorted(arr, None)
+            # Numpy raises TypeError: '<' not supported between
+            # instances of 'NoneType' and 'NoneType'
+        with pytest.raises(expected_exc):
+            num.searchsorted(arr, None)
+            # cuNumeric raises AssertionError
+            #       if self.deferred is None:
+            #           if self.parent is None:
+            #    >          assert self.runtime.is_supported_type
+            #                    (self.array.dtype)
+            #    E               AssertionError
+            # cunumeric/cunumeric/eager.py:to_deferred_array()
 
-@pytest.mark.xfail
-def test_val_none():
-    arr = [2, 3, 10, 9]
-    expected_exc = TypeError
-    with pytest.raises(expected_exc):
-        np.searchsorted(arr, None)
-        # Numpy raises TypeError: '<' not supported between
-        # instances of 'NoneType' and 'NoneType'
-    with pytest.raises(expected_exc):
-        num.searchsorted(arr, None)
-        # cuNumeric raises AssertionError
-        #       if self.deferred is None:
-        #           if self.parent is None:
-        #    >          assert self.runtime.is_supported_type(self.array.dtype)
-        #    E               AssertionError
-        # cunumeric/cunumeric/eager.py:to_deferred_array()
+    @pytest.mark.xfail
+    def test_side_invalid(self):
+        arr = [2, 3, 10, 9]
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            np.searchsorted(arr, 10, "hi")
+            # Numpy raises ValueError: search side must be 'left' or 'right'
+            # (got 'hi')
+        with pytest.raises(expected_exc):
+            num.searchsorted(arr, 10, "hi")
+            # cuNumeric passed, and the result is the same as that of 'right'.
 
+    def test_ndim_mismatch(self):
+        a = np.random.random((5, 5, 5))
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            num.searchsorted(a, 5)
+        with pytest.raises(expected_exc):
+            np.searchsorted(a, 5)
 
-@pytest.mark.xfail
-def test_side_invalid():
-    arr = [2, 3, 10, 9]
-    expected_exc = ValueError
-    with pytest.raises(expected_exc):
-        np.searchsorted(arr, 10, "hi")
-        # Numpy raises ValueError: search side must be 'left' or 'right'
-        # (got 'hi')
-    with pytest.raises(expected_exc):
-        num.searchsorted(arr, 10, "hi")
-        # cuNumeric passed, and the result is the same as that of 'right'.
+    @pytest.mark.xfail
+    def test_sorter_ndim_mismatch(self):
+        a = np.random.randint(-100, 100, size=100)
+        v = np.random.randint(-100, 100, size=10)
+        a_argsorted = np.random.random((5, 5, 5))
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            num.searchsorted(a, v, sorter=a_argsorted)
+        with pytest.raises(expected_exc):
+            # Numpy raises TypeError
+            np.searchsorted(a, v, sorter=a_argsorted)
+
+    def test_sorter_shape_mismatch(self):
+        a = np.random.randint(-100, 100, size=100)
+        v = np.random.randint(-100, 100, size=10)
+        a_argsorted = np.random.randint(-100, 100, size=10)
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            num.searchsorted(a, v, sorter=a_argsorted)
+        with pytest.raises(expected_exc):
+            np.searchsorted(a, v, sorter=a_argsorted)
+
+    @pytest.mark.xfail
+    def test_sorter_dtype_mismatch(self):
+        a = np.random.randint(-100, 100, size=100)
+        v = np.random.randint(-100, 100, size=10)
+        a_argsorted = np.random.random(size=100)
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            num.searchsorted(a, v, sorter=a_argsorted)
+        with pytest.raises(expected_exc):
+            # Numpy raises TypeError
+            np.searchsorted(a, v, sorter=a_argsorted)
 
 
 def generate_random(volume, datatype):
     a_np = None
-
     if np.issubdtype(datatype, np.integer):
         a_np = np.array(
             np.random.randint(

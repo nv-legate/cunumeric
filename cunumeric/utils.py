@@ -18,7 +18,7 @@ import traceback
 from functools import reduce
 from string import ascii_lowercase, ascii_uppercase
 from types import FrameType
-from typing import Any, Callable, List, Sequence, Tuple, Union, cast
+from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 import legate.core.types as ty
 import numpy as np
@@ -26,24 +26,25 @@ import numpy as np
 from .types import NdShape
 
 SUPPORTED_DTYPES = {
-    bool: ty.bool_,
-    np.bool_: ty.bool_,
-    np.int8: ty.int8,
-    np.int16: ty.int16,
-    np.int32: ty.int32,
-    int: ty.int64,  # np.int is int
-    np.int64: ty.int64,
-    np.uint8: ty.uint8,
-    np.uint16: ty.uint16,
-    np.uint32: ty.uint32,
-    np.uint64: ty.uint64,  # np.uint is np.uint64
-    np.float16: ty.float16,
-    np.float32: ty.float32,
-    float: ty.float64,
-    np.float64: ty.float64,
-    np.complex64: ty.complex64,
-    np.complex128: ty.complex128,
+    np.dtype(np.bool_): ty.bool_,
+    np.dtype(np.int8): ty.int8,
+    np.dtype(np.int16): ty.int16,
+    np.dtype(np.int32): ty.int32,
+    np.dtype(np.int64): ty.int64,
+    np.dtype(np.uint8): ty.uint8,
+    np.dtype(np.uint16): ty.uint16,
+    np.dtype(np.uint32): ty.uint32,
+    np.dtype(np.uint64): ty.uint64,
+    np.dtype(np.float16): ty.float16,
+    np.dtype(np.float32): ty.float32,
+    np.dtype(np.float64): ty.float64,
+    np.dtype(np.complex64): ty.complex64,
+    np.dtype(np.complex128): ty.complex128,
 }
+
+
+def to_core_dtype(dtype: Union[str, np.dtype[Any]]) -> Optional[ty.Dtype]:
+    return SUPPORTED_DTYPES.get(np.dtype(dtype))
 
 
 def is_advanced_indexing(key: Any) -> bool:
@@ -93,28 +94,10 @@ def find_last_user_frames(top_only: bool = True) -> str:
     return "|".join(get_line_number_from_frame(f) for f in frames)
 
 
-def is_supported_dtype(dtype: Any) -> bool:
-    if not isinstance(dtype, np.dtype):
-        raise TypeError("expected a NumPy dtype")
-    return dtype.type in SUPPORTED_DTYPES
-
-
 def calculate_volume(shape: NdShape) -> int:
     if len(shape) == 0:
         return 0
     return reduce(lambda x, y: x * y, shape)
-
-
-def get_arg_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
-    return np.dtype(
-        [("arg", np.int64), ("arg_value", dtype)],
-        align=True,
-    )
-
-
-def get_arg_value_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
-    dt = dtype.fields["arg_value"][0].type  # type: ignore [index]
-    return cast(np.dtype[Any], dt)
 
 
 Modes = Tuple[List[str], List[str], List[str]]

@@ -1,12 +1,13 @@
 #!/bin/bash
-  
+
 # Rewrite conda's -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=ONLY to
 #                 -DCMAKE_FIND_ROOT_PATH_MODE_INCLUDE=BOTH
 CMAKE_ARGS="$(echo "$CMAKE_ARGS" | sed -r "s@_INCLUDE=ONLY@_INCLUDE=BOTH@g")"
 
 # Add our options to conda's CMAKE_ARGS
 CMAKE_ARGS+="
---log-level=VERBOSE"
+--log-level=VERBOSE
+-DBUILD_MARCH=haswell"
 
 # We rely on an environment variable to determine if we need to build cpu-only bits
 if [ -z "$CPU_ONLY" ]; then
@@ -14,7 +15,6 @@ if [ -z "$CPU_ONLY" ]; then
   CMAKE_ARGS+="
 -Dcutensor_DIR=$PREFIX
 -DCMAKE_CUDA_ARCHITECTURES:LIST=60-real;70-real;75-real;80-real;90
--DBUILD_MARCH=haswell
 "
 else
   # When we build without cuda, we need to provide the location of curand

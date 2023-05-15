@@ -51,7 +51,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   out[point] = func(in1[point], in2[point]);
 }
 
-template <BinaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <BinaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct BinaryOpImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP   = BinaryOp<OP_CODE, CODE>;
   using RHS1 = legate_type_of<CODE>;
