@@ -1585,6 +1585,14 @@ class broadcast:
     ----------
     `*arrays` : array_likes
         The arrays to broadcast.
+
+    Returns
+    -------
+    b: broadcast
+        Broadcast the input parameters against one another, and return an
+        object that encapsulates the result. Amongst others, it has shape
+        and nd properties, and may be used as an iterator.
+
     """
 
     def __init__(self, *arrays: Sequence[Any]) -> None:
@@ -1611,30 +1619,37 @@ class broadcast:
 
     @property
     def index(self) -> int:
+        """current index in broadcasted result"""
         return self._index
 
     @property
     def iters(self) -> Tuple[Iterable[Any], ...]:
+        """tuple of iterators along self’s "components." """
         return self._iters
 
     @property
     def numiter(self) -> int:
+        """Number of iterators possessed by the broadcasted result."""
         return len(self._iters)
 
     @property
     def nd(self) -> int:
+        """Number of dimensions of broadcasted result."""
         return self.ndim
 
     @property
     def ndim(self) -> int:
+        """Number of dimensions of broadcasted result."""
         return len(self.shape)
 
     @property
     def shape(self) -> NdShape:
+        """Shape of broadcasted result."""
         return self._shape
 
     @property
     def size(self) -> int:
+        """Total size of broadcasted result."""
         return self._size
 
 
