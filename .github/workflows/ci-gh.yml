@@ -46,11 +46,6 @@ jobs:
       - name: Setup
         shell: bash -eo pipefail {0}
         run: |
-          apt update;
-          DEBIAN_FRONTEND=noninteractive \
-          apt install -y --no-install-recommends \
-              numactl rlwrap;
-
           mv legate /home/coder/legate
           export LEGATE_SHA=$(cat cunumeric/cmake/versions.json | jq -r '.packages.legate_core.git_tag')
 
