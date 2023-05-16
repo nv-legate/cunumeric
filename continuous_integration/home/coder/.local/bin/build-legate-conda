@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 build_legate_conda_package() {
-    set -e;
+    set -xeuo pipefail;
 
     local python_version="${PYTHON_VERSION:-}";
 
@@ -66,4 +66,4 @@ EOF
     { set +x; } 2>/dev/null;
 }
 
-build_legate_conda_package "$@";
+(build_legate_conda_package "$@");

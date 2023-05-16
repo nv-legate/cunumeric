@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 build_cunumeric_cpp() {
-    set -e;
+    set -xeuo pipefail;
 
     # Build + package cuNumeric C++ libs
     local cmake_args=(${CMAKE_ARGS:-});
@@ -31,4 +31,4 @@ build_cunumeric_cpp() {
     { set +x; } 2>/dev/null;
 }
 
-build_cunumeric_cpp "$@";
+(build_cunumeric_cpp "$@");

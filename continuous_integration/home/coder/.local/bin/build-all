@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 
-set -e;
+build_all() {
+    set -xeuo pipefail;
 
-cd ~/;
+    cd ~/;
 
-if type conda >/dev/null 2>&1; then
-    . make-conda-env;
-fi
+    if type conda >/dev/null 2>&1; then
+        . make-conda-env;
+    fi
 
-build-legate-cpp;
-build-legate-wheel;
-build-legate-conda;
+    build-legate-cpp;
+    build-legate-wheel;
+    build-legate-conda;
+    
+    build-cunumeric-cpp;
+    build-cunumeric-wheel;
+    build-cunumeric-conda;
+}
 
-build-cunumeric-cpp;
-build-cunumeric-wheel;
-build-cunumeric-conda;
+(build_all "$@");
+
