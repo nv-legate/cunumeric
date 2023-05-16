@@ -564,9 +564,16 @@ class EagerArray(NumPyThunk):
         # eager arrays are converted by 'to_deferred()'
         # this method uses array.base to create a deferred array,
         # which is different from the shape of the broadcasted arrays
-        if self.deferred is None:
-            self.to_deferred_array()
-        return self.deferred.broadcast_to(shape)  # type: ignore [union-attr]
+        if self.deferred is not None:
+            return self.deferred.broadcast_to(shape)
+        child = np.broadcast_to(self.array, shape)
+        # Should be aliased with parent region
+        assert child.base is not None
+        result = EagerArray(
+            self.runtime, child, parent=self, key=("broadcast_to", shape)
+        )
+        self.children.append(result)
+        return result
 
     def contract(
         self,
