@@ -4158,7 +4158,11 @@ def matmul(
     """
     if a.ndim == 0 or b.ndim == 0:
         raise ValueError("Scalars not allowed in matmul")
+
+    check_writeable(out)
+
     (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
+
     return _contract(
         a_modes,
         b_modes,
@@ -4316,7 +4320,10 @@ def tensordot(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    check_writeable(out)
+
     (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
+
     return _contract(
         a_modes,
         b_modes,
@@ -4369,6 +4376,7 @@ def _contract(
         raise ValueError(
             f"Expected {len(a_modes)}-d input array but got {a.ndim}-d"
         )
+
     if b is None:
         if len(b_modes) != 0:
             raise ValueError("Missing input array")
@@ -4376,19 +4384,18 @@ def _contract(
         raise ValueError(
             f"Expected {len(b_modes)}-d input array but got {b.ndim}-d"
         )
+
     if out is not None and len(out_modes) != out.ndim:
         raise ValueError(
             f"Expected {len(out_modes)}-d output array but got {out.ndim}-d"
         )
+
     if len(set(out_modes)) != len(out_modes):
         raise ValueError("Duplicate mode labels on output")
+
     if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
         raise ValueError("Unknown mode labels on output")
 
-    # Check if `out` is writeable
-    check_writeable(out)
-
-    # Handle types
     makes_view = b is None and len(a_modes) == len(out_modes)
     if dtype is not None and not makes_view:
         c_dtype = dtype
@@ -4398,9 +4405,12 @@ def _contract(
         c_dtype = a.dtype
     else:
         c_dtype = ndarray.find_common_type(a, b)
+
     a = _maybe_cast_input(a, c_dtype, casting)
+
     if b is not None:
         b = _maybe_cast_input(b, c_dtype, casting)
+
     out_dtype = out.dtype if out is not None else c_dtype
 
     # Handle duplicate modes on inputs
@@ -4570,6 +4580,7 @@ def _contract(
     return c
 
 
+@add_boilerplate()
 def einsum(
     expr: str,
     *operands: ndarray,
@@ -4638,9 +4649,13 @@ def einsum(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    check_writeable(out)
+
     operands_list = [convert_to_cunumeric_ndarray(op) for op in operands]
+
     if not optimize:
         optimize = NullOptimizer()
+
     # This call normalizes the expression (adds the output part if it's
     # missing, expands '...') and checks for some errors (mismatch on number
     # of dimensions between operand and expression, wrong number of operands,
@@ -4678,6 +4693,7 @@ def einsum(
             dtype=dtype,
         )
         computed_operands.append(sub_result)
+
     assert len(computed_operands) == 1
     return computed_operands[0]
 
