@@ -4583,7 +4583,6 @@ def _contract(
     return c
 
 
-@add_boilerplate()
 def einsum(
     expr: str,
     *operands: ndarray,
