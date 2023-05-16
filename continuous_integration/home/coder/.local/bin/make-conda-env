@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 make_conda_env() {
-    set -e;
+    set -xeuo pipefail;
 
     local cuda_version="${CUDA_VERSION:-${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR}}";
     cuda_version="$(echo "${cuda_version}" | cut -d'.' -f3 --complement)";
@@ -32,11 +32,6 @@ make_conda_env() {
     mamba env create -n "${DEFAULT_CONDA_ENV:-legate}" -f "${yaml_file}";
 
     { set +x; } 2>/dev/null;
-
-    conda activate "${DEFAULT_CONDA_ENV:-legate}" 2>/dev/null;
 }
 
-. /opt/conda/etc/profile.d/conda.sh;
-. /opt/conda/etc/profile.d/mamba.sh;
-
-make_conda_env "$@";
+(make_conda_env "$@");

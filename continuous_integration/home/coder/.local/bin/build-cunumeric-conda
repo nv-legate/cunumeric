@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 build_cunumeric_conda_package() {
-    set -e;
+    set -xeuo pipefail;
 
     local python_version="${PYTHON_VERSION:-}";
 
@@ -61,4 +61,4 @@ EOF
     { set +x; } 2>/dev/null;
 }
 
-build_cunumeric_conda_package "$@";
+(build_cunumeric_conda_package "$@");
