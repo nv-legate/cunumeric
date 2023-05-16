@@ -1508,9 +1508,7 @@ def broadcast_to(
         The shape of the desired array.
         A single integer i is interpreted as (i,).
     subok : bool, optional
-        If True, then sub-classes will be passed-through,
-        otherwise the returned array will be forced to
-        be a base-class array (default).
+        This option is ignored by cuNumeric.
 
     Returns
     -------
@@ -1559,9 +1557,7 @@ def broadcast_arrays(
         The arrays to broadcast.
 
     subok : bool, optional
-        If True, then sub-classes will be passed-through,
-        otherwise the returned arrays will be forced to
-        be a base-class array (default).
+        This option is ignored by cuNumeric
 
     Returns
     -------
@@ -1571,9 +1567,6 @@ def broadcast_arrays(
         Furthermore, more than one element of a broadcasted array
         may refer to a single memory location.
         If you need to write to the arrays, make copies first.
-        While you can set the writable flag True,
-        writing to a single output value may end up changing
-        more than one location in the output array.
 
     Availability
     --------
@@ -1592,11 +1585,6 @@ class broadcast:
     ----------
     `*arrays` : array_likes
         The arrays to broadcast.
-
-    subok : bool, optional
-        If True, then sub-classes will be passed-through, otherwise the
-        returned arrays will be forced to be a base-class array (default).
-
     """
 
     def __init__(self, *arrays: Sequence[Any]) -> None:
