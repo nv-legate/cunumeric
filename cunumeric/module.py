@@ -2809,7 +2809,6 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     if arr.size == 0:
         return
 
-    # check if the current calling array is `writeable`
     check_writeable(arr)
 
     if mask.size != arr.size:
@@ -3554,6 +3553,8 @@ def put_along_axis(
     if a.size == 0:
         return
 
+    check_writeable(a)
+
     if not np.issubdtype(indices.dtype, np.integer):
         raise TypeError("`indices` must be an integer array")
 
@@ -3822,6 +3823,7 @@ def put(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    check_writeable(a)
     a.put(indices=indices, values=values, mode=mode)
 
 
@@ -3854,6 +3856,8 @@ def putmask(a: ndarray, mask: ndarray, values: ndarray) -> None:
     """
     if not a.shape == mask.shape:
         raise ValueError("mask and data must be the same size")
+
+    check_writeable(a)
 
     mask = mask._warn_and_convert(np.dtype(bool))
 
@@ -3910,6 +3914,8 @@ def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:
     """
     if val.size == 0 or a.size == 0:
         return
+
+    check_writeable(a)
 
     if a.ndim < 2:
         raise ValueError("array must be at least 2-d")
