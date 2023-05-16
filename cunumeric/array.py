@@ -227,7 +227,6 @@ class flagsobj(object):
         # cunumeric does not support these yet, assert default values
         assert self._c_contiguous is True
         assert self._f_contiguous is False
-        assert self._owndata is True
         assert self._aligned is False
         assert self._writebackifcopy is False
 
