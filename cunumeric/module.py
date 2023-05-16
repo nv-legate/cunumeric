@@ -1466,7 +1466,7 @@ def broadcast_shapes(
 
     Availability
     --------
-    Single CPU
+    Multiple GPUs, Multiple CPUs
 
     """
     # TODO: expected "Union[SupportsIndex, Sequence[SupportsIndex]]"
