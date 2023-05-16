@@ -226,11 +226,11 @@ class flagsobj(object):
         self._writebackifcopy = writebackifcopy
 
         # cunumeric does not support these yet, assert default values
-        self._c_contiguous is True
-        self._f_contiguous is False
-        self._owndata is True
-        self._aligned is False
-        self._writebackifcopy is False
+        assert self._c_contiguous is True
+        assert self._f_contiguous is False
+        assert self._owndata is True
+        assert self._aligned is False
+        assert self._writebackifcopy is False
 
     @staticmethod
     def copy(other: flagsobj) -> flagsobj:
