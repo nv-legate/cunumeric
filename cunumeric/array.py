@@ -32,8 +32,7 @@ from typing import (
 )
 
 import numpy as np
-import pyarrow  # type: ignore [import]
-from legate.core import Array, Field, types as ty
+from legate.core import Array, Field
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
     normalize_axis_index,
 )
@@ -324,21 +323,6 @@ class flagsobj(object):
         if (attr := self.short.get(key)) is None:
             raise KeyError("Unknown flag")
         return attr
-
-
-# FIXME: we can't give an accurate return type as mypy thinks
-# the pyarrow import can be ignored, and can't override the check
-# either, because no-any-unimported needs Python >= 3.10. We can
-# fix it once we bump up the Python version
-def convert_numpy_dtype_to_pyarrow(dtype: np.dtype[Any]) -> Any:
-    if dtype.kind != "c":
-        return pyarrow.from_numpy_dtype(dtype)
-    elif dtype == np.complex64:
-        return ty.complex64
-    elif dtype == np.complex128:
-        return ty.complex128
-    else:
-        raise ValueError(f"Unsupported NumPy dtype: {dtype}")
 
 
 NDARRAY_INTERNAL = {
