@@ -154,7 +154,7 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
     thunk = runtime.get_numpy_thunk(obj, share=share)
     flags = (
         flagsobj(writeable=obj.flags.writeable)
-        if isinstance(obj, np.ndarray)
+        if isinstance(obj, np.ndarray) and share
         else None
     )
     return ndarray(shape=None, thunk=thunk, flags=flags)
@@ -2995,7 +2995,7 @@ class ndarray:
         # Reshape first and make a copy if the output is a view of the src
         # the output always should be a copy of the src array
         result = self.reshape(-1, order=order)
-        if result.base is not None:
+        if self.ndim <= 1:
             result = result.copy()
         return result
 
