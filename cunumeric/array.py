@@ -32,7 +32,8 @@ from typing import (
 )
 
 import numpy as np
-from legate.core import Array, Field
+import pyarrow  # type: ignore [import]
+from legate.core import Array, Field, types as ty
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
     normalize_axis_index,
 )
@@ -2170,13 +2171,11 @@ class ndarray:
 
         """
         a = self
-        if out is not None:
-            out = convert_to_cunumeric_ndarray(out, share=True)
 
         if isinstance(choices, list):
             choices = tuple(choices)
-        is_tuple = isinstance(choices, tuple)
-        if is_tuple:
+
+        if isinstance(choices, tuple):
             n = len(choices)
             dtypes = [ch.dtype for ch in choices]
             ch_dtype = np.find_common_type(dtypes, [])
@@ -2193,10 +2192,11 @@ class ndarray:
 
         if not np.issubdtype(self.dtype, np.integer):
             raise TypeError("a array should be integer type")
+
         if self.dtype != np.int64:
             a = a.astype(np.int64)
         if mode == "raise":
-            if (a < 0).any() | (a >= n).any():
+            if (a < 0).any() or (a >= n).any():
                 raise ValueError("invalid entry in choice array")
         elif mode == "wrap":
             a = a % n
@@ -2239,16 +2239,14 @@ class ndarray:
                 inputs=(a, choices),
             )
 
-        ch = tuple(c._thunk for c in choices)  #
-        out_arr._thunk.choose(
-            a._thunk,
-            *ch,
-        )
+        ch = tuple(c._thunk for c in choices)
+        out_arr._thunk.choose(a._thunk, *ch)
+
         if out is not None and out.dtype != ch_dtype:
             out._thunk.convert(out_arr._thunk)
             return out
-        else:
-            return out_arr
+
+        return out_arr
 
     @add_boilerplate()
     def compress(
