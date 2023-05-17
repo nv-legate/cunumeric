@@ -22,14 +22,16 @@ import cunumeric as num
 
 SHAPES = [(100,), (10, 10), (10, 10, 10)]
 FILTER_SHAPES = [(5,), (3, 5), (3, 5, 3)]
-MODES = ["same", "valid", "full"]
+UNSUPPORTED_MODES = ["valid", "full"]
+UNSUPPORTED_NDIM = [4, 5]
 
 
 @pytest.mark.xfail
 def test_none():
-    expected_exc = AttributeError
+    expected_exc = TypeError
     with pytest.raises(expected_exc):
         num.convolve(None, None, mode="same")
+        # cuNumeric raises AttributeError
     with pytest.raises(expected_exc):
         np.convolve(None, None, mode="same")
 
@@ -98,7 +100,7 @@ def test_dtype():
 
 
 @pytest.mark.xfail
-@pytest.mark.parametrize("mode", MODES)
+@pytest.mark.parametrize("mode", UNSUPPORTED_MODES)
 def test_modes(mode):
     shape = (5,) * 2
     arr1 = num.random.random(shape)
@@ -111,8 +113,9 @@ def test_modes(mode):
 
 
 @pytest.mark.xfail
-def test_ndim():
-    shape = (5,) * 4
+@pytest.mark.parametrize("ndim", UNSUPPORTED_NDIM)
+def test_ndim(ndim):
+    shape = (5,) * ndim
     arr1 = num.random.random(shape)
     arr2 = num.random.random(shape)
     out_num = num.convolve(arr1, arr2, mode="same")
