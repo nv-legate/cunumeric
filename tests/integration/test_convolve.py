@@ -22,8 +22,6 @@ import cunumeric as num
 
 SHAPES = [(100,), (10, 10), (10, 10, 10)]
 FILTER_SHAPES = [(5,), (3, 5), (3, 5, 3)]
-UNSUPPORTED_MODES = ["valid", "full"]
-UNSUPPORTED_NDIM = [4, 5]
 
 
 @pytest.mark.xfail
@@ -92,15 +90,21 @@ def test_int(shape, filter_shape):
 
 def test_dtype():
     shape = (5,) * 2
-    arr1 = num.random.randint(0, 5, shape)
+    arr1 = num.random.randint(0, 5, shape, dtype=np.int64)
     arr2 = num.random.random(shape)
     out_num = num.convolve(arr1, arr2, mode="same")
     out_np = np.convolve(arr1, arr2, mode="same")
     assert allclose(out_num, out_np)
 
 
-@pytest.mark.xfail
-@pytest.mark.parametrize("mode", UNSUPPORTED_MODES)
+@pytest.mark.parametrize(
+    "mode",
+    [
+        ("same"),
+        pytest.param("valid", marks=pytest.mark.xfail),
+        pytest.param("full", marks=pytest.mark.xfail),
+    ],
+)
 def test_modes(mode):
     shape = (5,) * 2
     arr1 = num.random.random(shape)
@@ -112,8 +116,17 @@ def test_modes(mode):
     assert allclose(out_num, out_np)
 
 
-@pytest.mark.xfail
-@pytest.mark.parametrize("ndim", UNSUPPORTED_NDIM)
+@pytest.mark.parametrize(
+    "ndim",
+    [
+        (0),
+        (1),
+        (2),
+        (3),
+        pytest.param(4, marks=pytest.mark.xfail),
+        pytest.param(5, marks=pytest.mark.xfail),
+    ],
+)
 def test_ndim(ndim):
     shape = (5,) * ndim
     arr1 = num.random.random(shape)
