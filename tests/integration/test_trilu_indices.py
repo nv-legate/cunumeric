@@ -192,23 +192,23 @@ class TestTriluIndicesFromErrors:
     @pytest.mark.parametrize(
         "dimension", (1, 3), ids=lambda dimension: f"(dim={dimension})"
     )
-    def test_arr_non_2d(self, dimension, size):
+    @pytest.mark.parametrize("func", FUNCTIONS_INDICES_FROM)
+    def test_arr_non_2d(self, func, dimension, size):
+        expected_exc = ValueError
         shape = size * dimension
         a = num.ones(shape, dtype=int)
-        msg = "input array must be 2-d"
-        with pytest.raises(ValueError, match=msg):
-            num.tril_indices_from(a)
+        with pytest.raises(expected_exc):
+            getattr(np, func)(a)
+        with pytest.raises(expected_exc):
+            getattr(num, func)(a)
 
-    def test_arr_0d(self):
-        a = num.array(3)
-        msg = "input array must be 2-d"
-        with pytest.raises(ValueError, match=msg):
-            num.tril_indices_from(a)
-
-    def test_arr_none(self):
-        msg = "'NoneType' object has no attribute 'ndim'"
-        with pytest.raises(AttributeError, match=msg):
-            num.tril_indices_from(None)
+    @pytest.mark.parametrize("func", FUNCTIONS_INDICES_FROM)
+    def test_arr_none(self, func):
+        expected_exc = AttributeError
+        with pytest.raises(expected_exc):
+            getattr(np, func)(None)
+        with pytest.raises(expected_exc):
+            getattr(num, func)(None)
 
     @pytest.mark.xfail
     def test_k_none(self):

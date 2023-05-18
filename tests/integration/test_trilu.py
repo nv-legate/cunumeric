@@ -86,6 +86,13 @@ class TestTriluErrors:
         with pytest.raises(TypeError):
             num.tril(a, k=None)
 
+    def test_m_scalar(self):
+        expected_exc = TypeError
+        with pytest.raises(expected_exc):
+            np.tril(0)
+        with pytest.raises(expected_exc):
+            num.tril(0)
+
 
 if __name__ == "__main__":
     import sys
