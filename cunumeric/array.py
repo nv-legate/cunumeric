@@ -34,6 +34,7 @@ from typing import (
 import numpy as np
 from legate.core import Array, Field
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
+    flagsobj as _flagsobj,
     normalize_axis_index,
 )
 from numpy.core.numeric import (  # type: ignore [attr-defined]
@@ -152,11 +153,7 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
         return obj
     # Ask the runtime to make a numpy thunk for this object
     thunk = runtime.get_numpy_thunk(obj, share=share)
-    flags = (
-        flagsobj(writeable=obj.flags.writeable)
-        if isinstance(obj, np.ndarray) and share
-        else None
-    )
+    flags = obj.flags if isinstance(obj, np.ndarray) and share else None
     return ndarray(shape=None, thunk=thunk, flags=flags)
 
 
@@ -192,136 +189,38 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
         raise ValueError("array is not writeable")
 
 
-class flagsobj(object):
-    short = {
-        "C": "c_contiguous",
-        "F": "f_contiguous",
-        "O": "owndata",
-        "W": "writeable",
-        "A": "aligned",
-        "X": "writebackifcopy",
-        "B": "behaved",
-        "CA": "carray",
-        "FA": "farray",
-    }
+class flagsobj:
+    def __init__(self, obj: Any = None) -> None:
+        flags = _flagsobj() if obj is None else _flagsobj(obj)  # type: ignore
+        object.__setattr__(self, "_delegate", flags)
 
-    def __init__(
-        self,
-        c_contiguous: bool = True,
-        f_contiguous: bool = False,
-        owndata: bool = True,
-        writeable: bool = True,
-        aligned: bool = False,
-        writebackifcopy: bool = False,
-    ) -> None:
-        self._c_contiguous = c_contiguous
-        self._f_contiguous = f_contiguous
-        self._owndata = owndata
-        self._writeable = writeable
-        # TODO: We should have a way to see if the underlying data is aligned.
-        # Currently, we set `aligned` False,
-        # which is not allowed to change the value.
-        self._aligned = aligned
-        self._writebackifcopy = writebackifcopy
+    def __repr__(self) -> str:
+        return repr(self._delegate)
 
-        # cunumeric does not support these yet, assert default values
-        assert self._c_contiguous is True
-        assert self._f_contiguous is False
-        assert self._aligned is False
-        assert self._writebackifcopy is False
+    def __str__(self) -> str:
+        return str(self._delegate)
 
-    @staticmethod
-    def copy(other: flagsobj) -> flagsobj:
-        return flagsobj(
-            c_contiguous=other.c_contiguous,
-            f_contiguous=other.f_contiguous,
-            owndata=other.owndata,
-            writeable=other.writeable,
-            aligned=other.aligned,
-            writebackifcopy=other.writebackifcopy,
-        )
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._delegate, name)
 
-    @property
-    def c_contiguous(self) -> bool:
-        return self._c_contiguous
-
-    @property
-    def f_contiguous(self) -> bool:
-        return self._f_contiguous
-
-    @property
-    def owndata(self) -> bool:
-        return self._owndata
-
-    @property
-    def writeable(self) -> bool:
-        return self._writeable
-
-    @property
-    def aligned(self) -> bool:
-        return self._aligned
-
-    @property
-    def writebackifcopy(self) -> bool:
-        return self._writebackifcopy
-
-    @property
-    def fnc(self) -> bool:
-        return self.f_contiguous and not self.c_contiguous
-
-    @property
-    def forc(self) -> bool:
-        return self.f_contiguous or self.c_contiguous
-
-    @property
-    def behaved(self) -> bool:
-        return self.aligned and self.writeable
-
-    @property
-    def carray(self) -> bool:
-        return self.behaved and self.c_contiguous
-
-    @property
-    def farray(self) -> bool:
-        return self.behaved and self.f_contiguous and not self.c_contiguous
-
-    @writeable.setter  # type: ignore
-    def writeable(self, value: bool) -> None:
-        if value and not self.owndata:
-            raise ValueError(
-                "cannot set WRITEABLE flag to True for this array"
-            )
-        self._writeable = value
-
-    @writebackifcopy.setter  # type: ignore
-    def writebackifcopy(self, value: bool) -> None:
-        if value is True:
-            raise ValueError(
-                "cannot set WRITEBACKIFCOPY flag to True for this array"
-            )
-        self._writebackifcopy = value
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "writeable":
+            self._check_writeable(value)
+        return setattr(self._delegate, name, value)
 
     def __getitem__(self, key: Any) -> bool:
-        key = self.check_flag(key)
         return getattr(self, key)
 
     def __setitem__(self, key: str, value: Any) -> None:
-        key = self.check_flag(key)
+        if key == "writeable":
+            self._check_writeable(value)
         setattr(self, key, value)
 
-    def __repr__(self) -> str:
-        output = ""
-        for each in self.__dict__:
-            output += f"{each.strip('_').upper()} : {self.__dict__[each]}\n"
-        return output
-
-    def __str__(self) -> str:
-        return repr(self)
-
-    def check_flag(self, key: str) -> str:
-        if (attr := self.short.get(key)) is None:
-            raise KeyError("Unknown flag")
-        return attr
+    def _check_writeable(self, value: Any) -> None:
+        if value and not self._delegate.writeable:
+            raise ValueError(
+                "non-writeable cunumeric arrays cannot be made writeable"
+            )
 
 
 NDARRAY_INTERNAL = {
@@ -348,7 +247,7 @@ class ndarray:
         order: Union[OrderType, None] = None,
         thunk: Union[NumPyThunk, None] = None,
         inputs: Union[Any, None] = None,
-        flags: Union[flagsobj, None] = None,
+        flags: Union[flagsobj, _flagsobj, None] = None,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -390,13 +289,11 @@ class ndarray:
         else:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
-        # TODO: flags are passed. We use this argument only for views
-        # Not all routines are changed to pass these arguments correctly yet.
-        if flags is not None:
-            self._flags = flagsobj.copy(flags)
-            self._flags._owndata = False
+
+        if flags is None:
+            self._flags = None
         else:
-            self._flags = flagsobj()  # type : ignore
+            self._flags = flagsobj(flags)
 
     @staticmethod
     def _sanitize_shape(
@@ -666,6 +563,9 @@ class ndarray:
         for C-style contiguous arrays or ``self.strides[0] == self.itemsize``
         for Fortran-style contiguous arrays is true.
         """
+        if self._flags is None:
+            self._flags = flagsobj(self.__array__())
+
         return self._flags
 
     @property
@@ -3515,11 +3415,11 @@ class ndarray:
         # set by the caller. The numpy interface specifies only bool values,
         # despite its None defaults.
         if write is not None:
-            self._flags["W"] = write
+            self.flags["W"] = write
         if align is not None:
-            self._flags["A"] = align
+            self.flags["A"] = align
         if uic is not None:
-            self._flags["X"] = uic
+            self.flags["X"] = uic
 
     @add_boilerplate()
     def searchsorted(
