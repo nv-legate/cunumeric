@@ -190,34 +190,39 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
 
 
 class flagsobj:
-    def __init__(self, obj: Any = None) -> None:
-        flags = _flagsobj() if obj is None else _flagsobj(obj)  # type: ignore
-        object.__setattr__(self, "_delegate", flags)
-
-    def __repr__(self) -> str:
-        return repr(self._delegate)
-
-    def __str__(self) -> str:
-        return str(self._delegate)
+    def __init__(self, array: Any) -> None:
+        object.__setattr__(self, "_array", array)
 
     def __getattr__(self, name: str) -> Any:
-        return getattr(self._delegate, name)
+        if name == "writeable":
+            return self._array._writeable
+        flags = self._array.__array__().flags
+        return getattr(flags, name)
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "writeable":
             self._check_writeable(value)
-        return setattr(self._delegate, name, value)
+            self._array._writeable = value
+        else:
+            flags = self._array.__array__().flags
+            setattr(flags, name, value)
 
     def __getitem__(self, key: Any) -> bool:
-        return getattr(self, key)
+        if key == "W":
+            return self._array._writeable
+        flags = self._array.__array__().flags
+        return flags[key]
 
     def __setitem__(self, key: str, value: Any) -> None:
-        if key == "writeable":
+        if key == "W":
             self._check_writeable(value)
-        setattr(self, key, value)
+            self._array._writeable = value
+        else:
+            flags = self._array.__array__().flags
+            flags[key] = value
 
     def _check_writeable(self, value: Any) -> None:
-        if value and not self._delegate.writeable:
+        if value and not self._array._writeable:
             raise ValueError(
                 "non-writeable cunumeric arrays cannot be made writeable"
             )
@@ -290,10 +295,10 @@ class ndarray:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
 
-        if flags is None:
-            self._flags = None
-        else:
-            self._flags = flagsobj(flags)
+        self._flags = flags
+
+        # we have to manage this separately
+        self._writeable = True
 
     @staticmethod
     def _sanitize_shape(
@@ -563,10 +568,7 @@ class ndarray:
         for C-style contiguous arrays or ``self.strides[0] == self.itemsize``
         for Fortran-style contiguous arrays is true.
         """
-        if self._flags is None:
-            self._flags = flagsobj(self.__array__())
-
-        return self._flags
+        return flagsobj(self)
 
     @property
     def flat(self) -> np.flatiter[npt.NDArray[Any]]:

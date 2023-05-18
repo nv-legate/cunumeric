@@ -70,9 +70,10 @@ def run_logistic_regression(N, F, T, I, warmup, S, B):  # noqa: E741
             )
     total = timer.stop()
 
-    assert not math.isnan(
-        np.sum(weights)
-    ), f"{np.count_nonzero(~np.isnan(weights))} NaNs in weights"
+    assert not math.isnan(np.sum(weights)), (
+        f"{np.count_nonzero(np.isnan(weights))} NaNs, "
+        f"{np.count_nonzero(np.isinf(weights))} infs in weights"
+    )
 
     print(f"Elapsed Time: {total} ms")
     return total
