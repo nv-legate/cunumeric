@@ -157,6 +157,21 @@ def test_asarray_dtype(obj, dtype):
     assert strict_type_equal(res_np, res_num)
 
 
+@pytest.mark.parametrize(
+    "src_dtype, tgt_dtype",
+    ((np.int32, np.complex128), (np.float64, np.int64)),
+    ids=str,
+)
+@pytest.mark.parametrize("func", ("array", "asarray"), ids=str)
+def test_ndarray_dtype(src_dtype, tgt_dtype, func):
+    shape = (1, 3, 1)
+    arr_np = np.ndarray(shape, dtype=src_dtype)
+    arr_num = num.array(arr_np)
+    res_np = getattr(np, func)(arr_np, dtype=tgt_dtype)
+    res_num = getattr(num, func)(arr_num, dtype=tgt_dtype)
+    assert strict_type_equal(res_np, res_num)
+
+
 class TestAsArrayErrors:
     @pytest.mark.parametrize(
         "dtype", (np.int32, np.float64), ids=lambda dtype: f"(dtype={dtype})"
