@@ -26,7 +26,7 @@ namespace cunumeric {
 using namespace legate;
 
 struct EvalUdfGPU {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(EvalUdfArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -136,7 +136,7 @@ struct EvalUdfGPU {
     dim = args.inputs[0].dim() == 0 ? 1 : args.inputs[0].dim();
     double_dispatch(dim, args.inputs[0].code(), EvalUdfGPU{}, args);
   } else {
-    LegateTypeCode code = LegateTypeCode::BOOL_LT;
+    Type::Code code = Type::Code::BOOL;
     double_dispatch(dim, code, EvalUdfGPU{}, args);
   }
 }

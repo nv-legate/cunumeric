@@ -23,7 +23,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct DotImplBody;
 
 template <typename VAL>
@@ -41,7 +41,7 @@ using acc_type_of = typename AccTypeOf<VAL>::type;
 
 template <VariantKind KIND>
 struct DotImpl {
-  template <LegateTypeCode CODE>
+  template <Type::Code CODE>
   void operator()(DotArgs& args) const
   {
     using VAL = legate_type_of<CODE>;

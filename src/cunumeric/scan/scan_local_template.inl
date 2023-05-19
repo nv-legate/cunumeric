@@ -21,16 +21,16 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, ScanCode OP_CODE, Type::Code CODE, int DIM>
 struct ScanLocalImplBody;
 
-template <VariantKind KIND, ScanCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, ScanCode OP_CODE, Type::Code CODE, int DIM>
 struct ScanLocalNanImplBody;
 
 template <VariantKind KIND, ScanCode OP_CODE, bool NAN_TO_IDENTITY>
 struct ScanLocalImpl {
   // Case where NANs are transformed
-  template <LegateTypeCode CODE,
+  template <Type::Code CODE,
             int DIM,
             std::enable_if_t<NAN_TO_IDENTITY && (legate::is_floating_point<CODE>::value ||
                                                  legate::is_complex<CODE>::value)>* = nullptr>
@@ -56,7 +56,7 @@ struct ScanLocalImpl {
     ScanLocalNanImplBody<KIND, OP_CODE, CODE, DIM>()(func, out, in, args.sum_vals, pitches, rect);
   }
   // Case where NANs are as is
-  template <LegateTypeCode CODE,
+  template <Type::Code CODE,
             int DIM,
             std::enable_if_t<!(NAN_TO_IDENTITY && (legate::is_floating_point<CODE>::value ||
                                                    legate::is_complex<CODE>::value))>* = nullptr>

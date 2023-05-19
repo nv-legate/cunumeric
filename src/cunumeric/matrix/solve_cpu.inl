@@ -24,7 +24,7 @@ namespace cunumeric {
 using namespace legate;
 
 template <VariantKind KIND>
-struct SolveImplBody<KIND, LegateTypeCode::FLOAT_LT> {
+struct SolveImplBody<KIND, Type::Code::FLOAT32> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, float* a, float* b)
   {
     auto ipiv = create_buffer<int32_t>(std::min(m, n));
@@ -37,7 +37,7 @@ struct SolveImplBody<KIND, LegateTypeCode::FLOAT_LT> {
 };
 
 template <VariantKind KIND>
-struct SolveImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
+struct SolveImplBody<KIND, Type::Code::FLOAT64> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, double* a, double* b)
   {
     auto ipiv = create_buffer<int32_t>(std::min(m, n));
@@ -50,7 +50,7 @@ struct SolveImplBody<KIND, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <VariantKind KIND>
-struct SolveImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
+struct SolveImplBody<KIND, Type::Code::COMPLEX64> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, complex<float>* a_, complex<float>* b_)
   {
     auto ipiv = create_buffer<int32_t>(std::min(m, n));
@@ -66,7 +66,7 @@ struct SolveImplBody<KIND, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <VariantKind KIND>
-struct SolveImplBody<KIND, LegateTypeCode::COMPLEX128_LT> {
+struct SolveImplBody<KIND, Type::Code::COMPLEX128> {
   void operator()(int32_t m, int32_t n, int32_t nrhs, complex<double>* a_, complex<double>* b_)
   {
     auto ipiv = create_buffer<int32_t>(std::min(m, n));

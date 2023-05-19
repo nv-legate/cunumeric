@@ -48,7 +48,6 @@ from .config import (
     Bitorder,
     ConvertCode,
     CuNumericOpCode,
-    CuNumericRedopCode,
     RandGenCode,
     UnaryOpCode,
     UnaryRedCode,
@@ -77,15 +76,10 @@ if TYPE_CHECKING:
     )
 
 
-def _complex_field_dtype(dtype: np.dtype[Any]) -> np.dtype[Any]:
-    if dtype == np.complex64:
-        return np.dtype(np.float32)
-    elif dtype == np.complex128:
-        return np.dtype(np.float64)
-    elif dtype == np.complex256:
-        return np.dtype(np.float128)
-    else:
-        assert False
+_COMPLEX_FIELD_DTYPES = {
+    ty.complex64: ty.float32,
+    ty.complex128: ty.float64,
+}
 
 
 def _prod(tpl: Sequence[int]) -> int:
@@ -167,8 +161,8 @@ _UNARY_RED_TO_REDUCTION_OPS: Dict[int, int] = {
     UnaryRedCode.PROD: ReductionOp.MUL,
     UnaryRedCode.MAX: ReductionOp.MAX,
     UnaryRedCode.MIN: ReductionOp.MIN,
-    UnaryRedCode.ARGMAX: CuNumericRedopCode.ARGMAX,
-    UnaryRedCode.ARGMIN: CuNumericRedopCode.ARGMIN,
+    UnaryRedCode.ARGMAX: ReductionOp.MAX,
+    UnaryRedCode.ARGMIN: ReductionOp.MIN,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
     UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
     UnaryRedCode.ALL: ReductionOp.MUL,
@@ -238,11 +232,10 @@ class DeferredArray(NumPyThunk):
     def __init__(
         self,
         runtime: Runtime,
-        base: Any,
-        dtype: np.dtype[Any],
+        base: Store,
         numpy_array: Optional[npt.NDArray[Any]] = None,
     ) -> None:
-        super().__init__(runtime, dtype)
+        super().__init__(runtime, base.type.to_numpy_dtype())
         assert base is not None
         assert isinstance(base, Store)
         self.base: Any = base  # a Legate Store
@@ -275,7 +268,8 @@ class DeferredArray(NumPyThunk):
         copy = cast(
             DeferredArray,
             self.runtime.create_empty_thunk(
-                self.shape, self.dtype, inputs=[self]
+                self.shape,
+                self.base.type,
             ),
         )
         copy.copy(self, deep=True)
@@ -320,7 +314,7 @@ class DeferredArray(NumPyThunk):
     def imag(self) -> NumPyThunk:
         result = self.runtime.create_empty_thunk(
             self.shape,
-            dtype=_complex_field_dtype(self.dtype),
+            dtype=_COMPLEX_FIELD_DTYPES[self.base.type],
             inputs=[self],
         )
 
@@ -337,7 +331,7 @@ class DeferredArray(NumPyThunk):
     def real(self) -> NumPyThunk:
         result = self.runtime.create_empty_thunk(
             self.shape,
-            dtype=_complex_field_dtype(self.dtype),
+            dtype=_COMPLEX_FIELD_DTYPES[self.base.type],
             inputs=[self],
         )
 
@@ -353,7 +347,7 @@ class DeferredArray(NumPyThunk):
     def conj(self) -> NumPyThunk:
         result = self.runtime.create_empty_thunk(
             self.shape,
-            dtype=self.dtype,
+            dtype=self.base.type,
             inputs=[self],
         )
 
@@ -491,11 +485,10 @@ class DeferredArray(NumPyThunk):
         store_to_copy = DeferredArray(
             self.runtime,
             base=store,
-            dtype=self.dtype,
         )
         store_copy = self.runtime.create_empty_thunk(
             store_to_copy.shape,
-            self.dtype,
+            self.base.type,
             inputs=[store_to_copy],
         )
         store_copy.copy(store_to_copy, deep=True)
@@ -606,7 +599,7 @@ class DeferredArray(NumPyThunk):
                                 "Unsupported entry type passed to advanced ",
                                 "indexing operation",
                             )
-                    lhs = DeferredArray(self.runtime, store, self.dtype)
+                    lhs = DeferredArray(self.runtime, store)
 
                 return True, lhs, key[transpose_index]
 
@@ -653,7 +646,7 @@ class DeferredArray(NumPyThunk):
                 DeferredArray,
                 self.runtime.create_empty_thunk(
                     out_shape,
-                    rhs.dtype,
+                    rhs.base.type,
                     inputs=[rhs],
                 ),
             )
@@ -674,12 +667,11 @@ class DeferredArray(NumPyThunk):
             mask = DeferredArray(
                 self.runtime,
                 base=key_store,
-                dtype=self.dtype,
             )
             rhs.putmask(mask, set_value)
             return False, rhs, rhs, self
         else:
-            out_dtype = rhs.dtype
+            out_dtype = rhs.base.type
             # in the case this operation is called for the set_item, we
             # return Point<N> type field that is later used for
             # indirect copy operation
@@ -699,7 +691,7 @@ class DeferredArray(NumPyThunk):
             task.add_output(out.base)
             task.add_input(rhs.base)
             task.add_input(key_store)
-            task.add_scalar_arg(is_set, bool)
+            task.add_scalar_arg(is_set, ty.bool_)
             task.add_scalar_arg(key_dims, ty.int64)
             task.add_alignment(rhs.base, key_store)
             task.add_broadcast(
@@ -726,7 +718,7 @@ class DeferredArray(NumPyThunk):
                         ),
                     )
                     if not is_set:
-                        out.fill(np.array(0, dtype=out_dtype))
+                        out.fill(np.array(0, dtype=out_dtype.to_numpy_dtype()))
                 else:
                     for dim in range(rhs.ndim - out_dim):
                         out_tmp = out_tmp.project(rhs.ndim - dim - 1, 0)
@@ -841,7 +833,7 @@ class DeferredArray(NumPyThunk):
             # to apply all the transformations done to `store` to `self`
             # as well before creating a copy
             if is_set:
-                self = DeferredArray(self.runtime, store, self.dtype)
+                self = DeferredArray(self.runtime, store)
             # after store is transformed we need to to return a copy of
             # the store since Copy operation can't be done on
             # the store with transformation
@@ -893,7 +885,6 @@ class DeferredArray(NumPyThunk):
         return DeferredArray(
             self.runtime,
             base=store,
-            dtype=self.dtype,
         )
 
     def _broadcast(self, shape: NdShape) -> Any:
@@ -921,14 +912,13 @@ class DeferredArray(NumPyThunk):
         else:
             shape = self.shape
         store = self.context.create_store(
-            self.dtype,
+            self.base.type,
             shape=shape,
             optimize_scalar=False,
         )
         thunk_copy = DeferredArray(
             self.runtime,
             base=store,
-            dtype=self.dtype,
         )
         thunk_copy.copy(self, deep=True)
         return thunk_copy
@@ -951,20 +941,19 @@ class DeferredArray(NumPyThunk):
                 if index_array.base.kind == Future:
                     index_array = index_array._convert_future_to_regionfield()
                     result_store = self.context.create_store(
-                        self.dtype,
+                        self.base.type,
                         shape=index_array.shape,
                         optimize_scalar=False,
                     )
                     result = DeferredArray(
                         self.runtime,
                         base=result_store,
-                        dtype=self.dtype,
                     )
 
                 else:
                     result = self.runtime.create_empty_thunk(
                         index_array.base.shape,
-                        self.dtype,
+                        self.base.type,
                         inputs=[self],
                     )
 
@@ -984,7 +973,7 @@ class DeferredArray(NumPyThunk):
             if result.shape == ():
                 input = result
                 result = self.runtime.create_empty_thunk(
-                    (), self.dtype, inputs=[self]
+                    (), self.base.type, inputs=[self]
                 )
 
                 task = self.context.create_auto_task(CuNumericOpCode.READ)
@@ -1027,7 +1016,6 @@ class DeferredArray(NumPyThunk):
                 rhs_tmp = DeferredArray(
                     self.runtime,
                     base=rhs_store,
-                    dtype=rhs.dtype,
                 )
                 rhs_tmp2 = rhs_tmp._convert_future_to_regionfield()
                 rhs_store = rhs_tmp2.base
@@ -1085,7 +1073,7 @@ class DeferredArray(NumPyThunk):
                 if view.base.overlaps(rhs.base):
                     rhs_copy = self.runtime.create_empty_thunk(
                         rhs.shape,
-                        rhs.dtype,
+                        rhs.base.type,
                         inputs=[rhs],
                     )
                     rhs_copy.copy(rhs, deep=False)
@@ -1207,7 +1195,7 @@ class DeferredArray(NumPyThunk):
                     tmp_shape += tgt_g
 
             result = self.runtime.create_empty_thunk(
-                tmp_shape, dtype=self.dtype, inputs=[self]
+                tmp_shape, dtype=self.base.type, inputs=[self]
             )
 
             src = self.base
@@ -1237,8 +1225,8 @@ class DeferredArray(NumPyThunk):
 
             assert src.shape == tgt.shape
 
-            src_array = DeferredArray(self.runtime, src, self.dtype)
-            tgt_array = DeferredArray(self.runtime, tgt, self.dtype)
+            src_array = DeferredArray(self.runtime, src)
+            tgt_array = DeferredArray(self.runtime, tgt)
             tgt_array.copy(src_array, deep=True)
 
             if needs_delinearization and needs_linearization:
@@ -1250,9 +1238,9 @@ class DeferredArray(NumPyThunk):
                         src_dim += len(tgt_g)
 
                 assert src.shape == newshape
-                src_array = DeferredArray(self.runtime, src, self.dtype)
+                src_array = DeferredArray(self.runtime, src)
                 result = self.runtime.create_empty_thunk(
-                    newshape, dtype=self.dtype, inputs=[self]
+                    newshape, dtype=self.base.type, inputs=[self]
                 )
                 result.copy(src_array, deep=True)
 
@@ -1276,7 +1264,7 @@ class DeferredArray(NumPyThunk):
 
                 src_dim += diff
 
-            result = DeferredArray(self.runtime, src, self.dtype)
+            result = DeferredArray(self.runtime, src)
 
         return result
 
@@ -1303,7 +1291,7 @@ class DeferredArray(NumPyThunk):
             )
         if result is self.base:
             return self
-        return DeferredArray(self.runtime, result, self.dtype)
+        return DeferredArray(self.runtime, result)
 
     def swapaxes(self, axis1: int, axis2: int) -> DeferredArray:
         if self.size == 1 or axis1 == axis2:
@@ -1315,7 +1303,7 @@ class DeferredArray(NumPyThunk):
         dims[axis1], dims[axis2] = dims[axis2], dims[axis1]
 
         result = self.base.transpose(dims)
-        result = DeferredArray(self.runtime, result, self.dtype)
+        result = DeferredArray(self.runtime, result)
 
         return result
 
@@ -1422,7 +1410,7 @@ class DeferredArray(NumPyThunk):
                 len(set(axes)) != len(axes)
                 or len(axes) != input.ndim
                 or tuple(axes) != tuple(sorted(axes)),
-                bool,
+                ty.bool_,
             )
             for ax in axes:
                 task.add_scalar_arg(ax, ty.int64)
@@ -1452,7 +1440,7 @@ class DeferredArray(NumPyThunk):
             task = self.context.create_auto_task(CuNumericOpCode.FILL)
             task.add_output(self.base)
             task.add_input(value)
-            task.add_scalar_arg(argval, bool)
+            task.add_scalar_arg(argval, ty.bool_)
             task.execute()
 
     def fill(self, numpy_array: Any) -> None:
@@ -1463,9 +1451,9 @@ class DeferredArray(NumPyThunk):
         # Have to copy the numpy array because this launch is asynchronous
         # and we need to make sure the application doesn't mutate the value
         # so make a future result, this is immediate so no dependence
-        value = self.runtime.create_scalar(numpy_array.data, self.dtype)
+        value = self.runtime.create_scalar(numpy_array.data)
         store = self.context.create_store(
-            self.dtype, shape=(1,), storage=value, optimize_scalar=True
+            self.base.type, shape=(1,), storage=value, optimize_scalar=True
         )
         self._fill(store)
 
@@ -1558,7 +1546,7 @@ class DeferredArray(NumPyThunk):
         # below the tasks do this adjustment internally.
         if blas_op is not None and lhs_thunk.dtype == np.float16:
             lhs_thunk = self.runtime.create_empty_thunk(
-                lhs_thunk.shape, np.dtype(np.float32), inputs=[lhs_thunk]
+                lhs_thunk.shape, ty.float32, inputs=[lhs_thunk]
             )
 
         # Clear output array
@@ -1706,9 +1694,9 @@ class DeferredArray(NumPyThunk):
         task.add_reduction(lhs, ReductionOp.ADD)
         task.add_input(rhs1)
         task.add_input(rhs2)
-        task.add_scalar_arg(tuple(lhs_dim_mask), (bool,))
-        task.add_scalar_arg(tuple(rhs1_dim_mask), (bool,))
-        task.add_scalar_arg(tuple(rhs2_dim_mask), (bool,))
+        task.add_scalar_arg(tuple(lhs_dim_mask), (ty.bool_,))
+        task.add_scalar_arg(tuple(rhs1_dim_mask), (ty.bool_,))
+        task.add_scalar_arg(tuple(rhs2_dim_mask), (ty.bool_,))
         task.add_alignment(lhs, rhs1)
         task.add_alignment(lhs, rhs2)
         task.execute()
@@ -1801,7 +1789,7 @@ class DeferredArray(NumPyThunk):
             task.add_alignment(diag, matrix)
 
         task.add_scalar_arg(naxes, ty.int32)
-        task.add_scalar_arg(extract, bool)
+        task.add_scalar_arg(extract, ty.bool_)
 
         task.execute()
 
@@ -1840,8 +1828,8 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_auto_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
         task.add_scalar_arg(shape, (ty.int64,))
-        task.add_scalar_arg(True, bool)  # has_input
-        task.add_scalar_arg(check_bounds, bool)
+        task.add_scalar_arg(True, ty.bool_)  # has_input
+        task.add_scalar_arg(check_bounds, ty.bool_)
         task.add_input(indices.base)
         task.add_alignment(indices.base, indirect.base)
         task.throws_exception(IndexError)
@@ -1903,7 +1891,7 @@ class DeferredArray(NumPyThunk):
             # Handle the special case of a single value here
             assert self.shape[0] == 1
             array = np.array(start, dtype=self.dtype)
-            future = self.runtime.create_scalar(array.data, array.dtype)
+            future = self.runtime.create_scalar(array.data)
             self.base.set_storage(future)
             return
 
@@ -1948,7 +1936,7 @@ class DeferredArray(NumPyThunk):
         self, axes: Union[None, tuple[int, ...], list[int]]
     ) -> DeferredArray:
         result = self.base.transpose(axes)
-        result = DeferredArray(self.runtime, result, self.dtype)
+        result = DeferredArray(self.runtime, result)
         return result
 
     @auto_convert("rhs")
@@ -1960,7 +1948,7 @@ class DeferredArray(NumPyThunk):
 
         task.add_output(lhs)
         task.add_input(rhs)
-        task.add_scalar_arg(lower, bool)
+        task.add_scalar_arg(lower, ty.bool_)
         task.add_scalar_arg(k, ty.int32)
 
         task.add_alignment(lhs, rhs)
@@ -1971,13 +1959,13 @@ class DeferredArray(NumPyThunk):
     def repeat(
         self, repeats: Any, axis: int, scalar_repeats: bool
     ) -> DeferredArray:
-        out = self.runtime.create_unbound_thunk(self.dtype, ndim=self.ndim)
+        out = self.runtime.create_unbound_thunk(self.base.type, ndim=self.ndim)
         task = self.context.create_auto_task(CuNumericOpCode.REPEAT)
         task.add_input(self.base)
         task.add_output(out.base)
         # We pass axis now but don't use for 1D case (will use for ND case
         task.add_scalar_arg(axis, ty.int32)
-        task.add_scalar_arg(scalar_repeats, bool)
+        task.add_scalar_arg(scalar_repeats, ty.bool_)
         if scalar_repeats:
             task.add_scalar_arg(repeats, ty.int64)
         else:
@@ -2046,7 +2034,7 @@ class DeferredArray(NumPyThunk):
 
     def nonzero(self) -> tuple[NumPyThunk, ...]:
         results = tuple(
-            self.runtime.create_unbound_thunk(np.dtype(np.int64))
+            self.runtime.create_unbound_thunk(ty.int64)
             for _ in range(self.ndim)
         )
 
@@ -3096,7 +3084,7 @@ class DeferredArray(NumPyThunk):
         lhs = self.base
         rhs = src._broadcast(lhs.shape)
 
-        with Annotation(self.context, {"OpCode": op.name}):
+        with Annotation({"OpCode": op.name}):
             task = self.context.create_auto_task(CuNumericOpCode.UNARY_OP)
             task.add_output(lhs)
             task.add_input(rhs)
@@ -3133,7 +3121,7 @@ class DeferredArray(NumPyThunk):
         argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
 
         if argred:
-            argred_dtype = self.runtime.get_arg_dtype(rhs_array.dtype)
+            argred_dtype = self.runtime.get_argred_type(rhs_array.base.type)
             lhs_array = self.runtime.create_empty_thunk(
                 lhs_array.shape,
                 dtype=argred_dtype,
@@ -3142,8 +3130,8 @@ class DeferredArray(NumPyThunk):
 
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
-            assert axes is None or len(axes) == rhs_array.ndim - (
-                0 if keepdims else lhs_array.ndim
+            assert axes is None or lhs_array.ndim == rhs_array.ndim - (
+                0 if keepdims else len(axes)
             )
 
             if initial is not None:
@@ -3158,9 +3146,7 @@ class DeferredArray(NumPyThunk):
             while lhs.ndim > 1:
                 lhs = lhs.project(0, 0)
 
-            with Annotation(
-                self.context, {"OpCode": op.name, "ArgRed?": str(argred)}
-            ):
+            with Annotation({"OpCode": op.name, "ArgRed?": str(argred)}):
                 task = self.context.create_auto_task(
                     CuNumericOpCode.SCALAR_UNARY_RED
                 )
@@ -3201,9 +3187,7 @@ class DeferredArray(NumPyThunk):
                     "Need support for reducing multiple dimensions"
                 )
 
-            with Annotation(
-                self.context, {"OpCode": op.name, "ArgRed?": str(argred)}
-            ):
+            with Annotation({"OpCode": op.name, "ArgRed?": str(argred)}):
                 task = self.context.create_auto_task(CuNumericOpCode.UNARY_RED)
 
                 task.add_input(rhs_array.base)
@@ -3249,7 +3233,7 @@ class DeferredArray(NumPyThunk):
         rhs1 = src1._broadcast(lhs.shape)
         rhs2 = src2._broadcast(lhs.shape)
 
-        with Annotation(self.context, {"OpCode": op_code.name}):
+        with Annotation({"OpCode": op_code.name}):
             # Populate the Legate launcher
             task = self.context.create_auto_task(CuNumericOpCode.BINARY_OP)
             task.add_output(lhs)
@@ -3320,7 +3304,7 @@ class DeferredArray(NumPyThunk):
         task.execute()
 
     def argwhere(self) -> NumPyThunk:
-        result = self.runtime.create_unbound_thunk(np.dtype(np.int64), ndim=2)
+        result = self.runtime.create_unbound_thunk(ty.int64, ndim=2)
 
         task = self.context.create_auto_task(CuNumericOpCode.ARGWHERE)
 
@@ -3378,7 +3362,7 @@ class DeferredArray(NumPyThunk):
         # local sum
         # storage for local sums accessible
         temp = self.runtime.create_unbound_thunk(
-            dtype=self.dtype, ndim=self.ndim
+            dtype=self.base.type, ndim=self.ndim
         )
 
         if axis == rhs.ndim - 1:
@@ -3388,7 +3372,7 @@ class DeferredArray(NumPyThunk):
             # swap axes, always performing scan along last axis
             swapped = rhs.swapaxes(axis, rhs.ndim - 1)
             input = self.runtime.create_empty_thunk(
-                swapped.shape, dtype=rhs.dtype, inputs=(rhs, swapped)
+                swapped.shape, dtype=rhs.base.type, inputs=(rhs, swapped)
             )
             input.copy(swapped, deep=True)
             output = input
@@ -3398,7 +3382,7 @@ class DeferredArray(NumPyThunk):
         task.add_input(input.base)
         task.add_output(temp.base)
         task.add_scalar_arg(op, ty.int32)
-        task.add_scalar_arg(nan_to_identity, bool)
+        task.add_scalar_arg(nan_to_identity, ty.bool_)
 
         task.add_alignment(input.base, output.base)
 
@@ -3424,7 +3408,7 @@ class DeferredArray(NumPyThunk):
             self.copy(swapped, deep=True)
 
     def unique(self) -> NumPyThunk:
-        result = self.runtime.create_unbound_thunk(self.dtype)
+        result = self.runtime.create_unbound_thunk(self.base.type)
 
         task = self.context.create_auto_task(CuNumericOpCode.UNIQUE)
 
@@ -3464,7 +3448,7 @@ class DeferredArray(NumPyThunk):
         task.add_broadcast(self.base)
         task.add_alignment(self.base, v.base)
 
-        task.add_scalar_arg(is_left, bool)
+        task.add_scalar_arg(is_left, ty.bool_)
         task.add_scalar_arg(rhs.size, ty.int64)
         task.execute()
 
@@ -3577,8 +3561,8 @@ class DeferredArray(NumPyThunk):
         task = self.context.create_auto_task(CuNumericOpCode.WRAP)
         task.add_output(indirect.base)
         task.add_scalar_arg(src.shape, (ty.int64,))
-        task.add_scalar_arg(False, bool)  # has_input
-        task.add_scalar_arg(False, bool)  # check bounds
+        task.add_scalar_arg(False, ty.bool_)  # has_input
+        task.add_scalar_arg(False, ty.bool_)  # check bounds
         task.execute()
 
         copy = self.context.create_copy()

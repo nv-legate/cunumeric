@@ -415,7 +415,7 @@ class vectorize:
         if self._cache:
             self._created = True
 
-    @track_provenance(runtime.legate_context)
+    @track_provenance()
     def _execute(self, is_gpu: bool, num_gpus: int = 0) -> None:
         if is_gpu and not self._created:
             self._create_cuda_kernel(num_gpus)

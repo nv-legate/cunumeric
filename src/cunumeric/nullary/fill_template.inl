@@ -54,7 +54,7 @@ struct FillImpl {
     FillImplBody<KIND, VAL, DIM>{}(out, fill_value, pitches, rect, dense);
   }
 
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(FillArgs& args) const
   {
     if (args.is_argval) {
@@ -71,7 +71,15 @@ template <VariantKind KIND>
 static void fill_template(TaskContext& context)
 {
   FillArgs args{context.outputs()[0], context.inputs()[0], context.scalars()[0].value<bool>()};
-  double_dispatch(args.out.dim(), args.out.code(), FillImpl<KIND>{}, args);
+  Type::Code code{args.out.code()};
+  if (Type::Code::STRUCT == code) {
+#ifdef DEBUG_CUNUMERIC
+    assert(args.is_argval);
+#endif
+    auto& field_type = static_cast<const StructType&>(args.out.type()).field_type(1);
+    code             = field_type.code;
+  }
+  double_dispatch(args.out.dim(), code, FillImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric

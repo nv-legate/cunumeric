@@ -20,7 +20,6 @@
 #include "core/cuda/cuda_help.h"
 #include "core/cuda/stream_pool.h"
 #include "cunumeric/arg.h"
-#include "cunumeric/arg.inl"
 #include "cunumeric/device_scalar_reduction_buffer.h"
 #include <cublas_v2.h>
 #include <cusolverDn.h>

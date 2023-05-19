@@ -22,7 +22,7 @@ namespace cunumeric {
 using namespace legate;
 
 struct EvalUdfCPU {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(EvalUdfArgs& args) const
   {
     // In the case of CPU, we pack arguments in a vector and pass them to the
@@ -78,7 +78,7 @@ struct EvalUdfCPU {
     assert(dim > 0);
     double_dispatch(dim, args.inputs[0].code(), EvalUdfCPU{}, args);
   } else {
-    LegateTypeCode code = LegateTypeCode::BOOL_LT;
+    Type::Code code = Type::Code::BOOL;
     double_dispatch(dim, code, EvalUdfCPU{}, args);
   }
 }

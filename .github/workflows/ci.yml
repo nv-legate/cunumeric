@@ -52,7 +52,7 @@ jobs:
           /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/cunumeric
           rm -rf ngc-artifacts || true
-          ./build-conda.sh > ${COMMIT}-build.log 2>&1
+          ./build-separate.sh > ${COMMIT}-build.log 2>&1
       - name: Process Output
         run: |
           cd legate-ci/github-ci/cunumeric
