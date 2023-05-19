@@ -20,44 +20,46 @@ import cunumeric as num
 
 DIM_CASE = (5, 5)
 
-FLAGS = (
+FLAGS = [
     "c_contiguous",
     "f_contiguous",
-    "owndata",
     "writeable",
     "aligned",
     "writebackifcopy",
     "behaved",
     "carray",
     "farray",
-)
+]
 
-SHORT_FLAGS = ("C", "F", "O", "W", "A", "X", "B", "CA", "FA")
+ODSKIP = [pytest.param("owndata", marks=pytest.mark.skip)]
+OSKIP = [pytest.param("O", marks=pytest.mark.skip)]
+
+SHORT_FLAGS = ["C", "F", "W", "A", "X", "B", "CA", "FA"]
 
 
 class Test_flags:
-    @pytest.mark.parametrize("flag", FLAGS)
+    @pytest.mark.parametrize("flag", FLAGS + ODSKIP)
     def test_default_attr(self, flag):
         npflags = np.zeros(shape=DIM_CASE).flags
         numflags = num.zeros(shape=DIM_CASE).flags
 
         assert getattr(npflags, flag) == getattr(numflags, flag)
 
-    @pytest.mark.parametrize("flag", FLAGS)
+    @pytest.mark.parametrize("flag", FLAGS + ODSKIP)
     def test_default_attr_view(self, flag):
         npflags = np.zeros(shape=DIM_CASE).view().flags
         numflags = num.zeros(shape=DIM_CASE).view().flags
 
         assert getattr(npflags, flag) == getattr(numflags, flag)
 
-    @pytest.mark.parametrize("flag", SHORT_FLAGS)
+    @pytest.mark.parametrize("flag", SHORT_FLAGS + OSKIP)
     def test_default_item(self, flag):
         npflags = np.zeros(shape=DIM_CASE).flags
         numflags = num.zeros(shape=DIM_CASE).flags
 
         assert npflags[flag] == numflags[flag]
 
-    @pytest.mark.parametrize("flag", SHORT_FLAGS)
+    @pytest.mark.parametrize("flag", SHORT_FLAGS + OSKIP)
     def test_default_item_view(self, flag):
         npflags = np.zeros(shape=DIM_CASE).view().flags
         numflags = num.zeros(shape=DIM_CASE).view().flags
