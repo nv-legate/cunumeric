@@ -193,6 +193,16 @@ class flagsobj:
     def __init__(self, array: Any) -> None:
         object.__setattr__(self, "_array", array)
 
+    def __repr__(self) -> str:
+        return f"""\
+  C_CONTIGUOUS : {self["C"]}
+  F_CONTIGUOUS : {self["F"]}
+  OWNDATA : {self["O"]}
+  WRITEABLE : {self["W"]}
+  ALIGNED : {self["A"]}
+  WRITEBACKIFCOPY : {self["X"]}
+"""
+
     def __getattr__(self, name: str) -> Any:
         if name == "writeable":
             return self._array._writeable
