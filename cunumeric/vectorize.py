@@ -83,10 +83,10 @@ class vectorize:
             Set of strings or integers representing the positional or keyword
             arguments for which the function will not be vectorized.
             These will be passed directly to `pyfunc` unmodified.
-            WARNING: cuNumeric doesn't suport this argument at the moment
+            WARNING: cuNumeric doesn't support this argument at the moment
         cache : bool, optional
             If `True`, then cache the first function call that generates C fun-
-            ction or CUDA kernel. We recomment enabling caching in cuNumeric
+            ction or CUDA kernel. We recommend enabling caching in cuNumeric
             for better performance, when possible.
             WARNING: in the case when cache=True, cuNumeric will parse function
             signature and create C function or CUDA kernel only once. This
@@ -99,7 +99,7 @@ class vectorize:
             arrays with shapes given by the size of corresponding core
             dimensions. By default, ``pyfunc`` is assumed to take scalars
             as input and output.
-            WARNING: cuNumeric doesn't suport this argument at the moment
+            WARNING: cuNumeric doesn't support this argument at the moment
 
         Returns
         -------
@@ -145,7 +145,7 @@ class vectorize:
         if otypes is not None:
             if self._num_outputs != len(otypes):
                 raise ValueError(
-                    "number of types in otypes is not consistente"
+                    "number of types in otypes is not consistent"
                     " with the number of return values defined in pyfunc"
                 )
             if len(otypes) > 1:
