@@ -203,6 +203,15 @@ class TestTriluIndicesFromErrors:
             getattr(num, func)(a)
 
     @pytest.mark.parametrize("func", FUNCTIONS_INDICES_FROM)
+    def test_arr_0d(self, func):
+        expected_exc = ValueError
+        a = np.array(3)
+        with pytest.raises(expected_exc):
+            getattr(np, func)(a)
+        with pytest.raises(expected_exc):
+            getattr(num, func)(a)
+
+    @pytest.mark.parametrize("func", FUNCTIONS_INDICES_FROM)
     def test_arr_none(self, func):
         expected_exc = AttributeError
         with pytest.raises(expected_exc):
