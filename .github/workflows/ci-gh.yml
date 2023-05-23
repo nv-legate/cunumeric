@@ -11,7 +11,7 @@ on:
       - "branch-*"
 
 jobs:
-  if: false
+  if: ${{ false }}
   build:
     permissions:
       id-token: write # This is required for configure-aws-credentials
