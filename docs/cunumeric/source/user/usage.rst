@@ -46,7 +46,7 @@ Additionally, any Legion and Realm arguments may also be passed via the
 
 .. code-block:: sh
 
-  LEGION_DEFAULT_ARGS="-lg:local 1 -ll:cpu 4" legate script.py <script options>
+  LEGION_DEFAULT_ARGS="-lg:sched 100 -ll:show_rsrv" legate script.py <script options>
 
 Using standard Python
 ~~~~~~~~~~~~~~~~~~~~~
@@ -66,7 +66,7 @@ Additionally, any Legion and Realm arguments must also be passed via the
 
 .. code-block:: sh
 
-  LEGION_DEFAULT_ARGS="-lg:local 1 -ll:cpu 4" python script.py <script options>
+  LEGION_DEFAULT_ARGS="-lg:sched 100 -ll:show_rsrv" python script.py <script options>
 
 .. note::
 
