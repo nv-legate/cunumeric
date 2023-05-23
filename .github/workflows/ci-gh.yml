@@ -113,8 +113,8 @@ jobs:
 
   test:
     if: github.repository == 'nv-legate/cunumeric'
-    needs:
-      - build
+    # needs:
+    #   - build
     runs-on: linux-amd64-gpu-v100-latest-1
     container:
       options: -u root
