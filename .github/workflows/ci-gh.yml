@@ -153,12 +153,7 @@ jobs:
 
           pip install *.whl
 
-      - name: Import cunumeric
-        run: python -c "import cunumeric"
-
       - name: Test cunumeric
-        shell: bash -eo pipefail {0}
-        run: |
-          cd cunumeric
-          ./test.py
+        run: cd ~/; exec entrypoint test-cunumeric;
+
 

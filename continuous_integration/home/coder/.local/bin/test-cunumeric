@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+test_cunumeric() {
+    set -xeuo pipefail;
+    
+    python -c "import cunumeric"
+    
+    pwd
+    
+    ./test.py
+
+    { set +x; } 2>/dev/null;
+}
+
+(test_cunumeric "$@");
