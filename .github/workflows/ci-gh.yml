@@ -11,106 +11,106 @@ on:
       - "branch-*"
 
 jobs:
-  # build:
-  #   permissions:
-  #     id-token: write # This is required for configure-aws-credentials
-  #     contents: read  # This is required for actions/checkout
+  build:
+    permissions:
+      id-token: write # This is required for configure-aws-credentials
+      contents: read  # This is required for actions/checkout
 
-  #   # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
-  #   runs-on: ${{ github.repository == 'nv-legate/cunumeric' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
-  #   container:
-  #     options: -u root
-  #     image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
-  #     volumes:
-  #       - ${{ github.workspace }}/out:/tmp/out
-  #     env:
-  #       DEFAULT_CONDA_ENV: legate
-  #       PYTHONDONTWRITEBYTECODE: 1
-  #       SCCACHE_REGION: us-east-2
-  #       SCCACHE_BUCKET: rapids-sccache-east
-  #       SCCACHE_S3_KEY_PREFIX: legate-cunumeric-dev
-  #       GH_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-  #       GITHUB_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-  #       VAULT_HOST: "${{ secrets.PERSONAL_ACCESS_TOKEN && 'https://vault.ops.k8s.rapids.ai' || '' }}"
-  #       VAULT_S3_TTL: "28800s" # 8 hours
+    # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
+    runs-on: ${{ github.repository == 'nv-legate/cunumeric' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+    container:
+      options: -u root
+      image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
+      volumes:
+        - ${{ github.workspace }}/out:/tmp/out
+      env:
+        DEFAULT_CONDA_ENV: legate
+        PYTHONDONTWRITEBYTECODE: 1
+        SCCACHE_REGION: us-east-2
+        SCCACHE_BUCKET: rapids-sccache-east
+        SCCACHE_S3_KEY_PREFIX: legate-cunumeric-dev
+        GH_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
+        GITHUB_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
+        VAULT_HOST: "${{ secrets.PERSONAL_ACCESS_TOKEN && 'https://vault.ops.k8s.rapids.ai' || '' }}"
+        VAULT_S3_TTL: "28800s" # 8 hours
 
-  #   steps:
-  #     - name: Checkout legate.core
-  #       uses: actions/checkout@v3
-  #       with:
-  #         repository: nv-legate/legate.core
-  #         fetch-depth: 0
-  #         path: legate
+    steps:
+      - name: Checkout legate.core
+        uses: actions/checkout@v3
+        with:
+          repository: nv-legate/legate.core
+          fetch-depth: 0
+          path: legate
 
-  #     - name: Checkout cunumeric (= this repo)
-  #       uses: actions/checkout@v3
-  #       with:
-  #         fetch-depth: 0
-  #         path: cunumeric
+      - name: Checkout cunumeric (= this repo)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: cunumeric
         
-  #     - name: Setup
-  #       shell: bash -eo pipefail {0}
-  #       run: |
-  #         export LEGATE_SHA=$(cat cunumeric/cmake/versions.json | jq -r '.packages.legate_core.git_tag')
-  #         echo "Checking out LEGATE_SHA: ${LEGATE_SHA}"
-  #         git -C legate checkout $LEGATE_SHA
+      - name: Setup
+        shell: bash -eo pipefail {0}
+        run: |
+          export LEGATE_SHA=$(cat cunumeric/cmake/versions.json | jq -r '.packages.legate_core.git_tag')
+          echo "Checking out LEGATE_SHA: ${LEGATE_SHA}"
+          git -C legate checkout $LEGATE_SHA
           
-  #         cp -ar legate/continuous_integration/home/coder/.gitconfig /home/coder/;
-  #         cp -ar legate/continuous_integration/home/coder/.local /home/coder/;
-  #         mv legate /home/coder/legate
+          cp -ar legate/continuous_integration/home/coder/.gitconfig /home/coder/;
+          cp -ar legate/continuous_integration/home/coder/.local /home/coder/;
+          mv legate /home/coder/legate
 
-  #         cp -ar cunumeric/continuous_integration/home/coder/.local/bin/* /home/coder/.local/bin/;
-  #         mv cunumeric /home/coder/cunumeric;
+          cp -ar cunumeric/continuous_integration/home/coder/.local/bin/* /home/coder/.local/bin/;
+          mv cunumeric /home/coder/cunumeric;
 
-  #         chmod a+x /home/coder/.local/bin/*;
-  #         chown -R coder:coder /home/coder/;
-  #         chown -R coder:coder /tmp/out;
+          chmod a+x /home/coder/.local/bin/*;
+          chown -R coder:coder /home/coder/;
+          chown -R coder:coder /tmp/out;
 
-  #     - if: github.repository == 'nv-legate/cunumeric'
-  #       name: Get AWS credentials for sccache bucket
-  #       uses: aws-actions/configure-aws-credentials@v2
-  #       with:
-  #         aws-region: us-east-2
-  #         role-duration-seconds: 28800 # 8 hours
-  #         role-to-assume: arn:aws:iam::279114543810:role/gha-oidc-nv-legate
+      - if: github.repository == 'nv-legate/cunumeric'
+        name: Get AWS credentials for sccache bucket
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-2
+          role-duration-seconds: 28800 # 8 hours
+          role-to-assume: arn:aws:iam::279114543810:role/gha-oidc-nv-legate
 
-  #     - name: Create conda env
-  #       shell: su coder {0}
-  #       run: cd ~/; exec entrypoint make-conda-env;
+      - name: Create conda env
+        shell: su coder {0}
+        run: cd ~/; exec entrypoint make-conda-env;
 
-  #     - name: Build legate.core C++ library
-  #       shell: su coder {0}
-  #       run: cd ~/; exec entrypoint build-legate-cpp;
+      - name: Build legate.core C++ library
+        shell: su coder {0}
+        run: cd ~/; exec entrypoint build-legate-cpp;
 
-  #     - name: Build legate.core Python Wheel
-  #       shell: su coder {0}
-  #       run: cd ~/; exec entrypoint build-legate-wheel;
+      - name: Build legate.core Python Wheel
+        shell: su coder {0}
+        run: cd ~/; exec entrypoint build-legate-wheel;
 
-  #     - name: Build legate.core Conda Package
-  #       shell: su coder {0}
-  #       run: cd ~/; exec entrypoint build-legate-conda;
+      - name: Build legate.core Conda Package
+        shell: su coder {0}
+        run: cd ~/; exec entrypoint build-legate-conda;
 
-  #     - name: Build cunumeric C++ library
-  #       shell: su coder {0}
-  #       run: cd ~/; exec entrypoint build-cunumeric-cpp;
+      - name: Build cunumeric C++ library
+        shell: su coder {0}
+        run: cd ~/; exec entrypoint build-cunumeric-cpp;
 
-  #     - name: Build cunumeric Python Wheel
-  #       shell: su coder {0}
-  #       run: cd ~/; exec entrypoint build-cunumeric-wheel;
+      - name: Build cunumeric Python Wheel
+        shell: su coder {0}
+        run: cd ~/; exec entrypoint build-cunumeric-wheel;
 
-  #     - name: Build cunumeric Conda Package
-  #       shell: su coder {0}
-  #       run: cd ~/; exec entrypoint build-cunumeric-conda;
+      - name: Build cunumeric Conda Package
+        shell: su coder {0}
+        run: cd ~/; exec entrypoint build-cunumeric-conda;
 
-  #     - name: Upload build output
-  #       uses: actions/upload-artifact@v3
-  #       with:
-  #         name: "cunumeric-${{ github.sha }}"
-  #         path: ./out/*
+      - name: Upload build output
+        uses: actions/upload-artifact@v3
+        with:
+          name: "cunumeric-${{ github.sha }}"
+          path: ./out/*
   test:
     if: github.repository == 'nv-legate/cunumeric'
-    # needs:
-    #   - build
+    needs:
+      - build
     runs-on: linux-amd64-gpu-v100-latest-1
     container:
       options: -u root
@@ -121,6 +121,7 @@ jobs:
         DEFAULT_CONDA_ENV: legate
         PYTHONDONTWRITEBYTECODE: 1
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+        CUNUMERIC_SHA: ${{ github.sha }}
 
     steps:
       - name: Run nvidia-smi to make sure GPU is working
@@ -134,8 +135,7 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          # name: "cunumeric-${{ github.sha }}"
-          name: "cunumeric-9f5209fc4c45229069ba8c2169a48840b7450d2c"
+          name: "cunumeric-${{ env.CUNUMERIC_SHA }}"
           
       - name: Display structure of downloaded files
         run: ls -R
@@ -143,7 +143,7 @@ jobs:
       - name: Setup
         shell: bash -eo pipefail {0}
         run: |
-          git -C cunumeric checkout 9f5209fc4c45229069ba8c2169a48840b7450d2c
+          git -C cunumeric checkout ${{ env.CUNUMERIC_SHA }}
 
           pattern="*.yaml"
           files=( $pattern )
