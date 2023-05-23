@@ -134,8 +134,14 @@ jobs:
           fetch-depth: 0
           path: cunumeric
 
-      - uses: actions/download-artifact@v3
+      # - uses: actions/download-artifact@v3
+      #   with:
+      #     name: "cunumeric-af80486cadde9ed555077b09b09fc7973002555a"
+      - name: Download artifact
+        id: download-artifact
+        uses: dawidd6/action-download-artifact@v2
         with:
+          github_token: ${{secrets.GITHUB_TOKEN}}
           name: "cunumeric-af80486cadde9ed555077b09b09fc7973002555a"
           
       - name: Display structure of downloaded files
