@@ -121,7 +121,7 @@ jobs:
         DEFAULT_CONDA_ENV: legate
         PYTHONDONTWRITEBYTECODE: 1
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-        CUNUMERIC_SHA: ${{ github.sha }}
+        CUNUMERIC_SHA: 00e7630c01c234fdfa9d37b94bb8cf13ad77c149
 
     steps:
       - name: Run nvidia-smi to make sure GPU is working
