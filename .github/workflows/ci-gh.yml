@@ -125,7 +125,6 @@ jobs:
         DEFAULT_CONDA_ENV: legate
         PYTHONDONTWRITEBYTECODE: 1
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
-        CUNUMERIC_SHA: 00e7630c01c234fdfa9d37b94bb8cf13ad77c149
 
     steps:
       - name: Run nvidia-smi to make sure GPU is working
@@ -139,7 +138,7 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: "cunumeric-${{ env.CUNUMERIC_SHA }}"
+          name: "cunumeric-00e7630c01c234fdfa9d37b94bb8cf13ad77c149"
           
       - name: Display structure of downloaded files
         run: ls -R
@@ -147,7 +146,7 @@ jobs:
       - name: Setup
         shell: bash -eo pipefail {0}
         run: |
-          git -C cunumeric checkout ${{ env.CUNUMERIC_SHA }}
+          git -C cunumeric checkout 00e7630c01c234fdfa9d37b94bb8cf13ad77c149
 
           pattern="*.yaml"
           files=( $pattern )
