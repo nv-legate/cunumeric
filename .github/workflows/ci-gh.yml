@@ -154,6 +154,7 @@ jobs:
           pip install *.whl
 
       - name: Test cunumeric
+        shell: su coder {0}
         run: cd ~/; exec entrypoint test-cunumeric;
 
 
