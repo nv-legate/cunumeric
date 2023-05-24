@@ -663,7 +663,7 @@ def arange(
         step = 1
 
     if dtype is None:
-        dtype = np.array([stop]).dtype
+        dtype = np.find_common_type([], [type(start), type(stop), type(step)])
     else:
         dtype = np.dtype(dtype)
 
