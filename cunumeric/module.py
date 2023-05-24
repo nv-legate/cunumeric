@@ -668,7 +668,7 @@ def arange(
         dtype = np.dtype(dtype)
 
     N = math.ceil((stop - start) / step)
-    result = ndarray((N,), dtype)
+    result = ndarray((_builtin_max(0, N),), dtype)
     result._thunk.arange(start, stop, step)
     return result
 
