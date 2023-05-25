@@ -131,6 +131,41 @@ n0s = [
 ]
 
 
+@pytest.mark.parametrize(
+    "dtype, outtype",
+    [
+        (np.int16, np.float64),
+        (np.complex64, np.float64),
+        (np.float32, np.int64),
+    ],
+    ids=str,
+)
+@pytest.mark.parametrize(
+    "op",
+    [
+        pytest.param("cumsum", marks=pytest.mark.xfail),
+        "cumprod",
+        "nancumsum",
+        "nancumprod",
+    ],
+    ids=str,
+)
+def test_scan_out_dtype_mismatch(dtype, outtype, op):
+    # When CUNUMERIC_TEST=1:
+    # out_np: array([0., 0., 0., 0., 0., 0.])
+    # out_num:
+    # array([6.8983227e-310, 6.8983227e-310, 6.8983227e-310, 6.8983227e-310,
+    #        6.8983227e-310, 6.8983227e-310])
+    shape = (1, 2, 3)
+    out_shape = (6,)
+    arr = np.empty(shape)
+    out_np = np.empty(out_shape, dtype=outtype)
+    out_num = num.empty(out_shape, dtype=outtype)
+    getattr(np, op)(arr, dtype=dtype, out=out_np)
+    getattr(num, op)(arr, dtype=dtype, out=out_num)
+    assert np.allclose(out_np, out_num)
+
+
 @pytest.mark.parametrize("op", ops)
 @pytest.mark.parametrize("shape", shapes)
 @pytest.mark.parametrize("axis", axes)
