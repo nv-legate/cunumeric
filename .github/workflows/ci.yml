@@ -120,7 +120,7 @@ jobs:
       - name: Test
         run: |
           cd legate-ci/github-ci/cunumeric
-          export PYTHONFAULTHANDLER=$(( ${{ matrix.name }} == "Eager"* ? 1 : 0 ))
+          [[ "${{ matrix.name }}" == "Eager"* ]] && export PYTHONFAULTHANDLER=1
           ./test.sh ${{ matrix.options }} > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
       - name: Process output
         if: always()
