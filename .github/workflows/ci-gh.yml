@@ -105,7 +105,9 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: "cunumeric-${{ github.sha }}"
-          path: /tmp/conda-build
+          path: |
+          /tmp/conda-build
+          /tmp/out
 
 
   test:
@@ -135,14 +137,16 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: "cunumeric-${{ github.sha }}"
+          path: artifacts
           
       - name: Display structure of downloaded artifacts
         run: ls -R
+        working-directory: artifacts
 
       - name: Recreate the legate conda environment
         shell: bash -eo pipefail {0}
         run: |
-          pattern="*.yaml"
+          pattern="artifacts/out/*.yaml"
           files=( $pattern )
           yaml_file="${files[0]}"
           echo "YAML file: ${yaml_file}"
@@ -152,8 +156,8 @@ jobs:
       - name: Install legate-core and cunumeric in the legate conda environment
         shell: bash -eo pipefail {0}
         run: |
-          mamba install -n legate -c conda-build/legate_core legate-core
-          mamba install -n legate -c conda-build/cunumeric cunumeric
+          mamba install -n legate -c artifacts/legate_core legate-core
+          mamba install -n legate -c artifacts/cunumeric cunumeric
 
       - name: Test cunumeric
         shell: su coder {0}
