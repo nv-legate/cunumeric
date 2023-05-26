@@ -21,8 +21,6 @@ jobs:
     container:
       options: -u root
       image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
-      volumes:
-        - ${{ github.workspace }}/tmp:/tmp
       env:
         DEFAULT_CONDA_ENV: legate
         PYTHONDONTWRITEBYTECODE: 1
@@ -64,7 +62,6 @@ jobs:
 
           chmod a+x /home/coder/.local/bin/*;
           chown -R coder:coder /home/coder/;
-          chown -R coder:coder /tmp/out;
 
       - if: github.repository == 'nv-legate/cunumeric'
         name: Get AWS credentials for sccache bucket
@@ -106,7 +103,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: "cunumeric-${{ github.sha }}"
-          path: ./tmp/conda-build
+          path: /tmp/conda-build
 
 
   test:
@@ -117,8 +114,6 @@ jobs:
     container:
       options: -u root
       image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
-      volumes:
-        - ${{ github.workspace }}/tmp:/tmp
       env:
         DEFAULT_CONDA_ENV: legate
         PYTHONDONTWRITEBYTECODE: 1
