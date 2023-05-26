@@ -18,9 +18,9 @@ from typing import TYPE_CHECKING
 
 from legate.core import Rect, types as ty
 from legate.core.shape import Shape
+from legate.settings import settings
 
 from cunumeric.config import CuNumericOpCode
-from cunumeric.settings import settings
 
 from .exception import LinAlgError
 

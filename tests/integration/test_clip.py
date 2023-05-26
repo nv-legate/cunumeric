@@ -140,6 +140,19 @@ def test_out_ndim():
     assert np.array_equal(out_np, out_num)
 
 
+def test_out_np_array():
+    array = ((2, 3, 4), (3, 4, 5), (6, 6, 12))
+    amin = (2, 3, 1)
+    amax = 6
+    np_arr = np.array(array)
+    num_arr = num.array(array)
+    out_np = np.empty(np_arr.shape)
+    out_num = np.empty(np_arr.shape)
+    np_arr.clip(min=amin, max=amax, out=out_np)
+    num_arr.clip(min=amin, max=amax, out=out_num)
+    assert np.array_equal(out_np, out_num)
+
+
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
 def test_basic(ndim):
     shape = (5,) * ndim
@@ -169,6 +182,19 @@ def test_out(ndim):
     np.clip(np_arr, amin, amax, out=out_np)
     num.clip(num_arr, amin, amax, out=out_num)
 
+    assert np.array_equal(out_np, out_num)
+
+
+def test_out_with_array_amin():
+    array = ((2, 3, 4), (3, 4, 5), (6, 6, 12))
+    amin = (2, 3, 1)
+    amax = 6
+    np_arr = np.array(array)
+    num_arr = num.array(array)
+    out_np = np.empty(np_arr.shape)
+    out_num = num.empty(np_arr.shape)
+    np.clip(np_arr, a_min=amin, a_max=amax, out=out_np)
+    num.clip(num_arr, a_min=amin, a_max=amax, out=out_num)
     assert np.array_equal(out_np, out_num)
 
 
