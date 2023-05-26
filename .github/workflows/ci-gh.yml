@@ -157,7 +157,7 @@ jobs:
         shell: bash -eo pipefail {0}
         run: |
           mamba install -y -n legate -c $(pwd)/artifacts/conda-build/legate_core legate-core
-          mamba install -y -n legate -c $(pwd)/artifacts/conda-build/cunumeric cunumeric
+          mamba install -y -n legate -c $(pwd)/artifacts/conda-build/cunumeric -c nvidia cunumeric
 
       - name: Test cunumeric
         shell: su coder {0}
