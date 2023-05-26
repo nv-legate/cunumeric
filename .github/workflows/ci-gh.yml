@@ -156,8 +156,8 @@ jobs:
       - name: Install legate-core and cunumeric in the legate conda environment
         shell: bash -eo pipefail {0}
         run: |
-          mamba install -n legate -c artifacts/legate_core legate-core
-          mamba install -n legate -c artifacts/cunumeric cunumeric
+          mamba install -n legate -c artifacts/conda-build/legate_core legate-core
+          mamba install -n legate -c artifacts/conda-build/cunumeric cunumeric
 
       - name: Test cunumeric
         shell: su coder {0}

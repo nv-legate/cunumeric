@@ -7,7 +7,7 @@ test_cunumeric() {
     
     pwd
     
-    ./test.py
+    ~/cunumeric/test.py
 
     { set +x; } 2>/dev/null;
 }
