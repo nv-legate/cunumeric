@@ -22,7 +22,7 @@ jobs:
       options: -u root
       image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
       volumes:
-        - ${{ github.workspace }}/out:/tmp/out
+        - ${{ github.workspace }}/tmp:/tmp
       env:
         DEFAULT_CONDA_ENV: legate
         PYTHONDONTWRITEBYTECODE: 1
@@ -102,11 +102,11 @@ jobs:
         shell: su coder {0}
         run: cd ~/; exec entrypoint build-cunumeric-conda;
 
-      - name: Upload build output
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
           name: "cunumeric-${{ github.sha }}"
-          path: ./out/*
+          path: ./tmp/conda-build
 
 
   test:
@@ -118,7 +118,7 @@ jobs:
       options: -u root
       image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
       volumes:
-        - ${{ github.workspace }}/out:/tmp/out
+        - ${{ github.workspace }}/tmp:/tmp
       env:
         DEFAULT_CONDA_ENV: legate
         PYTHONDONTWRITEBYTECODE: 1
@@ -134,14 +134,15 @@ jobs:
           fetch-depth: 0
           path: cunumeric
 
-      - uses: actions/download-artifact@v3
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
         with:
           name: "cunumeric-${{ github.sha }}"
           
-      - name: Display structure of downloaded files
+      - name: Display structure of downloaded artifacts
         run: ls -R
 
-      - name: Setup
+      - name: Recreate the legate conda environment
         shell: bash -eo pipefail {0}
         run: |
           pattern="*.yaml"
@@ -151,7 +152,11 @@ jobs:
 
           mamba env create -n "${DEFAULT_CONDA_ENV:-legate}" -f "${yaml_file}";
 
-          pip install *.whl
+      - name: Install legate-core and cunumeric in the legate conda environment
+        shell: bash -eo pipefail {0}
+        run: |
+          mamba install -n legate -c conda-build/legate_core legate-core
+          mamba install -n legate -c conda-build/cunumeric cunumeric
 
       - name: Test cunumeric
         shell: su coder {0}
