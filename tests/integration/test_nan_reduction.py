@@ -10,18 +10,6 @@ NAN_FUNCS = ("nanmax", "nanmin", "nanprod", "nansum")
 
 NDIMS = range(LEGATE_MAX_DIM + 1)
 
-DISALLOWED_DTYPES = (
-    np.complex64,
-    np.complex128,
-    np.complex256,
-)
-
-ALLOWED_DTYPES = (
-    np.float16,
-    np.float32,
-    np.float64,
-)
-
 
 class TestNanReductions:
     """

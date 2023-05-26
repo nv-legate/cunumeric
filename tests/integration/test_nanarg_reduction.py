@@ -23,7 +23,7 @@ ALLOWED_DTYPES = (
 )
 
 
-class TestNanReductions:
+class TestNanArgReductions:
     """
     These are positive cases compared with numpy
     """
@@ -80,7 +80,7 @@ class TestNanReductions:
             out_np = np.empty(_shape, dtype=int)
             func_np(in_np, out=out_np, axis=axis, keepdims=True)
 
-            np.array_equal(out_np, out_num)
+            assert np.array_equal(out_np, out_num)
 
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM + 1))
