@@ -53,15 +53,17 @@ jobs:
           echo "Checking out LEGATE_SHA: ${LEGATE_SHA}"
           git -C legate checkout $LEGATE_SHA
           
-          cp -ar legate/continuous_integration/home/coder/.gitconfig /home/coder/;
-          cp -ar legate/continuous_integration/home/coder/.local /home/coder/;
+          cp -ar legate/continuous_integration/home/coder/.gitconfig /home/coder/
+          cp -ar legate/continuous_integration/home/coder/.local /home/coder/
           mv legate /home/coder/legate
 
-          cp -ar cunumeric/continuous_integration/home/coder/.local/bin/* /home/coder/.local/bin/;
-          mv cunumeric /home/coder/cunumeric;
+          cp -ar cunumeric/continuous_integration/home/coder/.local/bin/* /home/coder/.local/bin/
+          mv cunumeric /home/coder/cunumeric
 
-          chmod a+x /home/coder/.local/bin/*;
-          chown -R coder:coder /home/coder/;
+          chmod a+x /home/coder/.local/bin/*
+          chown -R coder:coder /home/coder/
+          mkdir -p /tmp/out
+          chown -R coder:coder /tmp/out
 
       - if: github.repository == 'nv-legate/cunumeric'
         name: Get AWS credentials for sccache bucket
