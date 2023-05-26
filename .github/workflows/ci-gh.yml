@@ -106,8 +106,8 @@ jobs:
         with:
           name: "cunumeric-${{ github.sha }}"
           path: |
-          /tmp/conda-build
-          /tmp/out
+            /tmp/conda-build
+            /tmp/out
 
 
   test:
