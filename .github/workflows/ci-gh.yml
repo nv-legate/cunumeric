@@ -21,8 +21,6 @@ jobs:
     container:
       options: -u root
       image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
-      volumes:
-        - ${{ github.workspace }}/out:/tmp/out
       env:
         DEFAULT_CONDA_ENV: legate
         PYTHONDONTWRITEBYTECODE: 1
@@ -55,16 +53,17 @@ jobs:
           echo "Checking out LEGATE_SHA: ${LEGATE_SHA}"
           git -C legate checkout $LEGATE_SHA
           
-          cp -ar legate/continuous_integration/home/coder/.gitconfig /home/coder/;
-          cp -ar legate/continuous_integration/home/coder/.local /home/coder/;
+          cp -ar legate/continuous_integration/home/coder/.gitconfig /home/coder/
+          cp -ar legate/continuous_integration/home/coder/.local /home/coder/
           mv legate /home/coder/legate
 
-          cp -ar cunumeric/continuous_integration/home/coder/.local/bin/* /home/coder/.local/bin/;
-          mv cunumeric /home/coder/cunumeric;
+          cp -ar cunumeric/continuous_integration/home/coder/.local/bin/* /home/coder/.local/bin/
+          mv cunumeric /home/coder/cunumeric
 
-          chmod a+x /home/coder/.local/bin/*;
-          chown -R coder:coder /home/coder/;
-          chown -R coder:coder /tmp/out;
+          chmod a+x /home/coder/.local/bin/*
+          chown -R coder:coder /home/coder/
+          mkdir -p /tmp/out
+          chown -R coder:coder /tmp/out
 
       - if: github.repository == 'nv-legate/cunumeric'
         name: Get AWS credentials for sccache bucket
@@ -102,8 +101,94 @@ jobs:
         shell: su coder {0}
         run: cd ~/; exec entrypoint build-cunumeric-conda;
 
-      - name: Upload build output
+      - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
           name: "cunumeric-${{ github.sha }}"
-          path: ./out/*
+          path: |
+            /tmp/conda-build
+            /tmp/out
+
+
+  test:
+    if: github.repository == 'nv-legate/cunumeric'
+    needs:
+      - build
+    runs-on: linux-amd64-gpu-v100-latest-1
+    container:
+      options: -u root
+      image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
+      env:
+        DEFAULT_CONDA_ENV: legate
+        PYTHONDONTWRITEBYTECODE: 1
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+
+    steps:
+      - name: Run nvidia-smi to make sure GPU is working
+        run: nvidia-smi
+
+      - name: Checkout legate.core
+        uses: actions/checkout@v3
+        with:
+          repository: nv-legate/legate.core
+          fetch-depth: 0
+          path: legate
+
+      - name: Checkout cunumeric (= this repo)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: cunumeric
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: "cunumeric-${{ github.sha }}"
+          path: artifacts
+          
+      - name: Display structure of downloaded artifacts
+        run: ls -R
+        working-directory: artifacts
+
+      - name: Setup
+        shell: bash -eo pipefail {0}
+        run: |
+          export LEGATE_SHA=$(cat cunumeric/cmake/versions.json | jq -r '.packages.legate_core.git_tag')
+          echo "Checking out LEGATE_SHA: ${LEGATE_SHA}"
+          git -C legate checkout $LEGATE_SHA
+          
+          cp -ar legate/continuous_integration/home/coder/.gitconfig /home/coder/
+          cp -ar legate/continuous_integration/home/coder/.local /home/coder/
+          mv legate /home/coder/legate
+
+          cp -ar cunumeric/continuous_integration/home/coder/.local/bin/* /home/coder/.local/bin/
+          mv cunumeric /home/coder/cunumeric
+
+          chmod a+x /home/coder/.local/bin/*
+          chown -R coder:coder /home/coder/
+          mkdir -p /tmp/out
+          chown -R coder:coder /tmp/out
+
+      - name: Recreate the legate conda environment
+        shell: bash -eo pipefail {0}
+        run: |
+          pattern="artifacts/out/*.yaml"
+          files=( $pattern )
+          yaml_file="${files[0]}"
+          echo "YAML file: ${yaml_file}"
+
+          mamba env create -n "${DEFAULT_CONDA_ENV:-legate}" -f "${yaml_file}";
+
+      - name: Install legate-core and cunumeric in the legate conda environment
+        shell: bash -eo pipefail {0}
+        run: |
+          mamba install -y -n legate -c $(pwd)/artifacts/conda-build/legate_core legate-core
+          mamba install -y -n legate -c $(pwd)/artifacts/conda-build/cunumeric -c nvidia cunumeric
+
+      - name: Test cunumeric
+        shell: su coder {0}
+        run: |
+          cd ~/cunumeric
+          ./test.py --use cuda,cpus
+
+
