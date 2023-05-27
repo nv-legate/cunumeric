@@ -187,6 +187,8 @@ jobs:
 
       - name: Test cunumeric
         shell: su coder {0}
-        run: cd ~/; exec entrypoint test-cunumeric;
+        run: |
+          cd ~/cunumeric
+          ./test.py
 
 
