@@ -31,6 +31,9 @@ MAX_OPERAND_DIM = 2
 MAX_RESULT_DIM = 2
 BASE_DIM_LEN = 10
 
+CASTING = ("no", "equiv", "safe", "same_kind", "unsafe")
+ORDER = ("C", "F", "A", "K")
+
 
 def gen_result(used_modes: int):
     for count in range(min(used_modes, MAX_RESULT_DIM) + 1):
@@ -255,10 +258,57 @@ def test_large(expr):
 
 @pytest.mark.parametrize("expr", SMALL_EXPRS)
 @pytest.mark.parametrize("dtype", [None, np.float32])
-def test_cast(expr, dtype):
+@pytest.mark.parametrize("casting", CASTING)
+def test_cast(expr, dtype, casting):
     check_np_vs_num(
-        expr, mk_typed_input, mk_typed_output, dtype=dtype, casting="unsafe"
+        expr, mk_typed_input, mk_typed_output, dtype=dtype, casting=casting
     )
+
+
+@pytest.mark.parametrize(
+    "optimize",
+    [
+        (False),
+        ("optimal"),
+        ("greedy"),
+        pytest.param(True, marks=pytest.mark.xfail),
+    ],
+)
+def test_optimize(optimize):
+    a = np.random.rand(256, 256)
+    b = np.random.rand(256, 256)
+
+    np_res = np.einsum("ik,kj->ij", a, b, optimize=optimize)
+    num_res = num.einsum("ik,kj->ij", a, b, optimize=optimize)
+    assert allclose(np_res, num_res)
+    # when optimize=True, cunumeric raises
+    # TypeError: 'bool' object is not iterable
+
+
+def test_expr_opposite():
+    a = np.random.rand(256, 256)
+    b = np.random.rand(256, 256)
+
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.einsum("ik,kj=>ij", a, b)
+        # Numpy raises ValueError: invalid subscript '=' in einstein
+        # sum subscripts string, subscripts must be letters
+    with pytest.raises(expected_exc):
+        num.einsum("ik,kj=>ij", a, b)
+        # cuNumeric raises ValueError: Subscripts can only contain one '->'
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("order", ORDER)
+def test_order(order):
+    a = np.random.rand(256, 256)
+    b = np.random.rand(256, 256)
+    np_res = np.einsum("ik,kj->ij", a, b, order=order)
+    num_res = num.einsum("ik,kj->ij", a, b, order=order)
+    # cuNmeric raises TypeError: einsum() got an unexpected keyword
+    # argument 'order'
+    assert allclose(np_res, num_res)
 
 
 if __name__ == "__main__":
