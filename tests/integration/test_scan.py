@@ -18,6 +18,7 @@ import numpy as np
 import pytest
 
 import cunumeric as num
+from utils.generators import mk_0to1_array
 
 
 def _gen_array(n0, shape, dt, axis, outtype):
@@ -134,7 +135,11 @@ n0s = [
 @pytest.mark.parametrize(
     "dtype, outtype",
     [
-        (np.int16, np.float64),
+        pytest.param(np.int16, np.float64, marks=pytest.mark.xfail),
+        # NumPy and cuNumeric produce different values
+        # out_np: array([0., 0., 0., 0., 0., 0.])
+        # out_num: array([0.16666667, 0.05555556, 0.02777778, 0.01851852,
+        #                 0.0154321, 0.0154321 ]))
         (np.complex64, np.float64),
         (np.float32, np.int64),
     ],
@@ -144,25 +149,30 @@ n0s = [
     "op",
     [
         pytest.param("cumsum", marks=pytest.mark.xfail),
+        # cunumeric.cumsum returns different value to numpy.cumsum
+        # out_np: array([0., 0., 0., 0., 0., 0.])
+        # out_num:
+        # array([6.8983227e-310, 6.8983227e-310, 6.8983227e-310,
+        #        6.8983227e-310, 6.8983227e-310, 6.8983227e-310])
         "cumprod",
-        "nancumsum",
+        pytest.param("nancumsum", marks=pytest.mark.xfail),
+        # dtype=np.float32, outtype=np.int64:
+        # out_np: array([0, 0, 1, 1, 2, 3])
+        # out_num: array([0, 0, 0, 0, 0, 1])
         "nancumprod",
     ],
     ids=str,
 )
 def test_scan_out_dtype_mismatch(dtype, outtype, op):
-    # When CUNUMERIC_TEST=1:
-    # out_np: array([0., 0., 0., 0., 0., 0.])
-    # out_num:
-    # array([6.8983227e-310, 6.8983227e-310, 6.8983227e-310, 6.8983227e-310,
-    #        6.8983227e-310, 6.8983227e-310])
     shape = (1, 2, 3)
     out_shape = (6,)
-    arr = np.empty(shape)
+    arr_np = mk_0to1_array(np, shape)
+    arr_num = mk_0to1_array(num, shape)
     out_np = np.empty(out_shape, dtype=outtype)
     out_num = num.empty(out_shape, dtype=outtype)
-    getattr(np, op)(arr, dtype=dtype, out=out_np)
-    getattr(num, op)(arr, dtype=dtype, out=out_num)
+    # NumPy ndarray doesn't have nancumprod, use module level API instead
+    getattr(np, op)(arr_np, dtype=dtype, out=out_np)
+    getattr(arr_num, op)(dtype=dtype, out=out_num)
     assert np.allclose(out_np, out_num)
 
 
