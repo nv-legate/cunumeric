@@ -124,7 +124,12 @@ def test_empty_indice():
     "indices",
     [
         np.array([], dtype=int),
-        pytest.param(np.array((0,)), marks=pytest.mark.xfail(reason="NumPy: IndexError, cuNumeric: return None")),
+        pytest.param(
+            np.array((0,)),
+            marks=pytest.mark.xfail(
+                reason="NumPy: IndexError, cuNumeric: return None"
+            ),
+        ),
     ],
     ids=["empty index", "out of bound index"],
 )

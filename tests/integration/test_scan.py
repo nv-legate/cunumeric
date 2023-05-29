@@ -16,9 +16,9 @@
 
 import numpy as np
 import pytest
+from utils.generators import mk_0to1_array
 
 import cunumeric as num
-from utils.generators import mk_0to1_array
 
 
 def _gen_array(n0, shape, dt, axis, outtype):
