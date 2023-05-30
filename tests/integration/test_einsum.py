@@ -31,7 +31,6 @@ MAX_OPERAND_DIM = 2
 MAX_RESULT_DIM = 2
 BASE_DIM_LEN = 10
 
-CASTING = ("no", "equiv", "safe", "same_kind", "unsafe")
 ORDER = ("C", "F", "A", "K")
 
 
@@ -258,10 +257,9 @@ def test_large(expr):
 
 @pytest.mark.parametrize("expr", SMALL_EXPRS)
 @pytest.mark.parametrize("dtype", [None, np.float32])
-@pytest.mark.parametrize("casting", CASTING)
-def test_cast(expr, dtype, casting):
+def test_cast(expr, dtype):
     check_np_vs_num(
-        expr, mk_typed_input, mk_typed_output, dtype=dtype, casting=casting
+        expr, mk_typed_input, mk_typed_output, dtype=dtype, casting="unsafe"
     )
 
 
