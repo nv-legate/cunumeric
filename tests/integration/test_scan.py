@@ -16,6 +16,7 @@
 
 import numpy as np
 import pytest
+from utils.generators import mk_0to1_array
 
 import cunumeric as num
 
@@ -129,6 +130,50 @@ n0s = [
     "first_half",
     "second_half",
 ]
+
+
+@pytest.mark.parametrize(
+    "dtype, outtype",
+    [
+        pytest.param(np.int16, np.float64, marks=pytest.mark.xfail),
+        # NumPy and cuNumeric produce different values
+        # out_np: array([0., 0., 0., 0., 0., 0.])
+        # out_num: array([0.16666667, 0.05555556, 0.02777778, 0.01851852,
+        #                 0.0154321, 0.0154321 ]))
+        (np.complex64, np.float64),
+        (np.float32, np.int64),
+    ],
+    ids=str,
+)
+@pytest.mark.parametrize(
+    "op",
+    [
+        pytest.param("cumsum", marks=pytest.mark.xfail),
+        # cunumeric.cumsum returns different value to numpy.cumsum
+        # out_np: array([0., 0., 0., 0., 0., 0.])
+        # out_num:
+        # array([6.8983227e-310, 6.8983227e-310, 6.8983227e-310,
+        #        6.8983227e-310, 6.8983227e-310, 6.8983227e-310])
+        "cumprod",
+        pytest.param("nancumsum", marks=pytest.mark.xfail),
+        # dtype=np.float32, outtype=np.int64:
+        # out_np: array([0, 0, 1, 1, 2, 3])
+        # out_num: array([0, 0, 0, 0, 0, 1])
+        "nancumprod",
+    ],
+    ids=str,
+)
+def test_scan_out_dtype_mismatch(dtype, outtype, op):
+    shape = (1, 2, 3)
+    out_shape = (6,)
+    arr_np = mk_0to1_array(np, shape)
+    arr_num = mk_0to1_array(num, shape)
+    out_np = np.empty(out_shape, dtype=outtype)
+    out_num = num.empty(out_shape, dtype=outtype)
+    # NumPy ndarray doesn't have nancumprod, use module level API instead
+    getattr(np, op)(arr_np, dtype=dtype, out=out_np)
+    getattr(arr_num, op)(dtype=dtype, out=out_num)
+    assert np.allclose(out_np, out_num)
 
 
 @pytest.mark.parametrize("op", ops)
