@@ -678,12 +678,12 @@ def arange(
         step = 1
 
     if dtype is None:
-        dtype = np.array([stop]).dtype
+        dtype = np.find_common_type([], [type(start), type(stop), type(step)])
     else:
         dtype = np.dtype(dtype)
 
     N = math.ceil((stop - start) / step)
-    result = ndarray((N,), dtype)
+    result = ndarray((_builtin_max(0, N),), dtype)
     result._thunk.arange(start, stop, step)
     return result
 
