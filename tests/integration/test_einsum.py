@@ -266,9 +266,9 @@ def test_cast(expr, dtype):
 @pytest.mark.parametrize(
     "optimize",
     [
-        (False),
-        ("optimal"),
-        ("greedy"),
+        False,
+        "optimal",
+        "greedy",
         pytest.param(True, marks=pytest.mark.xfail),
     ],
 )
