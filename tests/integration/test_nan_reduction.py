@@ -20,6 +20,8 @@ class TestNanReductions:
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("keepdims", [True, False])
     def test_basic(self, func_name, ndim, keepdims):
+        """This test sets an element to NaN and checks if the output
+        from cuNumeric and numpy match."""
         shape = (5,) * ndim
         size = prod(shape)
         in_np = np.random.random(shape)
@@ -43,10 +45,36 @@ class TestNanReductions:
         else:
             assert np.array_equal(out_num, out_np)
 
+    @pytest.mark.parametrize("func_name", NAN_FUNCS)
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    def test_out(self, func_name, ndim):
+        """This test checks that the out argument is updated with the
+        output"""
+
+        shape = (3,) * ndim
+        in_np = np.random.random(shape)
+        in_num = num.array(in_np)
+
+        func_num = getattr(num, func_name)
+        func_np = getattr(np, func_name)
+
+        axes = list(range(0, ndim - 1))
+        for axis in axes:
+            _shape = list(shape)
+            _shape[axis] = 1
+
+            out_num = num.empty(_shape)
+            func_num(in_num, out=out_num, axis=axis, keepdims=True)
+
+            out_np = np.empty(_shape)
+            func_np(in_np, out=out_np, axis=axis, keepdims=True)
+
+            assert np.allclose(out_num, out_np, rtol=1e-4)
+
 
 class TestCornerCases:
     """
-    These are corner cases
+    These are corner cases where we check with empty arrays
     """
 
     def test_empty_for_min_max(self):

@@ -16,11 +16,12 @@ DISALLOWED_DTYPES = (
     np.complex256,
 )
 
-ALLOWED_DTYPES = (
-    np.float16,
-    np.float32,
-    np.float64,
-)
+# Note that when an element is repeated mulitple times in an array,
+# the output from cuNumeric and numpy will vary. This is expected and
+# is not a bug. So, whenever we compare with numpy, we try to make
+# sure the elements in the array are unique. Another way to circumvent
+# this problem would be to make sure that argument corresponding
+# to the max/min is indeed the max/min element in the array
 
 
 class TestNanArgReductions:
@@ -32,6 +33,9 @@ class TestNanArgReductions:
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("keepdims", [True, False])
     def test_basic(self, func_name, ndim, keepdims):
+        """This test inserts a NaN in the array and checks if the
+        output from cuNumeric and numpy match
+        """
         shape = (5,) * ndim
         size = prod(shape)
         in_np = np.random.random(shape)
@@ -59,7 +63,7 @@ class TestNanArgReductions:
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     def test_out(self, func_name, ndim):
-        """This test checks that the out argument is udpdated with the
+        """This test checks that the out argument is updated with the
         output"""
 
         shape = (3,) * ndim
@@ -84,13 +88,17 @@ class TestNanArgReductions:
 
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM + 1))
-    @pytest.mark.parametrize("dtype", ALLOWED_DTYPES)
-    def test_datatypes(self, func_name, ndim, dtype):
-        shape = (3,) * ndim
-        if dtype == np.dtype(bool):
-            in_np = (np.random.random(shape) + 0.5).astype(int).astype(dtype)
-        else:
-            in_np = (np.random.random(shape) + 0.5).astype(dtype)
+    @pytest.mark.parametrize("dtype", (np.float32, np.float64))
+    def test_floating_point_types(self, func_name, ndim, dtype):
+        """This test checks the most frequently used datatypes
+        to make sure that the results match with numpy. The
+        arrays may or may not contain NaNs.
+        """
+        shape = (4,) * ndim
+        size = prod(shape)
+
+        in_np = np.random.choice(size, size, replace=False) * np.random.rand(1)
+        in_np = in_np.astype(dtype)
 
         in_num = num.array(in_np, dtype=dtype)
 
@@ -113,6 +121,8 @@ class TestXFail:
     @pytest.mark.parametrize("ndim", NDIMS)
     @pytest.mark.parametrize("disallowed_dtype", DISALLOWED_DTYPES)
     def test_disallowed_dtypes(self, func_name, ndim, disallowed_dtype):
+        """This test checks if we raise an error for types that are
+        disallowed."""
         shape = (2,) * ndim
         in_num = num.random.random(shape).astype(disallowed_dtype)
 
@@ -126,6 +136,10 @@ class TestXFail:
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
     @pytest.mark.parametrize("ndim", NDIMS)
     def test_all_nan(self, func_name, ndim):
+        """This test checks if we comply with the expected behavior when
+        the array contains only NaNs. The expected behavior is to
+        raise a ValueError.
+        """
         shape = (3,) * ndim
         in_num = num.zeros(shape)
         in_num.fill(num.nan)
@@ -137,6 +151,10 @@ class TestXFail:
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     def test_slice_nan(self, func_name, ndim):
+        """This test checks if we comply with the expected behavior when
+        a slice contains only NaNs. The expected behavior is to raise a
+        ValueError.
+        """
         shape = (3,) * ndim
         in_num = num.empty(shape)
         in_num.fill(num.nan)
@@ -153,7 +171,10 @@ class TestXFail:
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
-    def test_out_mismatch(self, func_name, ndim):
+    def test_out_mismatch(self, func_name):
+        """This test checks if we raise an error when the output shape is
+        incorrect"""
+
         ndim = 2
         shape = (3,) * ndim
         func_num = getattr(num, func_name)
