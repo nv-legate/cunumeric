@@ -1,4 +1,4 @@
-name: Build cunumeric on GH
+name: Build and test cunumeric on GH
 
 concurrency:
   group: ci-gpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
@@ -12,6 +12,7 @@ on:
 
 jobs:
   build:
+    name: Build Cunumeric on GH
     permissions:
       id-token: write # This is required for configure-aws-credentials
       contents: read  # This is required for actions/checkout
@@ -112,6 +113,13 @@ jobs:
 
   test:
     if: github.repository == 'nv-legate/cunumeric'
+    name: Cunumeric ${{ matrix.name }} test on GH
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: "GPU", flag: "cuda" }
+          - { name: "CPU", flag: "cpus" }
     needs:
       - build
     runs-on: linux-amd64-gpu-v100-latest-1
@@ -189,6 +197,6 @@ jobs:
         shell: su coder {0}
         run: |
           cd ~/cunumeric
-          ./test.py --use cuda,cpus
+          ./test.py --use ${{ matrix.flag }}
 
 
