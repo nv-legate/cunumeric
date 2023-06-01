@@ -5546,8 +5546,8 @@ def nanmin(
     """
     Return minimum of an array or minimum along an axis, ignoring any
     NaNs. When all-NaN slices are encountered a RuntimeWarning is
-    raised and Identity is returned for that slice. Empty slices will
-    raise a ValueError
+    raised and Identity is returned for that slice except when initial
+    is set to +/- NaN. Empty slices will raise a ValueError
 
     Parameters
     ----------
@@ -5619,8 +5619,15 @@ def nanmin(
         where=where,
     )
 
-    identity = np.finfo(a.dtype).max
-    _warn_or_raise_error_if_needed(index_array, unary_reduction_code, identity)
+    if a.dtype in [
+        np.dtype(np.float16),
+        np.dtype(np.float32),
+        np.dtype(np.float64),
+    ]:
+        identity = np.finfo(a.dtype).max
+        _warn_or_raise_error_if_needed(
+            index_array, unary_reduction_code, identity
+        )
 
     return index_array
 
@@ -5637,8 +5644,8 @@ def nanmax(
     """
     Return the maximum of an array or maximum along an axis, ignoring
     any NaNs.  When all-NaN slices are encountered a RuntimeWarning is
-    raised and identity is returned for that slice. Empty slices will
-    raise a ValueError
+    raised and identity is returned for that slice except when initial
+    is set to +/- NaN. Empty slices will raise a ValueError
 
     Parameters
     ----------
@@ -5711,8 +5718,15 @@ def nanmax(
         where=where,
     )
 
-    identity = np.finfo(a.dtype).min
-    _warn_or_raise_error_if_needed(index_array, unary_reduction_code, identity)
+    if a.dtype in [
+        np.dtype(np.float16),
+        np.dtype(np.float32),
+        np.dtype(np.float64),
+    ]:
+        identity = np.finfo(a.dtype).min
+        _warn_or_raise_error_if_needed(
+            index_array, unary_reduction_code, identity
+        )
 
     return index_array
 
