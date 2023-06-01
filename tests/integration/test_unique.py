@@ -42,6 +42,32 @@ def test_ndim(ndim):
     assert np.array_equal(b, b_np)
 
 
+@pytest.mark.xfail
+@pytest.mark.parametrize("return_index", (True, False))
+@pytest.mark.parametrize("return_inverse", (True, False))
+@pytest.mark.parametrize("return_counts", (True, False))
+@pytest.mark.parametrize("axis", (0, 1))
+def test_parameters(return_index, return_inverse, return_counts, axis):
+    arr_num = num.random.randint(0, 3, size=(3, 3))
+    arr_np = np.array(arr_num)
+    res_num = num.unique(
+        arr_num,
+        return_index=return_index,
+        return_inverse=return_inverse,
+        return_counts=return_counts,
+    )
+    # cuNumeric raises NotImplementedError: Keyword arguments
+    # for `unique` are not yet supported
+    res_np = np.unique(
+        arr_np,
+        return_index=return_index,
+        return_inverse=return_inverse,
+        return_counts=return_counts,
+        axis=axis,
+    )
+    assert np.array_equal(res_np, res_num)
+
+
 if __name__ == "__main__":
     import sys
 
