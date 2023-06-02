@@ -118,9 +118,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: "GPU", flag: "cuda", runner: "linux-amd64-gpu-v100-latest-1" }
-          - { name: "CPU", flag: "cpus", runner: "linux-amd64-gpu-v100-latest-1" }
-          # - { name: "CPU", flag: "cpus", runner: "linux-amd64-cpu4" }
+          - { name: "GPU", flags: "--use cuda", runner: "linux-amd64-gpu-v100-latest-1" }
+          - { name: "CPU", flags: "--use cpus --cpus 1 --utility 1", runner: "linux-amd64-cpu4" }
     needs:
       - build
     runs-on: ${{ matrix.runner }}
@@ -199,6 +198,6 @@ jobs:
         shell: su coder {0}
         run: |
           cd ~/cunumeric
-          ./test.py --use ${{ matrix.flag }}
+          ./test.py ${{ matrix.flags }}
 
 
