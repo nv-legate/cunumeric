@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import random
-
 import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
+from utils.generators import generate_item
 
 import cunumeric as num
 
@@ -75,20 +74,6 @@ def test_empty_no_item():
     res_np = arr_np.item()
     res_num = arr_num.item()
     assert np.array_equal(res_np, res_num)
-
-
-def generate_item(ndim):
-    index_list = []
-    max_index = pow(4, ndim) - 1
-    random_index = random.randint(0, max_index)
-    index_list.append(random_index)
-    index_list.append(max_index)
-    random_tuple = []
-    for i in range(0, ndim):
-        random_x = random.randint(0, 3)
-        random_tuple.append(random_x)
-    index_list.append(tuple(random_tuple))
-    return index_list
 
 
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))

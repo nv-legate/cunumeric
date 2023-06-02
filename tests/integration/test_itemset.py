@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import random
-
 import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
+from utils.generators import generate_item
 
 import cunumeric as num
 
@@ -93,32 +92,16 @@ def test_tuple_out_of_index():
         # dimension 0 with index 3 for a store of shape Shape((3,))
 
 
-def generate_itemset(ndim):
-    index_list = []
-    max_index = pow(4, ndim) - 1
-    random_index = random.randint(0, max_index)
-    index_list.append(random_index)
-    index_list.append(max_index)
-    random_tuple = []
-    for i in range(0, ndim):
-        random_x = random.randint(0, 3)
-        random_tuple.append(random_x)
-    index_list.append(tuple(random_tuple))
-    return index_list
-
-
 @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
 def test_ndim(ndim):
     shape = (4,) * ndim
     arr_num = num.random.randint(0, 30, size=shape)
     arr_np = np.array(arr_num)
-    for itemset in generate_itemset(ndim):
-        arr_num_copy = arr_num
-        arr_np_copy = arr_np
-        arr_num_copy.itemset(itemset, 40)
-        arr_np_copy.itemset(itemset, 40)
+    for itemset in generate_item(ndim):
+        arr_num.itemset(itemset, 40)
+        arr_np.itemset(itemset, 40)
 
-        assert np.array_equal(arr_np_copy, arr_num_copy)
+        assert np.array_equal(arr_np, arr_num)
 
 
 if __name__ == "__main__":
