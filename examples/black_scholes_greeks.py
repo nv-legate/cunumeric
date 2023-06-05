@@ -183,7 +183,7 @@ if __name__ == "__main__":
         "-i",
         "--iters",
         type=int,
-        default=3,
+        default=2,
         dest="iters",
         help="number of iterations",
     )
@@ -191,7 +191,7 @@ if __name__ == "__main__":
         "-w",
         "--warmup",
         type=int,
-        default=0,
+        default=1,
         dest="warmup",
         help="warm-up iterations",
     )
