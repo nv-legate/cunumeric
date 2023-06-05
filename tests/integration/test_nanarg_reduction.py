@@ -149,19 +149,16 @@ class TestXFail:
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
-    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
     def test_slice_nan(self, func_name, ndim):
         """This test checks if we comply with the expected behavior when
         a slice contains only NaNs. The expected behavior is to raise a
         ValueError.
         """
         shape = (3,) * ndim
-        in_num = num.empty(shape)
-        in_num.fill(num.nan)
+        in_num = num.random.rand(shape)
 
-        if ndim == 1:
-            in_num[:] = num.nan
-        elif ndim == 2:
+        if ndim == 2:
             in_num[:, 0] = num.nan
         else:
             in_num[0, ...] = num.nan

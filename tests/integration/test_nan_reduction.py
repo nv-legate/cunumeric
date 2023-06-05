@@ -88,6 +88,58 @@ class TestCornerCases:
         assert num.nansum([]) == 0.0
 
 
+class TestXFail:
+    """
+    This class is to test negative cases
+    """
+
+    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
+    @pytest.mark.parametrize("ndim", NDIMS)
+    def test_all_nan(self, func_name, ndim):
+        """This test checks if we comply with the expected behavior when
+        the array contains only NaNs. The expected behavior is to
+        raise a ValueError.
+        """
+
+        shape = (3,) * ndim
+        in_num = num.zeros(shape)
+        in_num.fill(num.nan)
+
+        func_num = getattr(num, func_name)
+        with pytest.raises(ValueError):
+            func_num(in_num)
+
+    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
+    @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
+    def test_slice_nan(self, func_name, ndim):
+        """This test checks if we comply with the expected behavior when
+        a slice contains only NaNs. The expected behavior is to issue a
+        RuntimeWarning.
+        """
+        shape = (3,) * ndim
+
+        in_np = np.random.random(shape)
+        in_num = num.array(in_np)
+
+        if ndim == 2:
+            in_num[0, :] = num.nan
+            in_np[0, :] = np.nan
+        else:
+            in_num[0, ...] = num.nan
+            in_np[0, ...] = np.nan
+
+        func_num = getattr(num, func_name)
+        func_np = getattr(np, func_name)
+        func_num(in_num)
+
+        with pytest.warns(RuntimeWarning):
+            out_np = func_np(in_np, axis=1)
+        with pytest.warns(RuntimeWarning):
+            out_num = func_num(in_num, axis=1)
+
+        assert np.array_equal(out_np, out_num)
+
+
 if __name__ == "__main__":
     import sys
 
