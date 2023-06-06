@@ -8,8 +8,6 @@ import cunumeric as num
 
 NAN_FUNCS = ("nanmax", "nanmin", "nanprod", "nansum")
 
-NDIMS = range(LEGATE_MAX_DIM + 1)
-
 
 class TestNanReductions:
     """
@@ -94,7 +92,7 @@ class TestXFail:
     """
 
     @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
-    @pytest.mark.parametrize("ndim", NDIMS)
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     def test_all_nan(self, func_name, ndim):
         """This test checks if we comply with the expected behavior when
         the array contains only NaNs. The expected behavior is to
@@ -106,38 +104,39 @@ class TestXFail:
         in_num.fill(num.nan)
 
         func_num = getattr(num, func_name)
-        with pytest.raises(ValueError):
-            func_num(in_num)
+        out = 0.0
+        with pytest.warns(RuntimeWarning):
+            out = func_num(in_num)
+            assert np.isnan(out).any()
 
     @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
     @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
-    def test_slice_nan(self, func_name, ndim):
+    @pytest.mark.parametrize("dtype", (np.float16, np.float32, np.float64))
+    @pytest.mark.parametrize("keepdims", [True, False])
+    def test_slice_nan(self, func_name, ndim, dtype, keepdims):
         """This test checks if we comply with the expected behavior when
         a slice contains only NaNs. The expected behavior is to issue a
-        RuntimeWarning.
+        RuntimeWarning and return NaN for that slice. Both are tested here.
         """
         shape = (3,) * ndim
 
         in_np = np.random.random(shape)
-        in_num = num.array(in_np)
+        in_num = num.array(in_np).astype(dtype)
 
-        if ndim == 2:
-            in_num[0, :] = num.nan
-            in_np[0, :] = np.nan
-        else:
-            in_num[0, ...] = num.nan
-            in_np[0, ...] = np.nan
+        in_num[0, ...] = num.nan
+        in_np[0, ...] = np.nan
 
         func_num = getattr(num, func_name)
         func_np = getattr(np, func_name)
         func_num(in_num)
 
         with pytest.warns(RuntimeWarning):
-            out_np = func_np(in_np, axis=1)
-        with pytest.warns(RuntimeWarning):
-            out_num = func_num(in_num, axis=1)
+            out_np = func_np(in_np, axis=1, keepdims=keepdims)
+            assert np.isnan(out_np).any()
 
-        assert np.array_equal(out_np, out_num)
+        with pytest.warns(RuntimeWarning):
+            out_num = func_num(in_num, axis=1, keepdims=keepdims)
+            assert np.isnan(out_num).any()
 
 
 if __name__ == "__main__":

@@ -5403,13 +5403,12 @@ def _handle_exceptions_and_update_out_if_needed(
                 "Array/Slice contains only NaNs", category=RuntimeWarning
             )
 
-            # replace Identities with NaNs: Find where they need to be updated
-            # and then issue a putmask to update them
-            mask = out == identity
-
-            # np.nan is floating point and not an ndarray. The conversion
-            # to ndarray will happen in putmask,so ignore the warning
-            putmask(out, mask, np.nan)  # type: ignore
+            # replace identities with NaNs since numpy returns NaNs
+            if out.ndim == 0:
+                out.fill(np.nan)
+            else:
+                mask = out == identity
+                putmask(out, mask, np.nan)  # type: ignore
         else:
             raise ValueError("Array/Slice contains only NaNs")
 
