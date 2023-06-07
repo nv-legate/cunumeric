@@ -139,14 +139,11 @@ def test_default_rng_generator():
 
 @pytest.mark.parametrize("shape", [(20, 2, 31), (10000,)], ids=str)
 def test_rand(shape):
-    arr_np = np.random.rand(*shape)
-    arr_num = np.random.rand(*shape)
-    assert arr_np.__class__.__name__ == arr_num.__class__.__name__
-    if hasattr(arr_np, "__array__"):
-        assert arr_np.shape == arr_num.shape
-        assert_distribution(
-            arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
-        )
+    arr_np, arr_num = gen_random_from_both("rand", *shape)
+    assert arr_np.shape == arr_num.shape
+    assert_distribution(
+        arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
+    )
 
 
 LOW_HIGH = [
