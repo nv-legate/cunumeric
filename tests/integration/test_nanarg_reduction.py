@@ -13,7 +13,6 @@ NDIMS = range(LEGATE_MAX_DIM + 1)
 DISALLOWED_DTYPES = (
     np.complex64,
     np.complex128,
-    np.complex256,
 )
 
 # Note that when an element is repeated mulitple times in an array,

@@ -8,6 +8,8 @@ import cunumeric as num
 
 NAN_FUNCS = ("nanmax", "nanmin", "nanprod", "nansum")
 
+NDIMS = range(LEGATE_MAX_DIM + 1)
+
 
 class TestNanReductions:
     """
@@ -69,28 +71,6 @@ class TestNanReductions:
 
             assert np.allclose(out_num, out_np, rtol=1e-4)
 
-
-class TestCornerCases:
-    """
-    These are corner cases where we check with empty arrays
-    """
-
-    def test_empty_for_min_max(self):
-        with pytest.raises(ValueError):
-            num.nanmin([])
-        with pytest.raises(ValueError):
-            num.nanmax([])
-
-    def test_empty_for_prod_sum(self):
-        assert num.nanprod([]) == 1.0
-        assert num.nansum([]) == 0.0
-
-
-class TestXFail:
-    """
-    This class is to test negative cases
-    """
-
     @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     def test_all_nan(self, func_name, ndim):
@@ -137,6 +117,139 @@ class TestXFail:
         with pytest.warns(RuntimeWarning):
             out_num = func_num(in_num, axis=1, keepdims=keepdims)
             assert np.isnan(out_num).any()
+
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("dtype", (np.float32, np.float64))
+    @pytest.mark.parametrize("keepdims", [True, False])
+    def test_nansum_complex(self, ndim, dtype, keepdims):
+        """This test checks if nansum works as expected for complex
+        datatypes. The parametrized datatype is that of real/complex
+        component, so float32 would correspond to complex64 and
+        float64 would correspond to complex128.
+        """
+        shape = (3,) * ndim
+        size = prod(shape)
+
+        r = np.random.random(shape).astype(dtype)
+        c = np.random.random(shape).astype(dtype)
+
+        # get index of nan
+        index_nan = np.random.randint(low=0, high=size)
+        index_nan = np.unravel_index(index_nan, shape)
+
+        # set an element to nan
+        r[index_nan] = np.nan
+        c[index_nan] = np.nan
+
+        in_np = r + 1j * c
+
+        in_num = num.array(in_np)
+        in_num[index_nan] = num.nan
+
+        out_num = num.nansum(in_num, keepdims=keepdims)
+        out_np = np.nansum(in_np, keepdims=keepdims)
+
+        assert np.allclose(out_num, out_np, rtol=1e-4)
+
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("keepdims", [True, False])
+    def test_nanprod_complex(self, ndim, keepdims):
+        """This test checks if nanprod works as expected for complex
+        datatypes. The parametrized datatype is that of real/complex
+        component, so float32 would correspond to complex64.
+        """
+        shape = (3,) * ndim
+        size = prod(shape)
+
+        dtype = np.float32
+
+        r = np.random.random(shape).astype(dtype)
+        c = np.random.random(shape).astype(dtype)
+
+        # get index of nan
+        index_nan = np.random.randint(low=0, high=size)
+        index_nan = np.unravel_index(index_nan, shape)
+
+        # set just the real component to nan
+        r[index_nan] = np.nan
+
+        # set an element to nan
+        in_np = r + 1j * c
+
+        in_num = num.array(in_np)
+
+        out_num = num.nanprod(in_num, keepdims=keepdims)
+        out_np = np.nanprod(in_np, keepdims=keepdims)
+
+        assert np.allclose(out_num, out_np, rtol=1e-4)
+
+
+class TestCornerCases:
+    """
+    These are corner cases where we check with empty arrays
+    """
+
+    def test_empty_for_min_max(self):
+        with pytest.raises(ValueError):
+            num.nanmin([])
+        with pytest.raises(ValueError):
+            num.nanmax([])
+
+    def test_empty_for_prod_sum(self):
+        assert num.nanprod([]) == 1.0
+        assert num.nansum([]) == 0.0
+
+
+class TestXFail:
+    """
+    This class is to test negative cases
+    """
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
+    @pytest.mark.parametrize("ndim", NDIMS)
+    @pytest.mark.parametrize("disallowed_dtype", (np.complex64, np.complex128))
+    def test_disallowed_dtypes(self, func_name, ndim, disallowed_dtype):
+        """This test checks if we raise an error for types that are
+        disallowed."""
+        shape = (3,) * ndim
+        in_num = num.random.random(shape).astype(disallowed_dtype)
+
+        func_num = getattr(num, func_name)
+
+        msg = r"operation is not supported for complex64 and complex128 types"
+        with pytest.raises(NotImplementedError, match=msg):
+            func_num(in_num)
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
+    def test_disallowed_dtype_nan_min_max(self, func_name):
+        ndim = 1
+        shape = (3,) * ndim
+        dtype = np.float32
+
+        r = num.random.random(shape).astype(dtype)
+        c = num.random.random(shape).astype(dtype)
+        r[0] = c[0] = num.nan
+        in_num = r + 1j * c
+
+        func_num = getattr(num, func_name)
+        with pytest.raises(NotImplementedError):
+            func_num(in_num)
+
+    @pytest.mark.xfail
+    def test_disallowed_dtype_nanprod(self):
+        ndim = 1
+        shape = (3,) * ndim
+        dtype = np.float64
+
+        r = num.random.random(shape).astype(dtype)
+        c = num.random.random(shape).astype(dtype)
+        r[0] = c[0] = num.nan
+        in_num = r + 1j * c
+
+        with pytest.raises(NotImplementedError):
+            num.nanprod(in_num)
 
 
 if __name__ == "__main__":

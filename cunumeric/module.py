@@ -5834,6 +5834,7 @@ def nanprod(
         np.dtype(np.float16),
         np.dtype(np.float32),
         np.dtype(np.float64),
+        np.dtype(np.complex64),
     ]
     if a.dtype in allowed_dtypes:
         unary_reduction_code = UnaryRedCode.NANPROD
@@ -5937,6 +5938,8 @@ def nansum(
         np.dtype(np.float16),
         np.dtype(np.float32),
         np.dtype(np.float64),
+        np.dtype(np.complex64),
+        np.dtype(np.complex128),
     ]
     if a.dtype in allowed_dtypes:
         unary_reduction_code = UnaryRedCode.NANSUM
