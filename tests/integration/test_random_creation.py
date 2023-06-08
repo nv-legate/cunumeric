@@ -250,18 +250,18 @@ def test_random_sample(size):
 
 
 class TestRandomErrors:
-    def assert_exc_from_both(self, func, context, *args, **kwargs):
-        with context:
+    def assert_exc_from_both(self, func, exc, *args, **kwargs):
+        with pytest.raises(exc):
             getattr(np.random, func)(*args, **kwargs)
-        with context:
+        with pytest.raises(exc):
             getattr(num.random, func)(*args, **kwargs)
 
     @pytest.mark.parametrize(
         "seed, expected_exc",
         [
-            (-100, pytest.raises(ValueError)),
-            (12.0, pytest.raises(TypeError)),
-            ("abc", pytest.raises(TypeError)),
+            (-100, ValueError),
+            (12.0, TypeError),
+            ("abc", TypeError),
         ],
         ids=lambda x: f" {str(getattr(x, 'expected_exception', x))} ",
     )
@@ -279,11 +279,11 @@ class TestRandomErrors:
     @pytest.mark.parametrize(
         "shape, expected_exc",
         [
-            (-100, pytest.raises(ValueError)),
-            (12.0, pytest.raises(TypeError)),
-            ("abc", pytest.raises(TypeError)),
-            (None, pytest.raises(TypeError)),
-            ((12345,), pytest.raises(TypeError)),
+            (-100, ValueError),
+            (12.0, TypeError),
+            ("abc", TypeError),
+            (None, TypeError),
+            ((12345,), TypeError),
         ],
         ids=lambda x: f" {str(getattr(x, 'expected_exception', x))} ",
     )
@@ -296,7 +296,7 @@ class TestRandomErrors:
             pytest.param(
                 -10000,
                 None,
-                pytest.raises(ValueError),
+                ValueError,
                 marks=pytest.mark.xfail(
                     reason="cuNumeric does not raise error when LEGATE_TEST=1"
                     # NumPy & cuNumeric LEGATE_TEST=0: ValueError: high <= 0
@@ -306,7 +306,7 @@ class TestRandomErrors:
             pytest.param(
                 -10000,
                 -20000,
-                pytest.raises(ValueError),
+                ValueError,
                 marks=pytest.mark.xfail(
                     reason="cuNumeric does not raise error when LEGATE_TEST=1"
                     # NumPy & cuNumeric LEGATE_TEST=0: ValueError: low >= high
@@ -322,9 +322,9 @@ class TestRandomErrors:
     @pytest.mark.parametrize(
         "size, expected_exc",
         [
-            (12.3, pytest.raises(TypeError)),
-            (-1, pytest.raises(ValueError)),
-            ((12, 4, 5.0), pytest.raises(TypeError)),
+            (12.3, TypeError),
+            (-1, ValueError),
+            ((12, 4, 5.0), TypeError),
         ],
         ids=str,
     )
@@ -364,13 +364,13 @@ class TestRandomErrors:
         ids=str,
     )
     def test_randint_dtype(self, dtype):
-        expected_exc = pytest.raises(TypeError)
+        expected_exc = TypeError
         self.assert_exc_from_both("randint", expected_exc, 10000, dtype=dtype)
 
     @pytest.mark.xfail(reason="cuNumeric pass or raise NotImplementedError")
     @pytest.mark.parametrize("size", (1024, 1025))
     def test_randint_bool(self, size):
-        expected_exc = pytest.raises(ValueError)
+        expected_exc = ValueError
         self.assert_exc_from_both(
             "randint", expected_exc, 10000, size=size, dtype=bool
         )
@@ -383,10 +383,10 @@ class TestRandomErrors:
     @pytest.mark.parametrize(
         "size, expected_exc",
         (
-            (-1234, pytest.raises(ValueError)),
-            (32.5, pytest.raises(TypeError)),
-            ((9.6, 7), pytest.raises(TypeError)),
-            ("0", pytest.raises(TypeError)),
+            (-1234, ValueError),
+            (32.5, TypeError),
+            ((9.6, 7), TypeError),
+            ("0", TypeError),
         ),
         ids=str,
     )
