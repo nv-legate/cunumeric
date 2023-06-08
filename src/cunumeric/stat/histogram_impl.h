@@ -16,6 +16,11 @@
 
 #pragma once
 
+// these should be included by the client
+// source file of this API
+//
+#if 0
+
 #include <thrust/device_vector.h>
 #include <thrust/iterator/constant_iterator.h>
 #include <thrust/iterator/counting_iterator.h>
@@ -28,6 +33,8 @@
 #include <thrust/version.h>
 
 #include <cub/cub.cuh>
+
+#endif
 
 namespace cunumeric {
 namespace detail {
@@ -104,11 +111,13 @@ struct transform_op_t {
 //
 template <typename elem_t, typename exe_policy_t>
 struct allocator_t {
+  allocator_t(void) {}
+
   allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
 
-  elem_t* operator()(size_t n_bytes)
+  elem_t* operator()(size_t n_bytes, elem_t init = 0)
   {
-    d_buffer_.resize(n_bytes);
+    d_buffer_ = thrust::device_vector<elem_t>(n_bytes, init);
     return get_raw_ptr(d_buffer_);
   }
 
@@ -120,11 +129,13 @@ struct allocator_t {
 //
 template <typename elem_t>
 struct allocator_t<elem_t, thrust::detail::host_t> {
+  allocator_t(void) {}
+
   allocator_t(elem_t, thrust::detail::host_t) {}  // tag-dispatch for CTAD
 
-  elem_t* operator()(size_t n_bytes) const
+  elem_t* operator()(size_t n_bytes, elem_t init = 0) const
   {
-    h_buffer_.resize(n_bytes);
+    h_buffer_ = std::vector<elem_t>(n_bytes, init);
     return get_raw_ptr(h_buffer_);
   }
 
@@ -205,34 +216,31 @@ struct segmented_sum_t<thrust::detail::host_t, weight_t, offset_t, allocator_t> 
 template <typename exe_policy_t,
           typename array_t,
           typename bin_t,
-          typename alloc_t,
-          template <typename...> typename vect_t = thrust::device_vector,
-          typename weight_t                      = array_t,
-          typename offset_t                      = size_t>
+          template <typename...> typename alloc_t = allocator_t,
+          typename weight_t                       = array_t,
+          typename offset_t                       = size_t>
 void histogram_weights(exe_policy_t exe_pol,
-                       array_t* ptr_src,       // source array, a
-                       size_t n_samples,       // size, |a|
-                       bin_t const* ptr_over,  // bins array,
-                       size_t n_intervals,     // |bins| - 1
-                       weight_t* ptr_hist,     // result; pre-allocated, sz = n_intervals
-                       alloc_t& allocator,
+                       array_t* ptr_src,  // source array, a
+                       size_t n_samples,
+                       bin_t const* ptr_over,          // bins array,
+                       size_t n_intervals,             // |bins| - 1
+                       weight_t* ptr_hist,             // result; pre-allocated, sz = n_intervals
                        weight_t* ptr_w     = nullptr,  // weights array, w
-                       bool density        = false,    // normalization
+                       bool density        = false,
                        cudaStream_t stream = nullptr)
 {
-  vect_t<offset_t> v_offsets(n_intervals + 1);
-  vect_t<weight_t> v_w;
+  alloc_t<offset_t, exe_policy_t> alloc_offsets;
+  auto* ptr_offsets = alloc_offsets(n_intervals + 1);
 
-  if (!ptr_w) {
-    v_w   = vect_t<weight_t>(n_samples, 1);
-    ptr_w = get_raw_ptr(v_w);
-  }
+  alloc_t<weight_t, exe_policy_t> alloc_w;
+
+  if (!ptr_w) { ptr_w = alloc_w(n_samples, 1); }
 
   // in-place src sort + corresponding weights shuffle:
   //
   thrust::sort_by_key(exe_pol, ptr_src, ptr_src + n_samples, ptr_w);
 
-  // synchronize_exec(exe_pol);
+  synchronize_exec(exe_pol);
 
   // l-b functor:
   //
@@ -240,16 +248,11 @@ void histogram_weights(exe_policy_t exe_pol,
 
   // vectorized lower-bounds of bins against src:
   //
-  thrust::lower_bound(exe_pol,
-                      ptr_src,
-                      ptr_src + n_samples,
-                      ptr_over,
-                      ptr_over + n_intervals + 1,
-                      get_raw_ptr(v_offsets),
-                      lbop);
+  thrust::lower_bound(
+    exe_pol, ptr_src, ptr_src + n_samples, ptr_over, ptr_over + n_intervals + 1, ptr_offsets, lbop);
 
-  segmented_sum_t segsum{
-    exe_pol, ptr_w, ptr_hist, n_intervals, get_raw_ptr(v_offsets), stream, allocator};
+  alloc_t<unsigned char, exe_policy_t> alloc_scratch;
+  segmented_sum_t segsum{exe_pol, ptr_w, ptr_hist, n_intervals, ptr_offsets, stream, alloc_scratch};
 
   segsum();
 
@@ -264,5 +267,6 @@ void histogram_weights(exe_policy_t exe_pol,
                       top);
   }
 }
+
 }  // namespace detail
 }  // namespace cunumeric
