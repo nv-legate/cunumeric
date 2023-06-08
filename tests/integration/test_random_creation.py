@@ -187,6 +187,8 @@ SIZES = [
     "dtype",
     [
         np.int64,
+        np.int32,
+        np.int16,
         pytest.param(
             np.uint16,
             marks=pytest.mark.xfail(
