@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, Union
 import numpy as np
 
 from cunumeric.array import ndarray
+from cunumeric.coverage import clone_class
 from cunumeric.random import generator
 from cunumeric.runtime import runtime
 
@@ -1705,3 +1706,32 @@ def zipf(
     Multiple GPUs, Multiple CPUs
     """
     return generator.get_static_generator().zipf(a, size, dtype)
+
+
+def _random_state_fallback(obj: Any) -> Any:
+    # meant for the `self` argument; forward any unimplemented methods to the
+    # wrapped vanilla NumPy RandomState
+    if isinstance(obj, RandomState):
+        return obj._np_random_state
+    # eagerly convert any cuNumeric ndarrays to NumPy
+    if isinstance(obj, ndarray):
+        return obj.__array__()
+    return obj
+
+
+@clone_class(np.random.RandomState, fallback=_random_state_fallback)
+class RandomState:
+    """
+    Container for a pseudo-random number generator.
+
+    Exposes a number of methods for generating random numbers drawn from a
+    variety of probability distributions.
+
+    Parameters
+    ----------
+    seed : int, optional
+        Random seed used to initialize the pseudo-random number generator.
+    """
+
+    def __init__(self, seed: Union[int, None] = None):
+        self._np_random_state = np.random.RandomState(seed or 0)
