@@ -24,13 +24,19 @@ import cunumeric as num
     "array", (None, [], 4, [2, 3], mk_seq_array(num, (3, 4, 2)))
 )
 def test_repeats_none(array):
-    with pytest.raises(TypeError):
+    expected_exc = TypeError
+    with pytest.raises(expected_exc):
+        np.repeat(array, None)
+    with pytest.raises(expected_exc):
         num.repeat(array, None)
 
 
 @pytest.mark.parametrize("repeats", (-3, [], [-3], [2, 3]))
 def test_array_none_invalid(repeats):
-    with pytest.raises(ValueError):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat(None, repeats)
+    with pytest.raises(expected_exc):
         num.repeat(None, repeats)
 
 
@@ -49,12 +55,25 @@ def test_array_empty_repeats_valid(repeats):
 
 
 @pytest.mark.parametrize("repeats", ([3, 4], [1, 2, 3]))
-def test_array_empty_repeats_invalid_negative(repeats):
+def test_array_empty_repeats_invalid_negativei(repeats):
     # numpy raises:
     # ValueError: operands could not be broadcast together with shape (0,) (2,)
     # while cunumeric is pass with the result []
     res_num = num.repeat([], repeats)
     assert np.array_equal(res_num, [])
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("repeats", ([3, 4], [1, 2, 3]))
+def test_array_empty_repeats_invalid_negative(repeats):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat([], repeats)
+        # numpy raises:  ValueError: operands could not be broadcast
+        # together with shape (0,) (2,)
+    with pytest.raises(expected_exc):
+        num.repeat([], repeats)
+        # while cunumeric is pass with the result []
 
 
 @pytest.mark.xfail
@@ -74,13 +93,28 @@ def test_array_empty_axis_valid(repeats):
 
 @pytest.mark.parametrize("repeats", (-3, 0, 3, 4.7, [], [-3], [0], [3], [4.7]))
 def test_array_empty_axis_invalid(repeats):
-    with pytest.raises(ValueError):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat([], repeats, axis=1)
+    with pytest.raises(expected_exc):
         num.repeat([], repeats, axis=1)
+
+
+@pytest.mark.parametrize("axis", (-3, 3))
+def test_array_int_axis_negative(axis):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat(3, 3, axis=axis)
+    with pytest.raises(expected_exc):
+        num.repeat(3, 3, axis=axis)
 
 
 @pytest.mark.parametrize("repeats", (-3, [-3]))
 def test_array_int_repeats_negative(repeats):
-    with pytest.raises(ValueError):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat(3, repeats)
+    with pytest.raises(expected_exc):
         num.repeat(3, repeats)
 
 
@@ -93,8 +127,10 @@ def test_array_int_repeats_valid(repeats):
 
 @pytest.mark.parametrize("repeats", ([], [1, 2]))
 def test_array_int_repeats_invalid(repeats):
-    msg = r"scalar"
-    with pytest.raises(ValueError, match=msg):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat(3, repeats)
+    with pytest.raises(expected_exc):
         num.repeat(3, repeats)
 
 
@@ -109,7 +145,10 @@ def test_array_1d_repeats_valid(repeats):
 @pytest.mark.parametrize("repeats", ([], [2, 3]))
 def test_array_1d_repeats_invalid(repeats):
     anp = np.array([1, 2, 3])
-    with pytest.raises(ValueError):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat(anp, repeats)
+    with pytest.raises(expected_exc):
         num.repeat(anp, repeats)
 
 
@@ -124,7 +163,10 @@ def test_array_2d_repeats_valid(repeats):
 @pytest.mark.parametrize("repeats", ([], [2, 3]))
 def test_array_2d_repeats_invalid(repeats):
     anp = np.array([[1, 3], [2, 4]])
-    with pytest.raises(ValueError):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat(anp, repeats)
+    with pytest.raises(expected_exc):
         num.repeat(anp, repeats)
 
 
@@ -133,9 +175,14 @@ def test_array_2d_repeats_invalid(repeats):
 @pytest.mark.parametrize("repeats", (-3, [-3]))
 def test_array_1d_repeats_fatal_error(arr, repeats):
     anp = np.array(arr)
-    # numpy raises "ValueError: negative dimensions are not allowed"
-    # while cunumeric got "Fatal Python error: Aborted"
-    num.repeat(anp, repeats)
+    anum = num.array(arr)
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat(anp, repeats)
+        # numpy raises "ValueError: negative dimensions are not allowed"
+    with pytest.raises(expected_exc):
+        num.repeat(anum, repeats)
+        # cuNumeric got "Fatal Python error: Aborted"
 
 
 @pytest.mark.parametrize("arr", (None, [], 3, [1, 2, 3], [[1, 3], [2, 4]]))
@@ -145,25 +192,29 @@ def test_array_1d_repeats_fatal_error(arr, repeats):
 )
 def test_repeats_nd(arr, repeats):
     anp = np.array(arr)
-    msg = r"should be scalar or 1D array"
-    with pytest.raises(ValueError, match=msg):
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        np.repeat(anp, repeats)
+    with pytest.raises(expected_exc):
         num.repeat(anp, repeats)
 
 
 @pytest.mark.parametrize(("arr", "repeats"), ((3, 3), ([1, 2, 3], [1, 2, 3])))
 @pytest.mark.parametrize("axis", ("hello", 0.9))
 def test_axis_string(arr, repeats, axis):
-    msg = r"integer"
-    with pytest.raises(TypeError, match=msg):
+    expected_exc = TypeError
+    with pytest.raises(expected_exc):
+        np.repeat(arr, repeats, axis=axis)
+    with pytest.raises(expected_exc):
         num.repeat(arr, repeats, axis=axis)
 
 
 def test_array_axis_out_bound():
     anp = np.array([1, 2, 3, 4, 5])
-    # np.repeat(anp, 4, 2)
-    # numpy.AxisError: axis 2 is out of bounds for array of dimension 1
-    msg = r"dimension"
-    with pytest.raises(ValueError, match=msg):
+    expected_exc = np.AxisError
+    with pytest.raises(expected_exc):
+        np.repeat(anp, 4, 2)
+    with pytest.raises(expected_exc):
         num.repeat(anp, 4, 2)
 
 
