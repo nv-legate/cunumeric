@@ -76,6 +76,7 @@ jobs:
           - {name: 2 CPUs test, options: --cpus 2 --debug, log: cpus}
           - {name: GPU test, options: --use cuda --gpus 1 --debug, log: gpu}
           - {name: 2 GPUs test, options: --use cuda --gpus 2 --debug, log: gpus}
+          - {name: 2 ranks test, options: --use cuda --gpus 1 --debug --ranks-per-node 2, log: ranks}
           - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2 --debug, log: omp}
           - {name: 2 NUMA OpenMPs test, options: --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug, log: omps}
           - {name: Eager execution test, options: --use eager --debug, log: eager}
