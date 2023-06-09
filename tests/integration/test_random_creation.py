@@ -149,65 +149,112 @@ def test_rand(shape):
 LOW_HIGH = [
     (5, 10000),
     (-10000, 5),
-    pytest.param(
-        3000.45,
-        15000,
-        marks=pytest.mark.xfail(
-            reason="NumPy pass, cuNumeric hit struct.error"
-        ),
-        # When size is greater than 1024, legate core throws error
-        # struct.error: required argument is not an integer
-    ),
-    (10000, None),
 ]
-SIZES = [
-    10000,
-    pytest.param(
-        None,
-        marks=pytest.mark.xfail(
-            reason="NumPy returns scalar, cuNumeric returns 1-dim array"
-            # with dtype:
-            # np.random.randint(5, 10000, None, np.int64).ndim  << 0
-            # num.random.randint(5, 10000, None, np.int64).ndim << 1
-            # without dtype:
-            # np.random.randint(5, 10000, None).__class__
-            #     <class 'int'>
-            # num.random.randint(5, 10000, None).__class__
-            #     <class 'cunumeric.array.ndarray'>
-        ),
-    ),
-    0,
-    (20, 50, 4),
-]
+SMALL_RNG_SIZES = [5, 1024, (1, 2)]
+LARGE_RNG_SIZES = [10000, (20, 50, 4)]
+ALL_RNG_SIZES = SMALL_RNG_SIZES + LARGE_RNG_SIZES
+INT_DTYPES = [np.int64, np.int32, np.int16]
+UINT_DTYPES = [np.uint64, np.uint16, np.uint0]
 
 
+@pytest.mark.parametrize("size", ALL_RNG_SIZES, ids=str)
 @pytest.mark.parametrize("low, high", LOW_HIGH, ids=str)
-@pytest.mark.parametrize("size", SIZES, ids=str)
-@pytest.mark.parametrize(
-    "dtype",
-    [
-        np.int64,
-        np.int32,
-        np.int16,
-        pytest.param(
-            np.uint16,
-            marks=pytest.mark.xfail(
-                reason="cuNumeric raises NotImplementedError"
-            ),
-        ),
-    ],
-    ids=str,
-)
-def test_randint(low, high, size, dtype):
+@pytest.mark.parametrize("dtype", INT_DTYPES, ids=str)
+def test_randint_basic_stats(low, high, size, dtype):
     arr_np, arr_num = gen_random_from_both(
         "randint", low=low, high=high, size=size, dtype=dtype
     )
+    assert arr_np.dtype == arr_np.dtype
     assert arr_np.shape == arr_num.shape
-    # skip distribution assert for small arrays
-    if arr_np.size > 1024:
-        assert_distribution(
-            arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
-        )
+    assert np.min(arr_num) >= low
+    assert np.max(arr_num) <= high
+
+
+@pytest.mark.parametrize(
+    "low",
+    [
+        pytest.param(
+            0,
+            marks=pytest.mark.xfail(
+                reason="cuNumeric allows 0 as higher bound."
+                # NumPy: ValueError: high <= 0
+                # cuNumeric: array([0])
+            ),
+        ),
+        1024,
+        1025,
+    ],
+    ids=str,
+)
+@pytest.mark.parametrize("size", LARGE_RNG_SIZES, ids=str)
+@pytest.mark.parametrize("dtype", INT_DTYPES, ids=str)
+def test_randint_low_range_only(low, size, dtype):
+    arr_np, arr_num = gen_random_from_both(
+        "randint", low, size=size, dtype=dtype
+    )
+    assert arr_np.dtype == arr_np.dtype
+    assert arr_np.shape == arr_num.shape
+    assert np.max(arr_num) < low
+    assert_distribution(
+        arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
+    )
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize(
+    "low, high", [(3000.45, 15000), (123, 45.6), (12.3, 45.6)], ids=str
+)
+def test_randint_float_range(low, high):
+    # When size is greater than 1024, legate core throws error
+    # struct.error: required argument is not an integer
+    arr_np, arr_num = gen_random_from_both(
+        "randint", low=low, high=high, size=1025
+    )
+    assert_distribution(
+        arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
+    )
+
+
+@pytest.mark.xfail(reason="cuNumeric raises NotImplementedError")
+@pytest.mark.parametrize("size", ALL_RNG_SIZES, ids=str)
+@pytest.mark.parametrize("low, high", LOW_HIGH, ids=str)
+@pytest.mark.parametrize("dtype", UINT_DTYPES, ids=str)
+def test_randint_uint(low, high, dtype, size):
+    # NotImplementedError: type for random.integers has to be int64 or int32
+    # or int16
+    arr_np, arr_num = gen_random_from_both(
+        "randint", low=low, high=high, size=size, dtype=dtype
+    )
+    assert arr_np.dtype == arr_np.dtype
+    assert arr_np.shape == arr_num.shape
+    assert np.min(arr_num) >= low
+    assert np.max(arr_num) <= high
+
+
+@pytest.mark.xfail(
+    reason="NumPy returns scalar, cuNumeric returns 1-dim array"
+)
+def test_randint_size_none():
+    arr_np, arr_num = gen_random_from_both("randint", 1234, size=None)
+    assert np.isscalar(arr_np) == np.isscalar(arr_num)
+
+
+def test_randint_size_zero():
+    arr_np, arr_num = gen_random_from_both("randint", 1234, size=0)
+    assert arr_np.dtype == arr_np.dtype
+    assert arr_np.shape == arr_np.shape
+
+
+@pytest.mark.parametrize("low, high", LOW_HIGH, ids=str)
+@pytest.mark.parametrize("size", LARGE_RNG_SIZES, ids=str)
+@pytest.mark.parametrize("dtype", INT_DTYPES)
+def test_randint_distribution(low, high, size, dtype):
+    arr_np, arr_num = gen_random_from_both(
+        "randint", low=low, high=high, size=size, dtype=dtype
+    )
+    assert_distribution(
+        arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
+    )
 
 
 @pytest.mark.xfail(reason="cuNumeric raises NotImplementedError")
@@ -225,28 +272,37 @@ def test_randint_bool(size):
 
 
 @pytest.mark.parametrize("low, high", LOW_HIGH, ids=str)
-@pytest.mark.parametrize("size", SIZES, ids=str)
+@pytest.mark.parametrize("size", LARGE_RNG_SIZES, ids=str)
 def test_random_integers(low, high, size):
     arr_np, arr_num = gen_random_from_both(
         "random_integers", low=low, high=high, size=size
     )
     assert arr_np.shape == arr_num.shape
-    # skip distribution assert for small arrays
-    if arr_np.size > 1024:
-        assert_distribution(
-            arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
-        )
+    assert_distribution(
+        arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
+    )
 
 
-@pytest.mark.parametrize("size", SIZES, ids=str)
-def test_random_sample(size):
+@pytest.mark.parametrize("size", ALL_RNG_SIZES, ids=str)
+def test_random_sample_basic_stats(size):
     arr_np, arr_num = gen_random_from_both("random_sample", size=size)
     assert arr_np.shape == arr_num.shape
-    # skip distribution assert for small arrays
-    if arr_np.size > 1024:
-        assert_distribution(
-            arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
-        )
+
+
+@pytest.mark.xfail(
+    reason="NumPy returns scalar, cuNumeric returns 1-dim array"
+)
+def test_random_sample_size_none():
+    arr_np, arr_num = gen_random_from_both("random_sample", size=None)
+    assert np.isscalar(arr_np) == num.isscalar(arr_num)
+
+
+@pytest.mark.parametrize("size", LARGE_RNG_SIZES, ids=str)
+def test_random_sample(size):
+    arr_np, arr_num = gen_random_from_both("random_sample", size=size)
+    assert_distribution(
+        arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
+    )
 
 
 class TestRandomErrors:
@@ -330,6 +386,15 @@ class TestRandomErrors:
     )
     def test_randint_invalid_size(self, size, expected_exc):
         self.assert_exc_from_both("randint", expected_exc, 10000, size=size)
+
+    @pytest.mark.xfail(reason="cuNumeric does not check the bound")
+    def test_randint_int16_bound(self, high, dtype):
+        # NumPy: ValueError: high is out of bounds for int16
+        # cuNumeric: array([13642], dtype=int16)
+        expected_exc = ValueError
+        self.assert_exc_from_both(
+            "randint", expected_exc, 34567, dtype=np.int16
+        )
 
     @pytest.mark.parametrize(
         "dtype",
