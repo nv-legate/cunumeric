@@ -170,22 +170,7 @@ def test_randint_basic_stats(low, high, size, dtype):
     assert np.max(arr_num) <= high
 
 
-@pytest.mark.parametrize(
-    "low",
-    [
-        pytest.param(
-            0,
-            marks=pytest.mark.xfail(
-                reason="cuNumeric allows 0 as higher bound."
-                # NumPy: ValueError: high <= 0
-                # cuNumeric: array([0])
-            ),
-        ),
-        1024,
-        1025,
-    ],
-    ids=str,
-)
+@pytest.mark.parametrize("low", [1024, 1025, 12345], ids=str)
 @pytest.mark.parametrize("size", LARGE_RNG_SIZES, ids=str)
 @pytest.mark.parametrize("dtype", INT_DTYPES, ids=str)
 def test_randint_low_range_only(low, size, dtype):
@@ -395,6 +380,11 @@ class TestRandomErrors:
         self.assert_exc_from_both(
             "randint", expected_exc, 34567, dtype=np.int16
         )
+
+    @pytest.mark.xfail(reason="cuNumeric does not check the bound")
+    def test_randint_higher_bound_zero(self):
+        expected_exc = ValueError
+        self.assert_exc_from_both("randint", expected_exc, 0)
 
     @pytest.mark.parametrize(
         "dtype",
