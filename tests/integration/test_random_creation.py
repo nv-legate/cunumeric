@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import os
 from typing import Any, Tuple
 
 import numpy as np
@@ -20,6 +21,9 @@ import pytest
 from utils.random import assert_distribution
 
 import cunumeric as num
+
+LEGATE_TEST = os.environ.get("LEGATE_TEST", None) == "1"
+EAGER_TEST = os.environ.get("CUNUMERIC_FORCE_THUNK", None) == "eager"
 
 
 def test_randn():
@@ -60,11 +64,13 @@ def gen_random_from_both(
         pytest.param(
             12345,
             marks=pytest.mark.xfail(
-                reason="cuNumeric does not respect the singleton generator"
+                not EAGER_TEST,
+                reason="cuNumeric does not respect the singleton generator",
             ),
             # https://github.com/nv-legate/cunumeric/issues/601
             # NumPy: generates the same array after initializing with the seed.
             # cuNumeric: keeps generating different arrays.
+            # seed is respected in Eager mode.
         ),
         None,
         pytest.param(
@@ -89,6 +95,10 @@ def test_singleton_seed(seed):
     )
 
 
+@pytest.mark.xfail(
+    EAGER_TEST,
+    reason="cuNumeric does not respect seed in Eager mode",
+)
 @pytest.mark.parametrize(
     "seed",
     [
@@ -111,6 +121,10 @@ def test_default_rng_seed(seed):
     assert rng_num_1.random() == rng_num_2.random()
 
 
+@pytest.mark.xfail(
+    EAGER_TEST,
+    reason="cuNumeric does not respect seed in Eager mode",
+)
 def test_default_rng_bitgenerator():
     seed = 12345
     rng_np_1 = np.random.default_rng(np.random.PCG64(seed))
@@ -121,6 +135,10 @@ def test_default_rng_bitgenerator():
     assert rng_num_1.random() == rng_num_2.random()
 
 
+@pytest.mark.xfail(
+    EAGER_TEST,
+    reason="cuNumeric does not respect seed in Eager mode",
+)
 def test_default_rng_generator():
     steps = 3
     seed = 12345
@@ -173,21 +191,31 @@ def test_randint_basic_stats(low, high, size, dtype):
 @pytest.mark.parametrize("low", [1024, 1025, 12345], ids=str)
 @pytest.mark.parametrize("size", LARGE_RNG_SIZES, ids=str)
 @pytest.mark.parametrize("dtype", INT_DTYPES, ids=str)
-def test_randint_low_range_only(low, size, dtype):
+def test_randint_low_limit_only(low, size, dtype):
     arr_np, arr_num = gen_random_from_both(
         "randint", low, size=size, dtype=dtype
     )
     assert arr_np.dtype == arr_np.dtype
     assert arr_np.shape == arr_num.shape
-    assert np.max(arr_num) < low
     assert_distribution(
         arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
     )
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail(
+    EAGER_TEST,
+    reason="cuNumeric randint high limit is inclusive in Eager mode",
+)
+def test_randint_high_limit():
+    limit = 10
+    arr_np, arr_num = gen_random_from_both("randint", 10, size=100)
+    assert np.max(arr_np) < limit
+    assert np.max(arr_num) < limit
+
+
+@pytest.mark.xfail(not EAGER_TEST, reason="cuNumeric hits struct error.")
 @pytest.mark.parametrize(
-    "low, high", [(3000.45, 15000), (123, 45.6), (12.3, 45.6)], ids=str
+    "low, high", [(3000.45, 15000), (123, 456.7), (12.3, 45.6)], ids=str
 )
 def test_randint_float_range(low, high):
     # When size is greater than 1024, legate core throws error
@@ -200,9 +228,11 @@ def test_randint_float_range(low, high):
     )
 
 
-@pytest.mark.xfail(reason="cuNumeric raises NotImplementedError")
+@pytest.mark.xfail(
+    not EAGER_TEST, reason="cuNumeric raises NotImplementedError"
+)
 @pytest.mark.parametrize("size", ALL_RNG_SIZES, ids=str)
-@pytest.mark.parametrize("low, high", LOW_HIGH, ids=str)
+@pytest.mark.parametrize("low, high", [(1000, 65535), (0, 1024)], ids=str)
 @pytest.mark.parametrize("dtype", UINT_DTYPES, ids=str)
 def test_randint_uint(low, high, dtype, size):
     # NotImplementedError: type for random.integers has to be int64 or int32
@@ -331,6 +361,10 @@ class TestRandomErrors:
     def test_rand_invalid_shape(self, shape, expected_exc):
         self.assert_exc_from_both("rand", expected_exc, shape)
 
+    @pytest.mark.xfail(
+        LEGATE_TEST and not EAGER_TEST,
+        reason="cuNumeric does not raise error when LEGATE_TEST=1",
+    )
     @pytest.mark.parametrize(
         "low, high, expected_exc",
         [
@@ -338,26 +372,23 @@ class TestRandomErrors:
                 -10000,
                 None,
                 ValueError,
-                marks=pytest.mark.xfail(
-                    reason="cuNumeric does not raise error when LEGATE_TEST=1"
-                    # NumPy & cuNumeric LEGATE_TEST=0: ValueError: high <= 0
-                    # cuNumeric LEGATE_TEST=1: array([3124366888496675138])
-                ),
             ),
             pytest.param(
                 -10000,
                 -20000,
                 ValueError,
-                marks=pytest.mark.xfail(
-                    reason="cuNumeric does not raise error when LEGATE_TEST=1"
-                    # NumPy & cuNumeric LEGATE_TEST=0: ValueError: low >= high
-                    # cuNumeric LEGATE_TEST=1: array([-5410197118219848280])
-                ),
             ),
         ],
         ids=str,
     )
     def test_randint_invalid_range(self, low, high, expected_exc):
+        # When LEGATE_TEST=1:
+        # (-10000, None):
+        # NumPy & cuNumeric LEGATE_TEST=0: ValueError: high <= 0
+        # cuNumeric LEGATE_TEST=1: array([3124366888496675138])
+        # (-10000, -20000):
+        # NumPy & cuNumeric LEGATE_TEST=0: ValueError: low >= high
+        # cuNumeric LEGATE_TEST=1: array([-5410197118219848280])
         self.assert_exc_from_both("randint", expected_exc, low, high)
 
     @pytest.mark.parametrize(
