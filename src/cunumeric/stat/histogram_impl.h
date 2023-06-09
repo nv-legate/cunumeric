@@ -95,9 +95,11 @@ struct transform_op_t {
   __host__ __device__ weight_t operator()(size_t index, weight_t h_i)
   {
     auto d_i = ptr_bins_[index + 1] - ptr_bins_[index];
-    if (d_i == 0)
+#ifdef _ZERO_WIDTH_RET_ZERO_
+    if (d_i == 0)  // for 0-width bins:
       return static_cast<weight_t>(0);
     else
+#endif
       return h_i / (Sw_ * d_i);
   }
 
@@ -256,6 +258,8 @@ void histogram_weights(exe_policy_t exe_pol,
 
   segsum();
 
+  // CAVEAT: need all-educe on Sum(weights)! => TODO!
+  //
   if (density) {
     transform_op_t top{exe_pol, ptr_over, ptr_hist, n_intervals};
 
