@@ -404,7 +404,7 @@ class TestRandomErrors:
         self.assert_exc_from_both("randint", expected_exc, 10000, size=size)
 
     @pytest.mark.xfail(reason="cuNumeric does not check the bound")
-    def test_randint_int16_bound(self, high, dtype):
+    def test_randint_int16_bound(self):
         # NumPy: ValueError: high is out of bounds for int16
         # cuNumeric: array([13642], dtype=int16)
         expected_exc = ValueError
@@ -412,6 +412,11 @@ class TestRandomErrors:
             "randint", expected_exc, 34567, dtype=np.int16
         )
 
+    @pytest.mark.xfail(
+        os.environ.get("REALM_SYNTHETIC_CORE_MAP", None) == "",
+        reason="cunumeric hit FPE",
+        run=False,
+    )
     @pytest.mark.xfail(reason="cuNumeric does not check the bound")
     def test_randint_higher_bound_zero(self):
         expected_exc = ValueError
