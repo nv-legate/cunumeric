@@ -1,0 +1,31 @@
+name: Build and test GPU cunumeric on GH
+
+concurrency:
+  group: ci-gpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+      - "branch-*"
+
+jobs:
+  build-gpu:
+    uses:
+      ./.github/workflows/gh-build.yml
+    with:
+      build-target: gpu
+      # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
+      runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+
+  test-gpu:
+    needs:
+      - build-gpu
+    uses:
+      ./.github/workflows/gh-test.yml
+    with:
+      build-target: gpu
+      runs-on: linux-amd64-gpu-v100-latest-1
+      test-scope: unit
+

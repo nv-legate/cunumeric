@@ -1,0 +1,30 @@
+name: Build and test CPU cunumeric on GH
+
+concurrency:
+  group: ci-cpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+      - "branch-*"
+
+jobs:
+  build-cpu:
+    uses:
+      ./.github/workflows/gh-build.yml
+    with:
+      build-target: cpu
+      # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
+      runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+
+  test-cpu:
+    needs:
+      - build-cpu
+    uses:
+      ./.github/workflows/gh-test.yml
+    with:
+      build-target: cpu
+      runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+
