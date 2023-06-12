@@ -16,50 +16,8 @@
 
 #pragma once
 
-// these should be included by the client
-// source file of this API
-//
-#if 0
-
-#include <thrust/device_vector.h>
-#include <thrust/iterator/constant_iterator.h>
-#include <thrust/iterator/counting_iterator.h>
-
-#include <thrust/binary_search.h>
-#include <thrust/sort.h>
-
-#include <thrust/execution_policy.h>
-#include <cuda_runtime.h>
-#include <thrust/version.h>
-
-#include <cub/cub.cuh>
-
-#endif
-
 namespace cunumeric {
 namespace detail {
-
-template <typename element_t, template <typename...> typename vect_t>
-decltype(auto) get_raw_ptr(vect_t<element_t>& v)
-{
-  if constexpr (std::is_same_v<vect_t<element_t>, thrust::device_vector<element_t>>) {
-    return v.data().get();
-  } else {
-    return &v[0];
-  }
-}
-
-template <typename exe_policy_t>
-void synchronize_exec(exe_policy_t)
-{
-  cudaDeviceSynchronize();
-}
-
-template <>
-void synchronize_exec(thrust::detail::host_t)
-{
-  // nothing;
-}
 
 template <typename array_t, typename bin_t>
 struct lower_bound_op_t {
@@ -95,8 +53,9 @@ struct transform_op_t {
   __host__ __device__ weight_t operator()(size_t index, weight_t h_i)
   {
     auto d_i = ptr_bins_[index + 1] - ptr_bins_[index];
+
 #ifdef _ZERO_WIDTH_RET_ZERO_
-    if (d_i == 0)  // for 0-width bins:
+    if (d_i == 0)
       return static_cast<weight_t>(0);
     else
 #endif
@@ -109,112 +68,6 @@ struct transform_op_t {
   weight_t Sw_{0};
 };
 
-// rudimentary device allocator:
-//
-template <typename elem_t, typename exe_policy_t>
-struct allocator_t {
-  allocator_t(void) {}
-
-  allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
-
-  elem_t* operator()(size_t n_bytes, elem_t init = 0)
-  {
-    d_buffer_ = thrust::device_vector<elem_t>(n_bytes, init);
-    return get_raw_ptr(d_buffer_);
-  }
-
- private:
-  thrust::device_vector<elem_t> d_buffer_;
-};
-
-// host specialization
-//
-template <typename elem_t>
-struct allocator_t<elem_t, thrust::detail::host_t> {
-  allocator_t(void) {}
-
-  allocator_t(elem_t, thrust::detail::host_t) {}  // tag-dispatch for CTAD
-
-  elem_t* operator()(size_t n_bytes, elem_t init = 0) const
-  {
-    h_buffer_ = std::vector<elem_t>(n_bytes, init);
-    return get_raw_ptr(h_buffer_);
-  }
-
- private:
-  std::vector<elem_t> h_buffer_;
-};
-
-// segmented-sum device version:
-//
-template <typename exe_policy_t,
-          typename weight_t,
-          typename offset_t,
-          // template <typename...>
-          typename allocator_t>
-struct segmented_sum_t {
-  segmented_sum_t(exe_policy_t exe_pol,
-                  weight_t const* p_weights,
-                  weight_t* p_hist,
-                  size_t n_intervals,
-                  offset_t* p_offsets,
-                  cudaStream_t stream,
-                  allocator_t& allocator)
-    : ptr_weights_(p_weights),
-      ptr_hist_(p_hist),
-      n_intervals_(n_intervals),
-      ptr_offsets_(p_offsets),
-      stream_(stream)
-  {
-    cub::DeviceSegmentedReduce::Sum(p_temp_storage_,
-                                    temp_storage_bytes_,
-                                    ptr_weights_,
-                                    ptr_hist_,
-                                    n_intervals_,
-                                    ptr_offsets_,
-                                    ptr_offsets_ + 1,
-                                    stream_);
-
-    p_temp_storage_ = allocator(temp_storage_bytes_);
-  }
-
-  void operator()(void)
-  {
-    cub::DeviceSegmentedReduce::Sum(p_temp_storage_,
-                                    temp_storage_bytes_,
-                                    ptr_weights_,
-                                    ptr_hist_,
-                                    n_intervals_,
-                                    ptr_offsets_,
-                                    ptr_offsets_ + 1,
-                                    stream_);
-  }
-
-  weight_t* get_histogram(void) { return ptr_weights_; }
-
- private:
-  weight_t const* ptr_weights_{nullptr};
-  weight_t* ptr_hist_{nullptr};
-  size_t n_intervals_{0};
-  offset_t* ptr_offsets_{nullptr};
-  cudaStream_t stream_{nullptr};
-  void* p_temp_storage_{nullptr};
-  size_t temp_storage_bytes_{0};
-};
-
-// segmented-sum host specialization:
-//
-template <typename weight_t,
-          typename offset_t,
-          // template <typename...>
-          typename allocator_t>
-struct segmented_sum_t<thrust::detail::host_t, weight_t, offset_t, allocator_t> {
-  // TODO:
-};
-
-// generic histogram algorithm
-// targetting GPU and CPU
-//
 template <typename exe_policy_t,
           typename array_t,
           typename bin_t,
@@ -254,11 +107,13 @@ void histogram_weights(exe_policy_t exe_pol,
     exe_pol, ptr_src, ptr_src + n_samples, ptr_over, ptr_over + n_intervals + 1, ptr_offsets, lbop);
 
   alloc_t<unsigned char, exe_policy_t> alloc_scratch;
-  segmented_sum_t segsum{exe_pol, ptr_w, ptr_hist, n_intervals, ptr_offsets, stream, alloc_scratch};
+  segmented_sum_t segsum{
+    exe_pol, ptr_w, n_samples, ptr_hist, n_intervals, ptr_offsets, stream, alloc_scratch};
 
   segsum();
 
-  // CAVEAT: need all-educe on Sum(weights)! => TODO!
+  // CAVEAT: Sum(weights) needs all reduce,
+  // w/ distributed version!
   //
   if (density) {
     transform_op_t top{exe_pol, ptr_over, ptr_hist, n_intervals};
