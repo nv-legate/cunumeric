@@ -12,7 +12,7 @@
 {% set placeholder_version = '0.0.0.dev' %}
 {% set default_cuda_version = '11.8' %}
 {% set cuda_version='.'.join(environ.get('CUDA', default_cuda_version).split('.')[:2]) %}
-{% set cuda_major=cuda_version.split('.')[0] %}
+{% set cuda_major=cuda_version.split('.')[0]|int %}
 {% set py_version=environ.get('CONDA_PY', '') %}
 {% if build_number is defined %}
     {# do nothing if defined #}
@@ -85,9 +85,8 @@ build:
     - cpu_only
 {% else %}
 # prevent nccl from pulling in cudatoolkit
-# once an nccl package compatible with cuda-* packages is introduced, this can be removed
-#  ignore_run_exports:
-#    - cudatoolkit
+  ignore_run_exports:
+    - cudatoolkit
   ignore_run_exports_from:
     - cuda-nvcc
     - legate-core
@@ -114,7 +113,6 @@ requirements:
     - legate-core ={{ core_version }} =*_cpu
 {% else %}
     - legate-core ={{ core_version }}
-    - cudatoolkit ={{ cuda_version }}
     - cuda-nvcc ={{ cuda_version }}
     - cuda-cccl ={{ cuda_version }}
     - cuda-cudart ={{ cuda_version }}
@@ -136,7 +134,7 @@ requirements:
     - legate-core ={{ core_version }} =*_cpu
 {% else %}
     - legate-core ={{ core_version }}
-    - cuda-cudart >={{ cuda_version }}
+    - cuda-cudart >={{ cuda_version }},<{{ cuda_major+1 }}
     - cutensor >=1.3 =*_*
     - libcublas
     - libcusolver =11.4.1.48-0
