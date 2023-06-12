@@ -27,5 +27,5 @@ jobs:
     with:
       build-target: gpu
       runs-on: linux-amd64-gpu-v100-latest-1
-      test-scope: unit
+
 
