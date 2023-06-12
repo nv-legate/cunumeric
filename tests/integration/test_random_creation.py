@@ -412,10 +412,9 @@ class TestRandomErrors:
             "randint", expected_exc, 34567, dtype=np.int16
         )
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
         os.environ.get("REALM_SYNTHETIC_CORE_MAP", None) == "",
         reason="cunumeric hit FPE",
-        run=False,
     )
     @pytest.mark.xfail(reason="cuNumeric does not check the bound")
     def test_randint_higher_bound_zero(self):
