@@ -1094,10 +1094,10 @@ def randint(
 
     if high is None:
         low, high = 0, low
-    if low >= high:
+        if high <= 0:
+            raise ValueError("high <= 0")
+    elif low >= high:
         raise ValueError("low >= high")
-    if high <= 0:
-        raise ValueError("high <= 0")
 
     return generator.get_static_generator().integers(low, high, size, dtype)
 
