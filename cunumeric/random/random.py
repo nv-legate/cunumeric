@@ -1093,8 +1093,7 @@ def randint(
         raise NotImplementedError("'high' must be an integer or None")
 
     if high is None:
-        low = 0
-        high = low
+        low, high = 0, low
     if low >= high:
         raise ValueError("low >= high")
     if high <= 0:
