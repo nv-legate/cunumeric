@@ -33,22 +33,15 @@ struct HistogramImpl {
   {
     using VAL = legate_type_of<CODE>;
 
-    auto rect     = args.rhs.shape<1>();
-    auto lhs_rect = args.lhs.shape<1>();
-    if (rect.empty()) return;
+    auto src     = args.src.shape<1>();
+    auto result  = args.result.shape<1>();
+    auto bins    = args.bins.shape<1>();
+    auto weights = args.weights.shape<1>();
+
+    if (src.empty()) return;
 
     // TODO...
-    auto rhs = args.rhs.read_accessor<VAL, 1>(rect);
-    if (args.weights.dim() == 1) {
-      auto weights = args.weights.read_accessor<double, 1>(rect);
-      auto lhs =
-        args.lhs.reduce_accessor<SumReduction<double>, KIND != VariantKind::GPU, 1>(lhs_rect);
-      HistogramImplBody<KIND, CODE>()(lhs, rhs, weights, rect, lhs_rect);
-    } else {
-      auto lhs =
-        args.lhs.reduce_accessor<SumReduction<int64_t>, KIND != VariantKind::GPU, 1>(lhs_rect);
-      HistogramImplBody<KIND, CODE>()(lhs, rhs, rect, lhs_rect);
-    }
+    HistogramImplBody<KIND, CODE>()(src, bins, weights, result);
   }
 
   template <Type::Code CODE, std::enable_if_t<!is_integral<CODE>::value>* = nullptr>
