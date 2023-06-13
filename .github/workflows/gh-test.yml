@@ -9,6 +9,12 @@ on:
       runs-on:
         required: true
         type: string
+      test-name:
+        required: true
+        type: string
+      test-options:
+        required: true
+        type: string
 
 jobs:
   test:
@@ -90,18 +96,11 @@ jobs:
           mamba install -y -n legate -c $(pwd)/artifacts/conda-build/legate_core legate-core
           mamba install -y -n legate -c $(pwd)/artifacts/conda-build/cunumeric -c nvidia cunumeric
 
-      - if: inputs.build-target == 'gpu'
-        name: Test cunumeric (${{inputs.build-target}})
+      - name: Test cunumeric on GH - ${{inputs.test-name}}
         shell: su coder {0}
         run: |
           cd ~/cunumeric
-          ./test.py --use cuda
+          ./test.py ${{inputs.test-options}}
 
-      - if: inputs.build-target == 'cpu'
-        name: Test cunumeric (${{inputs.build-target}})
-        shell: su coder {0}
-        run: |
-          cd ~/cunumeric
-          ./test.py --use cpus
 
 
