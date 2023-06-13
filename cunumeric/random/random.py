@@ -1046,7 +1046,7 @@ def randint(
     low: int,
     high: Union[int, None] = None,
     size: Union[NdShapeLike, None] = None,
-    dtype: Union[np.dtype[Any], type, None] = int,
+    dtype: Union[np.dtype[Any], type] = int,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     """
     randint(low, high=None, size=None, dtype=int)
@@ -1087,6 +1087,19 @@ def randint(
     --------
     Multiple GPUs, Multiple CPUs
     """
+
+    if not isinstance(low, int):
+        raise NotImplementedError("'low' must be an integer")
+    if high is not None and not isinstance(high, int):
+        raise NotImplementedError("'high' must be an integer or None")
+
+    if high is None:
+        low, high = 0, low
+        if high <= 0:
+            raise ValueError("high <= 0")
+    elif low >= high:
+        raise ValueError("low >= high")
+
     return generator.get_static_generator().integers(low, high, size, dtype)
 
 
@@ -1151,7 +1164,7 @@ def random_integers(
     low: int,
     high: Union[int, None] = None,
     size: Union[NdShapeLike, None] = None,
-    dtype: Union[np.dtype[Any], type, None] = int,
+    dtype: Union[np.dtype[Any], type] = int,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     """
     random_integers(low, high=None, size=None)
