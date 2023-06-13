@@ -26,7 +26,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
   template <typename BinType, typename WeightType>
   void operator()(const AccessorRW<VAL, 1>& src,
-                  const AccessorRW<BinType /*?*/, 1>& bins,
+                  const AccessorRO<BinType /*?*/, 1>& bins,
                   const AccessorRW<WeightType /*?*/, 1>& weights,
                   const AccessorRW<WeightType, 1>& result) const
   {
