@@ -3726,7 +3726,7 @@ class ndarray:
         Single CPU
 
         """
-        return self.__array__().tofile(fid=fid, sep=sep, format=format)
+        return self.__array__().tofile(fid, sep=sep, format=format)
 
     def tobytes(self, order: OrderType = "C") -> bytes:
         """a.tobytes(order='C')
