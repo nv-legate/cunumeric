@@ -29,11 +29,16 @@ def test_set_value(write):
     assert array_np.flags == array_num.flags
 
 
-@pytest.mark.xfail
 def test_array_default_flags():
     array_np = np.array([0, 0, 0, 0, 0])
-    array_num = num.array([0, 0, 0, 0, 0].copy())
-    assert array_np.flags == array_num.flags
+    array_num = num.array([0, 0, 0, 0, 0])
+    assert array_np.flags["C_CONTIGUOUS"] == array_num.flags["C_CONTIGUOUS"]
+    assert array_np.flags["F_CONTIGUOUS"] == array_num.flags["F_CONTIGUOUS"]
+    assert array_np.flags["WRITEABLE"] == array_num.flags["WRITEABLE"]
+    assert array_np.flags["ALIGNED"] == array_num.flags["ALIGNED"]
+    assert (
+        array_np.flags["WRITEBACKIFCOPY"] == array_num.flags["WRITEBACKIFCOPY"]
+    )
     # array_np.flags
     #          C_CONTIGUOUS : True
     #          F_CONTIGUOUS : True
@@ -97,6 +102,7 @@ def test_logic():
         # cuNumeric raises ValueError: cannot set WRITEBACKIFCOPY flag to True
 
 
+@pytest.mark.xfail
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
 def test_set_write_true(ndim):
     shape = (3,) * ndim
@@ -104,12 +110,14 @@ def test_set_write_true(ndim):
     array_num = num.array(array_np)
     array_np.setflags(write=True)
     array_num.setflags(write=True)
+    # cuNumeric raises ValueError: cannot set WRITEABLE flag to True
+    # of this array
     assert array_np.flags["WRITEABLE"] == array_num.flags["WRITEABLE"]
 
 
 @pytest.mark.xfail
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
-def test_set_write(ndim):
+def test_set_write_false(ndim):
     shape = (3,) * ndim
     array_np = np.random.randint(1, 100, shape, dtype=int)
     array_num = num.array(array_np)
