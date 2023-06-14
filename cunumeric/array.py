@@ -190,6 +190,14 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
 
 
 class flagsobj:
+    """
+    Information about the memory layout of the array.
+
+    These flags don't reflect the properties of the cuNumeric array, but
+    rather the NumPy array that will be produced if the cuNumeric array is
+    materialized on a single node.
+    """
+
     def __init__(self, array: ndarray) -> None:
         # prevent infinite __setattr__ recursion
         object.__setattr__(self, "_array", array)
@@ -510,6 +518,10 @@ class ndarray:
     def flags(self) -> Any:
         """
         Information about the memory layout of the array.
+
+        These flags don't reflect the properties of the cuNumeric array, but
+        rather the NumPy array that will be produced if the cuNumeric array is
+        materialized on a single node.
 
         Attributes
         ----------
