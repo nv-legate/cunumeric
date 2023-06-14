@@ -202,10 +202,6 @@ def test_randint_low_limit_only(low, size, dtype):
     )
 
 
-@pytest.mark.xfail(
-    EAGER_TEST,
-    reason="cuNumeric randint high limit is inclusive in Eager mode",
-)
 def test_randint_high_limit():
     limit = 10
     arr_np, arr_num = gen_random_from_both("randint", 10, size=100)
@@ -213,13 +209,15 @@ def test_randint_high_limit():
     assert np.max(arr_num) < limit
 
 
-@pytest.mark.xfail(not EAGER_TEST, reason="cuNumeric hits struct error.")
+@pytest.mark.xfail(reason="cuNumeric raises NotImplementedError")
 @pytest.mark.parametrize(
     "low, high", [(3000.45, 15000), (123, 456.7), (12.3, 45.6)], ids=str
 )
 def test_randint_float_range(low, high):
-    # When size is greater than 1024, legate core throws error
-    # struct.error: required argument is not an integer
+    # NumPy returns integer scalar
+    # cuNumeric raises one of the following
+    # NotImplementedError: 'low' must be an integer
+    # NotImplementedError: 'high' must be an integer or None
     arr_np, arr_num = gen_random_from_both(
         "randint", low=low, high=high, size=1025
     )
@@ -272,7 +270,9 @@ def test_randint_distribution(low, high, size, dtype):
     )
 
 
-@pytest.mark.xfail(reason="cuNumeric raises NotImplementedError")
+@pytest.mark.xfail(
+    not EAGER_TEST, reason="cuNumeric raises NotImplementedError"
+)
 @pytest.mark.parametrize("size", (1024, 1025))
 def test_randint_bool(size):
     """Test randint with boolean output dtype."""
@@ -361,10 +361,6 @@ class TestRandomErrors:
     def test_rand_invalid_shape(self, shape, expected_exc):
         self.assert_exc_from_both("rand", expected_exc, shape)
 
-    @pytest.mark.xfail(
-        LEGATE_TEST and not EAGER_TEST,
-        reason="cuNumeric does not raise error when LEGATE_TEST=1",
-    )
     @pytest.mark.parametrize(
         "low, high, expected_exc",
         [
@@ -382,13 +378,6 @@ class TestRandomErrors:
         ids=str,
     )
     def test_randint_invalid_range(self, low, high, expected_exc):
-        # When LEGATE_TEST=1:
-        # (-10000, None):
-        # NumPy & cuNumeric LEGATE_TEST=0: ValueError: high <= 0
-        # cuNumeric LEGATE_TEST=1: array([3124366888496675138])
-        # (-10000, -20000):
-        # NumPy & cuNumeric LEGATE_TEST=0: ValueError: low >= high
-        # cuNumeric LEGATE_TEST=1: array([-5410197118219848280])
         self.assert_exc_from_both("randint", expected_exc, low, high)
 
     @pytest.mark.parametrize(
@@ -412,11 +401,6 @@ class TestRandomErrors:
             "randint", expected_exc, 34567, dtype=np.int16
         )
 
-    @pytest.mark.skipif(
-        os.environ.get("REALM_SYNTHETIC_CORE_MAP", None) == "",
-        reason="cunumeric hit FPE",
-    )
-    @pytest.mark.xfail(reason="cuNumeric does not check the bound")
     def test_randint_higher_bound_zero(self):
         expected_exc = ValueError
         self.assert_exc_from_both("randint", expected_exc, 0)
