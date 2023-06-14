@@ -819,10 +819,12 @@ class ndarray:
         dtype of the array.
 
         """
-        if dtype is None:
-            return self._thunk.__numpy_array__()
-        else:
-            return self._thunk.__numpy_array__().__array__(dtype)
+        numpy_array = self._thunk.__numpy_array__()
+        if numpy_array.flags.writeable and not self._writeable:
+            numpy_array.flags.writeable = False
+        if dtype is not None:
+            numpy_array = numpy_array.astype(dtype)
+        return numpy_array
 
     # def __array_prepare__(self, *args, **kwargs):
     #    return self.__array__().__array_prepare__(*args, **kwargs)
