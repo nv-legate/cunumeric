@@ -4647,9 +4647,10 @@ def einsum(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    check_writeable(out)
-
     operands_list = [convert_to_cunumeric_ndarray(op) for op in operands]
+
+    if out is not None:
+        out = convert_to_cunumeric_ndarray(out, share=True)
 
     if not optimize:
         optimize = NullOptimizer()
