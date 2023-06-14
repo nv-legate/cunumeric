@@ -34,7 +34,6 @@ from typing import (
 import numpy as np
 from legate.core import Array, Field
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
-    flagsobj as _flagsobj,
     normalize_axis_index,
 )
 from numpy.core.numeric import (  # type: ignore [attr-defined]
@@ -153,8 +152,10 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
         return obj
     # Ask the runtime to make a numpy thunk for this object
     thunk = runtime.get_numpy_thunk(obj, share=share)
-    flags = obj.flags if isinstance(obj, np.ndarray) and share else None
-    return ndarray(shape=None, thunk=thunk, flags=flags)
+    writeable = (
+        obj.flags.writeable if isinstance(obj, np.ndarray) and share else True
+    )
+    return ndarray(shape=None, thunk=thunk, writeable=writeable)
 
 
 def convert_to_predicate_ndarray(obj: Any) -> bool:
@@ -271,7 +272,7 @@ class ndarray:
         order: Union[OrderType, None] = None,
         thunk: Union[NumPyThunk, None] = None,
         inputs: Union[Any, None] = None,
-        flags: Union[flagsobj, _flagsobj, None] = None,
+        writeable: bool = True,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -314,10 +315,7 @@ class ndarray:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
 
-        self._flags = flags
-
-        # we have to manage this separately
-        self._writeable = True
+        self._writeable = writeable
 
     @staticmethod
     def _sanitize_shape(
@@ -3848,7 +3846,9 @@ class ndarray:
                 "axes must be the same size as ndim for transpose"
             )
         return ndarray(
-            shape=None, thunk=self._thunk.transpose(axes), flags=self.flags
+            shape=None,
+            thunk=self._thunk.transpose(axes),
+            writeable=self._writeable,
         )
 
     def flip(self, axis: Any = None) -> ndarray:
@@ -3933,7 +3933,7 @@ class ndarray:
             shape=self.shape,
             dtype=self.dtype,
             thunk=self._thunk,
-            flags=self.flags,
+            writeable=self._writeable,
         )
 
     def unique(self) -> ndarray:

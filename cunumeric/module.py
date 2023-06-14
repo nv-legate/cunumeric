@@ -1486,7 +1486,7 @@ def _broadcast_to(
     result = ndarray(
         shape=out_shape,
         thunk=arr._thunk.broadcast_to(out_shape),
-        flags=arr.flags,
+        writeable=arr.flags["WRITEABLE"],
     )
     result.setflags(write=False)
     return result
@@ -2470,7 +2470,7 @@ def array_split(
         else:
             out_shape[axis] = 0
             new_subarray = ndarray(
-                tuple(out_shape), dtype=array.dtype, flags=array.flags
+                tuple(out_shape), dtype=array.dtype, writeable=array._writeable
             )
         result.append(new_subarray)
         start_idx = pts
