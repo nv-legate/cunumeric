@@ -190,7 +190,8 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
 
 
 class flagsobj:
-    def __init__(self, array: Any) -> None:
+    def __init__(self, array: ndarray) -> None:
+        # prevent infinite __setattr__ recursion
         object.__setattr__(self, "_array", array)
 
     def __repr__(self) -> str:
