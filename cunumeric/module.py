@@ -4162,8 +4162,6 @@ def matmul(
     if a.ndim == 0 or b.ndim == 0:
         raise ValueError("Scalars not allowed in matmul")
 
-    check_writeable(out)
-
     (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
 
     return _contract(
@@ -4323,8 +4321,6 @@ def tensordot(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    check_writeable(out)
-
     (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
 
     return _contract(
