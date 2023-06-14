@@ -3826,7 +3826,6 @@ def put(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    check_writeable(a)
     a.put(indices=indices, values=values, mode=mode)
 
 

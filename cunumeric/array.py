@@ -2574,6 +2574,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        check_writeable(self)
 
         if values.size == 0 or indices.size == 0 or self.size == 0:
             return
