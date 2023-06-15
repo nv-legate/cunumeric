@@ -144,7 +144,7 @@ def gen_shapes(dim):
 SHAPE_LISTS = {dim: gen_shapes(dim) for dim in DIM_CASES}
 
 
-# test to run broadcast  w/ different size of arryas
+# test to run broadcast  w/ different size of arrays
 @pytest.mark.parametrize("dim", DIM_CASES, ids=str)
 def test_broadcast_attrs(dim):
     _broadcast_attrs(SHAPE_LISTS[dim])

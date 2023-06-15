@@ -575,7 +575,7 @@ def asarray(a: Any, dtype: Optional[np.dtype[Any]] = None) -> ndarray:
     """
     if not isinstance(a, ndarray):
         thunk = runtime.get_numpy_thunk(a, share=True, dtype=dtype)
-        array = ndarray(shape=None, thunk=thunk)
+        array = ndarray(shape=None, thunk=thunk, writeable=a.flags.writeable)
     else:
         array = a
     if dtype is not None and array.dtype != dtype:
@@ -1486,9 +1486,8 @@ def _broadcast_to(
     result = ndarray(
         shape=out_shape,
         thunk=arr._thunk.broadcast_to(out_shape),
-        writeable=arr.flags["WRITEABLE"],
+        writeable=False,
     )
-    result.setflags(write=False)
     return result
 
 
