@@ -292,7 +292,7 @@ class DeferredArray(NumPyThunk):
                 dtype=self.dtype,
             )
         else:
-            alloc = self.base.get_inline_allocation(self.context)
+            alloc = self.base.get_inline_allocation()
 
             def construct_ndarray(
                 shape: NdShape, address: Any, strides: tuple[int, ...]
@@ -1430,8 +1430,7 @@ class DeferredArray(NumPyThunk):
             self.base.set_storage(value.storage)
         elif self.dtype.kind != "V" and self.base.kind is not Future:
             # Emit a Legion fill
-            fill = self.context.create_fill(self.base, value)
-            fill.execute()
+            self.context.issue_fill(self.base, value)
         else:
             # Perform the fill using a task
             # If this is a fill for an arg value, make sure to pass
