@@ -24,11 +24,11 @@ template <Type::Code CODE>
 struct HistogramImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  template <typename BinType, typename WeightType>
+  template <typename BinType, typename WeightType = VAL>
   void operator()(const AccessorRW<VAL, 1>& src,
                   const AccessorRO<BinType /*?*/, 1>& bins,
-                  const AccessorRW<WeightType /*?*/, 1>& weights,
-                  const AccessorRW<WeightType, 1>& result) const
+                  const AccessorRO<WeightType /*?*/, 1>& weights,
+                  const AccessorRD<SumReduction<WeightType>, false, 1>& result) const
   {
     // TODO:
     //

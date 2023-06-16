@@ -6379,3 +6379,63 @@ def bincount(
             )
             out._thunk.bincount(x._thunk, weights=weights._thunk)
     return out
+
+
+@add_boilerplate("x", "bins", "weights")
+def histogram(
+        x: ndarray, bins: ndarray, weights: Optional[ndarray] = None,
+        density: bool = False) -> ndarray:
+    """
+    ***** TODO: *****
+
+    Returns
+    -------
+    out : ndarray[int]
+        TODO:
+
+    Raises
+    ------
+    ValueError
+        TODO:
+    TypeError
+        TODO:
+
+    See Also
+    --------
+    numpy.histogram
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if x.ndim != 1:
+        raise ValueError("the input array must be 1-dimensional")
+    if weights is not None:
+        if weights.shape != x.shape:
+            raise ValueError("weights array must be same shape for histogram")
+        if weights.dtype.kind == "c":
+            raise ValueError("weights must be convertible to float64")
+        # Make sure the weights are float64
+        weights = weights.astype(np.float64)
+
+        num_intervals = bins.shape[0] - 1
+        if weights is None:
+            hist = ndarray(
+                (num_intervals,),
+                dtype=np.dtype(np.int64),
+                inputs=(x, bins, weights),
+            )
+            hist._thunk.histogram(x._thunk, bins._thunk)
+        else:
+            hist = ndarray(
+                (num_intervals,),
+                dtype=weights.dtype,
+                inputs=(x, bins, weights),
+            )
+            hist._thunk.histogram(x._thunk, bins._thunk,
+                                  weights=weights._thunk)
+
+    # TODO: handle (density = True):
+    #
+
+    return hist

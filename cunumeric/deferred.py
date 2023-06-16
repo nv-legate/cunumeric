@@ -3571,3 +3571,37 @@ class DeferredArray(NumPyThunk):
         copy.add_source_indirect(indirect.base)
         copy.add_output(self.base)
         copy.execute()
+
+
+    # Perform a histogram operation on the array
+    @auto_convert("src", "bins", "weights")
+    def histogram(src: Any, bins: Any,
+                  weights: Optional[NumPyThunk] = None) -> None:
+        weight_array = weights
+        src_array = src
+        bins_array = bins
+        dst_array = self
+        assert src_array.size > 1
+        assert dst_array.ndim == 1
+        if weight_array is not None:
+            assert src_array.shape == weight_array.shape or (
+                src_array.size == 1 and weight_array.size == 1
+            )
+        else:
+            weight_array = self.runtime.create_wrapped_scalar(
+                np.array(1, dtype=np.int64),
+                np.dtype(np.int64),
+                shape=(),
+            )
+
+        dst_array.fill(np.array(0, dst_array.dtype))
+
+        task = self.context.create_auto_task(CuNumericOpCode.HISTOGRAM)
+        task.add_reduction(dst_array.base, ReductionOp.ADD)
+        task.add_input(src_array.base)
+        task.add_input(bins_array.base)
+        task.add_input(weight_array.base)  # type: ignore
+
+        task.add_broadcast(dst_array.base)
+
+        task.execute()
