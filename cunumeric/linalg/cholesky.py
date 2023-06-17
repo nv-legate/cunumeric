@@ -18,9 +18,9 @@ from typing import TYPE_CHECKING
 
 from legate.core import Rect, types as ty
 from legate.core.shape import Shape
+from legate.settings import settings
 
 from cunumeric.config import CuNumericOpCode
-from cunumeric.settings import settings
 
 from .exception import LinAlgError
 
@@ -40,7 +40,7 @@ def transpose_copy_single(
     task.add_input(input)
     # Output has the same shape as input, but is mapped
     # to a column major instance
-    task.add_scalar_arg(False, ty.int32)
+    task.add_scalar_arg(False, ty.bool_)
 
     task.add_broadcast(output)
     task.add_broadcast(input)
@@ -62,7 +62,7 @@ def transpose_copy(
     task.add_input(p_input)
     # Output has the same shape as input, but is mapped
     # to a column major instance
-    task.add_scalar_arg(False, ty.int32)
+    task.add_scalar_arg(False, ty.bool_)
 
     task.execute()
 

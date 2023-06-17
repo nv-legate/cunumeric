@@ -26,18 +26,6 @@ __all__ = ("settings",)
 
 
 class CunumericRuntimeSettings(Settings):
-    test: PrioritizedSetting[bool] = PrioritizedSetting(
-        "test",
-        "CUNUMERIC_TEST",
-        default=False,
-        convert=convert_bool,
-        help="""
-        Enable test mode. In test mode, all cuNumeric ndarrays are managed by
-        the distributed runtime and the NumPy fallback for small arrays is
-        turned off.
-        """,
-    )
-
     preload_cudalibs: PrioritizedSetting[bool] = PrioritizedSetting(
         "preload_cudalibs",
         "CUNUMERIC_PRELOAD_CUDALIBS",
@@ -146,6 +134,24 @@ class CunumericRuntimeSettings(Settings):
         than this, rather than attempt to accelerate using OpenMP, as the
         offloading overhead would likely not be offset by the accelerated
         operation code.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    force_thunk: EnvOnlySetting[str | None] = EnvOnlySetting(
+        "force_thunk",
+        "CUNUMERIC_FORCE_THUNK",
+        default=None,
+        test_default="deferred",
+        help="""
+        Force cuNumeric to always use a specific strategy for backing
+        ndarrays: "deferred", i.e. managed by the Legate runtime, which
+        enables distribution and accelerated operations, but has some
+        up-front offloading overhead, or "eager", i.e. falling back to
+        using a vanilla NumPy array. By default cuNumeric will decide
+        this on a per-array basis, based on the size of the array and
+        the accelerator in use.
 
         This is a read-only environment variable setting used by the runtime.
         """,
