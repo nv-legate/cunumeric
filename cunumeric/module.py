@@ -6383,7 +6383,9 @@ def bincount(
 
 @add_boilerplate("x", "bins", "weights")
 def histogram(
-        x: ndarray, bins: ndarray, weights: Optional[ndarray] = None,
+        x: ndarray, bins: Union[ndarray, int] = 10,
+        range: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
+        weights: Optional[ndarray] = None,
         density: bool = False) -> ndarray:
     """
     ***** TODO: *****
@@ -6403,11 +6405,16 @@ def histogram(
     See Also
     --------
     numpy.histogram
+    numpy.histogram(a, bins=10, range=None, density=None, weights=None)
 
     Availability
     --------
     Multiple GPUs, Multiple CPUs
     """
+    # TODO: bins / range management:
+    # handle case bins == None, or scalar;
+    #
+
     if x.ndim != 1:
         raise ValueError("the input array must be 1-dimensional")
     if weights is not None:
@@ -6417,23 +6424,23 @@ def histogram(
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
+    else:
+        # case weights == None cannot be handled by _thunk.histogram,
+        # bc/ of hist ndarry inputs(), below;
+        # needs to be handled here:
+        #
+        weights = ndarray(src.shape, buffer=ones(src.shape[0],
+                                                 dtype=src.dtype),
+                          src.dtype)
 
-        num_intervals = bins.shape[0] - 1
-        if weights is None:
-            hist = ndarray(
-                (num_intervals,),
-                dtype=np.dtype(np.int64),
-                inputs=(x, bins, weights),
-            )
-            hist._thunk.histogram(x._thunk, bins._thunk)
-        else:
-            hist = ndarray(
-                (num_intervals,),
-                dtype=weights.dtype,
-                inputs=(x, bins, weights),
-            )
-            hist._thunk.histogram(x._thunk, bins._thunk,
-                                  weights=weights._thunk)
+    num_intervals = bins.shape[0] - 1
+    hist = ndarray(
+        (num_intervals,),
+        dtype=weights.dtype,
+        inputs=(x, bins, weights),
+    )
+    hist._thunk.histogram(x._thunk, bins._thunk,
+                          weights=weights._thunk)
 
     # TODO: handle (density = True):
     #
