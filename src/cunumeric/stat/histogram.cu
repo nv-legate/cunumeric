@@ -17,7 +17,10 @@
 #include "cunumeric/stat/histogram.cuh"
 #include "cunumeric/stat/histogram_impl.h"
 
+#include "cunumeric/stat/histogram.h"
 #include "cunumeric/stat/histogram_template.inl"
+
+#include "cunumeric/cuda_help.h"
 
 namespace cunumeric {
 template <Type::Code CODE>
@@ -30,6 +33,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
                   const AccessorRO<WeightType /*?*/, 1>& weights,
                   const AccessorRD<SumReduction<WeightType>, false, 1>& result) const
   {
+    auto stream = get_cached_stream();
     // TODO:
     //
     CHECK_CUDA_STREAM(stream);

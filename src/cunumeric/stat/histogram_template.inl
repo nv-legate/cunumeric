@@ -28,13 +28,13 @@ struct HistogramImplBody;
 
 template <VariantKind KIND>
 struct HistogramImpl {
-  template <Type::Code CODE, std::enable_if_t<is_integral<CODE>::value>* = nullptr>
+  template <Type::Code CODE>
   void operator()(HistogramArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
 
-    auto src     = args.src.shape<1>();
     auto result  = args.result.shape<1>();
+    auto src     = args.src.shape<1>();
     auto bins    = args.bins.shape<1>();
     auto weights = args.weights.shape<1>();
 
@@ -42,12 +42,6 @@ struct HistogramImpl {
 
     // TODO...
     HistogramImplBody<KIND, CODE>()(src, bins, weights, result);
-  }
-
-  template <Type::Code CODE, std::enable_if_t<!is_integral<CODE>::value>* = nullptr>
-  void operator()(HistogramArgs& args) const
-  {
-    assert(false);
   }
 };
 
