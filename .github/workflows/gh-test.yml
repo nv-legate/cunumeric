@@ -95,6 +95,7 @@ jobs:
         run: |
           mamba install -y -n legate -c $(pwd)/artifacts/conda-build/legate_core legate-core
           mamba install -y -n legate -c $(pwd)/artifacts/conda-build/cunumeric -c nvidia cunumeric
+          mamba install -y -n legate -c nvidia libcurand
 
       - name: Test cunumeric on GH - ${{inputs.test-name}}
         shell: su coder {0}
