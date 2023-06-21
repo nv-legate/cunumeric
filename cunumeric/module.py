@@ -6384,7 +6384,7 @@ def bincount(
 @add_boilerplate("x", "bins", "weights")
 def histogram(
         x: ndarray, bins: Union[ndarray, int] = 10,
-        range: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
+        range_: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
         weights: Optional[ndarray] = None,
         density: bool = False) -> ndarray:
     """
