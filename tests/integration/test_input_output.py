@@ -13,8 +13,8 @@
 # limitations under the License.
 #
 
-import os
 import pickle
+from tempfile import NamedTemporaryFile
 
 import numpy as np
 import pytest
@@ -38,18 +38,14 @@ def test_ndarray_tobytes(order):
     shape = (3, 2, 4)
     arr_np = mk_seq_array(np, shape)
     arr_num = mk_seq_array(num, shape)
-    bytes_np = arr_np.tobytes(order)
-    bytes_num = arr_num.tobytes(order)
-    assert bytes_np == bytes_num
+    assert arr_np.tobytes(order) == arr_num.tobytes(order)
 
 
 @pytest.mark.parametrize("shape", [(3, 2, 4), []], ids=str)
 def test_ndarray_tolist(shape):
     arr_np = mk_0to1_array(np, shape)
     arr_num = mk_0to1_array(num, shape)
-    list_np = arr_np.tolist()
-    list_num = arr_num.tolist()
-    assert list_np == list_num
+    assert arr_np.tolist() == arr_num.tolist()
 
 
 @pytest.mark.parametrize("order", ["C", "F", "A"], ids=str)
@@ -57,39 +53,29 @@ def test_ndarray_tostring(order):
     shape = (3, 2, 4)
     arr_np = mk_seq_array(np, shape)
     arr_num = mk_seq_array(num, shape)
-    str_np = arr_np.tostring(order)
-    str_num = arr_num.tostring(order)
-    assert str_np == str_num
+    assert arr_np.tostring(order) == arr_num.tostring(order)
 
 
 def test_ndarray_dump():
     shape = (3, 2, 4)
     arr_np = mk_seq_array(np, shape)
     arr_num = mk_seq_array(num, shape)
-    dump_np = "npdump"
-    arr_np.dump(file=dump_np)
-    dump_num = "numdump"
-    arr_num.dump(file=dump_num)
-    with open(dump_np, "rb") as f:
-        assert np.allclose(pickle.load(f), arr_np)
-    with open(dump_num, "rb") as f:
-        assert np.allclose(pickle.load(f), arr_num)
-    os.remove(dump_np)
-    os.remove(dump_num)
+    with NamedTemporaryFile() as fobj:
+        arr_np.dump(file=fobj.name)
+        assert np.allclose(pickle.load(fobj.file), arr_np)
+    with NamedTemporaryFile() as fobj:
+        arr_num.dump(file=fobj.name)
+        assert np.allclose(pickle.load(fobj.file), arr_np)
 
 
 def test_ndarray_tofile():
     shape = (3, 2, 4)
     arr_np = mk_seq_array(np, shape)
     arr_num = mk_seq_array(num, shape)
-    dump_np = "npdump"
-    arr_np.tofile(dump_np)
-    dump_num = "numdump"
-    arr_num.tofile(dump_num)
-    with open(dump_np, "rb") as file_np, open(dump_num, "rb") as file_num:
-        assert file_np.readlines() == file_num.readlines()
-    os.remove(dump_np)
-    os.remove(dump_num)
+    with NamedTemporaryFile() as fobj_np, NamedTemporaryFile() as fobj_num:
+        arr_np.tofile(fobj_np.name)
+        arr_num.tofile(fobj_num.name)
+        assert fobj_np.file.readlines() == fobj_num.file.readlines()
 
 
 if __name__ == "__main__":
