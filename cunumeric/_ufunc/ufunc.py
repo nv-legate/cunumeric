@@ -579,9 +579,7 @@ class binary_ufunc(ufunc):
         for arr, orig_arg in zip(arrs, orig_args):
             if arr.ndim == 0:
                 types.append(
-                    np.dtype(np.min_scalar_type(orig_arg)).type(0)
-                    if use_min_scalar
-                    else arr.dtype.type(0)
+                    np.dtype(orig_arg) if use_min_scalar else arr.dtype
                 )
             else:
                 types.append(arr.dtype)
