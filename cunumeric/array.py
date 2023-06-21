@@ -2776,7 +2776,7 @@ class ndarray:
             else:
                 norm_shape = out.shape
             norm_shape_along_axes = [norm_shape[ax] for ax in fft_axes]
-            factor = np.product(norm_shape_along_axes)
+            factor = np.prod(norm_shape_along_axes)
             if fft_norm == FFTNormalization.ORTHOGONAL:
                 factor = np.sqrt(factor)
             return out / factor
