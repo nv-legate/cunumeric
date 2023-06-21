@@ -93,10 +93,9 @@ jobs:
       - name: Install legate-core and cunumeric in the legate conda environment
         shell: bash -eo pipefail {0}
         run: |
-          # Using conda instead of mamba to work around segfaults.
-          conda install -y -n legate -c $(pwd)/artifacts/conda-build/legate_core legate-core
-          conda install -y -n legate -c $(pwd)/artifacts/conda-build/cunumeric -c nvidia cunumeric
-          conda install -y -n legate -c nvidia libcurand
+          mamba install -y -n legate -c $(pwd)/artifacts/conda-build/legate_core legate-core
+          mamba install -y -n legate -c $(pwd)/artifacts/conda-build/cunumeric -c nvidia cunumeric
+          mamba install -y -n legate -c nvidia libcurand-dev
 
       - name: Test cunumeric on GH - ${{inputs.test-name}}
         shell: su coder {0}
