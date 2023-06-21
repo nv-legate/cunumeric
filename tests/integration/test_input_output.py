@@ -65,7 +65,7 @@ def test_ndarray_dump():
         assert np.allclose(pickle.load(fobj.file), arr_np)
     with NamedTemporaryFile() as fobj:
         arr_num.dump(file=fobj.name)
-        assert np.allclose(pickle.load(fobj.file), arr_np)
+        assert np.allclose(pickle.load(fobj.file), arr_num)
 
 
 def test_ndarray_tofile():
