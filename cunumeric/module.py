@@ -6411,7 +6411,7 @@ def histogram(
     --------
     Multiple GPUs, Multiple CPUs
     """
-        if isscalar(bins):
+    if isscalar(bins):
         if not isinstance(bins, int):
             raise TypeError("bins must be array or integer type")
 
