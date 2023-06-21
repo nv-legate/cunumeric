@@ -51,7 +51,7 @@ from .config import (
     UnaryOpCode,
     UnaryRedCode,
 )
-from .coverage import FALLBACK_WARNING, clone_class
+from .coverage import FALLBACK_WARNING, clone_class, is_implemented
 from .runtime import runtime
 from .types import NdShape
 from .utils import deep_apply, dot_modes, to_core_dtype
@@ -331,7 +331,7 @@ class ndarray:
         # arguments. Conversely, if the user calls `cn.foo(x, bar=True)`
         # directly, that means they requested the cuNumeric implementation
         # specifically, and the `NotImplementedError` should not be hidden.
-        if cn_func._cunumeric.implemented:
+        if is_implemented(cn_func):
             try:
                 return cn_func(*args, **kwargs)
             except NotImplementedError:
