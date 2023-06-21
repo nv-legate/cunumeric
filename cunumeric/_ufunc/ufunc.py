@@ -583,7 +583,7 @@ class binary_ufunc(ufunc):
             else:
                 array_types.append(arr.dtype)
 
-        return np.find_common_type(array_types, scalar_types)
+        return np.find_common_type(array_types, scalar_types)  # type: ignore
 
     def _resolve_dtype(
         self,

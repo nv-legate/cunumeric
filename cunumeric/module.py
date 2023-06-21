@@ -663,7 +663,7 @@ def arange(
         step = 1
 
     if dtype is None:
-        dtype = np.find_common_type([], [type(start), type(stop), type(step)])
+        dtype = np.result_type(type(start), type(stop), type(step))
     else:
         dtype = np.dtype(dtype)
 
@@ -740,7 +740,7 @@ def linspace(
         raise ValueError("Number of samples, %s, must be non-negative." % num)
     div = (num - 1) if endpoint else num
 
-    common_kind = np.find_common_type((start.dtype, stop.dtype), ()).kind
+    common_kind = np.result_type(start.dtype, stop.dtype).kind
     dt = np.complex128 if common_kind == "c" else np.float64
     if dtype is None:
         dtype = dt
@@ -1516,7 +1516,7 @@ def check_shape_dtype_without_axis(
 
     # Cast arrays with the passed arguments (dtype, casting)
     if dtype is None:
-        dtype = np.find_common_type((inp.dtype for inp in inputs), [])
+        dtype = np.result_type(*[inp.dtype for inp in inputs])
     else:
         dtype = np.dtype(dtype)
 

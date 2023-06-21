@@ -2000,9 +2000,10 @@ class ndarray:
             choices = tuple(choices)
         is_tuple = isinstance(choices, tuple)
         if is_tuple:
-            n = len(choices)
+            if (n := len(choices)) == 0:
+                raise ValueError("invalid entry in choice array")
             dtypes = [ch.dtype for ch in choices]
-            ch_dtype = np.find_common_type(dtypes, [])
+            ch_dtype = np.result_type(*dtypes)
             choices = tuple(
                 convert_to_cunumeric_ndarray(choices[i]).astype(ch_dtype)
                 for i in range(n)
@@ -3403,7 +3404,7 @@ class ndarray:
         a = self
         # in case we have different dtypes we ned to find a common type
         if a.dtype != v_ndarray.dtype:
-            ch_dtype = np.find_common_type([a.dtype, v_ndarray.dtype], [])
+            ch_dtype = np.result_type(a.dtype, v_ndarray.dtype)
 
             if v_ndarray.dtype != ch_dtype:
                 v_ndarray = v_ndarray.astype(ch_dtype)
@@ -3899,7 +3900,7 @@ class ndarray:
                 scalar_types.append(array.dtype)
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)
+        return np.find_common_type(array_types, scalar_types)  # type: ignore
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
