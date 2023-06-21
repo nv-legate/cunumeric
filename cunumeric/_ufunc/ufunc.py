@@ -547,7 +547,7 @@ class binary_ufunc(ufunc):
         self._use_common_type = use_common_type
 
     @staticmethod
-    def _find_common_type(
+    def _result_type(
         arrs: Sequence[ndarray], orig_args: Sequence[Any]
     ) -> np.dtype[Any]:
         all_ndarray = all(isinstance(arg, ndarray) for arg in orig_args)
@@ -571,19 +571,22 @@ class binary_ufunc(ufunc):
         )
         use_min_scalar = not (all_scalars or all_arrays or lossy_conversion)
 
-        scalar_types = []
-        array_types = []
+        # "When the scalar_types argument is not [] things are more
+        # complicated. In most cases, using np.result_type and passing the
+        # Python values 0, 0.0, or 0j has the same result as using
+        # int, float, or complex in scalar_types."
+        types = []
         for arr, orig_arg in zip(arrs, orig_args):
             if arr.ndim == 0:
-                scalar_types.append(
-                    np.dtype(np.min_scalar_type(orig_arg))
+                types.append(
+                    np.dtype(np.min_scalar_type(orig_arg)).type(0)
                     if use_min_scalar
-                    else arr.dtype
+                    else arr.dtype.type(0)
                 )
             else:
-                array_types.append(arr.dtype)
+                types.append(arr.dtype)
 
-        return np.find_common_type(array_types, scalar_types)
+        return np.result_type(*types)
 
     def _resolve_dtype(
         self,
@@ -595,7 +598,7 @@ class binary_ufunc(ufunc):
         to_dtypes: tuple[np.dtype[Any], ...]
         key: tuple[str, ...]
         if self._use_common_type:
-            common_dtype = self._find_common_type(arrs, orig_args)
+            common_dtype = self._result_type(arrs, orig_args)
             to_dtypes = (common_dtype, common_dtype)
             key = (common_dtype.char, common_dtype.char)
         else:
