@@ -6411,38 +6411,59 @@ def histogram(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    # TODO: bins / range management:
-    # handle case bins == None, or scalar;
-    #
+        if isscalar(bins):
+        if not isinstance(bins, int):
+            raise TypeError("bins must be array or integer type")
+
+        num_intervals = bins
+        num_elems = num_intervals + 1
+        min_src, max_src = get_min_max_elements(x) # TODO -> Also, Q!
+
+        if range_ is None:
+            range_ = (min_src, max_src)
+        else:
+            assert (isinstance(range_, tuple)) # how to check: tuple(,)?
+            if range_[0] < min_src:
+                range_[0] = min_src
+            if range_[1] > max_src:
+                range_[1] = max_src
+
+        step = (range_[1] - range_[0]) / num_intervals
+
+        bins_array = ndarray(shape=(num_elems,),
+                             buffer=np.array([range_[0] + k * step
+                                              for k in range(0, num_elems)]),
+                             dtype=float)
+    else:
+        bins_array = np.asarray(bins)
+        num_intervals = bins.shape[0] - 1
 
     if x.ndim != 1:
         raise ValueError("the input array must be 1-dimensional")
     if weights is not None:
         if weights.shape != x.shape:
             raise ValueError("weights array must be same shape for histogram")
-        if weights.dtype.kind == "c":
-            raise ValueError("weights must be convertible to float64")
-        # Make sure the weights are float64
-        weights = weights.astype(np.float64)
     else:
-        # case weights == None cannot be handled by _thunk.histogram,
-        # bc/ of hist ndarry inputs(), below;
+        # case weights == None cannot be handled inside _thunk.histogram,
+        # bc/ of hist ndarray inputs(), below;
         # needs to be handled here:
         #
         weights = ndarray(src.shape, buffer=ones(src.shape[0],
                                                  dtype=src.dtype),
                           src.dtype)
 
-    num_intervals = bins.shape[0] - 1
     hist = ndarray(
         (num_intervals,),
         dtype=weights.dtype,
         inputs=(x, bins, weights),
     )
-    hist._thunk.histogram(x._thunk, bins._thunk,
+    hist._thunk.histogram(x._thunk, bins_array._thunk,
                           weights=weights._thunk)
 
-    # TODO: handle (density = True):
+    # handle (density = True):
     #
+    if density:
+        Sw = sum(hist)
+        hist /= [Sw*(bins[i + 1] - bins[i]) for i in range(0, hist.size)]
 
     return hist
