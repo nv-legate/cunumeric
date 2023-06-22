@@ -40,13 +40,13 @@ struct HistogramImpl {
 
     if (src_rect.empty()) return;
 
-    auto result  = args.result.reduce_accessor<SumReduction<...>, >(result_rect);  //??? TODO
+    auto result  = args.result.reduce_accessor<SumReduction<double>, true, 1>(result_rect);
     auto src     = args.src.read_accessor<VAL, 1>(src_rect);
     auto bins    = args.bins.read_accessor<VAL, 1>(bins_rect);
     auto weights = args.weights.read_accessor<VAL, 1>(weights_rect);
 
-    // TODO: double_dispatch():
-    HistogramImplBody<KIND, CODE>()(src, bins, weights, result);
+    HistogramImplBody<KIND, CODE>()(
+      src, src_rect, bins, bins_rect, weights, weights_rect, result, result_rect);
   }
 };
 
