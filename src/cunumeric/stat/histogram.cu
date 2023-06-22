@@ -27,10 +27,10 @@ template <Type::Code CODE>
 struct HistogramImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  template <typename BinType, typename WeightType = VAL>
+  template <typename BinType = VAL, typename WeightType = VAL>
   void operator()(const AccessorRO<VAL, 1>& src,
-                  const AccessorRO<BinType /*?*/, 1>& bins,
-                  const AccessorRO<WeightType /*?*/, 1>& weights,
+                  const AccessorRO<BinType, 1>& bins,
+                  const AccessorRO<WeightType, 1>& weights,
                   const AccessorRD<SumReduction<WeightType>, false, 1>& result) const
   {
     auto stream = get_cached_stream();
