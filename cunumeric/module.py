@@ -663,7 +663,7 @@ def arange(
         step = 1
 
     if dtype is None:
-        dtype = np.result_type(type(start), type(stop), type(step))
+        dtype = np.result_type(start, stop, step)
     else:
         dtype = np.dtype(dtype)
 
