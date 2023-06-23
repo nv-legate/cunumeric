@@ -51,7 +51,7 @@ from .config import (
     UnaryOpCode,
     UnaryRedCode,
 )
-from .coverage import FALLBACK_WARNING, clone_class
+from .coverage import FALLBACK_WARNING, clone_class, is_implemented
 from .runtime import runtime
 from .types import NdShape
 from .utils import deep_apply, dot_modes, to_core_dtype
@@ -410,7 +410,7 @@ class ndarray:
         # arguments. Conversely, if the user calls `cn.foo(x, bar=True)`
         # directly, that means they requested the cuNumeric implementation
         # specifically, and the `NotImplementedError` should not be hidden.
-        if cn_func._cunumeric.implemented:
+        if is_implemented(cn_func):
             try:
                 return cn_func(*args, **kwargs)
             except NotImplementedError:
@@ -2082,11 +2082,12 @@ class ndarray:
 
         if isinstance(choices, list):
             choices = tuple(choices)
-
-        if isinstance(choices, tuple):
-            n = len(choices)
+        is_tuple = isinstance(choices, tuple)
+        if is_tuple:
+            if (n := len(choices)) == 0:
+                raise ValueError("invalid entry in choice array")
             dtypes = [ch.dtype for ch in choices]
-            ch_dtype = np.find_common_type(dtypes, [])
+            ch_dtype = np.result_type(*dtypes)
             choices = tuple(
                 convert_to_cunumeric_ndarray(choices[i]).astype(ch_dtype)
                 for i in range(n)
@@ -2861,7 +2862,7 @@ class ndarray:
             else:
                 norm_shape = out.shape
             norm_shape_along_axes = [norm_shape[ax] for ax in fft_axes]
-            factor = np.product(norm_shape_along_axes)
+            factor = np.prod(norm_shape_along_axes)
             if fft_norm == FFTNormalization.ORTHOGONAL:
                 factor = np.sqrt(factor)
             return out / factor
@@ -3492,7 +3493,7 @@ class ndarray:
         a = self
         # in case we have different dtypes we ned to find a common type
         if a.dtype != v_ndarray.dtype:
-            ch_dtype = np.find_common_type([a.dtype, v_ndarray.dtype], [])
+            ch_dtype = np.result_type(a.dtype, v_ndarray.dtype)
 
             if v_ndarray.dtype != ch_dtype:
                 v_ndarray = v_ndarray.astype(ch_dtype)
@@ -3998,7 +3999,7 @@ class ndarray:
                 scalar_types.append(array.dtype)
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)
+        return np.find_common_type(array_types, scalar_types)  # type: ignore
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
