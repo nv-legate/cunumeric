@@ -21,6 +21,7 @@
 #include <thrust/reduce.h>
 #include <thrust/sort.h>
 
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <numeric>
@@ -31,34 +32,38 @@
 namespace cunumeric {
 namespace detail {
 template <typename element_t>
-decltype(auto) get_raw_ptr(std::vector<element_t>& v)
+decltype(auto) get_raw_ptr(Buffer<element_t>& v)
 {
-  return &v[0];
-}
-
-template <>
-void synchronize_exec(thrust::detail::host_t)
-{
-  // nothing;
+  return v.ptr(0);
 }
 
 // host specialization
 //
-template <typename elem_t>
-struct allocator_t<elem_t, thrust::detail::host_t> {
+template <typename elem_t, typename exe_policy_t>
+struct allocator_t {
   allocator_t(void) {}
 
-  allocator_t(elem_t, thrust::detail::host_t) {}  // tag-dispatch for CTAD
+  allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
 
-  elem_t* operator()(size_t n_bytes, elem_t init = 0)
+  elem_t* operator()(exe_policy_t exe_pol, size_t size, elem_t init = 0)
   {
-    h_buffer_ = std::vector<elem_t>(n_bytes, init);
-    return get_raw_ptr(h_buffer_);
+    d_buffer_     = create_buffer<elem_t>(size);
+    elem_t* d_ptr = get_raw_ptr(d_buffer_);
+
+    std::fill_n(d_ptr, size, init);
+
+    return d_ptr;
   }
 
  private:
-  std::vector<elem_t> h_buffer_;
+  Buffer<elem_t> d_buffer_;
 };
+
+template <typename exe_policy_t>
+void synchronize_exec(exe_policy_t)
+{
+  // nothing;
+}
 
 // host specialization:
 //
