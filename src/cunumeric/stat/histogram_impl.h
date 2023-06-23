@@ -81,15 +81,14 @@ void histogram_weights(exe_policy_t exe_pol,
                        size_t n_intervals,             // |bins| - 1
                        weight_t* ptr_hist,             // result; pre-allocated, sz = n_intervals
                        weight_t* ptr_w     = nullptr,  // weights array, w
-                       bool density        = false,
                        cudaStream_t stream = nullptr)
 {
   alloc_t<offset_t, exe_policy_t> alloc_offsets;
-  auto* ptr_offsets = alloc_offsets(n_intervals + 1);
+  auto* ptr_offsets = alloc_offsets(exe_pol, n_intervals + 1);
 
   alloc_t<weight_t, exe_policy_t> alloc_w;
 
-  if (!ptr_w) { ptr_w = alloc_w(n_samples, 1); }
+  if (!ptr_w) { ptr_w = alloc_w(exe_pol, n_samples, 1); }
 
   // in-place src sort + corresponding weights shuffle:
   //
@@ -111,20 +110,6 @@ void histogram_weights(exe_policy_t exe_pol,
     exe_pol, ptr_w, n_samples, ptr_hist, n_intervals, ptr_offsets, stream, alloc_scratch};
 
   segsum();
-
-  // CAVEAT: Sum(weights) needs all reduce,
-  // w/ distributed version!
-  //
-  if (density) {
-    transform_op_t top{exe_pol, ptr_over, ptr_hist, n_intervals};
-
-    thrust::transform(exe_pol,
-                      thrust::make_counting_iterator<size_t>(0),
-                      thrust::make_counting_iterator<size_t>(n_intervals),
-                      ptr_hist,
-                      ptr_hist,  // in-place
-                      top);
-  }
 }
 
 }  // namespace detail

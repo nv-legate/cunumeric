@@ -47,8 +47,8 @@ std::tuple<size_t, const VAL*> get_accessor_ptr(const AccessorRO<VAL, 1>& src,
 // accessor copy utility:
 //
 template <typename VAL>
-std::tuple<size_t, Buffer<VAL*>, const VAL*> make_accessor_copy(const AccessorRO<VAL, 1>& src,
-                                                                const Rect<1>& src_rect)
+std::tuple<size_t, Buffer<VAL>, const VAL*> make_accessor_copy(const AccessorRO<VAL, 1>& src,
+                                                               const Rect<1>& src_rect)
 {
   size_t src_strides[1];
   auto src_acc       = src.read_accessor<VAL, 1>(src_rect);
@@ -58,8 +58,8 @@ std::tuple<size_t, Buffer<VAL*>, const VAL*> make_accessor_copy(const AccessorRO
   // const VAL* src_ptr: need to create a copy with create_buffer(...);
   // since src will get sorted (in-place);
   //
-  size_t src_size       = src_rect.hi - src_rec.lo + 1;
-  Buffer<VAL*> src_copy = create_buffer<VAL>(src_size, Legion::Memory::Kind::GPU_FB_MEM);
+  size_t src_size      = src_rect.hi - src_rec.lo + 1;
+  Buffer<VAL> src_copy = create_buffer<VAL>(src_size, Legion::Memory::Kind::GPU_FB_MEM);
   return std::make_tuple(src_size, src_copy, src_ptr);
 }
 }  // namespace detail
@@ -92,12 +92,12 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
     CHECK_CUDA(
       cudaMemcpyAsync(src_copy.ptr(0), src_ptr, src_size, cudaMemcpyDeviceToDevice, stream));
 
-    auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
-
     auto&& [weights_size, weights_copy, wights_ptr] =
       detail::make_accessor_copy(weights, weights_rect);
     CHECK_CUDA(cudaMemcpyAsync(
       weights_copy.ptr(0), weights_ptr, weights_size, cudaMemcpyDeviceToDevice, stream));
+
+    auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
 
     // ... at the end of extracting / creating copies:
     //
