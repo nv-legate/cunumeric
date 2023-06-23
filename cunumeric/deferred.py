@@ -406,8 +406,9 @@ class DeferredArray(NumPyThunk):
         # find a broadcasted shape for all arrays passed as indices
         shapes = tuple(a.shape for a in arrays)
         if len(arrays) > 1:
-            # TODO: replace with cunumeric.broadcast_shapes, when available
-            b_shape = np.broadcast_shapes(*shapes)
+            from .module import broadcast_shapes
+
+            b_shape = broadcast_shapes(*shapes)
         else:
             b_shape = arrays[0].shape
 
@@ -1080,6 +1081,9 @@ class DeferredArray(NumPyThunk):
                     rhs = rhs_copy
 
                 view.copy(rhs, deep=False)
+
+    def broadcast_to(self, shape: NdShape) -> NumPyThunk:
+        return DeferredArray(self.runtime, base=self._broadcast(shape))
 
     def reshape(self, newshape: NdShape, order: OrderType) -> NumPyThunk:
         assert isinstance(newshape, Iterable)
