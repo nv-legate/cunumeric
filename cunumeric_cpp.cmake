@@ -429,7 +429,9 @@ endif()
 # under lib/, even if the system normally uses lib64/. Rapids-cmake currently
 # doesn't realize this when we're going through scikit-build, see
 # https://github.com/rapidsai/rapids-cmake/issues/426
-set(CMAKE_INSTALL_LIBDIR "lib")
+if(TARGET conda_env)
+  set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
 
 include(CPack)
 include(GNUInstallDirs)
