@@ -14,15 +14,56 @@
  *
  */
 
-#include "cunumeric/stat/histogram.cuh"
-#include "cunumeric/stat/histogram_impl.h"
-
 #include "cunumeric/stat/histogram.h"
 #include "cunumeric/stat/histogram_template.inl"
 
 #include "cunumeric/cuda_help.h"
 
+#include "cunumeric/stat/histogram.cuh"
+#include "cunumeric/stat/histogram_impl.h"
+
+#include <tuple>
+
 namespace cunumeric {
+namespace detail {
+
+// accessor (size, pointer) extractor:
+//
+template <typename VAL>
+std::tuple<size_t, const VAL*> get_accessor_ptr(const AccessorRO<VAL, 1>& src,
+                                                const Rect<1>& src_rect)
+{
+  size_t src_strides[1];
+  auto src_acc       = src.read_accessor<VAL, 1>(src_rect);
+  const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
+  assert(src_strides[0] == 1);
+  //
+  // const VAL* src_ptr: need to create a copy with create_buffer(...);
+  // since src will get sorted (in-place);
+  //
+  size_t src_size = src_rect.hi - src_rec.lo + 1;
+  return std::make_tuple(src_size, src_ptr);
+}
+// accessor copy utility:
+//
+template <typename VAL>
+std::tuple<size_t, Buffer<VAL*>, const VAL*> make_accessor_copy(const AccessorRO<VAL, 1>& src,
+                                                                const Rect<1>& src_rect)
+{
+  size_t src_strides[1];
+  auto src_acc       = src.read_accessor<VAL, 1>(src_rect);
+  const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
+  assert(src_strides[0] == 1);
+  //
+  // const VAL* src_ptr: need to create a copy with create_buffer(...);
+  // since src will get sorted (in-place);
+  //
+  size_t src_size       = src_rect.hi - src_rec.lo + 1;
+  Buffer<VAL*> src_copy = create_buffer<VAL>(src_size, Legion::Memory::Kind::GPU_FB_MEM);
+  return std::make_tuple(src_size, src_copy, src_ptr);
+}
+}  // namespace detail
+
 template <Type::Code CODE>
 struct HistogramImplBody<VariantKind::GPU, CODE> {
   using VAL = legate_type_of<CODE>;
@@ -47,19 +88,16 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
   {
     auto stream = get_cached_stream();
 
-    size_t src_strides[1];
-    auto src_rect      = args.src.shape<1>();
-    auto src_acc       = args.src.read_accessor<VAL, 1>(src_rect);
-    const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
-    assert(src_strides[0] == 1);
-    //
-    // const VAL* src_ptr: need to create a copy with create_buffer(...);
-    // since src will get sorted (in-place);
-    //
-    size_t src_size       = src_rect.hi - src_rec.lo + 1;
-    Buffer<VAL*> src_copy = create_buffer<VAL>(src_size, Legion::Memory::Kind::GPU_FB_MEM);
+    auto&& [src_size, src_copy, src_ptr] = detail::make_accessor_copy(src, src_rect);
     CHECK_CUDA(
       cudaMemcpyAsync(src_copy.ptr(0), src_ptr, src_size, cudaMemcpyDeviceToDevice, stream));
+
+    auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
+
+    auto&& [weights_size, weights_copy, wights_ptr] =
+      detail::make_accessor_copy(weights, weights_rect);
+    CHECK_CUDA(cudaMemcpyAsync(
+      weights_copy.ptr(0), weights_ptr, weights_size, cudaMemcpyDeviceToDevice, stream));
 
     // ... at the end of extracting / creating copies:
     //
