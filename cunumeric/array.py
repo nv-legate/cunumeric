@@ -213,6 +213,13 @@ class flagsobj:
   WRITEBACKIFCOPY : {self["X"]}
 """
 
+    def __eq__(self, other: Any) -> bool:
+        flags = ("C", "F", "O", "W", "A", "X")
+        if not isinstance(other, (flagsobj, np.core.multiarray.flagsobj)):
+            return False
+
+        return all(self[f] == other[f] for f in flags)  # type: ignore [index]
+
     def __getattr__(self, name: str) -> Any:
         if name == "writeable":
             return self._array._writeable
@@ -222,7 +229,7 @@ class flagsobj:
     def __setattr__(self, name: str, value: Any) -> None:
         if name == "writeable":
             self._check_writeable(value)
-            self._array._writeable = value
+            self._array._writeable = bool(value)
         else:
             flags = self._array.__array__().flags
             setattr(flags, name, value)
@@ -236,7 +243,7 @@ class flagsobj:
     def __setitem__(self, key: str, value: Any) -> None:
         if key == "W":
             self._check_writeable(value)
-            self._array._writeable = value
+            self._array._writeable = bool(value)
         else:
             flags = self._array.__array__().flags
             flags[key] = value
