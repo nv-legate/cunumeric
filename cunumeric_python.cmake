@@ -55,11 +55,9 @@ add_library(cunumeric_python INTERFACE)
 add_library(cunumeric::cunumeric_python ALIAS cunumeric_python)
 target_link_libraries(cunumeric_python INTERFACE legate::core)
 
-##############################################################################
-# - install targets ----------------------------------------------------------
-
 # ############################################################################
-# * conda environment --------------------------------------------------------
+# - conda environment --------------------------------------------------------
+
 rapids_cmake_support_conda_env(conda_env)
 
 # We're building python extension libraries, which must always be installed
@@ -69,6 +67,10 @@ rapids_cmake_support_conda_env(conda_env)
 if(TARGET conda_env)
   set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
+
+##############################################################################
+# - install targets ----------------------------------------------------------
+
 include(CPack)
 include(GNUInstallDirs)
 rapids_cmake_install_lib_dir(lib_dir)
