@@ -39,6 +39,8 @@
 
 #include "cunumeric/utilities/thrust_util.h"
 
+#include "cunumeric/stat/histogram_gen.h"
+
 // TODO: remove:
 //
 #if THRUST_VERSION >= 101600
@@ -58,7 +60,9 @@ decltype(auto) get_raw_ptr(Buffer<element_t>& v)
 // rudimentary device allocator:
 //
 template <typename elem_t, typename exe_policy_t>
-struct allocator_t {
+struct allocator_t<elem_t,
+                   exe_policy_t,
+                   std::enable_if_t<!std::is_same_v<exe_policy_t, thrust::detail::host_t>>> {
   allocator_t(void) {}
 
   allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
@@ -78,15 +82,19 @@ struct allocator_t {
 };
 
 template <typename exe_policy_t>
-void synchronize_exec(exe_policy_t)
+void synchronize_exec(exe_policy_t, cudaStream_t stream)
 {
-  cudaDeviceSynchronize();
+  CHECK_CUDA(cudaStreamSynchronize(stream));
 }
 
 // device version:
 //
 template <typename exe_policy_t, typename weight_t, typename offset_t, typename allocator_t>
-struct segmented_sum_t {
+struct segmented_sum_t<exe_policy_t,
+                       weight_t,
+                       offset_t,
+                       allocator_t,
+                       std::enable_if_t<!std::is_same_v<exe_policy_t, thrust::detail::host_t>>> {
   segmented_sum_t(exe_policy_t exe_pol,
                   weight_t const* p_weights,
                   size_t n_samples,

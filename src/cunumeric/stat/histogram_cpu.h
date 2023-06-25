@@ -29,6 +29,8 @@
 #include <tuple>
 #include <vector>
 
+#include "cunumeric/stat/histogram_gen.h"
+
 namespace cunumeric {
 namespace detail {
 template <typename element_t>
@@ -40,7 +42,9 @@ decltype(auto) get_raw_ptr(Buffer<element_t>& v)
 // host specialization
 //
 template <typename elem_t, typename exe_policy_t>
-struct allocator_t {
+struct allocator_t<elem_t,
+                   exe_policy_t,
+                   std::enable_if_t<std::is_same_v<exe_policy_t, thrust::detail::host_t>>> {
   allocator_t(void) {}
 
   allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
@@ -59,16 +63,19 @@ struct allocator_t {
   Buffer<elem_t> d_buffer_;
 };
 
-template <typename exe_policy_t>
-void synchronize_exec(exe_policy_t)
+void synchronize_exec(thrust::detail::host_t, cudaStream_t stream)
 {
   // nothing;
 }
 
 // host specialization:
 //
-template <typename weight_t, typename offset_t, typename allocator_t>
-struct segmented_sum_t<thrust::detail::host_t, weight_t, offset_t, allocator_t> {
+template <typename exe_policy_t, typename weight_t, typename offset_t, typename allocator_t>
+struct segmented_sum_t<exe_policy_t,
+                       weight_t,
+                       offset_t,
+                       allocator_t,
+                       std::enable_if_t<std::is_same_v<exe_policy_t, thrust::detail::host_t>>> {
   segmented_sum_t(thrust::detail::host_t exe_pol,
                   weight_t const* p_weights,
                   size_t n_samples,

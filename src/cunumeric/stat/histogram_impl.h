@@ -94,7 +94,7 @@ void histogram_weights(exe_policy_t exe_pol,
   //
   thrust::sort_by_key(exe_pol, ptr_src, ptr_src + n_samples, ptr_w);
 
-  synchronize_exec(exe_pol);
+  synchronize_exec(exe_pol, stream);
 
   // l-b functor:
   //
@@ -107,10 +107,10 @@ void histogram_weights(exe_policy_t exe_pol,
 
   alloc_t<unsigned char, exe_policy_t> alloc_scratch;
 
-  // TODO: needs explicit template args;
-  // CTAD won't work bc/ of SFINAE;
+  // needs explicit template args;
+  // CTAD won't work with SFINAE;
   //
-  segmented_sum_t segsum{
+  segmented_sum_t<exe_policy_t, weight_t, offset_t, decltype(alloc_scratch)> segsum{
     exe_pol, ptr_w, n_samples, ptr_hist, n_intervals, ptr_offsets, stream, alloc_scratch};
 
   segsum();
