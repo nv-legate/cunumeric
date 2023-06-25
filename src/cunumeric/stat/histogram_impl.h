@@ -106,6 +106,10 @@ void histogram_weights(exe_policy_t exe_pol,
     exe_pol, ptr_src, ptr_src + n_samples, ptr_over, ptr_over + n_intervals + 1, ptr_offsets, lbop);
 
   alloc_t<unsigned char, exe_policy_t> alloc_scratch;
+
+  // TODO: needs explicit template args;
+  // CTAD won't work bc/ of SFINAE;
+  //
   segmented_sum_t segsum{
     exe_pol, ptr_w, n_samples, ptr_hist, n_intervals, ptr_offsets, stream, alloc_scratch};
 
