@@ -4186,8 +4186,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         nan_to_identity: bool = False,
     ) -> ndarray:
-        # for non-floating point and non-complex datatypes,there is no
-        # NaN, so we don't need to convert nan to identity
+        # Don't need to convert nan to identity for integral datatypes
         if src.dtype.kind != "c" and src.dtype.kind != "f":
             nan_to_identity = False
 

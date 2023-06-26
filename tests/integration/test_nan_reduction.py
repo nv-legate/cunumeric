@@ -16,10 +16,10 @@ class TestNanReductions:
     These are positive cases compared with numpy
     """
 
-    @pytest.mark.parametrize("func_name", NAN_FUNCS)
+    @pytest.mark.parametrize("func_name", ("nansum", "nanprod"))
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("keepdims", [True, False])
-    def test_basic(self, func_name, ndim, keepdims):
+    def test_basic_nan_sum_prod(self, func_name, ndim, keepdims):
         """This test sets an element to NaN and checks if the output
         from cuNumeric and numpy match."""
         shape = (5,) * ndim
@@ -39,11 +39,32 @@ class TestNanReductions:
         out_np = func_np(in_np, keepdims=keepdims)
         out_num = func_num(in_num, keepdims=keepdims)
 
-        # relax criteria when doing floating ops with nans excluded
-        if func_np.__name__ == "nanprod" or func_np.__name__ == "nansum":
-            assert np.allclose(out_num, out_np, rtol=1e-4)
-        else:
-            assert np.array_equal(out_num, out_np)
+        assert np.allclose(out_num, out_np, rtol=1e-4)
+
+    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("keepdims", [True, False])
+    def test_basic_nan_min_max(self, func_name, ndim, keepdims):
+        """This test sets an element to NaN and checks if the output
+        from cuNumeric and numpy match."""
+        shape = (5,) * ndim
+        size = prod(shape)
+        in_np = np.random.random(shape)
+
+        # set an element to nan
+        index_nan = np.random.randint(low=0, high=size)
+        index_nan = np.unravel_index(index_nan, shape)
+        in_num = num.array(in_np)
+        in_num[index_nan] = num.nan
+        in_np[index_nan] = np.nan
+
+        func_np = getattr(np, func_name)
+        func_num = getattr(num, func_name)
+
+        out_np = func_np(in_np, keepdims=keepdims)
+        out_num = func_num(in_num, keepdims=keepdims)
+
+        assert np.array_equal(out_num, out_np)
 
     @pytest.mark.parametrize("func_name", NAN_FUNCS)
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
@@ -74,9 +95,8 @@ class TestNanReductions:
     @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     def test_all_nan(self, func_name, ndim):
-        """This test checks if we comply with the expected behavior when
-        the array contains only NaNs. The expected behavior is to
-        raise a ValueError.
+        """This test checks if a RuntimeWarning is issued when an array
+        contains only NaNs.
         """
 
         shape = (3,) * ndim
@@ -84,19 +104,18 @@ class TestNanReductions:
         in_num.fill(num.nan)
 
         func_num = getattr(num, func_name)
-        out = 0.0
-        with pytest.warns(RuntimeWarning):
-            out = func_num(in_num)
-            assert np.isnan(out).any()
+
+        expected_exception = RuntimeWarning
+        with pytest.warns(expected_exception):
+            func_num(in_num)
 
     @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
     @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("dtype", (np.float16, np.float32, np.float64))
     @pytest.mark.parametrize("keepdims", [True, False])
     def test_slice_nan(self, func_name, ndim, dtype, keepdims):
-        """This test checks if we comply with the expected behavior when
-        a slice contains only NaNs. The expected behavior is to issue a
-        RuntimeWarning and return NaN for that slice. Both are tested here.
+        """This test checks if a RuntimeWarning is issued when a slice
+        contains only NaNs.
         """
         shape = (3,) * ndim
 
@@ -110,13 +129,13 @@ class TestNanReductions:
         func_np = getattr(np, func_name)
         func_num(in_num)
 
-        with pytest.warns(RuntimeWarning):
-            out_np = func_np(in_np, axis=1, keepdims=keepdims)
-            assert np.isnan(out_np).any()
+        expected_exception = RuntimeWarning
 
-        with pytest.warns(RuntimeWarning):
-            out_num = func_num(in_num, axis=1, keepdims=keepdims)
-            assert np.isnan(out_num).any()
+        with pytest.warns(expected_exception):
+            func_np(in_np, axis=1, keepdims=keepdims)
+
+        with pytest.warns(expected_exception):
+            func_num(in_num, axis=1, keepdims=keepdims)
 
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("dtype", (np.float32, np.float64))

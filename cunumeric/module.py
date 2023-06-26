@@ -19,16 +19,7 @@ import operator
 import re
 from collections import Counter
 from itertools import chain
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Dict,
-    Literal,
-    Optional,
-    Sequence,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
@@ -44,6 +35,10 @@ from cunumeric.coverage import is_implemented
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
+from ._unary_red_utils import (
+    get_non_nan_unary_red_code_if_applicable,
+    handle_nan_unary_red_exceptions,
+)
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
@@ -5336,83 +5331,6 @@ def nancumsum(
     )
 
 
-def _get_non_nan_reduction_code_if_applicable(
-    dtype: npt.DTypeLike, unary_reduction_code: UnaryRedCode
-) -> UnaryRedCode:
-    """
-    Return the equivalent non-nan reduction op codes if the datatype of the
-    array doesn't belong to one of the allowed datatypes. Raise an error if the
-    datatype is disallowed, which is currently complex64 and complex128.
-    """
-
-    equivalent_non_nan_unary_red_ops: Dict[UnaryRedCode, UnaryRedCode] = {
-        UnaryRedCode.NANARGMAX: UnaryRedCode.ARGMAX,
-        UnaryRedCode.NANARGMIN: UnaryRedCode.ARGMIN,
-        UnaryRedCode.NANMAX: UnaryRedCode.MAX,
-        UnaryRedCode.NANMIN: UnaryRedCode.MIN,
-    }
-
-    assert unary_reduction_code in equivalent_non_nan_unary_red_ops
-
-    # raise error for disallowed datatypes
-    disallowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.complex64),
-        np.dtype(np.complex128),
-    ]
-    if dtype in disallowed_dtypes:
-        raise NotImplementedError(
-            "operation is not supported for complex64 and complex128 types"
-        )
-
-    # use non-NaN API if the datatype is not floating point type
-    allowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.float16),
-        np.dtype(np.float32),
-        np.dtype(np.float64),
-    ]
-    if dtype in allowed_dtypes:
-        reduction_code = unary_reduction_code
-    else:
-        reduction_code = equivalent_non_nan_unary_red_ops[unary_reduction_code]
-
-    return reduction_code
-
-
-def _handle_exceptions_and_update_out_if_needed(
-    out: ndarray,
-    op: UnaryRedCode,
-    identity: Union[int, np.floating[Any]],
-) -> None:
-    """Raise ValueError if NaN is found in a slice or in the entire
-    array for nanargmin and nanargmax. In case of nanmin and nanmax,
-    issue a RuntimeWarning.
-    """
-    supported_ops = [
-        UnaryRedCode.NANMIN,
-        UnaryRedCode.NANMAX,
-        UnaryRedCode.NANARGMIN,
-        UnaryRedCode.NANARGMAX,
-    ]
-
-    if op not in supported_ops:
-        return
-
-    if identity in out:
-        if op in [UnaryRedCode.NANMIN, UnaryRedCode.NANMAX]:
-            runtime.warn(
-                "Array/Slice contains only NaNs", category=RuntimeWarning
-            )
-
-            # replace identities with NaNs since numpy returns NaNs
-            if out.ndim == 0:
-                out.fill(np.nan)
-            else:
-                mask = out == identity
-                putmask(out, mask, np.nan)  # type: ignore
-        else:
-            raise ValueError("Array/Slice contains only NaNs")
-
-
 @add_boilerplate("a")
 def nanargmax(
     a: ndarray,
@@ -5460,8 +5378,8 @@ def nanargmax(
     if a.size == 0:
         raise ValueError("attempt to get nanargmax of an empty sequence")
 
-    unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
-        a.dtype, UnaryRedCode.NANARGMAX
+    unary_reduction_code = get_non_nan_unary_red_code_if_applicable(
+        a.dtype.kind, UnaryRedCode.NANARGMAX
     )
 
     index_array = a._perform_unary_reduction(
@@ -5474,7 +5392,7 @@ def nanargmax(
     )
 
     identity = np.iinfo(np.int64).min
-    _handle_exceptions_and_update_out_if_needed(
+    handle_nan_unary_red_exceptions(
         index_array, unary_reduction_code, identity
     )
 
@@ -5528,8 +5446,8 @@ def nanargmin(
     if a.size == 0:
         raise ValueError("attempt to get nanargmin of an empty sequence")
 
-    unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
-        a.dtype, UnaryRedCode.NANARGMIN
+    unary_reduction_code = get_non_nan_unary_red_code_if_applicable(
+        a.dtype.kind, UnaryRedCode.NANARGMIN
     )
 
     index_array = a._perform_unary_reduction(
@@ -5542,7 +5460,7 @@ def nanargmin(
     )
 
     identity = np.iinfo(np.int64).min
-    _handle_exceptions_and_update_out_if_needed(
+    handle_nan_unary_red_exceptions(
         index_array, unary_reduction_code, identity
     )
 
@@ -5561,8 +5479,8 @@ def nanmin(
     """
     Return minimum of an array or minimum along an axis, ignoring any
     NaNs. When all-NaN slices are encountered a RuntimeWarning is
-    raised and a NaN is returned for that slice except when initial
-    is set to NaN. Empty slices will raise a ValueError
+    raised and identity is returned for that slice except when initial
+    is set. Empty slices will raise a ValueError
 
     Parameters
     ----------
@@ -5620,11 +5538,11 @@ def nanmin(
     Multiple GPUs, Multiple CPUs
     """
 
-    unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
-        a.dtype, UnaryRedCode.NANMIN
+    unary_reduction_code = get_non_nan_unary_red_code_if_applicable(
+        a.dtype.kind, UnaryRedCode.NANMIN
     )
 
-    index_array = a._perform_unary_reduction(
+    out_array = a._perform_unary_reduction(
         unary_reduction_code,
         a,
         axis=axis,
@@ -5634,17 +5552,13 @@ def nanmin(
         where=where,
     )
 
-    if a.dtype in [
-        np.dtype(np.float16),
-        np.dtype(np.float32),
-        np.dtype(np.float64),
-    ]:
+    if a.dtype.kind == "f":
         identity = np.finfo(a.dtype).max
-        _handle_exceptions_and_update_out_if_needed(
-            index_array, unary_reduction_code, identity
+        handle_nan_unary_red_exceptions(
+            out_array, unary_reduction_code, identity
         )
 
-    return index_array
+    return out_array
 
 
 @add_boilerplate("a")
@@ -5659,8 +5573,8 @@ def nanmax(
     """
     Return the maximum of an array or maximum along an axis, ignoring
     any NaNs.  When all-NaN slices are encountered a RuntimeWarning is
-    raised and a NaN is returned for that slice except when initial
-    is set to NaN. Empty slices will raise a ValueError
+    raised and identity is returned for that slice except when initial
+    is set. Empty slices will raise a ValueError
 
     Parameters
     ----------
@@ -5719,11 +5633,11 @@ def nanmax(
     Multiple GPUs, Multiple CPUs
     """
 
-    unary_reduction_code = _get_non_nan_reduction_code_if_applicable(
-        a.dtype, UnaryRedCode.NANMAX
+    unary_reduction_code = get_non_nan_unary_red_code_if_applicable(
+        a.dtype.kind, UnaryRedCode.NANMAX
     )
 
-    index_array = a._perform_unary_reduction(
+    out_array = a._perform_unary_reduction(
         unary_reduction_code,
         a,
         axis=axis,
@@ -5733,17 +5647,13 @@ def nanmax(
         where=where,
     )
 
-    if a.dtype in [
-        np.dtype(np.float16),
-        np.dtype(np.float32),
-        np.dtype(np.float64),
-    ]:
+    if a.dtype.kind == "f":
         identity = np.finfo(a.dtype).min
-        _handle_exceptions_and_update_out_if_needed(
-            index_array, unary_reduction_code, identity
+        handle_nan_unary_red_exceptions(
+            out_array, unary_reduction_code, identity
         )
 
-    return index_array
+    return out_array
 
 
 @add_boilerplate("a")
@@ -5820,28 +5730,17 @@ def nanprod(
     # than that of the platform int, then a convert task is launched
     # in np.prod to take care of the type casting
 
-    # raise error for disallowed datatypes
-    disallowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.complex128),
-    ]
-    if a.dtype in disallowed_dtypes:
+    if a.dtype == np.complex128:
         raise NotImplementedError(
             "operation is not supported for complex128 arrays"
         )
 
-    # use prod if the datatype is not floating point type
-    allowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.float16),
-        np.dtype(np.float32),
-        np.dtype(np.float64),
-        np.dtype(np.complex64),
-    ]
-    if a.dtype in allowed_dtypes:
+    if a.dtype.kind in ("f", "c"):
         unary_reduction_code = UnaryRedCode.NANPROD
     else:
         unary_reduction_code = UnaryRedCode.PROD
 
-    index_array = a._perform_unary_reduction(
+    return a._perform_unary_reduction(
         unary_reduction_code,
         a,
         axis=axis,
@@ -5851,8 +5750,6 @@ def nanprod(
         initial=initial,
         where=where,
     )
-
-    return index_array
 
 
 @add_boilerplate("a")
@@ -5933,20 +5830,12 @@ def nansum(
     # Note that np.nansum and np.sum allow complex datatypes
     # so there are no "disallowed types" for this API
 
-    # use prod if the datatype is not floating point type
-    allowed_dtypes: list[np.dtype[Any]] = [
-        np.dtype(np.float16),
-        np.dtype(np.float32),
-        np.dtype(np.float64),
-        np.dtype(np.complex64),
-        np.dtype(np.complex128),
-    ]
-    if a.dtype in allowed_dtypes:
+    if a.dtype.kind in ("f", "c"):
         unary_reduction_code = UnaryRedCode.NANSUM
     else:
         unary_reduction_code = UnaryRedCode.SUM
 
-    index_array = a._perform_unary_reduction(
+    return a._perform_unary_reduction(
         unary_reduction_code,
         a,
         axis=axis,
@@ -5956,8 +5845,6 @@ def nansum(
         initial=initial,
         where=where,
     )
-
-    return index_array
 
 
 # Exponents and logarithms
