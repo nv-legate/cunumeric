@@ -244,12 +244,9 @@ def test_randint_uint(low, high, dtype, size):
     assert np.max(arr_num) <= high
 
 
-@pytest.mark.xfail(
-    reason="NumPy returns scalar, cuNumeric returns 1-dim array"
-)
 def test_randint_size_none():
     arr_np, arr_num = gen_random_from_both("randint", 1234, size=None)
-    assert np.isscalar(arr_np) == np.isscalar(arr_num)
+    assert np.ndim(arr_np) == np.ndim(arr_num)
 
 
 def test_randint_size_zero():
@@ -309,7 +306,7 @@ def test_random_sample_basic_stats(size):
 )
 def test_random_sample_size_none():
     arr_np, arr_num = gen_random_from_both("random_sample", size=None)
-    assert np.isscalar(arr_np) == num.isscalar(arr_num)
+    assert np.ndim(arr_np) == np.ndim(arr_num)
 
 
 @pytest.mark.parametrize("size", LARGE_RNG_SIZES, ids=str)
