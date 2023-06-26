@@ -84,7 +84,12 @@ NUMPY_CONFIGS = [
     SectionConfig("Module-Level", None, types=FUNCTIONS),
     SectionConfig("Ufuncs", None, types=UFUNCS),
     SectionConfig("Multi-Dimensional Array", "ndarray", types=METHODS),
-    SectionConfig("Linear Algebra", "linalg", types=FUNCTIONS),
+    # numpy 1.25 introduced private _ArrayFunctionDispatcher for LA funcs
+    SectionConfig(
+        "Linear Algebra",
+        "linalg",
+        types=FUNCTIONS + (type(numpy.linalg.cholesky),),
+    ),
     SectionConfig("Discrete Fourier Transform", "fft", types=FUNCTIONS),
     SectionConfig("Random Sampling", "random", types=FUNCTIONS),
 ]
