@@ -38,8 +38,8 @@ _UNARY_RED_OPS_EXCEPTIONS_HANDLED = (
 )
 
 
-def get_non_nan_unary_red_code_if_applicable(
-    kind: str, unary_reduction_code: UnaryRedCode
+def get_non_nan_unary_red_code(
+    kind: str, unary_red_code: UnaryRedCode
 ) -> UnaryRedCode:
     """
     Return the equivalent non-nan reduction op codes if the datatype
@@ -47,7 +47,7 @@ def get_non_nan_unary_red_code_if_applicable(
     is disallowed, which is currently complex64 and complex128.
     """
 
-    assert unary_reduction_code in _EQUIVALENT_NON_NAN_UNARY_RED_OPS
+    assert unary_red_code in _EQUIVALENT_NON_NAN_UNARY_RED_OPS
 
     # complex datatype is not supported
     if kind == "c":
@@ -58,9 +58,9 @@ def get_non_nan_unary_red_code_if_applicable(
     # use NaN API if the datatype is floating point type otherwise
     # use equivalent non-NaN API
     if kind == "f":
-        return unary_reduction_code
+        return unary_red_code
 
-    return _EQUIVALENT_NON_NAN_UNARY_RED_OPS[unary_reduction_code]
+    return _EQUIVALENT_NON_NAN_UNARY_RED_OPS[unary_red_code]
 
 
 def handle_nan_unary_red_exceptions(

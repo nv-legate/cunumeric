@@ -36,7 +36,7 @@ from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
 from ._unary_red_utils import (
-    get_non_nan_unary_red_code_if_applicable,
+    get_non_nan_unary_red_code,
     handle_nan_unary_red_exceptions,
 )
 from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
@@ -5378,12 +5378,12 @@ def nanargmax(
     if a.size == 0:
         raise ValueError("attempt to get nanargmax of an empty sequence")
 
-    unary_reduction_code = get_non_nan_unary_red_code_if_applicable(
+    unary_red_code = get_non_nan_unary_red_code(
         a.dtype.kind, UnaryRedCode.NANARGMAX
     )
 
     index_array = a._perform_unary_reduction(
-        unary_reduction_code,
+        unary_red_code,
         a,
         axis=axis,
         out=out,
@@ -5392,9 +5392,7 @@ def nanargmax(
     )
 
     identity = np.iinfo(np.int64).min
-    handle_nan_unary_red_exceptions(
-        index_array, unary_reduction_code, identity
-    )
+    handle_nan_unary_red_exceptions(index_array, unary_red_code, identity)
 
     return index_array
 
@@ -5446,12 +5444,12 @@ def nanargmin(
     if a.size == 0:
         raise ValueError("attempt to get nanargmin of an empty sequence")
 
-    unary_reduction_code = get_non_nan_unary_red_code_if_applicable(
+    unary_red_code = get_non_nan_unary_red_code(
         a.dtype.kind, UnaryRedCode.NANARGMIN
     )
 
     index_array = a._perform_unary_reduction(
-        unary_reduction_code,
+        unary_red_code,
         a,
         axis=axis,
         out=out,
@@ -5460,9 +5458,7 @@ def nanargmin(
     )
 
     identity = np.iinfo(np.int64).min
-    handle_nan_unary_red_exceptions(
-        index_array, unary_reduction_code, identity
-    )
+    handle_nan_unary_red_exceptions(index_array, unary_red_code, identity)
 
     return index_array
 
@@ -5538,12 +5534,12 @@ def nanmin(
     Multiple GPUs, Multiple CPUs
     """
 
-    unary_reduction_code = get_non_nan_unary_red_code_if_applicable(
+    unary_red_code = get_non_nan_unary_red_code(
         a.dtype.kind, UnaryRedCode.NANMIN
     )
 
     out_array = a._perform_unary_reduction(
-        unary_reduction_code,
+        unary_red_code,
         a,
         axis=axis,
         out=out,
@@ -5554,9 +5550,7 @@ def nanmin(
 
     if a.dtype.kind == "f":
         identity = np.finfo(a.dtype).max
-        handle_nan_unary_red_exceptions(
-            out_array, unary_reduction_code, identity
-        )
+        handle_nan_unary_red_exceptions(out_array, unary_red_code, identity)
 
     return out_array
 
@@ -5633,12 +5627,12 @@ def nanmax(
     Multiple GPUs, Multiple CPUs
     """
 
-    unary_reduction_code = get_non_nan_unary_red_code_if_applicable(
+    unary_red_code = get_non_nan_unary_red_code(
         a.dtype.kind, UnaryRedCode.NANMAX
     )
 
     out_array = a._perform_unary_reduction(
-        unary_reduction_code,
+        unary_red_code,
         a,
         axis=axis,
         out=out,
@@ -5649,9 +5643,7 @@ def nanmax(
 
     if a.dtype.kind == "f":
         identity = np.finfo(a.dtype).min
-        handle_nan_unary_red_exceptions(
-            out_array, unary_reduction_code, identity
-        )
+        handle_nan_unary_red_exceptions(out_array, unary_red_code, identity)
 
     return out_array
 
@@ -5736,12 +5728,12 @@ def nanprod(
         )
 
     if a.dtype.kind in ("f", "c"):
-        unary_reduction_code = UnaryRedCode.NANPROD
+        unary_red_code = UnaryRedCode.NANPROD
     else:
-        unary_reduction_code = UnaryRedCode.PROD
+        unary_red_code = UnaryRedCode.PROD
 
     return a._perform_unary_reduction(
-        unary_reduction_code,
+        unary_red_code,
         a,
         axis=axis,
         dtype=dtype,
@@ -5831,12 +5823,12 @@ def nansum(
     # so there are no "disallowed types" for this API
 
     if a.dtype.kind in ("f", "c"):
-        unary_reduction_code = UnaryRedCode.NANSUM
+        unary_red_code = UnaryRedCode.NANSUM
     else:
-        unary_reduction_code = UnaryRedCode.SUM
+        unary_red_code = UnaryRedCode.SUM
 
     return a._perform_unary_reduction(
-        unary_reduction_code,
+        unary_red_code,
         a,
         axis=axis,
         dtype=dtype,
