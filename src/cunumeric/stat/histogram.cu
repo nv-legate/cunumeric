@@ -22,6 +22,8 @@
 #include "cunumeric/stat/histogram.cuh"
 #include "cunumeric/stat/histogram_impl.h"
 
+#include "cunumeric/utilities/thrust_util.h"
+
 #include <tuple>
 
 namespace cunumeric {
@@ -92,19 +94,34 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
     CHECK_CUDA(
       cudaMemcpyAsync(src_copy.ptr(0), src_ptr, src_size, cudaMemcpyDeviceToDevice, stream));
 
-    auto&& [weights_size, weights_copy, wights_ptr] =
+    auto&& [weights_size, weights_copy, weights_ptr] =
       detail::make_accessor_copy(weights, weights_rect);
     CHECK_CUDA(cudaMemcpyAsync(
       weights_copy.ptr(0), weights_ptr, weights_size, cudaMemcpyDeviceToDevice, stream));
 
     auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
 
-    // ... at the end of extracting / creating copies:
-    //
+    auto num_intervals = bin_size - 1;
+    Buffer<WeightType> local_result =
+      create_buffer<WeightType>(num_intervals, Legion::Memory::Kind::GPU_FB_MEM);
+
+    WeightType* local_result_ptr = local_result.ptr(0);
+
     CHECK_CUDA(cudaStreamSynchronize(stream));
-    // TODO:
+
+    detail::histogram_weights(DEFAULT_POLICY.on(stream),
+                              src_ptr,
+                              src_size,
+                              bins_ptr,
+                              num_intervals,
+                              local_result_ptr,
+                              weights_ptr,
+                              false,
+                              stream);
+
+    CHECK_CUDA(cudaStreamSynchronize(stream));
+    // TODO: fold into RD result:
     //
-    CHECK_CUDA_STREAM(stream);
   }
 };
 
