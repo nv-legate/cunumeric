@@ -76,7 +76,8 @@ class SectionConfig:
     names: tuple[str, ...] | None = None
 
 
-FUNCTIONS = (FunctionType, BuiltinFunctionType)
+# numpy 1.25 introduced private _ArrayFunctionDispatcher, handle gently
+FUNCTIONS = (FunctionType, BuiltinFunctionType, type(numpy.broadcast))
 METHODS = (MethodType, MethodDescriptorType)
 UFUNCS = (numpy.ufunc,)
 
@@ -84,12 +85,7 @@ NUMPY_CONFIGS = [
     SectionConfig("Module-Level", None, types=FUNCTIONS),
     SectionConfig("Ufuncs", None, types=UFUNCS),
     SectionConfig("Multi-Dimensional Array", "ndarray", types=METHODS),
-    # numpy 1.25 introduced private _ArrayFunctionDispatcher for LA funcs
-    SectionConfig(
-        "Linear Algebra",
-        "linalg",
-        types=FUNCTIONS + (type(numpy.linalg.cholesky),),
-    ),
+    SectionConfig("Linear Algebra", "linalg", types=FUNCTIONS),
     SectionConfig("Discrete Fourier Transform", "fft", types=FUNCTIONS),
     SectionConfig("Random Sampling", "random", types=FUNCTIONS),
 ]
