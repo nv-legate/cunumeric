@@ -29,14 +29,29 @@
 namespace cunumeric {
 namespace detail {
 
-// accessor (size, pointer) extractor:
+// RO accessor (size, pointer) extractor:
 //
 template <typename VAL>
-std::tuple<size_t, const VAL*> get_accessor_ptr(const AccessorRO<VAL, 1>& src,
+std::tuple<size_t, const VAL*> get_accessor_ptr(const AccessorRO<VAL, 1>& src_acc,
                                                 const Rect<1>& src_rect)
 {
   size_t src_strides[1];
-  auto src_acc       = src.read_accessor<VAL, 1>(src_rect);
+  const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
+  assert(src_strides[0] == 1);
+  //
+  // const VAL* src_ptr: need to create a copy with create_buffer(...);
+  // since src will get sorted (in-place);
+  //
+  size_t src_size = src_rect.hi - src_rec.lo + 1;
+  return std::make_tuple(src_size, src_ptr);
+}
+// RD accessor (size, pointer) extractor:
+//
+template <typename VAL>
+std::tuple<size_t, VAL*> get_accessor_ptr(const AccessorRD<SumReduction<VAL>, true, 1>& src_acc,
+                                          const Rect<1>& src_rect)
+{
+  size_t src_strides[1];
   const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
   assert(src_strides[0] == 1);
   //
@@ -49,11 +64,10 @@ std::tuple<size_t, const VAL*> get_accessor_ptr(const AccessorRO<VAL, 1>& src,
 // accessor copy utility:
 //
 template <typename VAL>
-std::tuple<size_t, Buffer<VAL>, const VAL*> make_accessor_copy(const AccessorRO<VAL, 1>& src,
+std::tuple<size_t, Buffer<VAL>, const VAL*> make_accessor_copy(const AccessorRO<VAL, 1>& src_acc,
                                                                const Rect<1>& src_rect)
 {
   size_t src_strides[1];
-  auto src_acc       = src.read_accessor<VAL, 1>(src_rect);
   const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
   assert(src_strides[0] == 1);
   //
@@ -107,6 +121,8 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
     WeightType* local_result_ptr = local_result.ptr(0);
 
+    auto&& [global_result_size, global_result_ptr] = detail::get_accessor_ptr(result, result_rect);
+
     CHECK_CUDA(cudaStreamSynchronize(stream));
 
     detail::histogram_weights(DEFAULT_POLICY.on(stream),
@@ -120,8 +136,20 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
                               stream);
 
     CHECK_CUDA(cudaStreamSynchronize(stream));
-    // TODO: fold into RD result:
+
+    // fold into RD result:
     //
+    assert(num_intervals == global_result_size);
+
+    thrust::transform(
+      DEFAULT_POLICY.on(stream),
+      local_result_ptr,
+      local_result_ptr + num_intervals,
+      global_result_ptr,
+      global_result_ptr,
+      [] __device__(auto local_value, auto global_value) { return local_value + global_value; });
+
+    CHECK_CUDA(cudaStreamSynchronize(stream));
   }
 };
 
