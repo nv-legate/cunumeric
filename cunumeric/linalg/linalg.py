@@ -645,7 +645,7 @@ def _solve(
     if b.dtype.kind not in ("f", "c"):
         b = b.astype("float64")
     if a.dtype != b.dtype:
-        dtype = np.find_common_type([a.dtype, b.dtype], [])
+        dtype = np.result_type(a.dtype, b.dtype)
         a = a.astype(dtype)
         b = b.astype(dtype)
 

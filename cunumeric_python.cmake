@@ -55,6 +55,19 @@ add_library(cunumeric_python INTERFACE)
 add_library(cunumeric::cunumeric_python ALIAS cunumeric_python)
 target_link_libraries(cunumeric_python INTERFACE legate::core)
 
+# ############################################################################
+# - conda environment --------------------------------------------------------
+
+rapids_cmake_support_conda_env(conda_env)
+
+# We're building python extension libraries, which must always be installed
+# under lib/, even if the system normally uses lib64/. Rapids-cmake currently
+# doesn't realize this when we're going through scikit-build, see
+# https://github.com/rapidsai/rapids-cmake/issues/426
+if(TARGET conda_env)
+  set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
+
 ##############################################################################
 # - install targets ----------------------------------------------------------
 

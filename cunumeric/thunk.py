@@ -683,6 +683,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def broadcast_to(self, shape: NdShape) -> NumPyThunk:
+        ...
+
+    @abstractmethod
     def argwhere(self) -> NumPyThunk:
         ...
 
