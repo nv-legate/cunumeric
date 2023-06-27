@@ -42,7 +42,7 @@ std::tuple<size_t, const VAL*> get_accessor_ptr(const AccessorRO<VAL, 1>& src_ac
   // const VAL* src_ptr: need to create a copy with create_buffer(...);
   // since src will get sorted (in-place);
   //
-  size_t src_size = src_rect.hi - src_rec.lo + 1;
+  size_t src_size = src_rect.hi - src_rect.lo + 1;
   return std::make_tuple(src_size, src_ptr);
 }
 // RD accessor (size, pointer) extractor:
@@ -52,13 +52,13 @@ std::tuple<size_t, VAL*> get_accessor_ptr(const AccessorRD<SumReduction<VAL>, tr
                                           const Rect<1>& src_rect)
 {
   size_t src_strides[1];
-  const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
+  VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
   assert(src_strides[0] == 1);
   //
   // const VAL* src_ptr: need to create a copy with create_buffer(...);
   // since src will get sorted (in-place);
   //
-  size_t src_size = src_rect.hi - src_rec.lo + 1;
+  size_t src_size = src_rect.hi - src_rect.lo + 1;
   return std::make_tuple(src_size, src_ptr);
 }
 // accessor copy utility:
@@ -74,7 +74,7 @@ std::tuple<size_t, Buffer<VAL>, const VAL*> make_accessor_copy(const AccessorRO<
   // const VAL* src_ptr: need to create a copy with create_buffer(...);
   // since src will get sorted (in-place);
   //
-  size_t src_size      = src_rect.hi - src_rec.lo + 1;
+  size_t src_size      = src_rect.hi - src_rect.lo + 1;
   Buffer<VAL> src_copy = create_buffer<VAL>(src_size, Legion::Memory::Kind::GPU_FB_MEM);
   return std::make_tuple(src_size, src_copy, src_ptr);
 }
@@ -115,7 +115,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
     auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
 
-    auto num_intervals = bin_size - 1;
+    auto num_intervals = bins_size - 1;
     Buffer<WeightType> local_result =
       create_buffer<WeightType>(num_intervals, Legion::Memory::Kind::GPU_FB_MEM);
 
@@ -155,7 +155,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
 /*static*/ void HistogramTask::gpu_variant(TaskContext& context)
 {
-  bincount_template<VariantKind::GPU>(context);
+  histogram_template<VariantKind::GPU>(context);
 }
 
 }  // namespace cunumeric

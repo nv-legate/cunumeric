@@ -256,6 +256,7 @@ if(Legion_USE_CUDA)
     src/cunumeric/transform/flip.cu
     src/cunumeric/arg_redop_register.cu
     src/cunumeric/cudalibs.cu
+    src/cunumeric/stat/histogram.cu
   )
 endif()
 
