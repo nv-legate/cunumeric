@@ -23,14 +23,15 @@ from .array import ndarray
 from .config import UnaryRedCode
 from .runtime import runtime
 
-_EQUIVALENT_NON_NAN_UNARY_RED_OPS: dict[UnaryRedCode, UnaryRedCode] = {
+# corresponding non-nan unary reduction ops for nan unary reduction ops
+_EQUIVALENT_NON_NAN_OPS: dict[UnaryRedCode, UnaryRedCode] = {
     UnaryRedCode.NANARGMAX: UnaryRedCode.ARGMAX,
     UnaryRedCode.NANARGMIN: UnaryRedCode.ARGMIN,
     UnaryRedCode.NANMAX: UnaryRedCode.MAX,
     UnaryRedCode.NANMIN: UnaryRedCode.MIN,
 }
 
-_UNARY_RED_OPS_EXCEPTIONS_HANDLED = (
+_EXCEPTIONS_HANDLED_OPS = (
     UnaryRedCode.NANMIN,
     UnaryRedCode.NANMAX,
     UnaryRedCode.NANARGMIN,
@@ -47,7 +48,7 @@ def get_non_nan_unary_red_code(
     is disallowed, which is currently complex64 and complex128.
     """
 
-    assert unary_red_code in _EQUIVALENT_NON_NAN_UNARY_RED_OPS
+    assert unary_red_code in _EQUIVALENT_NON_NAN_OPS
 
     # complex datatype is not supported
     if kind == "c":
@@ -60,7 +61,7 @@ def get_non_nan_unary_red_code(
     if kind == "f":
         return unary_red_code
 
-    return _EQUIVALENT_NON_NAN_UNARY_RED_OPS[unary_red_code]
+    return _EQUIVALENT_NON_NAN_OPS[unary_red_code]
 
 
 def handle_nan_unary_red_exceptions(
@@ -71,7 +72,7 @@ def handle_nan_unary_red_exceptions(
     issue a RuntimeWarning.
     """
 
-    if op not in _UNARY_RED_OPS_EXCEPTIONS_HANDLED:
+    if op not in _EXCEPTIONS_HANDLED_OPS:
         return
 
     if identity in out:

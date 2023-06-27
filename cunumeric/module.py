@@ -5391,8 +5391,9 @@ def nanargmax(
         res_dtype=np.dtype(np.int64),
     )
 
-    identity = np.iinfo(np.int64).min
-    handle_nan_unary_red_exceptions(index_array, unary_red_code, identity)
+    if a.dtype.kind == "f":
+        identity = np.iinfo(np.int64).min
+        handle_nan_unary_red_exceptions(index_array, unary_red_code, identity)
 
     return index_array
 
@@ -5457,8 +5458,9 @@ def nanargmin(
         res_dtype=np.dtype(np.int64),
     )
 
-    identity = np.iinfo(np.int64).min
-    handle_nan_unary_red_exceptions(index_array, unary_red_code, identity)
+    if a.dtype.kind == "f":
+        identity = np.iinfo(np.int64).min
+        handle_nan_unary_red_exceptions(index_array, unary_red_code, identity)
 
     return index_array
 
