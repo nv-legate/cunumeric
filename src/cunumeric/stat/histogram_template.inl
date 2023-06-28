@@ -26,6 +26,11 @@ using namespace legate;
 template <VariantKind KIND, Type::Code CODE>
 struct HistogramImplBody;
 
+template <Type::Code CODE>
+inline constexpr bool is_candidate =
+  (is_floating_point<CODE>::value) &&
+  (!std::is_same_v<typename LegateTypeOf<CODE>::type, __half>);  // || is_integral<CODE>::value
+
 template <VariantKind KIND>
 struct HistogramImpl {
   // for now, it has been decided to hardcode these types:
@@ -33,9 +38,7 @@ struct HistogramImpl {
   using BinType    = double;
   using WeightType = double;
 
-  template <
-    Type::Code CODE,
-    std::enable_if_t</*is_integral<CODE>::value ||*/ is_floating_point<CODE>::value>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<is_candidate<CODE>>* = nullptr>
   void operator()(HistogramArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -56,9 +59,7 @@ struct HistogramImpl {
       src, src_rect, bins, bins_rect, weights, weights_rect, result, result_rect);
   }
 
-  template <Type::Code CODE,
-            std::enable_if_t<
-              /*(!is_integral<CODE>::value) &&*/ (!is_floating_point<CODE>::value)>* = nullptr>
+  template <Type::Code CODE, std::enable_if_t<!is_candidate<CODE>>* = nullptr>
   void operator()(HistogramArgs& args) const
   {
     assert(false);
