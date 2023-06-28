@@ -126,15 +126,36 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
     CHECK_CUDA(cudaStreamSynchronize(stream));
 
-    detail::histogram_weights(thrust::device,  // DEFAULT_POLICY.on(stream),
-                              src_ptr,
+#if 0
+    {
+      // VAL* src_ptr                 = nullptr;
+      // size_t src_size              = 0;
+      // WeightType* bins_ptr         = nullptr;
+      // size_t num_intervals         = 0;
+      // WeightType* local_result_ptr = nullptr;
+      // WeightType* weights_ptr = nullptr;
+
+      detail::histogram_proto(DEFAULT_POLICY.on(stream),
+                              src_copy.ptr(0),  // src_ptr compiled...why?
                               src_size,
                               bins_ptr,
                               num_intervals,
                               local_result_ptr,
-                              weights_ptr,
-                              false,
+                              weights_copy.ptr(0),  // weights_ptr,  // <- PROBLEM here
                               stream_);
+    }
+#endif
+
+    // #if 0
+    detail::histogram_weights(DEFAULT_POLICY.on(stream),
+                              src_copy.ptr(0),
+                              src_size,
+                              bins_ptr,
+                              num_intervals,
+                              local_result_ptr,
+                              weights_copy.ptr(0),
+                              stream_);
+    // #endif
 
     CHECK_CUDA(cudaStreamSynchronize(stream));
 

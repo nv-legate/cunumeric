@@ -68,6 +68,18 @@ struct transform_op_t {
   weight_t Sw_{0};
 };
 
+template <typename exe_policy_t, typename array_t, typename bin_t, typename weight_t>
+void histogram_proto(exe_policy_t exe_pol,
+                     array_t* ptr_src,  // source array, a
+                     size_t n_samples,
+                     bin_t const* ptr_over,          // bins array,
+                     size_t n_intervals,             // |bins| - 1
+                     weight_t* ptr_hist,             // result; pre-allocated, sz = n_intervals
+                     weight_t* ptr_w     = nullptr,  // weights array, w
+                     cudaStream_t stream = nullptr)
+{
+}
+
 template <typename exe_policy_t,
           typename array_t,
           typename bin_t,
