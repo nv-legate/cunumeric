@@ -20,6 +20,10 @@ env:
   PYTHONUNBUFFERED: 1
 jobs:
   build:
+    permissions:
+      id-token: write # This is required for configure-aws-credentials
+      contents: read  # This is required for actions/checkout
+
     if: ${{ github.repository == 'nv-legate/cunumeric' }}
     runs-on: self-hosted
     steps:
@@ -52,7 +56,7 @@ jobs:
           /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/cunumeric
           rm -rf ngc-artifacts || true
-          ./build-separate.sh > ${COMMIT}-build.log 2>&1
+          ./build-separate-ucx.sh > ${COMMIT}-build.log 2>&1
       - name: Process Output
         run: |
           cd legate-ci/github-ci/cunumeric
@@ -72,15 +76,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: 1 CPU test, options: --cpus 1 --unit --debug, log: cpu}
-          - {name: 2 CPUs test, options: --cpus 2 --debug, log: cpus}
-          - {name: GPU test, options: --use cuda --gpus 1 --debug, log: gpu}
-          - {name: 2 GPUs test, options: --use cuda --gpus 2 --debug, log: gpus}
-          - {name: OpenMP test, options: --use openmp --omps 1 --ompthreads 2 --debug, log: omp}
-          - {name: 2 NUMA OpenMPs test, options: --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug, log: omps}
-          - {name: Eager execution test, options: --use eager --debug, log: eager}
-          - {name: mypy, options: mypy, log: mypy}
-          - {name: documentation, options: docs, log: docs}
+          - {name: 1 CPU test, options: --ranks-per-node 2 --launcher mpirun --cpus 1 --unit --debug, log: cpu, instance: 1}
+          - {name: 2 CPUs test, options: --ranks-per-node 2 --launcher mpirun --cpus 2 --debug, log: cpus, instance: 1}
+          - {name: GPU test, options: --ranks-per-node 2 --launcher mpirun --use cuda --gpus 1 --debug, log: gpu, instance: 2}
+          - {name: 2 GPUs test, options: --ranks-per-node 2 --launcher mpirun --use cuda --gpus 2 --debug, log: gpus, instance: 4}
+          - {name: OpenMP test, options: --ranks-per-node 2 --launcher mpirun --use openmp --omps 1 --ompthreads 2 --debug, log: omp, instance: 1}
+          - {name: 2 NUMA OpenMPs test, options: --ranks-per-node 2 --launcher mpirun --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug, log: omps, instance: 1}
+          - {name: Eager execution test, options: --use eager --debug, log: eager, instance: 1}
     name: ${{ matrix.name }}
     steps:
       - name: Dump GitHub context
@@ -121,7 +123,7 @@ jobs:
         run: |
           cd legate-ci/github-ci/cunumeric
           [[ "${{ matrix.name }}" == "Eager"* ]] && export PYTHONFAULTHANDLER=1
-          ./test.sh ${{ matrix.options }} > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
+          INSTANCE=${{ matrix.instance }} ./test.sh ${{ matrix.options }} > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
       - name: Process output
         if: always()
         run: |
