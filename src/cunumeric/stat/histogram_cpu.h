@@ -25,7 +25,6 @@
 #include <cassert>
 #include <iostream>
 #include <numeric>
-#include <optional>
 #include <tuple>
 #include <vector>
 
