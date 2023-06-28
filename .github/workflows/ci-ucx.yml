@@ -56,7 +56,7 @@ jobs:
           /data/github-runner/legate-bin/setup.sh
           cd legate-ci/github-ci/cunumeric
           rm -rf ngc-artifacts || true
-          ./build-separate-ucx.sh > ${COMMIT}-build.log 2>&1
+          DOCKERFILE_EXT=.separate.ucx ./build.sh > ${COMMIT}-build.log 2>&1
       - name: Process Output
         run: |
           cd legate-ci/github-ci/cunumeric
