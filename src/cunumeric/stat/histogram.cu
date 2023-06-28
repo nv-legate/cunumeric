@@ -102,7 +102,8 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
                   const AccessorRD<SumReduction<WeightType>, true, 1>& result,
                   const Rect<1>& result_rect) const
   {
-    auto stream = get_cached_stream();
+    auto stream          = get_cached_stream();
+    cudaStream_t stream_ = static_cast<cudaStream_t>(stream);
 
     auto&& [src_size, src_copy, src_ptr] = detail::make_accessor_copy(src, src_rect);
     CHECK_CUDA(
@@ -125,7 +126,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
     CHECK_CUDA(cudaStreamSynchronize(stream));
 
-    detail::histogram_weights(DEFAULT_POLICY.on(stream),
+    detail::histogram_weights(thrust::device,  // DEFAULT_POLICY.on(stream),
                               src_ptr,
                               src_size,
                               bins_ptr,
@@ -133,7 +134,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
                               local_result_ptr,
                               weights_ptr,
                               false,
-                              stream);
+                              stream_);
 
     CHECK_CUDA(cudaStreamSynchronize(stream));
 

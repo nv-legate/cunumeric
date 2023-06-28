@@ -28,7 +28,14 @@ struct HistogramImplBody;
 
 template <VariantKind KIND>
 struct HistogramImpl {
-  template <Type::Code CODE>
+  // for now, it has been decided to hardcode these types:
+  //
+  using BinType    = double;
+  using WeightType = double;
+
+  template <
+    Type::Code CODE,
+    std::enable_if_t</*is_integral<CODE>::value ||*/ is_floating_point<CODE>::value>* = nullptr>
   void operator()(HistogramArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -42,11 +49,19 @@ struct HistogramImpl {
 
     auto result  = args.result.reduce_accessor<SumReduction<double>, true, 1>(result_rect);
     auto src     = args.src.read_accessor<VAL, 1>(src_rect);
-    auto bins    = args.bins.read_accessor<VAL, 1>(bins_rect);
-    auto weights = args.weights.read_accessor<VAL, 1>(weights_rect);
+    auto bins    = args.bins.read_accessor<BinType, 1>(bins_rect);
+    auto weights = args.weights.read_accessor<WeightType, 1>(weights_rect);
 
     HistogramImplBody<KIND, CODE>()(
       src, src_rect, bins, bins_rect, weights, weights_rect, result, result_rect);
+  }
+
+  template <Type::Code CODE,
+            std::enable_if_t<
+              /*(!is_integral<CODE>::value) &&*/ (!is_floating_point<CODE>::value)>* = nullptr>
+  void operator()(HistogramArgs& args) const
+  {
+    assert(false);
   }
 };
 
