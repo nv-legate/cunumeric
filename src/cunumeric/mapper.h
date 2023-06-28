@@ -18,8 +18,6 @@
 
 #include "cunumeric/cunumeric.h"
 
-#include "core/mapping/base_mapper.h"
-
 namespace cunumeric {
 
 class CuNumericMapper : public legate::mapping::Mapper {

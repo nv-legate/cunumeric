@@ -20,9 +20,10 @@ from legate.core import LEGATE_MAX_DIM
 import cunumeric as num
 
 
-def test_diag_indices_default_ndim():
-    a_np = np.diag_indices(10)
-    a_num = num.diag_indices(10)
+@pytest.mark.parametrize("n", [10, -10.5, -1])
+def test_diag_indices_default_ndim(n):
+    a_np = np.diag_indices(n)
+    a_num = num.diag_indices(n)
     assert np.array_equal(a_np, a_num)
 
 
@@ -42,11 +43,6 @@ def test_diag_indices(n, ndim):
 
 
 class TestDiagIndicesErrors:
-    @pytest.mark.parametrize("n", [-10.5, -1])
-    def test_negative_n(self, n):
-        with pytest.raises(ValueError):
-            num.diag_indices(n)
-
     @pytest.mark.xfail
     @pytest.mark.parametrize("n", [-10.5, -1])
     def test_negative_n_DIVERGENCE(self, n):
