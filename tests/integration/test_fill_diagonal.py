@@ -24,44 +24,6 @@ import cunumeric as num
 WRAP = [True, False]
 
 
-@pytest.mark.parametrize(
-    "arr",
-    (
-        None,
-        -3,
-        [0],
-        (5),
-    ),
-)
-def test_arr_invalid(arr):
-    arr_np = np.array(arr)
-    arr_num = num.array(arr)
-    expected_exc = ValueError
-    with pytest.raises(expected_exc):
-        np.fill_diagonal(arr_np, 10)
-
-    with pytest.raises(expected_exc):
-        num.fill_diagonal(arr_num, 10)
-
-
-@pytest.mark.xfail
-def test_val_none():
-    shape = (3, 3, 3)
-    val = None
-    np_array = mk_seq_array(np, shape)
-    num_array = num.array(np_array)
-
-    expected_exc = TypeError
-    with pytest.raises(expected_exc):
-        np.fill_diagonal(np_array, val)
-    # Numpy raises TypeError: int() argument must be a string,
-    # a bytes-like object or a real number, not 'NoneType'
-    with pytest.raises(expected_exc):
-        num.fill_diagonal(num_array, val)
-    # cuNumeric raises AttributeError:
-    # 'NoneType' object has no attribute 'size'
-
-
 @pytest.mark.parametrize("wrap", (None, -100, 0, 100, "hi", [2, 3]))
 def test_wrap(wrap):
     shape = (3, 3, 3)
@@ -124,6 +86,43 @@ def test_tall_matrices(shape, vshape, wrap):
     np.fill_diagonal(a_np, v_np, wrap)
     num.fill_diagonal(a_num, v_num, wrap)
     assert np.array_equal(a_np, a_num)
+
+
+class TestFillDiagonalErrors:
+    def test_dimension_mismatch(self):
+        expected_exc = ValueError
+        arr = np.empty((1, 2, 3))
+        with pytest.raises(expected_exc):
+            np.fill_diagonal(arr, 5)
+        with pytest.raises(expected_exc):
+            num.fill_diagonal(arr, 5)
+
+    @pytest.mark.parametrize("arr", (None, -3, [0], (5)))
+    def test_arr_invalid(self, arr):
+        arr_np = np.array(arr)
+        arr_num = num.array(arr)
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            np.fill_diagonal(arr_np, 10)
+        with pytest.raises(expected_exc):
+            num.fill_diagonal(arr_num, 10)
+
+    @pytest.mark.xfail
+    def test_val_none(self):
+        shape = (3, 3, 3)
+        val = None
+        np_array = mk_seq_array(np, shape)
+        num_array = num.array(np_array)
+
+        expected_exc = TypeError
+        with pytest.raises(expected_exc):
+            np.fill_diagonal(np_array, val)
+        # Numpy raises TypeError: int() argument must be a string,
+        # a bytes-like object or a real number, not 'NoneType'
+        with pytest.raises(expected_exc):
+            num.fill_diagonal(num_array, val)
+        # cuNumeric raises AttributeError:
+        # 'NoneType' object has no attribute 'size'
 
 
 if __name__ == "__main__":
