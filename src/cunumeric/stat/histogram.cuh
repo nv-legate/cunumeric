@@ -41,14 +41,6 @@
 
 #include "cunumeric/stat/histogram_gen.h"
 
-// TODO: remove:
-//
-#if THRUST_VERSION >= 101600
-#pragma message "::par_nosync!"
-#else
-#pragma message "only ::par!"
-#endif
-
 namespace cunumeric {
 namespace detail {
 template <typename element_t>
