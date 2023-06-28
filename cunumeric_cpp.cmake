@@ -160,6 +160,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/mapper.cc
   src/cunumeric/cephes/chbevl.cc
   src/cunumeric/cephes/i0.cc
+  src/cunumeric/stat/histogram.cc
 )
 
 if(Legion_USE_OpenMP)
