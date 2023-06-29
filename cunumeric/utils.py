@@ -22,6 +22,7 @@ from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
 
 import legate.core.types as ty
 import numpy as np
+import pyarrow as pa
 
 from .types import NdShape
 
@@ -40,6 +41,25 @@ SUPPORTED_DTYPES = {
     np.dtype(np.float64): ty.float64,
     np.dtype(np.complex64): ty.complex64,
     np.dtype(np.complex128): ty.complex128,
+}
+
+CUNUMERIC_TYPE_MAP = {
+    bool: ty.bool_,
+    int: ty.int64,
+    float: ty.float64,
+    complex: ty.complex128,
+    pa.bool_: ty.bool_,
+    pa.int8: ty.int8,
+    pa.int16: ty.int16,
+    pa.int32: ty.int32,
+    pa.int64: ty.int64,  # np.int is int
+    pa.uint8: ty.uint8,
+    pa.uint16: ty.uint16,
+    pa.uint32: ty.uint32,
+    pa.uint64: ty.uint64,  # np.uint is np.uint64
+    pa.float16: ty.float16,
+    pa.float32: ty.float32,
+    pa.float64: ty.float64,
 }
 
 
@@ -92,6 +112,12 @@ def find_last_user_frames(top_only: bool = True) -> str:
         frames.append(curr)
         curr = curr.f_back
     return "|".join(get_line_number_from_frame(f) for f in frames)
+
+
+def convert_to_cunumeric_dtype(dtype: Any) -> Any:
+    if dtype in CUNUMERIC_TYPE_MAP:
+        return CUNUMERIC_TYPE_MAP[dtype]
+    raise TypeError("dtype is not supported")
 
 
 def calculate_volume(shape: NdShape) -> int:

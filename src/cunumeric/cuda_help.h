@@ -28,6 +28,7 @@
 #include <cufftXt.h>
 #include <cutensor.h>
 #include <nccl.h>
+#include <cuda.h>
 
 #define THREADS_PER_BLOCK 128
 #define MIN_CTAS_PER_SM 4
@@ -115,6 +116,8 @@ cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();
 cufftContext get_cufft_plan(cufftType type, const legate::DomainPoint& size);
+void store_udf(size_t hash, CUfunction func);
+CUfunction get_udf(size_t hash);
 
 __host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
 {
@@ -388,5 +391,4 @@ __device__ __forceinline__ void store_streaming<double>(double* ptr, double valu
 {
   asm volatile("st.global.cs.f64 [%0], %1;" : : "l"(ptr), "d"(value) : "memory");
 }
-
 }  // namespace cunumeric

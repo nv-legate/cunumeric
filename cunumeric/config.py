@@ -143,9 +143,11 @@ class _CunumericSharedLib:
     CUNUMERIC_CONVERT_NAN_PROD: int
     CUNUMERIC_CONVERT_NAN_SUM: int
     CUNUMERIC_CONVOLVE: int
+    CUNUMERIC_CREATE_CU_KERNEL: int
     CUNUMERIC_DIAG: int
     CUNUMERIC_DOT: int
     CUNUMERIC_EYE: int
+    CUNUMERIC_EVAL_UDF: int
     CUNUMERIC_FFT: int
     CUNUMERIC_FFT_C2C: int
     CUNUMERIC_FFT_C2R: int
@@ -332,9 +334,11 @@ class CuNumericOpCode(IntEnum):
     CONTRACT = _cunumeric.CUNUMERIC_CONTRACT
     CONVERT = _cunumeric.CUNUMERIC_CONVERT
     CONVOLVE = _cunumeric.CUNUMERIC_CONVOLVE
+    CREATE_CU_KERNEL = _cunumeric.CUNUMERIC_CREATE_CU_KERNEL
     DIAG = _cunumeric.CUNUMERIC_DIAG
     DOT = _cunumeric.CUNUMERIC_DOT
     EYE = _cunumeric.CUNUMERIC_EYE
+    EVAL_UDF = _cunumeric.CUNUMERIC_EVAL_UDF
     FFT = _cunumeric.CUNUMERIC_FFT
     FILL = _cunumeric.CUNUMERIC_FILL
     FLIP = _cunumeric.CUNUMERIC_FLIP

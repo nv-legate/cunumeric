@@ -36,6 +36,7 @@ from cunumeric._ufunc import *
 from cunumeric.logic import *
 from cunumeric.window import bartlett, blackman, hamming, hanning, kaiser
 from cunumeric.coverage import clone_module
+from cunumeric.vectorize import vectorize
 
 clone_module(_np, globals(), maybe_convert_to_np_ndarray)
 
