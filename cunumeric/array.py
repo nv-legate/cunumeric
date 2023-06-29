@@ -393,14 +393,11 @@ class ndarray:
 
         what = func.__name__
 
-        # TODO: We should technically check at this point that all array-like
-        # arguments are convertible to `cunumeric.ndarray`, and if not then
-        # return `NotImplemented`, to give a chance to those other types to
-        # handle this call (assuming they also implement `__array_function__`).
-        # For now we will just attempt our own implementation (converting any
-        # array-like arguments to baseline NumPy arrays if necessary, then to
-        # `cunumeric.ndarray`s). If that fails, we convert all
-        # `cunumeric.ndarray`s into NumPy arrays and pass to NumPy.
+        for t in types:
+            # Be strict about which types we support.  Accept superclasses
+            # (for basic subclassing support) and NumPy.
+            if not issubclass(type(self), t) and t is not np.ndarray:
+                return NotImplemented
 
         # We are wrapping all NumPy modules, so we can expect to find every
         # NumPy API call in cuNumeric, even if just an "unimplemented" stub.
@@ -440,11 +437,24 @@ class ndarray:
     ) -> Any:
         from . import _ufunc
 
-        what = f"{ufunc.__name__}.{method}"
+        # Check whether we should handle the arguments
+        array_args = inputs
+        array_args += kwargs.get("out", ())
+        if (where := kwargs.get("where", True)) is not True:
+            array_args += (where,)
 
-        # TODO: Similar to __array_function__, we should technically confirm
-        # that all array-like arguments are convertible to `cunumeric.ndarray`.
+        for arg in array_args:
+            if not hasattr(arg, "__array_ufunc__"):
+                continue
+
+            t = type(arg)
+            # Reject arguments we do not know (see __array_function__)
+            if not issubclass(type(self), t) and t is not np.ndarray:
+                return NotImplemented
+
         # TODO: The logic below should be moved to a "clone_ufunc" wrapper.
+
+        what = f"{ufunc.__name__}.{method}"
 
         if hasattr(_ufunc, ufunc.__name__):
             cn_ufunc = getattr(_ufunc, ufunc.__name__)
