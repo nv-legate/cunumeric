@@ -27,8 +27,9 @@ template <VariantKind KIND, Type::Code CODE>
 struct HistogramImplBody;
 
 template <Type::Code CODE>
-inline constexpr bool is_candidate = (is_floating_point<CODE>::value || is_integral<CODE>::value) &&
-                                     (!std::is_same_v<typename LegateTypeOf<CODE>::type, __half>);
+inline constexpr bool is_candidate = (is_floating_point<CODE>::value || is_integral<CODE>::value);
+// &&
+//                                     (!std::is_same_v<typename LegateTypeOf<CODE>::type, __half>);
 
 template <VariantKind KIND>
 struct HistogramImpl {

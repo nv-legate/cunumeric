@@ -19,22 +19,42 @@
 namespace cunumeric {
 namespace detail {
 
-template <typename array_t, typename bin_t>
+template <typename exe_policy_t, typename array_t, typename bin_t>
 struct lower_bound_op_t {
-  lower_bound_op_t(bin_t const* p_bins, size_t n_intervs) : p_bins_(p_bins), n_intervs_(n_intervs)
+  lower_bound_op_t(exe_policy_t, bin_t const* p_bins, size_t n_intervs)
+    : p_bins_(p_bins), n_intervs_(n_intervs)  // CTAD
   {
   }
-  __host__ __device__ bool operator()(array_t left, array_t right) const
+  __host__ __device__ bool operator()(array_t left, bin_t right) const
   {
     // sentinel logic accounts for comparison
     // against last bin's upper bound, when
     // (<) is to be replaced by (<=):
     //
     auto sentinel = p_bins_[n_intervs_];
-    if (left == sentinel && right == sentinel)
-      return true;
-    else
-      return left < right;
+    if constexpr (std::is_same_v<array_t, __half> && (!std::is_integral_v<bin_t>)) {
+      // upcast operands:
+      //
+      bin_t left_up  = static_cast<bin_t>(left);
+      bin_t right_up = static_cast<bin_t>(right);
+      if (left_up == sentinel && right_up == sentinel)
+        return true;
+      else
+        return left_up < right_up;
+    } else if (std::is_same_v<array_t, __half> && std::is_integral_v<bin_t>) {
+      // upcast sentinel:
+      //
+      array_t sentinel_up = static_cast<array_t>(sentinel);
+      if (left == sentinel_up && right == sentinel_up)
+        return true;
+      else
+        return left < right;
+    } else {
+      if (left == sentinel && right == sentinel)
+        return true;
+      else
+        return left < right;
+    }
   }
 
  private:
@@ -98,7 +118,7 @@ void histogram_weights(exe_policy_t exe_pol,
 
   // l-b functor:
   //
-  lower_bound_op_t<array_t, bin_t> lbop{ptr_over, n_intervals};
+  lower_bound_op_t<exe_policy_t, array_t, bin_t> lbop{exe_pol, ptr_over, n_intervals};
 
   // vectorized lower-bounds of bins against src:
   //
