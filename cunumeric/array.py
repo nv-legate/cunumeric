@@ -2870,7 +2870,7 @@ class ndarray:
             factor = np.prod(norm_shape_along_axes)
             if fft_norm == FFTNormalization.ORTHOGONAL:
                 factor = np.sqrt(factor)
-            return out / factor
+            return out / factor.astype(fft_output_type)
 
         return out
 
