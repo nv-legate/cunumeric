@@ -6450,7 +6450,7 @@ def histogram(
         #
         weights = ndarray(src.shape, buffer=ones(src.shape[0],
                                                  dtype=src.dtype),
-                          src.dtype)
+                          dtype=src.dtype)
 
     hist = ndarray(
         (num_intervals,),
