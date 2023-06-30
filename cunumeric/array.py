@@ -3225,7 +3225,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Single CPU
+        Multiple GPUs, Multiple CPUs
 
         """
         result = ndarray(self.shape, np.int64)
