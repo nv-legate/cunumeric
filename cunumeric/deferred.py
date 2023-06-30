@@ -1419,7 +1419,10 @@ class DeferredArray(NumPyThunk):
             for ax in axes:
                 task.add_scalar_arg(ax, ty.int64)
 
-            task.add_broadcast(input)
+            if input.ndim > len(set(axes)):
+                task.add_broadcast(input, axes=set(axes))
+            else:
+                task.add_broadcast(input)
             task.add_constraint(p_output == p_input)
 
             task.execute()

@@ -2790,6 +2790,10 @@ class ndarray:
 
         Common entrypoint for FFT functionality in cunumeric.fft module.
 
+        Notes
+        -----
+        Multi-GPU usage is limited to data parallel axis-wise batching.
+
         See Also
         --------
         cunumeric.fft : FFT functions for different ``kind`` and
@@ -2797,15 +2801,9 @@ class ndarray:
 
         Availability
         --------
-        Single GPU
+        Multiple GPUs
 
         """
-        # Dimensions check
-        if self.ndim > 3:
-            raise NotImplementedError(
-                f"{self.ndim}-D arrays are not supported yet"
-            )
-
         # Type
         fft_output_type = kind.output_dtype
 
@@ -2882,7 +2880,7 @@ class ndarray:
             factor = np.prod(norm_shape_along_axes)
             if fft_norm == FFTNormalization.ORTHOGONAL:
                 factor = np.sqrt(factor)
-            return out / factor
+            return out / factor.astype(fft_output_type)
 
         return out
 
@@ -3237,7 +3235,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Single CPU
+        Multiple GPUs, Multiple CPUs
 
         """
         result = ndarray(self.shape, np.int64)
