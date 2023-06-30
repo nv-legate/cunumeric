@@ -76,7 +76,8 @@ class SectionConfig:
     names: tuple[str, ...] | None = None
 
 
-FUNCTIONS = (FunctionType, BuiltinFunctionType)
+# numpy 1.25 introduced private _ArrayFunctionDispatcher, handle gently
+FUNCTIONS = (FunctionType, BuiltinFunctionType, type(numpy.broadcast))
 METHODS = (MethodType, MethodDescriptorType)
 UFUNCS = (numpy.ufunc,)
 
