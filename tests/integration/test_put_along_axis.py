@@ -120,6 +120,27 @@ def test_empty_indice():
     assert np.array_equal(x_num, x)
 
 
+@pytest.mark.parametrize(
+    "indices",
+    [
+        np.array([], dtype=int),
+        pytest.param(
+            np.array((0,)),
+            marks=pytest.mark.xfail(
+                reason="NumPy: IndexError, cuNumeric: return None"
+            ),
+        ),
+    ],
+    ids=["empty index", "out of bound index"],
+)
+def test_empty_array(indices):
+    arr_np = np.array([])
+    arr_num = num.array([])
+    np.put_along_axis(arr_np, indices, 1, None)
+    num.put_along_axis(arr_num, indices, 1, None)
+    assert np.array_equal(arr_np, arr_num)
+
+
 class TestPutAlongAxisErrors:
     def setup_method(self):
         self.a = num.ones((3, 3))

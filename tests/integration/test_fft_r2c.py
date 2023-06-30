@@ -84,7 +84,7 @@ def check_2d_r2c(N, dtype=np.float64):
         out_num = num.fft.rfft2(Z_num, **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfft2(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.rfft2(np.swapaxes(Z_num, 0, 1), **kwargs)
+        out_num = num.fft.rfft2(num.swapaxes(Z_num, 0, 1), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types
@@ -121,10 +121,60 @@ def check_3d_r2c(N, dtype=np.float64):
         out_num = num.fft.rfftn(Z_num, **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfftn(np.swapaxes(Z, 0, 1), **kwargs)
-        out_num = num.fft.rfftn(np.swapaxes(Z_num, 0, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 0, 1), **kwargs)
         assert allclose(out, out_num)
         out = np.fft.rfftn(np.swapaxes(Z, 2, 1), **kwargs)
-        out_num = num.fft.rfftn(np.swapaxes(Z_num, 2, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 2, 1), **kwargs)
+        assert allclose(out, out_num)
+
+    # Odd types
+    out = np.fft.fftn(Z)
+    out_num = num.fft.fftn(Z_num)
+    assert allclose(out, out_num)
+    out = np.fft.ifftn(Z)
+    out_num = num.fft.ifftn(Z_num)
+    assert allclose(out, out_num)
+    out = np.fft.irfftn(Z)
+    out_num = num.fft.irfftn(Z_num)
+    assert allclose(out, out_num)
+    out = np.fft.hfft(Z)
+    out_num = num.fft.hfft(Z_num)
+    assert allclose(out, out_num)
+    assert allclose(Z, Z_num)
+
+
+def check_4d_r2c(N, dtype=np.float64):
+    Z = np.random.rand(*N).astype(dtype)
+    Z_num = num.array(Z)
+
+    all_kwargs = (
+        (
+            {},
+            {"norm": "forward"},
+            {"norm": "ortho"},
+            {"s": (N[0] - 1, N[1] - 2, N[2] // 2, N[3])},
+            {"s": (N[0] + 1, N[1] + 2, N[2] + 3, N[3] - 1)},
+            {"s": (N[0] + 1, N[1] + 2, N[2] + 3, N[3] // 2)},
+        )
+        + tuple({"axes": (i,)} for i in range(4))
+        + tuple({"axes": (-i,)} for i in range(1, 5))
+        + tuple({"axes": (i + 1, i)} for i in range(3))
+        + ({"axes": (0, 2, 3, 1, 1, -1)},)
+    )
+
+    for kwargs in all_kwargs:
+        print(f"=== 4D R2C {dtype}, args: {kwargs} ===")
+        out = np.fft.rfftn(Z, **kwargs)
+        out_num = num.fft.rfftn(Z_num, **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.rfftn(np.swapaxes(Z, 0, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 0, 1), **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.rfftn(np.swapaxes(Z, 2, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 2, 1), **kwargs)
+        assert allclose(out, out_num)
+        out = np.fft.rfftn(np.swapaxes(Z, 3, 1), **kwargs)
+        out_num = num.fft.rfftn(num.swapaxes(Z_num, 3, 1), **kwargs)
         assert allclose(out, out_num)
 
     # Odd types
@@ -156,6 +206,11 @@ def test_2d():
 def test_3d():
     check_3d_r2c(N=(6, 10, 12))
     check_3d_r2c(N=(6, 10, 12), dtype=np.float32)
+
+
+def test_4d():
+    check_4d_r2c(N=(6, 12, 10, 8))
+    check_4d_r2c(N=(6, 12, 10, 8), dtype=np.float32)
 
 
 if __name__ == "__main__":

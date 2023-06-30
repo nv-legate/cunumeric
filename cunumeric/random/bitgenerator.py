@@ -96,7 +96,7 @@ class BitGenerator:
         endpoint: bool = False,
     ) -> ndarray:
         if shape is None:
-            shape = (1,)
+            shape = ()
         if not isinstance(shape, tuple):
             shape = (shape,)
         res = ndarray(shape, dtype=np.dtype(type))

@@ -37,9 +37,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Set a default build type if none was specified
 rapids_cmake_build_type(Release)
 
-# ############################################################################
-# * conda environment --------------------------------------------------------
+##############################################################################
+# - conda environment --------------------------------------------------------
+
 rapids_cmake_support_conda_env(conda_env MODIFY_PREFIX_PATH)
+
+# We're building python extension libraries, which must always be installed
+# under lib/, even if the system normally uses lib64/. Rapids-cmake currently
+# doesn't realize this when we're going through scikit-build, see
+# https://github.com/rapidsai/rapids-cmake/issues/426
+if(TARGET conda_env)
+  set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
 
 ##############################################################################
 # - Dependencies -------------------------------------------------------------
