@@ -123,3 +123,10 @@ def test_histogram_extreme_bins(src, bins, weights):
     assert allclose(np_out, num_out, atol=eps)
     assert allclose(np_bins_out, num_bins_out, atol=eps)
 
+
+if __name__ == "__main__":
+    import sys
+
+    np.random.seed(12345)
+
+    sys.exit(pytest.main(sys.argv))
