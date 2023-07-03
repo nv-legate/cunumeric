@@ -1683,3 +1683,15 @@ class EagerArray(NumPyThunk):
                 if reps > 1:
                     src_flat = np.tile(src_flat, reps)
                 self.array[:] = src_flat[:new_len]
+
+    def histogram(self, rhs: NumPyThunk, bins: NumPyThunk,
+                  weights: NumPyThunk) -> None:
+        self.check_eager_args(rhs, bins, weights)
+        if self.deferred is not None:
+            self.deferred.histogram(rhs, bins, weights)
+        else:
+            self.array[:] = np.histogram(
+                rhs.array,
+                cast(EagerArray, bins).array,
+                weights=cast(EagerArray, weights).array,
+            )

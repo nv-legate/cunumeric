@@ -6430,6 +6430,8 @@ def histogram(
 
         step = (range_[1] - range_[0]) / num_intervals
 
+        # potential problem with `buffer` karg:
+        #
         bins_array = ndarray(shape=(num_elems,),
                              buffer=np.array([range_[0] + k * step
                                               for k in range(0, num_elems)]),
@@ -6448,9 +6450,7 @@ def histogram(
         # bc/ of hist ndarray inputs(), below;
         # needs to be handled here:
         #
-        weights = ndarray(x.shape, buffer=ones(x.shape[0],
-                                               dtype=x.dtype),
-                          dtype=x.dtype)
+        weights = ones(x.shape, dtype=x.dtype)
 
     hist = ndarray(
         (num_intervals,),
