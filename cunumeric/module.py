@@ -6437,7 +6437,7 @@ def histogram(
                                               for k in range(0, num_elems)]),
                              dtype=float)
     else:
-        bins_array = np.asarray(bins)
+        bins_array = asarray(bins)
         num_intervals = bins_array.shape[0] - 1
 
     if x.ndim != 1:
