@@ -5629,8 +5629,8 @@ def nanargmax(
     # Set check_value_error to False to disable the check
     check_value_error = True
     if check_value_error and a.dtype.kind == "f":
-        where = any(all(isnan(a), axis=axis))
-        if where:
+        raise_exception = any(all(isnan(a), axis=axis))
+        if raise_exception:
             raise ValueError("Array/Slice contains only NaNs")
 
     unary_red_code = get_non_nan_unary_red_code(
@@ -5698,8 +5698,8 @@ def nanargmin(
     # Set check_value_error to False to disable the check
     check_value_error = True
     if check_value_error and a.dtype.kind == "f":
-        where = any(all(isnan(a), axis=axis))
-        if where:
+        raise_exception = any(all(isnan(a), axis=axis))
+        if raise_exception:
             raise ValueError("Array/Slice contains only NaNs")
 
     unary_red_code = get_non_nan_unary_red_code(
