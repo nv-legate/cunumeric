@@ -5625,20 +5625,7 @@ def nanargmax(
     if a.size == 0:
         raise ValueError("attempt to get nanargmax of an empty sequence")
 
-    unary_red_code = get_non_nan_unary_red_code(
-        a.dtype.kind, UnaryRedCode.NANARGMAX
-    )
-
-    index_array = a._perform_unary_reduction(
-        unary_red_code,
-        a,
-        axis=axis,
-        out=out,
-        keepdims=keepdims,
-        res_dtype=np.dtype(np.int64),
-    )
-
-    # Raising a ValueError here will block the runtime from proceeding False.
+    # Raising a ValueError here will block the runtime from proceeding further.
     # Set check_value_error to False to disable the check
     check_value_error = True
     if check_value_error and a.dtype.kind == "f":
@@ -5646,7 +5633,18 @@ def nanargmax(
         if where:
             raise ValueError("Array/Slice contains only NaNs")
 
-    return index_array
+    unary_red_code = get_non_nan_unary_red_code(
+        a.dtype.kind, UnaryRedCode.NANARGMAX
+    )
+
+    return a._perform_unary_reduction(
+        unary_red_code,
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        res_dtype=np.dtype(np.int64),
+    )
 
 
 @add_boilerplate("a")
@@ -5696,19 +5694,6 @@ def nanargmin(
     if a.size == 0:
         raise ValueError("attempt to get nanargmin of an empty sequence")
 
-    unary_red_code = get_non_nan_unary_red_code(
-        a.dtype.kind, UnaryRedCode.NANARGMIN
-    )
-
-    index_array = a._perform_unary_reduction(
-        unary_red_code,
-        a,
-        axis=axis,
-        out=out,
-        keepdims=keepdims,
-        res_dtype=np.dtype(np.int64),
-    )
-
     # Raising a ValueError here will block the runtime from proceeding further.
     # Set check_value_error to False to disable the check
     check_value_error = True
@@ -5717,7 +5702,18 @@ def nanargmin(
         if where:
             raise ValueError("Array/Slice contains only NaNs")
 
-    return index_array
+    unary_red_code = get_non_nan_unary_red_code(
+        a.dtype.kind, UnaryRedCode.NANARGMIN
+    )
+
+    return a._perform_unary_reduction(
+        unary_red_code,
+        a,
+        axis=axis,
+        out=out,
+        keepdims=keepdims,
+        res_dtype=np.dtype(np.int64),
+    )
 
 
 @add_boilerplate("a")
