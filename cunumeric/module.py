@@ -6383,7 +6383,7 @@ def bincount(
 
 @add_boilerplate("x", "bins", "weights")
 def histogram(
-        x: ndarray, bins: Union[ndarray, int] = 10,
+        x: ndarray, bins: Optional[Union[ndarray, int]] = 10,
         range_: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
         weights: Optional[ndarray] = None,
         density: bool = False) -> ndarray:
@@ -6411,7 +6411,7 @@ def histogram(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if isscalar(bins):
+    if np.isscalar(bins):
         if not isinstance(bins, int):
             raise TypeError("bins must be array or integer type")
 
@@ -6436,7 +6436,7 @@ def histogram(
                              dtype=float)
     else:
         bins_array = np.asarray(bins)
-        num_intervals = bins.shape[0] - 1
+        num_intervals = bins_array.shape[0] - 1
 
     if x.ndim != 1:
         raise ValueError("the input array must be 1-dimensional")
@@ -6448,9 +6448,9 @@ def histogram(
         # bc/ of hist ndarray inputs(), below;
         # needs to be handled here:
         #
-        weights = ndarray(src.shape, buffer=ones(src.shape[0],
-                                                 dtype=src.dtype),
-                          dtype=src.dtype)
+        weights = ndarray(x.shape, buffer=ones(x.shape[0],
+                                               dtype=x.dtype),
+                          dtype=x.dtype)
 
     hist = ndarray(
         (num_intervals,),
