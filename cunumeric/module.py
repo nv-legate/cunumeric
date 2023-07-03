@@ -6466,4 +6466,4 @@ def histogram(
         Sw = sum(hist)
         hist /= [Sw*(bins[i + 1] - bins[i]) for i in range(0, hist.size)]
 
-    return hist
+    return hist, bins_array
