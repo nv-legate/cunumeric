@@ -92,55 +92,10 @@ class TestNanReductions:
 
             assert np.allclose(out_num, out_np, rtol=1e-4)
 
-    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
-    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
-    def test_all_nan(self, func_name, ndim):
-        """This test checks if a RuntimeWarning is issued when an array
-        contains only NaNs.
-        """
-
-        shape = (3,) * ndim
-        in_num = num.zeros(shape)
-        in_num.fill(num.nan)
-
-        func_num = getattr(num, func_name)
-
-        expected_exception = RuntimeWarning
-        with pytest.warns(expected_exception):
-            func_num(in_num)
-
-    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
-    @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
-    @pytest.mark.parametrize("dtype", (np.float16, np.float32, np.float64))
-    @pytest.mark.parametrize("keepdims", [True, False])
-    def test_slice_nan(self, func_name, ndim, dtype, keepdims):
-        """This test checks if a RuntimeWarning is issued when a slice
-        contains only NaNs.
-        """
-        shape = (3,) * ndim
-
-        in_np = np.random.random(shape)
-        in_num = num.array(in_np).astype(dtype)
-
-        in_num[0, ...] = num.nan
-        in_np[0, ...] = np.nan
-
-        func_num = getattr(num, func_name)
-        func_np = getattr(np, func_name)
-        func_num(in_num)
-
-        expected_exception = RuntimeWarning
-
-        with pytest.warns(expected_exception):
-            func_np(in_np, axis=1, keepdims=keepdims)
-
-        with pytest.warns(expected_exception):
-            func_num(in_num, axis=1, keepdims=keepdims)
-
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("dtype", (np.float32, np.float64))
     @pytest.mark.parametrize("keepdims", [True, False])
-    def test_nansum_complex(self, ndim, dtype, keepdims):
+    def test_complex_dtype_nansum(self, ndim, dtype, keepdims):
         """This test checks if nansum works as expected for complex
         datatypes. The parametrized datatype is that of real/complex
         component, so float32 would correspond to complex64 and
@@ -172,7 +127,7 @@ class TestNanReductions:
 
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("keepdims", [True, False])
-    def test_nanprod_complex(self, ndim, keepdims):
+    def test_complex_dtype_nanprod(self, ndim, keepdims):
         """This test checks if nanprod works as expected for complex
         datatypes. The parametrized datatype is that of real/complex
         component, so float32 would correspond to complex64.
@@ -201,6 +156,52 @@ class TestNanReductions:
         out_np = np.nanprod(in_np, keepdims=keepdims)
 
         assert np.allclose(out_num, out_np, rtol=1e-4)
+
+    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
+    def test_slice_nan_min_max(self, func_name):
+        """This test checks if nanmin and nanmax return nan for
+        a slice that contains all-NaNs
+        """
+        shape = (3, 3)
+        in_num = num.random.random(shape)
+
+        in_num[:, 0] = num.nan
+        func_num = getattr(num, func_name)
+        out_num = func_num(in_num, axis=0)
+
+        assert num.any(num.isnan(out_num))
+
+    @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    def test_all_nans_nan_min_max(self, ndim, func_name):
+        shape = (3,) * ndim
+        in_num = num.random.random(shape)
+        in_num[...] = np.nan
+
+        func_num = getattr(num, func_name)
+        out_num = func_num(in_num)
+
+        assert num.isnan(out_num)
+
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    def test_all_nans_nanprod(self, ndim):
+        shape = (3,) * ndim
+        in_num = num.random.random(shape)
+        in_num[...] = np.nan
+
+        out_num = num.nanprod(in_num)
+
+        assert out_num == 1.0
+
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    def test_all_nans_nansum(self, ndim):
+        shape = (3,) * ndim
+        in_num = num.random.random(shape)
+        in_num[...] = np.nan
+
+        out_num = num.nansum(in_num)
+
+        assert out_num == 0.0
 
 
 class TestCornerCases:

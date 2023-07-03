@@ -43,12 +43,9 @@ from numpy.core.numeric import (  # type: ignore [attr-defined]
 from cunumeric.coverage import is_implemented
 
 from ._ufunc.comparison import maximum, minimum
-from ._ufunc.floating import floor
+from ._ufunc.floating import floor, isnan
 from ._ufunc.math import add, multiply
-from ._unary_red_utils import (
-    get_non_nan_unary_red_code,
-    handle_nan_unary_red_exceptions,
-)
+from ._unary_red_utils import get_non_nan_unary_red_code
 from .array import (
     add_boilerplate,
     check_writeable,
@@ -5641,9 +5638,13 @@ def nanargmax(
         res_dtype=np.dtype(np.int64),
     )
 
-    if a.dtype.kind == "f":
-        identity = np.iinfo(np.int64).min
-        handle_nan_unary_red_exceptions(index_array, unary_red_code, identity)
+    # Raising a ValueError here will block the runtime from proceeding False.
+    # Set check_value_error to False to disable the check
+    check_value_error = True
+    if check_value_error and a.dtype.kind == "f":
+        where = any(all(isnan(a), axis=axis))
+        if where:
+            raise ValueError("Array/Slice contains only NaNs")
 
     return index_array
 
@@ -5708,9 +5709,13 @@ def nanargmin(
         res_dtype=np.dtype(np.int64),
     )
 
-    if a.dtype.kind == "f":
-        identity = np.iinfo(np.int64).min
-        handle_nan_unary_red_exceptions(index_array, unary_red_code, identity)
+    # Raising a ValueError here will block the runtime from proceeding further.
+    # Set check_value_error to False to disable the check
+    check_value_error = True
+    if check_value_error and a.dtype.kind == "f":
+        where = any(all(isnan(a), axis=axis))
+        if where:
+            raise ValueError("Array/Slice contains only NaNs")
 
     return index_array
 
@@ -5727,7 +5732,7 @@ def nanmin(
     """
     Return minimum of an array or minimum along an axis, ignoring any
     NaNs. When all-NaN slices are encountered a RuntimeWarning is
-    raised and identity is returned for that slice except when initial
+    raised and nan is returned for that slice except when initial
     is set. Empty slices will raise a ValueError
 
     Parameters
@@ -5773,8 +5778,8 @@ def nanmin(
 
     Notes
     -----
-    CuNumeric's implementation will return identity for slices with
-    all-NaNs but numpy will return NaN.
+    CuNumeric's implementation will not raise a Runtime Warning for
+    slices with all-NaNs
 
     See Also
     --------
@@ -5801,8 +5806,8 @@ def nanmin(
     )
 
     if a.dtype.kind == "f":
-        identity = np.finfo(a.dtype).max
-        handle_nan_unary_red_exceptions(out_array, unary_red_code, identity)
+        where = all(isnan(a), axis=axis, keepdims=keepdims)
+        putmask(out_array, where, np.nan)  # type: ignore
 
     return out_array
 
@@ -5818,9 +5823,8 @@ def nanmax(
 ) -> ndarray:
     """
     Return the maximum of an array or maximum along an axis, ignoring
-    any NaNs.  When all-NaN slices are encountered a RuntimeWarning is
-    raised and identity is returned for that slice except when initial
-    is set. Empty slices will raise a ValueError
+    any NaNs.  When all-NaN slices are encountered NaN is returned
+    for that slice. Empty slices will raise a ValueError
 
     Parameters
     ----------
@@ -5866,8 +5870,8 @@ def nanmax(
 
     Notes
     -----
-    CuNumeric's implementation will return identity for slices with
-    all-NaNs but numpy will return NaN
+    CuNumeric's implementation will not raise a Runtime Warning for
+    slices with all-NaNs
 
     See Also
     --------
@@ -5894,8 +5898,8 @@ def nanmax(
     )
 
     if a.dtype.kind == "f":
-        identity = np.finfo(a.dtype).min
-        handle_nan_unary_red_exceptions(out_array, unary_red_code, identity)
+        where = all(isnan(a), axis=axis, keepdims=keepdims)
+        putmask(out_array, where, np.nan)  # type: ignore
 
     return out_array
 

@@ -15,13 +15,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Union
-
-import numpy as np
-
-from .array import ndarray
 from .config import UnaryRedCode
-from .runtime import runtime
 
 # corresponding non-nan unary reduction ops for nan unary reduction ops
 _EQUIVALENT_NON_NAN_OPS: dict[UnaryRedCode, UnaryRedCode] = {
@@ -30,13 +24,6 @@ _EQUIVALENT_NON_NAN_OPS: dict[UnaryRedCode, UnaryRedCode] = {
     UnaryRedCode.NANMAX: UnaryRedCode.MAX,
     UnaryRedCode.NANMIN: UnaryRedCode.MIN,
 }
-
-_EXCEPTIONS_HANDLED_OPS = (
-    UnaryRedCode.NANMIN,
-    UnaryRedCode.NANMAX,
-    UnaryRedCode.NANARGMIN,
-    UnaryRedCode.NANARGMAX,
-)
 
 
 def get_non_nan_unary_red_code(
@@ -62,23 +49,3 @@ def get_non_nan_unary_red_code(
         return unary_red_code
 
     return _EQUIVALENT_NON_NAN_OPS[unary_red_code]
-
-
-def handle_nan_unary_red_exceptions(
-    out: ndarray, op: UnaryRedCode, identity: Union[int, np.floating[Any]]
-) -> None:
-    """Raise ValueError if NaN is found in a slice or in the entire
-    array for nanargmin and nanargmax. In case of nanmin and nanmax,
-    issue a RuntimeWarning.
-    """
-
-    if op not in _EXCEPTIONS_HANDLED_OPS:
-        return
-
-    if identity in out:
-        if op in (UnaryRedCode.NANMIN, UnaryRedCode.NANMAX):
-            runtime.warn(
-                "Array/Slice contains only NaNs", category=RuntimeWarning
-            )
-        else:
-            raise ValueError("Array/Slice contains only NaNs")
