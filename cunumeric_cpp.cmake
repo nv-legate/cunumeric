@@ -206,6 +206,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/stat/bincount_omp.cc
     src/cunumeric/convolution/convolve_omp.cc
     src/cunumeric/transform/flip_omp.cc
+    src/cunumeric/stat/histogram_omp.cc    
   )
 endif()
 

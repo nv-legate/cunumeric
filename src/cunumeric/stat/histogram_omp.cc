@@ -120,7 +120,9 @@ struct HistogramImplBody<VariantKind::OMP, CODE> {
         }
       }
 
-      // #pragma omp barrier ?
+      if (true) {
+#pragma omp barrier
+      }
 
       // fold into RD result:
       //
@@ -138,13 +140,5 @@ struct HistogramImplBody<VariantKind::OMP, CODE> {
 {
   histogram_template<VariantKind::OMP>(context);
 }
-
-namespace  // unnamed
-{
-static void __attribute__((constructor)) register_tasks(void)
-{
-  HistogramTask::register_variants();
-}
-}  // namespace
 
 }  // namespace cunumeric
