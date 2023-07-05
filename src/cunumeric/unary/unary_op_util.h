@@ -500,7 +500,7 @@ struct UnaryOp<UnaryOpCode::DEG2RAD, CODE> {
 
   UnaryOp(const std::vector<legate::Store>& args) {}
 
-  constexpr decltype(auto) operator()(const T& x) const { return x* T{M_PI / 180.0}; }
+  constexpr decltype(auto) operator()(const T& x) const { return x * T{M_PI / 180.0}; }
 };
 
 template <>
