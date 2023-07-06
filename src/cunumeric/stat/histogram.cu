@@ -146,7 +146,8 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
       thrust::host_vector<VAL> v_src(src_size, 0);
       VAL* v_src_ptr = v_src.data();
 
-      cudaMemcpyAsync(v_src_ptr, src_ptr, src_size * sizeof(VAL), cudaMemcpyDeviceToHost, stream);
+      CHECK_CUDA(cudaMemcpyAsync(
+        v_src_ptr, src_ptr, src_size * sizeof(VAL), cudaMemcpyDeviceToHost, stream));
 
       thrust::host_vector<WeightType> v_weights(weights_size, 0);
       CHECK_CUDA(cudaMemcpyAsync(&v_weights[0],
@@ -196,11 +197,22 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
     assert(num_intervals == global_result_size);
 
 #ifdef _DEBUG
-    std::cout << "result:\n";
+    {
+      std::cout << "local result:\n";
 
-    std::copy_n(
-      local_result_ptr, num_intervals, std::ostream_iterator<WeightType>{std::cout, ", "});
-    std::cout << "\n";
+      thrust::host_vector<WeightType> v_result(num_intervals, 0);
+      CHECK_CUDA(cudaMemcpyAsync(&v_result[0],
+                                 local_result_ptr,
+                                 num_intervals * sizeof(WeightType),
+                                 cudaMemcpyDeviceToHost,
+                                 stream));
+
+      CHECK_CUDA(cudaStreamSynchronize(stream));
+
+      std::copy(
+        v_result.begin(), v_result.end(), std::ostream_iterator<WeightType>{std::cout, ", "});
+      std::cout << "\n";
+    }
 #endif
 
     thrust::transform(
