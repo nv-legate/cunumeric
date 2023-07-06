@@ -26,6 +26,15 @@
 
 #include <tuple>
 
+// #define _DEBUG
+#ifdef _DEBUG
+#include <iostream>
+#include <iterator>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#endif
+
 namespace cunumeric {
 namespace detail {
 
@@ -106,13 +115,16 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
     cudaStream_t stream_ = static_cast<cudaStream_t>(stream);
 
     auto&& [src_size, src_copy, src_ptr] = detail::make_accessor_copy(src, src_rect);
-    CHECK_CUDA(
-      cudaMemcpyAsync(src_copy.ptr(0), src_ptr, src_size, cudaMemcpyDeviceToDevice, stream));
+    CHECK_CUDA(cudaMemcpyAsync(
+      src_copy.ptr(0), src_ptr, src_size * sizeof(VAL), cudaMemcpyDeviceToDevice, stream));
 
     auto&& [weights_size, weights_copy, weights_ptr] =
       detail::make_accessor_copy(weights, weights_rect);
-    CHECK_CUDA(cudaMemcpyAsync(
-      weights_copy.ptr(0), weights_ptr, weights_size, cudaMemcpyDeviceToDevice, stream));
+    CHECK_CUDA(cudaMemcpyAsync(weights_copy.ptr(0),
+                               weights_ptr,
+                               weights_size * sizeof(WeightType),
+                               cudaMemcpyDeviceToDevice,
+                               stream));
 
     auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
 
@@ -125,6 +137,40 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
     auto&& [global_result_size, global_result_ptr] = detail::get_accessor_ptr(result, result_rect);
 
     CHECK_CUDA(cudaStreamSynchronize(stream));
+
+#ifdef _DEBUG
+    {
+      std::vector<VAL> v_src(src_size, 0);  // problems with bools..
+      VAL* v_src_ptr = v_src.data();
+
+      cudaMemcpyAsync(v_src_ptr, src_ptr, src_size * sizeof(VAL), cudaMemcpyDeviceToHost, stream);
+
+      std::vector<WeightType> v_weights(weights_size, 0);
+      CHECK_CUDA(cudaMemcpyAsync(&v_weights[0],
+                                 weights_ptr,
+                                 weights_size * sizeof(WeightType),
+                                 cudaMemcpyDeviceToHost,
+                                 stream));
+
+      std::vector<BinType> v_bins(bins_size, 0);
+      CHECK_CUDA(cudaMemcpyAsync(
+        &v_bins[0], bins_ptr, bins_size * sizeof(BinType), cudaMemcpyDeviceToHost, stream));
+
+      CHECK_CUDA(cudaStreamSynchronize(stream));
+
+      std::cout << "echo src, bins, weights:\n";
+
+      std::copy(v_src.begin(), v_src.end(), std::ostream_iterator<VAL>{std::cout, ", "});
+      std::cout << "\n";
+
+      std::copy(v_bins.begin(), v_bins.end(), std::ostream_iterator<BinType>{std::cout, ", "});
+      std::cout << "\n";
+
+      std::copy(
+        v_weights.begin(), v_weights.end(), std::ostream_iterator<WeightType>{std::cout, ", "});
+      std::cout << "\n";
+    }
+#endif
 
     detail::histogram_weights(DEFAULT_POLICY.on(stream),
                               src_copy.ptr(0),
@@ -140,6 +186,14 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
     // fold into RD result:
     //
     assert(num_intervals == global_result_size);
+
+#ifdef _DEBUG
+    std::cout << "result:\n";
+
+    std::copy_n(
+      local_result_ptr, num_intervals, std::ostream_iterator<WeightType>{std::cout, ", "});
+    std::cout << "\n";
+#endif
 
     thrust::transform(
       DEFAULT_POLICY.on(stream),
