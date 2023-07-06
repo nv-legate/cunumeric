@@ -47,8 +47,8 @@ def test_histogram_no_weights(src, bins):
     
     num_out, num_bins_out = num.histogram(src_array, bins_maybe_array)
 
-    assert allclose(np_float_out, num_out, atol=eps)
-    # assert allclose(np_bins_out, num_bins_out, atol=eps)
+    assert allclose(np_out, num_out, atol=eps)
+    assert allclose(np_bins_out, num_bins_out, atol=eps)
 
 
 # @pytest.mark.parametrize(

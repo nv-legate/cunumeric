@@ -6411,6 +6411,8 @@ def histogram(
     --------
     Multiple GPUs, Multiple CPUs
     """
+    result_type = x.dtype
+
     if np.isscalar(bins):
         if not isinstance(bins, int):
             raise TypeError("bins must be array or integer type")
@@ -6436,29 +6438,38 @@ def histogram(
                              buffer=np.array([range_[0] + k * step
                                               for k in range(0, num_elems)]),
                              dtype=float)
+
+        bins_orig_type = bins_array.dtype
     else:
-        bins_array = asarray(bins).astype(float)
+        bins_as_arr = asarray(bins)
+        bins_orig_type = bins_as_arr.dtype
+
+        bins_array = bins_as_arr.astype(float)
         num_intervals = bins_array.shape[0] - 1
 
     if x.ndim != 1:
         raise ValueError("the input array must be 1-dimensional")
+
     if weights is not None:
         if weights.shape != x.shape:
             raise ValueError("weights array must be same shape for histogram")
+
+        result_type = weights.dtype
+        weights_array = weights.astype(float)
     else:
         # case weights == None cannot be handled inside _thunk.histogram,
         # bc/ of hist ndarray inputs(), below;
         # needs to be handled here:
         #
-        weights = ones(x.shape, dtype=float)
+        weights_array = ones(x.shape, dtype=float)
 
     hist = ndarray(
         (num_intervals,),
-        dtype=weights.dtype,
-        inputs=(x, bins, weights),
+        dtype=weights_array.dtype,
+        inputs=(x, bins, weights_array),
     )
     hist._thunk.histogram(x._thunk, bins_array._thunk,
-                          weights=weights._thunk)
+                          weights=weights_array._thunk)
 
     # handle (density = True):
     #
@@ -6466,4 +6477,4 @@ def histogram(
         Sw = sum(hist)
         hist /= [Sw*(bins[i + 1] - bins[i]) for i in range(0, hist.size)]
 
-    return hist, bins_array
+    return hist.astype(result_type), bins_array.astype(bins_orig_type)
