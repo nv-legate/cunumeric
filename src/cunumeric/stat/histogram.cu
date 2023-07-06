@@ -26,13 +26,14 @@
 
 #include <tuple>
 
-// #define _DEBUG
+#define _DEBUG
 #ifdef _DEBUG
 #include <iostream>
 #include <iterator>
-#include <vector>
 #include <algorithm>
 #include <numeric>
+
+#include <thrust/host_vector.h>
 #endif
 
 namespace cunumeric {
@@ -140,19 +141,21 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
 #ifdef _DEBUG
     {
-      std::vector<VAL> v_src(src_size, 0);  // problems with bools..
+      // std::vector<bool>: proxy issues; use thrust::host_vector, instead
+      //
+      thrust::host_vector<VAL> v_src(src_size, 0);
       VAL* v_src_ptr = v_src.data();
 
       cudaMemcpyAsync(v_src_ptr, src_ptr, src_size * sizeof(VAL), cudaMemcpyDeviceToHost, stream);
 
-      std::vector<WeightType> v_weights(weights_size, 0);
+      thrust::host_vector<WeightType> v_weights(weights_size, 0);
       CHECK_CUDA(cudaMemcpyAsync(&v_weights[0],
                                  weights_ptr,
                                  weights_size * sizeof(WeightType),
                                  cudaMemcpyDeviceToHost,
                                  stream));
 
-      std::vector<BinType> v_bins(bins_size, 0);
+      thrust::host_vector<BinType> v_bins(bins_size, 0);
       CHECK_CUDA(cudaMemcpyAsync(
         &v_bins[0], bins_ptr, bins_size * sizeof(BinType), cudaMemcpyDeviceToHost, stream));
 
@@ -160,7 +163,12 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
       std::cout << "echo src, bins, weights:\n";
 
-      std::copy(v_src.begin(), v_src.end(), std::ostream_iterator<VAL>{std::cout, ", "});
+      // doesn't compile with __half:
+      //
+      // using alias_val_t = typename decltype(v_src)::value_type;
+      // std::copy(v_src.begin(), v_src.end(), std::ostream_iterator<alias_val_t>{std::cout, ", "});
+
+      for (auto&& src_val : v_src) { std::cout << static_cast<double>(src_val) << ", "; }
       std::cout << "\n";
 
       std::copy(v_bins.begin(), v_bins.end(), std::ostream_iterator<BinType>{std::cout, ", "});
