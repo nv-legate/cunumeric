@@ -71,7 +71,6 @@ def test_scalar():
     x = num.random.rand(3, 3)
     s = x.sum()
     num.putmask(s, True, 1.0)
-    print("IRINA DEBUG DDD", s)
     assert s == 1.0
 
 
