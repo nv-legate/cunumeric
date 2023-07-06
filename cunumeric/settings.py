@@ -76,6 +76,31 @@ class CunumericRuntimeSettings(Settings):
         """,
     )
 
+    check_blocking_value_errors: EnvOnlySetting[bool] = EnvOnlySetting(
+        "check_blocking_value_errors",
+        "CUNUMERIC_CHECK_BLOCKING_VALUE_ERRORS",
+        default=False,
+        test_default=True,
+        convert=convert_bool,
+        help="""
+        cuNumeric will not check for ValueErrors in the input array if the
+        check blocks the runtime. This usually results in better performance.
+        To check for such ValueErrors, set this variable to True.
+        """,
+    )
+
+    numpy_compat: EnvOnlySetting[bool] = EnvOnlySetting(
+        "numpy_compat",
+        "CUNUMERIC_NUMPY_COMPATIBILITY",
+        default=False,
+        test_default=True,
+        convert=convert_bool,
+        help="""
+        cuNumeric will issue additional tasks to match numpy's results.
+        This is currently used in nanmin and nanmax APIs.
+        """,
+    )
+
     fast_math: EnvOnlySetting[int] = EnvOnlySetting(
         "fast_math",
         "CUNUMERIC_FAST_MATH",

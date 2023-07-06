@@ -54,6 +54,7 @@ from .array import (
 )
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
+from .settings import settings
 from .types import NdShape, NdShapeLike, OrderType, SortSide
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
@@ -5625,10 +5626,8 @@ def nanargmax(
     if a.size == 0:
         raise ValueError("attempt to get nanargmax of an empty sequence")
 
-    # Raising a ValueError here will block the runtime from proceeding further.
-    # Set check_value_error to False to disable the check
-    check_value_error = True
-    if check_value_error and a.dtype.kind == "f":
+    check_blocking_value_errors = settings.check_blocking_value_errors()
+    if check_blocking_value_errors and a.dtype.kind == "f":
         raise_exception = any(all(isnan(a), axis=axis))
         if raise_exception:
             raise ValueError("Array/Slice contains only NaNs")
@@ -5658,8 +5657,12 @@ def nanargmin(
     """
 
     Return the indices of the minimum values in the specified axis ignoring
-    NaNs. For empty arrays and all-NaN slices ValueError is raised. Warning:
-    the results cannot be trusted if a slice contains only NaNs and -Infs.
+    NaNs. For empty arrays, ValueError is raised. For all-NaN slices,
+    ValueError is raised only when CUNUMERIC_CHECK_BLOCKING_VALUE_ERRORS
+    environment variable is set, otherwise identity is returned.
+
+    Warning: results cannot be trusted if a slice contains only NaNs
+    and -Infs.
 
     Parameters
     ----------
@@ -5694,10 +5697,8 @@ def nanargmin(
     if a.size == 0:
         raise ValueError("attempt to get nanargmin of an empty sequence")
 
-    # Raising a ValueError here will block the runtime from proceeding further.
-    # Set check_value_error to False to disable the check
-    check_value_error = True
-    if check_value_error and a.dtype.kind == "f":
+    check_blocking_value_errors = settings.check_blocking_value_errors()
+    if check_blocking_value_errors and a.dtype.kind == "f":
         raise_exception = any(all(isnan(a), axis=axis))
         if raise_exception:
             raise ValueError("Array/Slice contains only NaNs")
@@ -5727,9 +5728,10 @@ def nanmin(
 ) -> ndarray:
     """
     Return minimum of an array or minimum along an axis, ignoring any
-    NaNs. When all-NaN slices are encountered a RuntimeWarning is
-    raised and nan is returned for that slice except when initial
-    is set. Empty slices will raise a ValueError
+    NaNs. When all-NaN slices are encountered, a NaN is returned
+    for that slice only when CUNUMERIC_NUMPY_COMPATIBILITY environment
+    variable is set, otherwise identity is returned.
+    Empty slices will raise a ValueError
 
     Parameters
     ----------
@@ -5801,7 +5803,8 @@ def nanmin(
         where=where,
     )
 
-    if a.dtype.kind == "f":
+    numpy_compat = settings.numpy_compat()
+    if numpy_compat and a.dtype.kind == "f":
         where = all(isnan(a), axis=axis, keepdims=keepdims)
         putmask(out_array, where, np.nan)  # type: ignore
 
@@ -5819,8 +5822,10 @@ def nanmax(
 ) -> ndarray:
     """
     Return the maximum of an array or maximum along an axis, ignoring
-    any NaNs.  When all-NaN slices are encountered NaN is returned
-    for that slice. Empty slices will raise a ValueError
+    any NaNs. When all-NaN slices are encountered, a nan is returned
+    for that slice only when CUNUMERIC_NUMPY_COMPATIBILITY environment
+    variable is set, otherwise identity is returned.
+    Empty slices will raise a ValueError
 
     Parameters
     ----------
@@ -5893,7 +5898,8 @@ def nanmax(
         where=where,
     )
 
-    if a.dtype.kind == "f":
+    numpy_compat = settings.numpy_compat()
+    if numpy_compat and a.dtype.kind == "f":
         where = all(isnan(a), axis=axis, keepdims=keepdims)
         putmask(out_array, where, np.nan)  # type: ignore
 
