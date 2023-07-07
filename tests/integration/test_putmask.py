@@ -67,6 +67,12 @@ def test_scalar():
     num.putmask(x_num, mask_num, values_num[:1])
     assert np.array_equal(x_num, x)
 
+    # the case when every input is a scalar
+    x = num.random.rand(3, 3)
+    s = x.sum()
+    num.putmask(s, True, 1.0)
+    assert s == 1.0
+
 
 def test_type_convert():
     x = mk_seq_array(np, (3, 4, 5))
