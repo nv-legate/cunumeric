@@ -73,8 +73,8 @@ def test_histogram_no_weights(src, bins):
     "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
                 [0.3, 0.1, 0.5, 0.1, 0.7, 0.2, 0.8, 1.3])
 )
-# @pytest.mark.parametrize("density", False)
-def test_histogram_weights(src, bins, weights): # , density):
+@pytest.mark.parametrize("density", (False, True))
+def test_histogram_weights(src, bins, weights, density):
     eps = 1.0e-8
     src_array = np.array(src)
     
@@ -85,7 +85,7 @@ def test_histogram_weights(src, bins, weights): # , density):
 
     weights_array = np.array(weights)
 
-    density = False # remove me!
+    # density = False # remove me!
     
     np_out, np_bins_out =  np.histogram(src_array, bins_maybe_array,
                            weights = weights_array, density = density)
