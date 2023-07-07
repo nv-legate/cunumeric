@@ -37,7 +37,7 @@ struct CUDALibraries {
   cublasHandle_t get_cublas();
   cusolverDnHandle_t get_cusolver();
   cutensorHandle_t* get_cutensor();
-  cufftContext get_cufft_plan(cufftType type, const legate::DomainPoint& size);
+  cufftContext get_cufft_plan(cufftType type, const cufftPlanParams& params);
 
  private:
   void finalize_cublas();
