@@ -334,7 +334,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   }
 };
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 using enabled_for_floating =
   typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value>::type;
 
@@ -468,7 +468,7 @@ struct UnaryRedOp<UnaryRedCode::NANMAX, TYPE_CODE, enabled_for_floating<TYPE_COD
   }
 };
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 using enabled_for_floating_or_complex64 =
   typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value ||
                           TYPE_CODE == legate::Type::Code::COMPLEX64>::type;
@@ -502,7 +502,7 @@ struct UnaryRedOp<UnaryRedCode::NANPROD, TYPE_CODE, enabled_for_floating_or_comp
   }
 };
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 using enabled_for_floating_or_complex =
   typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value ||
                           legate::is_complex<TYPE_CODE>::value>::type;

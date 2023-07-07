@@ -5588,10 +5588,13 @@ def nanargmax(
     keepdims: bool = False,
 ) -> ndarray:
     """
-
     Return the indices of the maximum values in the specified axis ignoring
-    NaNs. For empty arrays and all-NaN slices, a ValueError is raised. Warning:
-    the results cannot be trusted if a slice contains only NaNs and -Infs.
+    NaNs. For empty arrays, ValueError is raised. For all-NaN slices,
+    ValueError is raised only when CUNUMERIC_NUMPY_COMPATIBILITY
+    environment variable is set, otherwise identity is returned.
+
+    Warning: results cannot be trusted if a slice contains only NaNs
+    and -Infs.
 
     Parameters
     ----------
@@ -5626,10 +5629,8 @@ def nanargmax(
     if a.size == 0:
         raise ValueError("attempt to get nanargmax of an empty sequence")
 
-    check_blocking_value_errors = settings.check_blocking_value_errors()
-    if check_blocking_value_errors and a.dtype.kind == "f":
-        raise_exception = any(all(isnan(a), axis=axis))
-        if raise_exception:
+    if settings.numpy_compat() and a.dtype.kind == "f":
+        if any(all(isnan(a), axis=axis)):
             raise ValueError("Array/Slice contains only NaNs")
 
     unary_red_code = get_non_nan_unary_red_code(
@@ -5655,10 +5656,9 @@ def nanargmin(
     keepdims: bool = False,
 ) -> ndarray:
     """
-
     Return the indices of the minimum values in the specified axis ignoring
     NaNs. For empty arrays, ValueError is raised. For all-NaN slices,
-    ValueError is raised only when CUNUMERIC_CHECK_BLOCKING_VALUE_ERRORS
+    ValueError is raised only when CUNUMERIC_NUMPY_COMPATIBILITY
     environment variable is set, otherwise identity is returned.
 
     Warning: results cannot be trusted if a slice contains only NaNs
@@ -5697,10 +5697,8 @@ def nanargmin(
     if a.size == 0:
         raise ValueError("attempt to get nanargmin of an empty sequence")
 
-    check_blocking_value_errors = settings.check_blocking_value_errors()
-    if check_blocking_value_errors and a.dtype.kind == "f":
-        raise_exception = any(all(isnan(a), axis=axis))
-        if raise_exception:
+    if settings.numpy_compat() and a.dtype.kind == "f":
+        if any(all(isnan(a), axis=axis)):
             raise ValueError("Array/Slice contains only NaNs")
 
     unary_red_code = get_non_nan_unary_red_code(
@@ -5803,8 +5801,7 @@ def nanmin(
         where=where,
     )
 
-    numpy_compat = settings.numpy_compat()
-    if numpy_compat and a.dtype.kind == "f":
+    if settings.numpy_compat() and a.dtype.kind == "f":
         where = all(isnan(a), axis=axis, keepdims=keepdims)
         putmask(out_array, where, np.nan)  # type: ignore
 
@@ -5821,8 +5818,8 @@ def nanmax(
     where: Any = True,
 ) -> ndarray:
     """
-    Return the maximum of an array or maximum along an axis, ignoring
-    any NaNs. When all-NaN slices are encountered, a nan is returned
+    Return the maximum of an array or maximum along an axis, ignoring any
+    NaNs. When all-NaN slices are encountered, a NaN is returned
     for that slice only when CUNUMERIC_NUMPY_COMPATIBILITY environment
     variable is set, otherwise identity is returned.
     Empty slices will raise a ValueError
@@ -5832,12 +5829,14 @@ def nanmax(
     a : array_like
         Array containing numbers whose maximum is desired. If a is not
         an array, a conversion is attempted.
+
     axis : None or int or tuple[int], optional
         Axis or axes along which to operate.  By default, flattened input is
         used.
 
         If this is a tuple of ints, the maximum is selected over multiple axes,
         instead of a single axis or all the axes as before.
+
     out : ndarray, optional
         Alternative output array in which to place the result.  Must
         be of the same shape and buffer length as the expected output.
@@ -5898,8 +5897,7 @@ def nanmax(
         where=where,
     )
 
-    numpy_compat = settings.numpy_compat()
-    if numpy_compat and a.dtype.kind == "f":
+    if settings.numpy_compat() and a.dtype.kind == "f":
         where = all(isnan(a), axis=axis, keepdims=keepdims)
         putmask(out_array, where, np.nan)  # type: ignore
 
