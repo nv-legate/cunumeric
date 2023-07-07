@@ -105,8 +105,7 @@ static void putmask_template(TaskContext& context)
 {
   auto& inputs = context.inputs();
   PutmaskArgs args{context.outputs()[0], inputs[1], inputs[2]};
-  int dim = args.input.dim() == 0 ? 1 : args.input.dim();
-  double_dispatch(dim, args.input.code(), PutmaskImpl<KIND>{}, args);
+  double_dispatch(args.input.dim(), args.input.code(), PutmaskImpl<KIND>{}, args);
 }
 
 }  // namespace cunumeric
