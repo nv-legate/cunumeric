@@ -6419,7 +6419,8 @@ def histogram(
 
         num_intervals = bins
         num_elems = num_intervals + 1
-        min_src, max_src = get_min_max_elements(x) # TODO -> Also, Q!
+        min_src = ndarray._perform_unary_reduction(UnaryRedCode.MIN, x, res_dtype=float)
+        max_src = ndarray._perform_unary_reduction(UnaryRedCode.MAX, x, res_dtype=float)
 
         if range_ is None:
             range_ = (min_src, max_src)
