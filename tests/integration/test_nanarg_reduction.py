@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import os
 from math import prod
 
 import numpy as np
@@ -20,10 +21,11 @@ import pytest
 from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
+from cunumeric.settings import settings
 
 NAN_ARG_FUNCS = ("nanargmax", "nanargmin")
 
-NDIMS = range(LEGATE_MAX_DIM + 1)
+EAGER_TEST = os.environ.get("CUNUMERIC_FORCE_THUNK", None) == "eager"
 
 DISALLOWED_DTYPES = (
     np.complex64,
@@ -132,7 +134,7 @@ class TestXFail:
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
-    @pytest.mark.parametrize("ndim", NDIMS)
+    @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
     @pytest.mark.parametrize("disallowed_dtype", DISALLOWED_DTYPES)
     def test_disallowed_dtypes(self, func_name, ndim, disallowed_dtype):
         """This test checks if we raise an error for types that are
@@ -142,62 +144,130 @@ class TestXFail:
 
         func_num = getattr(num, func_name)
 
+        expected_exp = ValueError
         msg = r"operation is not supported for complex-type arrays"
-        with pytest.raises(ValueError, match=msg):
+        with pytest.raises(expected_exp, match=msg):
             func_num(in_num)
 
-    @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
-    @pytest.mark.parametrize("ndim", NDIMS)
-    def test_all_nan(self, func_name, ndim):
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    def test_all_nan_numpy_compat(self, func_name, ndim):
         """This test checks if we comply with the expected behavior when
         the array contains only NaNs. The expected behavior is to
         raise a ValueError.
         """
+        settings.numpy_compat = True
+
         shape = (3,) * ndim
         in_num = num.zeros(shape)
         in_num.fill(num.nan)
 
         func_num = getattr(num, func_name)
-        func_num(in_num)
 
-    @pytest.mark.xfail
-    @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
-    @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
-    def test_slice_nan(self, func_name, ndim):
-        """This test checks if we comply with the expected behavior when
-        a slice contains only NaNs. The expected behavior is to raise a
-        ValueError.
-        """
+        expected_exp = ValueError
+        with pytest.raises(expected_exp):
+            func_num(in_num)
+
+        settings.numpy_compat.unset_value()
+
+    @pytest.mark.skipif(
+        EAGER_TEST,
+        reason="Eager and Deferred mode will give different results",
+    )
+    @pytest.mark.parametrize(
+        "identity, func_name",
+        [
+            (np.iinfo(np.int64).min, "nanargmax"),
+            (np.iinfo(np.int64).min, "nanargmin"),
+        ],
+        ids=str,
+    )
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    def test_all_nan_no_numpy_compat(self, identity, func_name, ndim):
+        """This test checks that we return identity for all-NaN arrays"""
+        settings.numpy_compat = False
+
         shape = (3,) * ndim
-        in_num = num.random.rand(shape)
-
-        if ndim == 2:
-            in_num[:, 0] = num.nan
-        else:
-            in_num[0, ...] = num.nan
+        in_num = num.zeros(shape)
+        in_num.fill(num.nan)
 
         func_num = getattr(num, func_name)
-        func_num(in_num)
+
+        assert identity == func_num(in_num)
+
+        settings.numpy_compat.unset_value()
+
+    @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
+    def test_slice_nan_numpy_compat(self, func_name):
+        """This test checks if we comply with the numpy when
+        a slice contains only NaNs and CUNUMERIC_NUMPY_COMPATABILITY
+        is set to 1.
+        """
+        settings.numpy_compat = True
+
+        in_num = num.random.random((3, 3))
+        in_num[0, ...] = num.nan
+
+        func_num = getattr(num, func_name)
+
+        expected_exp = ValueError
+        with pytest.raises(expected_exp):
+            func_num(in_num, axis=1)
+
+        settings.numpy_compat.unset_value()
+
+    @pytest.mark.skipif(
+        EAGER_TEST,
+        reason="Eager and Deferred mode will give different results",
+    )
+    @pytest.mark.parametrize(
+        "identity, func_name",
+        [
+            (np.iinfo(np.int64).min, "nanargmax"),
+            (np.iinfo(np.int64).min, "nanargmin"),
+        ],
+        ids=str,
+    )
+    def test_slice_nan_no_numpy_compat(self, identity, func_name):
+        """This test checks if we return identity for a slice that
+        contains NaNs when CUNUMERIC_NUMPY_COMPATABILITY is set to 0.
+        """
+        settings.numpy_compat = False
+
+        in_num = num.random.random((3, 3))
+        in_num[0, ...] = num.nan
+
+        func_num = getattr(num, func_name)
+        out_num = func_num(in_num, axis=1)
+
+        assert out_num[0] == identity
+
+        settings.numpy_compat.unset_value()
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
-    def test_out_mismatch(self, func_name):
+    def test_out_shape_mismatch(self, func_name):
         """This test checks if we raise an error when the output shape is
         incorrect"""
 
-        ndim = 2
-        shape = (3,) * ndim
+        in_num = np.random.random((3, 3))
         func_num = getattr(num, func_name)
-
-        in_num = np.random.random(shape)
 
         # shape
         index_array = np.random.randint(low=1, high=4, size=(2, 2))
         func_num(in_num, out=index_array)
 
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
+    def test_out_dtype_mismatch(self, func_name):
+        """This test checks if we raise an error when the output dtype is
+        incorrect"""
+
+        in_num = np.random.random((3, 3))
+        func_num = getattr(num, func_name)
+
         # dtype
-        index_array = np.random.rand(2, 2)
+        index_array = np.random.random(2, 2)
         func_num(in_num, out=index_array)
 
 

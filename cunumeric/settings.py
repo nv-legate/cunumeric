@@ -76,11 +76,10 @@ class CunumericRuntimeSettings(Settings):
         """,
     )
 
-    numpy_compat: EnvOnlySetting[bool] = EnvOnlySetting(
+    numpy_compat: PrioritizedSetting[bool] = PrioritizedSetting(
         "numpy_compat",
         "CUNUMERIC_NUMPY_COMPATIBILITY",
         default=False,
-        test_default=True,
         convert=convert_bool,
         help="""
         cuNumeric will issue additional tasks to match numpy's results

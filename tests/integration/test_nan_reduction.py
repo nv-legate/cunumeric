@@ -13,6 +13,7 @@
 # limitations under the License.
 #
 
+import os
 from math import prod
 
 import numpy as np
@@ -20,8 +21,11 @@ import pytest
 from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
+from cunumeric.settings import settings
 
 NAN_FUNCS = ("nanmax", "nanmin", "nanprod", "nansum")
+
+EAGER_TEST = os.environ.get("CUNUMERIC_FORCE_THUNK", None) == "eager"
 
 NDIMS = range(LEGATE_MAX_DIM + 1)
 
@@ -173,22 +177,59 @@ class TestNanReductions:
         assert np.allclose(out_num, out_np, rtol=1e-4)
 
     @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
-    def test_slice_nan_min_max(self, func_name):
+    def test_slice_nan_numpy_compat(self, func_name):
         """This test checks if nanmin and nanmax return nan for
         a slice that contains all-NaNs
         """
+        settings.numpy_compat = True
+
         shape = (3, 3)
         in_num = num.random.random(shape)
 
-        in_num[:, 0] = num.nan
+        in_num[0, :] = num.nan
         func_num = getattr(num, func_name)
-        out_num = func_num(in_num, axis=0)
+        out_num = func_num(in_num, axis=1)
 
         assert num.any(num.isnan(out_num))
 
+        settings.numpy_compat.unset_value()
+
+    @pytest.mark.skipif(
+        EAGER_TEST,
+        reason="Eager and Deferred mode will give different results",
+    )
+    @pytest.mark.parametrize(
+        "identity, func_name",
+        [
+            (np.finfo(np.float64).min, "nanmax"),
+            (np.finfo(np.float64).max, "nanmin"),
+        ],
+        ids=str,
+    )
+    def test_slice_nan_no_numpy_compat(self, identity, func_name):
+        """This test checks if nanmin and nanmax return identity for
+        a slice that contains all-NaNs
+        """
+        settings.numpy_compat = False
+
+        in_num = num.random.random((3, 3))
+
+        in_num[0, :] = num.nan
+        func_num = getattr(num, func_name)
+        out_num = func_num(in_num, axis=1)
+
+        assert out_num[0] == identity
+
+        settings.numpy_compat.unset_value()
+
     @pytest.mark.parametrize("func_name", ("nanmin", "nanmax"))
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
-    def test_all_nans_nan_min_max(self, ndim, func_name):
+    def test_all_nans_numpy_compat(self, ndim, func_name):
+        """This test checks if we comply with the expected behavior when
+        the array contains only NaNs.
+        """
+        settings.numpy_compat = True
+
         shape = (3,) * ndim
         in_num = num.random.random(shape)
         in_num[...] = np.nan
@@ -197,6 +238,38 @@ class TestNanReductions:
         out_num = func_num(in_num)
 
         assert num.isnan(out_num)
+
+        settings.numpy_compat.unset_value()
+
+    @pytest.mark.skipif(
+        EAGER_TEST,
+        reason="Eager and Deferred mode will give different results",
+    )
+    @pytest.mark.parametrize(
+        "identity, func_name",
+        [
+            (np.finfo(np.float64).min, "nanmax"),
+            (np.finfo(np.float64).max, "nanmin"),
+        ],
+        ids=str,
+    )
+    @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
+    def test_all_nans_no_numpy_compat(self, ndim, identity, func_name):
+        """This test checks if we comply with the expected behavior when
+        the array contains only NaNs for nanmin and nanmax.
+        """
+        settings.numpy_compat = False
+
+        shape = (3,) * ndim
+        in_num = num.random.random(shape)
+        in_num[...] = np.nan
+
+        func_num = getattr(num, func_name)
+        out_num = func_num(in_num)
+
+        assert out_num == identity
+
+        settings.numpy_compat.unset_value()
 
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     def test_all_nans_nanprod(self, ndim):
@@ -224,10 +297,14 @@ class TestCornerCases:
     These are corner cases where we check with empty arrays
     """
 
-    def test_empty_for_min_max(self):
-        with pytest.raises(ValueError):
+    def test_empty_for_nanmin(self):
+        expected_exp = ValueError
+        with pytest.raises(expected_exp):
             num.nanmin([])
-        with pytest.raises(ValueError):
+
+    def test_empty_for_nanmax(self):
+        expected_exp = ValueError
+        with pytest.raises(expected_exp):
             num.nanmax([])
 
     def test_empty_for_prod_sum(self):
@@ -252,8 +329,9 @@ class TestXFail:
 
         func_num = getattr(num, func_name)
 
+        expected_exp = NotImplementedError
         msg = r"operation is not supported for complex64 and complex128 types"
-        with pytest.raises(NotImplementedError, match=msg):
+        with pytest.raises(expected_exp, match=msg):
             func_num(in_num)
 
     @pytest.mark.xfail
@@ -269,7 +347,9 @@ class TestXFail:
         in_num = r + 1j * c
 
         func_num = getattr(num, func_name)
-        with pytest.raises(NotImplementedError):
+
+        expected_exp = NotImplementedError
+        with pytest.raises(expected_exp):
             func_num(in_num)
 
     @pytest.mark.xfail
@@ -283,7 +363,8 @@ class TestXFail:
         r[0] = c[0] = num.nan
         in_num = r + 1j * c
 
-        with pytest.raises(NotImplementedError):
+        expected_exp = NotImplementedError
+        with pytest.raises(expected_exp):
             num.nanprod(in_num)
 
 
