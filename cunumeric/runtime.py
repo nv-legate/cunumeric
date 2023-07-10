@@ -437,7 +437,6 @@ class Runtime(object):
                 optimize_scalar=False,
             )
             store.attach_external_allocation(
-                self.legate_context,
                 array.data,
                 share,
             )

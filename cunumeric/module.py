@@ -19,7 +19,17 @@ import operator
 import re
 from collections import Counter
 from itertools import chain
-from typing import TYPE_CHECKING, Any, Literal, Optional, Sequence, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Iterable,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import opt_einsum as oe  # type: ignore [import]
@@ -35,7 +45,12 @@ from cunumeric.coverage import is_implemented
 from ._ufunc.comparison import maximum, minimum
 from ._ufunc.floating import floor
 from ._ufunc.math import add, multiply
-from .array import add_boilerplate, convert_to_cunumeric_ndarray, ndarray
+from .array import (
+    add_boilerplate,
+    check_writeable,
+    convert_to_cunumeric_ndarray,
+    ndarray,
+)
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
 from .types import NdShape, NdShapeLike, OrderType, SortSide
@@ -560,7 +575,8 @@ def asarray(a: Any, dtype: Optional[np.dtype[Any]] = None) -> ndarray:
     """
     if not isinstance(a, ndarray):
         thunk = runtime.get_numpy_thunk(a, share=True, dtype=dtype)
-        array = ndarray(shape=None, thunk=thunk)
+        writeable = a.flags.writeable if isinstance(a, np.ndarray) else True
+        array = ndarray(shape=None, thunk=thunk, writeable=writeable)
     else:
         array = a
     if dtype is not None and array.dtype != dtype:
@@ -663,7 +679,7 @@ def arange(
         step = 1
 
     if dtype is None:
-        dtype = np.find_common_type([], [type(start), type(stop), type(step)])
+        dtype = np.result_type(start, stop, step)
     else:
         dtype = np.dtype(dtype)
 
@@ -740,7 +756,7 @@ def linspace(
         raise ValueError("Number of samples, %s, must be non-negative." % num)
     div = (num - 1) if endpoint else num
 
-    common_kind = np.find_common_type((start.dtype, stop.dtype), ()).kind
+    common_kind = np.result_type(start.dtype, stop.dtype).kind
     dt = np.complex128 if common_kind == "c" else np.float64
     if dtype is None:
         dtype = dt
@@ -1292,7 +1308,8 @@ def _atleast_nd(
     # 'reshape' change the shape of arrays
     # only when arr.shape != _reshape_recur(ndim,arr)
     result = list(arr.reshape(_reshape_recur(ndim, arr)) for arr in inputs)
-    # if the number of arrys in `arys` is 1, the return value is a single array
+    # if the number of arrays in `arys` is 1,
+    # the return value is a single array
     if len(result) == 1:
         return result[0]
     return result
@@ -1428,6 +1445,214 @@ def squeeze(a: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     return a.squeeze(axis=axis)
 
 
+def broadcast_shapes(
+    *args: Union[NdShapeLike, Sequence[NdShapeLike]]
+) -> NdShape:
+    """
+
+    Broadcast the input shapes into a single shape.
+
+    Parameters
+    ----------
+    `*args` : tuples of ints, or ints
+        The shapes to be broadcast against each other.
+
+    Returns
+    -------
+    tuple : Broadcasted shape.
+
+    See Also
+    --------
+    numpy.broadcast_shapes
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    # TODO: expected "Union[SupportsIndex, Sequence[SupportsIndex]]"
+    return np.broadcast_shapes(*args)  # type: ignore [arg-type]
+
+
+def _broadcast_to(
+    arr: ndarray,
+    shape: NdShapeLike,
+    subok: bool = False,
+    broadcasted: bool = False,
+) -> ndarray:
+    # create an array object w/ options passed from 'broadcast' routines
+    arr = array(arr, copy=False, subok=subok)
+    # 'broadcast_to' returns a read-only view of the original array
+    out_shape = broadcast_shapes(arr.shape, shape)
+    result = ndarray(
+        shape=out_shape,
+        thunk=arr._thunk.broadcast_to(out_shape),
+        writeable=False,
+    )
+    return result
+
+
+@add_boilerplate("arr")
+def broadcast_to(
+    arr: ndarray, shape: NdShapeLike, subok: bool = False
+) -> ndarray:
+    """
+
+    Broadcast an array to a new shape.
+
+    Parameters
+    ----------
+    arr : array_like
+        The array to broadcast.
+    shape : tuple or int
+        The shape of the desired array.
+        A single integer i is interpreted as (i,).
+    subok : bool, optional
+        This option is ignored by cuNumeric.
+
+    Returns
+    -------
+    broadcast : array
+        A readonly view on the original array with the given shape.
+        It is typically not contiguous.
+        Furthermore, more than one element of a broadcasted array
+        may refer to a single memory location.
+
+    See Also
+    --------
+    numpy.broadcast_to
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    return _broadcast_to(arr, shape, subok)
+
+
+def _broadcast_arrays(
+    arrs: list[ndarray],
+    subok: bool = False,
+) -> list[ndarray]:
+    # create an arry object w/ options passed from 'broadcast' routines
+    arrays = [array(arr, copy=False, subok=subok) for arr in arrs]
+    # check if the broadcast can happen in the input list of arrays
+    shapes = [arr.shape for arr in arrays]
+    out_shape = broadcast_shapes(*shapes)
+    # broadcast to the final shape
+    arrays = [_broadcast_to(arr, out_shape, subok) for arr in arrays]
+    return arrays
+
+
+def broadcast_arrays(
+    *args: Sequence[Any], subok: bool = False
+) -> list[ndarray]:
+    """
+
+    Broadcast any number of arrays against each other.
+
+    Parameters
+    ----------
+    `*args` : array_likes
+        The arrays to broadcast.
+
+    subok : bool, optional
+        This option is ignored by cuNumeric
+
+    Returns
+    -------
+    broadcasted : list of arrays
+        These arrays are views on the original arrays.
+        They are typically not contiguous.
+        Furthermore, more than one element of a broadcasted array
+        may refer to a single memory location.
+        If you need to write to the arrays, make copies first.
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    """
+    arrs = [convert_to_cunumeric_ndarray(arr) for arr in args]
+    return _broadcast_arrays(arrs, subok=subok)
+
+
+class broadcast:
+    """Produce an object that broadcasts input parameters against one another.
+    It has shape and nd properties and may be used as an iterator.
+
+    Parameters
+    ----------
+    `*arrays` : array_likes
+        The arrays to broadcast.
+
+    Returns
+    -------
+    b: broadcast
+        Broadcast the input parameters against one another, and return an
+        object that encapsulates the result. Amongst others, it has shape
+        and nd properties, and may be used as an iterator.
+
+    """
+
+    def __init__(self, *arrays: Sequence[Any]) -> None:
+        arrs = [convert_to_cunumeric_ndarray(arr) for arr in arrays]
+        broadcasted = _broadcast_arrays(arrs)
+        self._iters = tuple(arr.flat for arr in broadcasted)
+        self._index = 0
+        self._shape = broadcasted[0].shape
+        self._size = np.prod(self.shape, dtype=int)
+
+    def __iter__(self) -> broadcast:
+        self._index = 0
+        return self
+
+    def __next__(self) -> Any:
+        if self._index < self.size:
+            result = tuple(each[self._index] for each in self._iters)
+            self._index += 1
+            return result
+
+    def reset(self) -> None:
+        """Reset the broadcasted result's iterator(s)."""
+        self._index = 0
+
+    @property
+    def index(self) -> int:
+        """current index in broadcasted result"""
+        return self._index
+
+    @property
+    def iters(self) -> Tuple[Iterable[Any], ...]:
+        """tuple of iterators along self’s "components." """
+        return self._iters
+
+    @property
+    def numiter(self) -> int:
+        """Number of iterators possessed by the broadcasted result."""
+        return len(self._iters)
+
+    @property
+    def nd(self) -> int:
+        """Number of dimensions of broadcasted result."""
+        return self.ndim
+
+    @property
+    def ndim(self) -> int:
+        """Number of dimensions of broadcasted result."""
+        return len(self.shape)
+
+    @property
+    def shape(self) -> NdShape:
+        """Shape of broadcasted result."""
+        return self._shape
+
+    @property
+    def size(self) -> int:
+        """Total size of broadcasted result."""
+        return self._size
+
+
 # Joining arrays
 
 
@@ -1516,7 +1741,7 @@ def check_shape_dtype_without_axis(
 
     # Cast arrays with the passed arguments (dtype, casting)
     if dtype is None:
-        dtype = np.find_common_type((inp.dtype for inp in inputs), [])
+        dtype = np.result_type(*[inp.dtype for inp in inputs])
     else:
         dtype = np.dtype(dtype)
 
@@ -2244,7 +2469,9 @@ def array_split(
             new_subarray = array[tuple(in_shape)].view()
         else:
             out_shape[axis] = 0
-            new_subarray = ndarray(tuple(out_shape), dtype=array.dtype)
+            new_subarray = ndarray(
+                tuple(out_shape), dtype=array.dtype, writeable=array._writeable
+            )
         result.append(new_subarray)
         start_idx = pts
 
@@ -2584,6 +2811,8 @@ def place(arr: ndarray, mask: ndarray, vals: ndarray) -> None:
     """
     if arr.size == 0:
         return
+
+    check_writeable(arr)
 
     if mask.size != arr.size:
         raise ValueError("arr array and condition array must be of same size")
@@ -3327,6 +3556,8 @@ def put_along_axis(
     if a.size == 0:
         return
 
+    check_writeable(a)
+
     if not np.issubdtype(indices.dtype, np.integer):
         raise TypeError("`indices` must be an integer array")
 
@@ -3628,6 +3859,8 @@ def putmask(a: ndarray, mask: ndarray, values: ndarray) -> None:
     if not a.shape == mask.shape:
         raise ValueError("mask and data must be the same size")
 
+    check_writeable(a)
+
     mask = mask._warn_and_convert(np.dtype(bool))
 
     if a.dtype != values.dtype:
@@ -3683,6 +3916,8 @@ def fill_diagonal(a: ndarray, val: ndarray, wrap: bool = False) -> None:
     """
     if val.size == 0 or a.size == 0:
         return
+
+    check_writeable(a)
 
     if a.ndim < 2:
         raise ValueError("array must be at least 2-d")
@@ -3925,7 +4160,9 @@ def matmul(
     """
     if a.ndim == 0 or b.ndim == 0:
         raise ValueError("Scalars not allowed in matmul")
+
     (a_modes, b_modes, out_modes) = matmul_modes(a.ndim, b.ndim)
+
     return _contract(
         a_modes,
         b_modes,
@@ -4084,6 +4321,7 @@ def tensordot(
     Multiple GPUs, Multiple CPUs
     """
     (a_modes, b_modes, out_modes) = tensordot_modes(a.ndim, b.ndim, axes)
+
     return _contract(
         a_modes,
         b_modes,
@@ -4136,6 +4374,7 @@ def _contract(
         raise ValueError(
             f"Expected {len(a_modes)}-d input array but got {a.ndim}-d"
         )
+
     if b is None:
         if len(b_modes) != 0:
             raise ValueError("Missing input array")
@@ -4143,16 +4382,18 @@ def _contract(
         raise ValueError(
             f"Expected {len(b_modes)}-d input array but got {b.ndim}-d"
         )
+
     if out is not None and len(out_modes) != out.ndim:
         raise ValueError(
             f"Expected {len(out_modes)}-d output array but got {out.ndim}-d"
         )
+
     if len(set(out_modes)) != len(out_modes):
         raise ValueError("Duplicate mode labels on output")
+
     if len(set(out_modes) - set(a_modes) - set(b_modes)) > 0:
         raise ValueError("Unknown mode labels on output")
 
-    # Handle types
     makes_view = b is None and len(a_modes) == len(out_modes)
     if dtype is not None and not makes_view:
         c_dtype = dtype
@@ -4162,9 +4403,12 @@ def _contract(
         c_dtype = a.dtype
     else:
         c_dtype = ndarray.find_common_type(a, b)
+
     a = _maybe_cast_input(a, c_dtype, casting)
+
     if b is not None:
         b = _maybe_cast_input(b, c_dtype, casting)
+
     out_dtype = out.dtype if out is not None else c_dtype
 
     # Handle duplicate modes on inputs
@@ -4403,8 +4647,13 @@ def einsum(
     Multiple GPUs, Multiple CPUs
     """
     operands_list = [convert_to_cunumeric_ndarray(op) for op in operands]
+
+    if out is not None:
+        out = convert_to_cunumeric_ndarray(out, share=True)
+
     if not optimize:
         optimize = NullOptimizer()
+
     # This call normalizes the expression (adds the output part if it's
     # missing, expands '...') and checks for some errors (mismatch on number
     # of dimensions between operand and expression, wrong number of operands,
@@ -4442,6 +4691,7 @@ def einsum(
             dtype=dtype,
         )
         computed_operands.append(sub_result)
+
     assert len(computed_operands) == 1
     return computed_operands[0]
 

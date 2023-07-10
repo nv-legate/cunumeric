@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from numpy.lib import NumpyVersion
 
 import cunumeric as num
 
@@ -25,6 +26,15 @@ arr_num = num.array(arr_np)
 vec_num = num.array(vec_np)
 
 indices = [0, 3, 1, 2]
+
+
+class ArrayLike:
+    # Class to test that we defer to unknown ArrayLikes
+    def __array_function__(self, *args, **kwargs):
+        return "deferred"
+
+    def __array_ufunc__(self, *args, **kwargs):
+        return "deferred"
 
 
 def test_array_function_implemented():
@@ -41,6 +51,10 @@ def test_array_function_unimplemented():
 
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, np.ndarray)  # unimplemented
+
+
+def test_array_function_defer():
+    assert np.concatenate([arr_num, ArrayLike()]) == "deferred"
 
 
 def test_array_ufunc_through_array_op():
@@ -98,6 +112,14 @@ def test_array_ufunc_at():
 
     assert np.array_equal(res_np, res_num)
     assert isinstance(res_num, num.ndarray)
+
+
+def test_array_ufunc_defer():
+    assert np.add(arr_num, ArrayLike()) == "deferred"
+    assert np.add(arr_num, arr_num, out=ArrayLike()) == "deferred"
+    if NumpyVersion(np.__version__) >= "1.25.0":
+        # NumPy should also dispatch where
+        assert np.add(arr_num, arr_num, where=ArrayLike()) == "deferred"
 
 
 if __name__ == "__main__":

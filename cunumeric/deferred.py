@@ -292,7 +292,7 @@ class DeferredArray(NumPyThunk):
                 dtype=self.dtype,
             )
         else:
-            alloc = self.base.get_inline_allocation(self.context)
+            alloc = self.base.get_inline_allocation()
 
             def construct_ndarray(
                 shape: NdShape, address: Any, strides: tuple[int, ...]
@@ -406,8 +406,9 @@ class DeferredArray(NumPyThunk):
         # find a broadcasted shape for all arrays passed as indices
         shapes = tuple(a.shape for a in arrays)
         if len(arrays) > 1:
-            # TODO: replace with cunumeric.broadcast_shapes, when available
-            b_shape = np.broadcast_shapes(*shapes)
+            from .module import broadcast_shapes
+
+            b_shape = broadcast_shapes(*shapes)
         else:
             b_shape = arrays[0].shape
 
@@ -1081,6 +1082,9 @@ class DeferredArray(NumPyThunk):
 
                 view.copy(rhs, deep=False)
 
+    def broadcast_to(self, shape: NdShape) -> NumPyThunk:
+        return DeferredArray(self.runtime, base=self._broadcast(shape))
+
     def reshape(self, newshape: NdShape, order: OrderType) -> NumPyThunk:
         assert isinstance(newshape, Iterable)
         if order == "A":
@@ -1415,7 +1419,10 @@ class DeferredArray(NumPyThunk):
             for ax in axes:
                 task.add_scalar_arg(ax, ty.int64)
 
-            task.add_broadcast(input)
+            if input.ndim > len(set(axes)):
+                task.add_broadcast(input, axes=set(axes))
+            else:
+                task.add_broadcast(input)
             task.add_constraint(p_output == p_input)
 
             task.execute()
@@ -1430,8 +1437,7 @@ class DeferredArray(NumPyThunk):
             self.base.set_storage(value.storage)
         elif self.dtype.kind != "V" and self.base.kind is not Future:
             # Emit a Legion fill
-            fill = self.context.create_fill(self.base, value)
-            fill.execute()
+            self.context.issue_fill(self.base, value)
         else:
             # Perform the fill using a task
             # If this is a fill for an arg value, make sure to pass

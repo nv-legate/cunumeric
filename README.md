@@ -50,7 +50,8 @@ The default package contains GPU support, and is compatible with CUDA >= 11.8
 also CPU-only packages available, and will be automatically selected by `conda`
 when installing on a machine without GPUs.
 
-See [BUILD.md](BUILD.md) for instructions on building cuNumeric from source.
+See the build instructions at https://nv-legate.github.io/cunumeric for details
+about building cuNumeric from source.
 
 ## Usage and Execution
 

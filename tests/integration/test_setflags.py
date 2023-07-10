@@ -55,7 +55,6 @@ def test_array_default_flags():
     #          WRITEBACKIFCOPY : False
 
 
-@pytest.mark.xfail
 def test_no_writable():
     array_np = np.array([0, 0, 0, 0, 0])
     array_num = num.array([0, 0, 0, 0, 0])
@@ -64,11 +63,8 @@ def test_no_writable():
     expected_exc = ValueError
     with pytest.raises(expected_exc):
         array_np[2] = 1
-        # Numpy raises ValueError: assignment destination is read-only
-    expected_exc = ValueError
     with pytest.raises(expected_exc):
         array_num[2] = 1
-        # cuNumeric set value as [0 0 1 0 0]
 
 
 @pytest.mark.xfail
@@ -102,7 +98,6 @@ def test_logic():
         # cuNumeric raises ValueError: cannot set WRITEBACKIFCOPY flag to True
 
 
-@pytest.mark.xfail
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
 def test_set_write_true(ndim):
     shape = (3,) * ndim
@@ -110,12 +105,9 @@ def test_set_write_true(ndim):
     array_num = num.array(array_np)
     array_np.setflags(write=True)
     array_num.setflags(write=True)
-    # cuNumeric raises ValueError: cannot set WRITEABLE flag to True
-    # of this array
     assert array_np.flags["WRITEABLE"] == array_num.flags["WRITEABLE"]
 
 
-@pytest.mark.xfail
 @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
 def test_set_write_false(ndim):
     shape = (3,) * ndim
