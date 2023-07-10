@@ -71,7 +71,7 @@ class TestSettings:
             == 'bool ("0" or "1")'
         )
         assert m.settings.report_dump_csv.convert_type == "str"
-        assert m.settings.numpy_compat.convert_type == "bool"
+        assert m.settings.numpy_compat.convert_type == 'bool ("0" or "1")'
 
 
 class TestDefaults:

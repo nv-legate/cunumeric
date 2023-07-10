@@ -54,7 +54,7 @@ from .array import (
 )
 from .config import BinaryOpCode, ScanCode, UnaryRedCode
 from .runtime import runtime
-from .settings import settings
+from .settings import settings as cunumeric_settings
 from .types import NdShape, NdShapeLike, OrderType, SortSide
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
@@ -5629,7 +5629,7 @@ def nanargmax(
     if a.size == 0:
         raise ValueError("attempt to get nanargmax of an empty sequence")
 
-    if settings.numpy_compat() and a.dtype.kind == "f":
+    if cunumeric_settings.numpy_compat() and a.dtype.kind == "f":
         if any(all(isnan(a), axis=axis)):
             raise ValueError("Array/Slice contains only NaNs")
 
@@ -5697,7 +5697,7 @@ def nanargmin(
     if a.size == 0:
         raise ValueError("attempt to get nanargmin of an empty sequence")
 
-    if settings.numpy_compat() and a.dtype.kind == "f":
+    if cunumeric_settings.numpy_compat() and a.dtype.kind == "f":
         if any(all(isnan(a), axis=axis)):
             raise ValueError("Array/Slice contains only NaNs")
 
@@ -5801,7 +5801,7 @@ def nanmin(
         where=where,
     )
 
-    if settings.numpy_compat() and a.dtype.kind == "f":
+    if cunumeric_settings.numpy_compat() and a.dtype.kind == "f":
         where = all(isnan(a), axis=axis, keepdims=keepdims)
         putmask(out_array, where, np.nan)  # type: ignore
 
@@ -5897,7 +5897,7 @@ def nanmax(
         where=where,
     )
 
-    if settings.numpy_compat() and a.dtype.kind == "f":
+    if cunumeric_settings.numpy_compat() and a.dtype.kind == "f":
         where = all(isnan(a), axis=axis, keepdims=keepdims)
         putmask(out_array, where, np.nan)  # type: ignore
 
