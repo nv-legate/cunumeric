@@ -81,7 +81,7 @@ struct segmented_sum_t<
   allocator_t,
   std::enable_if_t<std::is_same_v<exe_policy_t, thrust::detail::host_t> ||
                    std::is_same_v<exe_policy_t, thrust::system::omp::detail::par_t>>> {
-  segmented_sum_t(thrust::detail::host_t exe_pol,
+  segmented_sum_t(exe_policy_t exe_pol,
                   weight_t const* p_weights,
                   size_t n_samples,
                   weight_t* p_hist,
