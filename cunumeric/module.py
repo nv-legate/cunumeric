@@ -6633,10 +6633,12 @@ def bincount(
 
 @add_boilerplate("x", "bins", "weights")
 def histogram(
-        x: ndarray, bins: Optional[Union[ndarray, int]] = 10,
-        range_: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
-        weights: Optional[ndarray] = None,
-        density: bool = False) -> ndarray:
+    x: ndarray,
+    bins: Optional[Union[ndarray, int]] = 10,
+    range_: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
+    weights: Optional[ndarray] = None,
+    density: bool = False,
+) -> ndarray:
     """
     ***** TODO: *****
 
@@ -6669,13 +6671,17 @@ def histogram(
 
         num_intervals = bins
         num_elems = num_intervals + 1
-        min_src = ndarray._perform_unary_reduction(UnaryRedCode.MIN, x, res_dtype=float)
-        max_src = ndarray._perform_unary_reduction(UnaryRedCode.MAX, x, res_dtype=float)
+        min_src = ndarray._perform_unary_reduction(
+            UnaryRedCode.MIN, x, res_dtype=float
+        )
+        max_src = ndarray._perform_unary_reduction(
+            UnaryRedCode.MAX, x, res_dtype=float
+        )
 
         if range_ is None:
             range_ = (min_src, max_src)
         else:
-            assert (isinstance(range_, tuple)) # how to check: tuple(,)?
+            assert isinstance(range_, tuple)  # how to check: tuple(,)?
             if range_[0] < min_src:
                 range_[0] = min_src
             if range_[1] > max_src:
@@ -6685,10 +6691,13 @@ def histogram(
 
         # potential problem with `buffer` karg:
         #
-        bins_array = ndarray(shape=(num_elems,),
-                             buffer=np.array([range_[0] + k * step
-                                              for k in range(0, num_elems)]),
-                             dtype=float)
+        bins_array = ndarray(
+            shape=(num_elems,),
+            buffer=np.array(
+                [range_[0] + k * step for k in range(0, num_elems)]
+            ),
+            dtype=float,
+        )
 
         bins_orig_type = bins_array.dtype
     else:
@@ -6719,13 +6728,14 @@ def histogram(
         dtype=weights_array.dtype,
         inputs=(x, bins, weights_array),
     )
-    hist._thunk.histogram(x._thunk, bins_array._thunk,
-                          weights=weights_array._thunk)
+    hist._thunk.histogram(
+        x._thunk, bins_array._thunk, weights=weights_array._thunk
+    )
 
     # handle (density = True):
     #
     if density:
         Sw = sum(hist)
-        hist /= [Sw*(bins[i + 1] - bins[i]) for i in range(0, hist.size)]
+        hist /= [Sw * (bins[i + 1] - bins[i]) for i in range(0, hist.size)]
 
     return hist.astype(result_type), bins_array.astype(bins_orig_type)

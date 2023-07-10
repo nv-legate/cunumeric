@@ -3578,20 +3578,21 @@ class DeferredArray(NumPyThunk):
         copy.add_output(self.base)
         copy.execute()
 
-
     # Perform a histogram operation on the array
     @auto_convert("src", "bins", "weights")
-    def histogram(self, src: NumPyThunk, bins: NumPyThunk,
-                  weights: NumPyThunk) -> None:
+    def histogram(
+        self, src: NumPyThunk, bins: NumPyThunk, weights: NumPyThunk
+    ) -> None:
         weight_array = weights
         src_array = src
         bins_array = bins
         dst_array = self
         assert src_array.size > 1
         assert dst_array.ndim == 1
-        assert ((len(src_array.shape) == 1) and
-                (len(weight_array.shape) == 1) and
-                (src_array.size == weight_array.size)
+        assert (
+            (len(src_array.shape) == 1)
+            and (len(weight_array.shape) == 1)
+            and (src_array.size == weight_array.size)
         )
 
         dst_array.fill(np.array(0, dst_array.dtype))

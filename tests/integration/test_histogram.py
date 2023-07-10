@@ -15,10 +15,10 @@
 
 import numpy as np
 import pytest
-
 from utils.comparisons import allclose
 
 import cunumeric as num
+
 
 # @pytest.mark.parametrize(
 #     "src", ([2,3,3,5,2,7,6,4], [0, 2, 1, 3, 1, 4, 3, 2])
@@ -27,11 +27,9 @@ import cunumeric as num
 #     "bins", (5, [1, 5, 8], [1, 2, 3, 4, 5, 6, 7])
 # )
 @pytest.mark.parametrize(
-    "src", ([2,3,3,5,2,7,6,4], [0, 2, 1, 3, 1, 4, 3, 2])
+    "src", ([2, 3, 3, 5, 2, 7, 6, 4], [0, 2, 1, 3, 1, 4, 3, 2])
 )
-@pytest.mark.parametrize(
-    "bins", ([1, 5, 8], [1, 2, 3, 4, 5, 6, 7])
-)
+@pytest.mark.parametrize("bins", ([1, 5, 8], [1, 2, 3, 4, 5, 6, 7]))
 def test_histogram_no_weights(src, bins):
     eps = 1.0e-8
     src_array = np.array(src)
@@ -42,9 +40,9 @@ def test_histogram_no_weights(src, bins):
         bins_maybe_array = np.array(bins)
         assert bins_maybe_array.shape[0] > 0
 
-    np_out, np_bins_out =  np.histogram(src_array, bins_maybe_array)
+    np_out, np_bins_out = np.histogram(src_array, bins_maybe_array)
     np_float_out = np_out.astype(float)
-    
+
     num_out, num_bins_out = num.histogram(src_array, bins_maybe_array)
 
     assert allclose(np_out, num_out, atol=eps)
@@ -64,20 +62,21 @@ def test_histogram_no_weights(src, bins):
 # @pytest.mark.parametrize("density", (False, True))
 # @pytest.mark.skip(reason="debugging...")
 @pytest.mark.parametrize(
-    "src", ([2,3,3,5,2,7,6,4], [0, 2, 1, 3, 1, 4, 3, 2])
+    "src", ([2, 3, 3, 5, 2, 7, 6, 4], [0, 2, 1, 3, 1, 4, 3, 2])
 )
+@pytest.mark.parametrize("bins", ([1, 5, 8], [1, 2, 3, 4, 5, 6, 7]))
 @pytest.mark.parametrize(
-    "bins", ([1, 5, 8], [1, 2, 3, 4, 5, 6, 7])
-)
-@pytest.mark.parametrize(
-    "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
-                [0.3, 0.1, 0.5, 0.1, 0.7, 0.2, 0.8, 1.3])
+    "weights",
+    (
+        [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+        [0.3, 0.1, 0.5, 0.1, 0.7, 0.2, 0.8, 1.3],
+    ),
 )
 @pytest.mark.parametrize("density", (False, True))
 def test_histogram_weights(src, bins, weights, density):
     eps = 1.0e-8
     src_array = np.array(src)
-    
+
     if num.isscalar(bins):
         bins_maybe_array = bins
     else:
@@ -86,11 +85,13 @@ def test_histogram_weights(src, bins, weights, density):
     weights_array = np.array(weights)
 
     # density = False # remove me!
-    
-    np_out, np_bins_out =  np.histogram(src_array, bins_maybe_array,
-                           weights = weights_array, density = density)
-    num_out, num_bins_out = num.histogram(src_array, bins_maybe_array,
-                            weights = weights_array, density = density)
+
+    np_out, np_bins_out = np.histogram(
+        src_array, bins_maybe_array, weights=weights_array, density=density
+    )
+    num_out, num_bins_out = num.histogram(
+        src_array, bins_maybe_array, weights=weights_array, density=density
+    )
 
     assert allclose(np_out, num_out, atol=eps)
     assert allclose(np_bins_out, num_bins_out, atol=eps)
@@ -116,14 +117,16 @@ def test_histogram_ranges(src, bins, weights, density, ranges):
     src_array = np.array(src)
     weights_array = np.array(weights)
 
-    np_out, np_bins_out =  np.histogram(src_array, bins, density = density,
-                           weights = weights_array, range=ranges)
-    num_out, num_bins_out = num.histogram(src_array, bins, density = density,
-                            weights = weights_array, range=ranges)
+    np_out, np_bins_out = np.histogram(
+        src_array, bins, density=density, weights=weights_array, range=ranges
+    )
+    num_out, num_bins_out = num.histogram(
+        src_array, bins, density=density, weights=weights_array, range=ranges
+    )
 
     assert allclose(np_out, num_out, atol=eps)
     assert allclose(np_bins_out, num_bins_out, atol=eps)
-    
+
 
 # @pytest.mark.parametrize(
 #     "src", ([0, 2, 1, 3, 1, 4, 3, 2], [4, 2, 3, 3, 2, 4, 3, 2])
@@ -142,8 +145,12 @@ def test_histogram_extreme_bins(src, bins, weights):
     bins_array = np.array(bins)
     weights_array = np.array(weights)
 
-    np_out, np_bins_out =  np.histogram(src_array, bins_array, weights = weights_array)
-    num_out, num_bins_out = num.histogram(src_array, bins_array, weights = weights_array)
+    np_out, np_bins_out = np.histogram(
+        src_array, bins_array, weights=weights_array
+    )
+    num_out, num_bins_out = num.histogram(
+        src_array, bins_array, weights=weights_array
+    )
 
     assert allclose(np_out, num_out, atol=eps)
     assert allclose(np_bins_out, num_bins_out, atol=eps)
