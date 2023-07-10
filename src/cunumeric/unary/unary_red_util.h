@@ -338,7 +338,7 @@ template <legate::Type::Code TYPE_CODE>
 using enabled_for_floating =
   typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value>::type;
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE, enabled_for_floating<TYPE_CODE>> {
   static constexpr bool valid = true;
 
@@ -374,7 +374,7 @@ struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE, enabled_for_floating<TYPE_
   }
 };
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANARGMIN, TYPE_CODE, enabled_for_floating<TYPE_CODE>> {
   static constexpr bool valid = true;
 
@@ -410,7 +410,7 @@ struct UnaryRedOp<UnaryRedCode::NANARGMIN, TYPE_CODE, enabled_for_floating<TYPE_
   }
 };
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANMIN, TYPE_CODE, enabled_for_floating<TYPE_CODE>> {
   static constexpr bool valid = true;
 
@@ -439,7 +439,7 @@ struct UnaryRedOp<UnaryRedCode::NANMIN, TYPE_CODE, enabled_for_floating<TYPE_COD
   }
 };
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANMAX, TYPE_CODE, enabled_for_floating<TYPE_CODE>> {
   static constexpr bool valid = true;
 
@@ -473,7 +473,7 @@ using enabled_for_floating_or_complex64 =
   typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value ||
                           TYPE_CODE == legate::Type::Code::COMPLEX64>::type;
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANPROD, TYPE_CODE, enabled_for_floating_or_complex64<TYPE_CODE>> {
   static constexpr bool valid = true;
 
@@ -507,7 +507,7 @@ using enabled_for_floating_or_complex =
   typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value ||
                           legate::is_complex<TYPE_CODE>::value>::type;
 
-template <typename legate::Type::Code TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::NANSUM, TYPE_CODE, enabled_for_floating_or_complex<TYPE_CODE>> {
   static constexpr bool valid = true;
 
