@@ -126,29 +126,6 @@ class TestNanArgReductions:
 
         assert np.array_equal(out_num, out_np)
 
-
-class TestXFail:
-    """
-    This class is to test negative cases
-    """
-
-    @pytest.mark.xfail
-    @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
-    @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
-    @pytest.mark.parametrize("disallowed_dtype", DISALLOWED_DTYPES)
-    def test_disallowed_dtypes(self, func_name, ndim, disallowed_dtype):
-        """This test checks if we raise an error for types that are
-        disallowed."""
-        shape = (2,) * ndim
-        in_num = num.random.random(shape).astype(disallowed_dtype)
-
-        func_num = getattr(num, func_name)
-
-        expected_exp = ValueError
-        msg = r"operation is not supported for complex-type arrays"
-        with pytest.raises(expected_exp, match=msg):
-            func_num(in_num)
-
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
     @pytest.mark.parametrize("ndim", range(1, LEGATE_MAX_DIM + 1))
     def test_all_nan_numpy_compat(self, func_name, ndim):
@@ -243,6 +220,29 @@ class TestXFail:
         assert out_num[0] == identity
 
         settings.numpy_compat.unset_value()
+
+
+class TestXFail:
+    """
+    This class is to test negative cases
+    """
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
+    @pytest.mark.parametrize("ndim", range(LEGATE_MAX_DIM + 1))
+    @pytest.mark.parametrize("disallowed_dtype", DISALLOWED_DTYPES)
+    def test_disallowed_dtypes(self, func_name, ndim, disallowed_dtype):
+        """This test checks if we raise an error for types that are
+        disallowed."""
+        shape = (2,) * ndim
+        in_num = num.random.random(shape).astype(disallowed_dtype)
+
+        func_num = getattr(num, func_name)
+
+        expected_exp = ValueError
+        msg = r"operation is not supported for complex-type arrays"
+        with pytest.raises(expected_exp, match=msg):
+            func_num(in_num)
 
     @pytest.mark.xfail
     @pytest.mark.parametrize("func_name", NAN_ARG_FUNCS)
