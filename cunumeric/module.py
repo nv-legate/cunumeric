@@ -6689,8 +6689,8 @@ def histogram(
             if bounds[0] >= bounds[1]:
                 raise ValueError("range must be a pair of increasing values.")
 
-            lower_b = max(min_src, bounds[0])
-            higher_b = min(max_src, bounds[1])
+            lower_b = _builtin_max(min_src, bounds[0])
+            higher_b = _builtin_min(max_src, bounds[1])
 
         step = (higher_b - lower_b) / num_intervals
 
