@@ -4014,7 +4014,7 @@ class ndarray:
                 scalar_types.append(array.dtype)
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)
+        return np.find_common_type(array_types, scalar_types)  # type: ignore
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
@@ -4180,8 +4180,6 @@ class ndarray:
                 UnaryRedCode.ARGMIN,
                 UnaryRedCode.MAX,
                 UnaryRedCode.MIN,
-                UnaryRedCode.NANARGMAX,
-                UnaryRedCode.NANARGMIN,
             )
             and src.dtype.kind == "c"
         ):
@@ -4301,17 +4299,8 @@ class ndarray:
         out: Union[ndarray, None] = None,
         nan_to_identity: bool = False,
     ) -> ndarray:
-        # Don't need to convert nan to identity for integral datatypes
         if src.dtype.kind != "c" and src.dtype.kind != "f":
             nan_to_identity = False
-
-        # If dtype is not specified, we run into the following three cases:
-        #  - out is not given and src array is of type int:
-        #        use platform int for dtype
-        #  - out is not given and src array is not of type int:
-        #        use src array's datatype for dtype
-        #  - if out is given:
-        #        use datatype of output array for dtype
         if dtype is None:
             if out is None:
                 if src.dtype.kind == "i":
@@ -4321,7 +4310,6 @@ class ndarray:
                     dtype = src.dtype
             else:
                 dtype = out.dtype
-
         # flatten input when axis is None
         if axis is None:
             axis = 0
@@ -4329,9 +4317,6 @@ class ndarray:
         else:
             axis = normalize_axis_index(axis, src.ndim)
             src_arr = src
-
-        # When both out and dtype are specified:
-        #   - dtype of out takes precedence.
         if out is not None:
             if dtype != out.dtype:
                 # if out array is specified, its type overrules dtype
