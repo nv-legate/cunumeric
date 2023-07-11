@@ -165,7 +165,7 @@ def test_histogram_no_weights_scalar_bin(src, bins):
     src_array = np.array(src)
 
     bins_scalar = int(bins)
-    
+
     np_out, np_bins_out = np.histogram(src_array, bins_scalar)
     # np_float_out = np_out.astype(float)
 

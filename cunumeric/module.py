@@ -6700,7 +6700,9 @@ def histogram(
         #     ),
         #     dtype=float,
         # )
-        bins_array = asarray([range_[0] + k * step for k in range(0, num_elems)], dtype=float)
+        bins_array = asarray(
+            [range_[0] + k * step for k in range(0, num_elems)], dtype=float
+        )
 
         bins_orig_type = bins_array.dtype
     else:
