@@ -6675,10 +6675,8 @@ def histogram(
 
         num_elems = num_intervals + 1
 
-        min_x = ndarray._perform_unary_reduction(
-            UnaryRedCode.MIN, x)
-        max_x = ndarray._perform_unary_reduction(
-            UnaryRedCode.MAX, x)
+        min_x = ndarray._perform_unary_reduction(UnaryRedCode.MIN, x)
+        max_x = ndarray._perform_unary_reduction(UnaryRedCode.MAX, x)
 
         min_src = float(min_x)
         max_src = float(max_x)
