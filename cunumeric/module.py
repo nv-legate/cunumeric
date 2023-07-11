@@ -6742,6 +6742,6 @@ def histogram(
     #
     if density:
         Sw = sum(hist)
-        hist /= [Sw * (bins[i + 1] - bins[i]) for i in range(0, hist.size)]
+        hist /= [Sw * (bins_array[i + 1] - bins_array[i]) for i in range(0, hist.size)]
 
     return hist.astype(result_type), bins_array.astype(bins_orig_type)
