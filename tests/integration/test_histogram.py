@@ -93,19 +93,13 @@ def test_histogram_weights(src, bins, weights, density):
 # @pytest.mark.parametrize(
 #     "ranges", ((3,6), (1, 3))
 # )
+@pytest.mark.parametrize("src", ([2, 3, 3, 5, 2, 7, 6, 4],))
+@pytest.mark.parametrize("bins", (5,))
 @pytest.mark.parametrize(
-    "src", ([2,3,3,5,2,7,6,4],)
-)
-@pytest.mark.parametrize(
-    "bins", (5, )
-)
-@pytest.mark.parametrize(
-    "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8], )
+    "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],)
 )
 @pytest.mark.parametrize("density", (False, True))
-@pytest.mark.parametrize(
-    "ranges", ((3,6), )
-)
+@pytest.mark.parametrize("ranges", ((3, 6),))
 # @pytest.mark.skip(reason="debugging...")
 def test_histogram_ranges(src, bins, weights, density, ranges):
     eps = 1.0e-8
