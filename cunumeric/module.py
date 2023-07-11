@@ -6631,7 +6631,7 @@ def bincount(
     return out
 
 
-@add_boilerplate("x", "bins", "weights")
+@add_boilerplate("x", "weights")
 def histogram(
     x: ndarray,
     bins: Optional[Union[ndarray, int]] = 10,
@@ -6668,10 +6668,10 @@ def histogram(
     # check isscalar(bins):
     #
     if np.ndim(bins) == 0:
-        # if not isinstance(bins, int):
-        #    raise TypeError("bins must be array or integer type")
+        if not isinstance(bins, int):
+            raise TypeError("bins must be array or integer type")
 
-        num_intervals = int(bins)
+        num_intervals = bins
 
         num_elems = num_intervals + 1
 
