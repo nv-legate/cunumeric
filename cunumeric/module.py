@@ -6672,13 +6672,16 @@ def histogram(
         #    raise TypeError("bins must be array or integer type")
 
         num_intervals = int(bins)
+
         num_elems = num_intervals + 1
-        min_src = ndarray._perform_unary_reduction(
-            UnaryRedCode.MIN, x, res_dtype=float
-        )
-        max_src = ndarray._perform_unary_reduction(
-            UnaryRedCode.MAX, x, res_dtype=float
-        )
+
+        min_x = ndarray._perform_unary_reduction(
+            UnaryRedCode.MIN, x)
+        max_x = ndarray._perform_unary_reduction(
+            UnaryRedCode.MAX, x)
+
+        min_src = float(min_x)
+        max_src = float(max_x)
 
         if range_ is None:
             range_ = (min_src, max_src)
