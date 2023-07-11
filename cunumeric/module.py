@@ -6665,11 +6665,13 @@ def histogram(
     """
     result_type = x.dtype
 
-    if np.isscalar(bins):
-        if not isinstance(bins, int):
-            raise TypeError("bins must be array or integer type")
+    # check isscalar(bins):
+    #
+    if np.ndim(bins) == 0:
+        # if not isinstance(bins, int):
+        #    raise TypeError("bins must be array or integer type")
 
-        num_intervals = bins
+        num_intervals = int(bins)
         num_elems = num_intervals + 1
         min_src = ndarray._perform_unary_reduction(
             UnaryRedCode.MIN, x, res_dtype=float
@@ -6691,13 +6693,14 @@ def histogram(
 
         # potential problem with `buffer` karg:
         #
-        bins_array = ndarray(
-            shape=(num_elems,),
-            buffer=np.array(
-                [range_[0] + k * step for k in range(0, num_elems)]
-            ),
-            dtype=float,
-        )
+        # bins_array = ndarray(
+        #     shape=(num_elems,),
+        #     buffer=np.array(
+        #         [range_[0] + k * step for k in range(0, num_elems)]
+        #     ),
+        #     dtype=float,
+        # )
+        bins_array = asarray([range_[0] + k * step for k in range(0, num_elems)], dtype=float)
 
         bins_orig_type = bins_array.dtype
     else:

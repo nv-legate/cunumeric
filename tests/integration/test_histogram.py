@@ -156,6 +156,25 @@ def test_histogram_extreme_bins(src, bins, weights):
     assert allclose(np_bins_out, num_bins_out, atol=eps)
 
 
+@pytest.mark.parametrize(
+    "src", ([2, 3, 3, 5, 2, 7, 6, 4], [0, 2, 1, 3, 1, 4, 3, 2])
+)
+@pytest.mark.parametrize("bins", (5, 7))
+def test_histogram_no_weights_scalar_bin(src, bins):
+    eps = 1.0e-8
+    src_array = np.array(src)
+
+    bins_scalar = int(bins)
+    
+    np_out, np_bins_out = np.histogram(src_array, bins_scalar)
+    # np_float_out = np_out.astype(float)
+
+    num_out, num_bins_out = num.histogram(src_array, bins_scalar)
+
+    assert allclose(np_out, num_out, atol=eps)
+    assert allclose(np_bins_out, num_bins_out, atol=eps)
+
+
 if __name__ == "__main__":
     import sys
 
