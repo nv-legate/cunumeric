@@ -239,7 +239,7 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
     int32_t laneid;
     asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
     const uint32_t active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
-    if (active_mask) {
+    if ((active_mask & (1 << laneid)) != 0) {
       // Store our data into shared
       trampoline[tid] = result;
       // Make sure all the threads in the warp are done writing
