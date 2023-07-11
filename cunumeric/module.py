@@ -6635,7 +6635,7 @@ def bincount(
 def histogram(
     x: ndarray,
     bins: Optional[Union[ndarray, int]] = 10,
-    range_: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
+    bounds: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
     weights: Optional[ndarray] = None,
     density: bool = False,
 ) -> ndarray:
@@ -6681,28 +6681,21 @@ def histogram(
         min_src = float(min_x)
         max_src = float(max_x)
 
-        if range_ is None:
-            range_ = (min_src, max_src)
-        else:
-            assert isinstance(range_, tuple)  # how to check: tuple(,)?
-            if range_[0] < min_src:
-                range_[0] = min_src
-            if range_[1] > max_src:
-                range_[1] = max_src
+        lower_b = min_src
+        higher_b = max_src
 
-        step = (range_[1] - range_[0]) / num_intervals
+        if bounds is not None:
+            assert isinstance(bounds, tuple)  # how to check: tuple(,)?
+            if bounds[0] >= bounds[1]:
+                raise ValueError("range must be a pair of increasing values.")
 
-        # potential problem with `buffer` karg:
-        #
-        # bins_array = ndarray(
-        #     shape=(num_elems,),
-        #     buffer=np.array(
-        #         [range_[0] + k * step for k in range(0, num_elems)]
-        #     ),
-        #     dtype=float,
-        # )
+            lower_b = max(min_src, bounds[0])
+            higher_b = min(max_src, bounds[1])
+
+        step = (higher_b - lower_b) / num_intervals
+
         bins_array = asarray(
-            [range_[0] + k * step for k in range(0, num_elems)], dtype=float
+            [lower_b + k * step for k in range(0, num_elems)], dtype=float
         )
 
         bins_orig_type = bins_array.dtype
