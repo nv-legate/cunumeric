@@ -6684,8 +6684,12 @@ def histogram(
             lower_b = range[0]
             higher_b = range[1]
         else:
-            lower_b = float(ndarray._perform_unary_reduction(UnaryRedCode.MIN, x))
-            higher_b = float(ndarray._perform_unary_reduction(UnaryRedCode.MAX, x))
+            lower_b = float(
+                ndarray._perform_unary_reduction(UnaryRedCode.MIN, x)
+            )
+            higher_b = float(
+                ndarray._perform_unary_reduction(UnaryRedCode.MAX, x)
+            )
 
         step = (higher_b - lower_b) / num_intervals
 
