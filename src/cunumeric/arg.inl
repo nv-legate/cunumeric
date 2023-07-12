@@ -22,7 +22,7 @@
 namespace cunumeric {
 
 template <typename T>
-__CUDA_HD__ Argval<T>::Argval(T v) : arg(LLONG_MAX), arg_value(v)
+__CUDA_HD__ Argval<T>::Argval(T v) : arg(LLONG_MIN), arg_value(v)
 {
 }
 
