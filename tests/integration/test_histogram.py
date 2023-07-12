@@ -98,7 +98,7 @@ def test_histogram_weights(src, bins, weights, density):
 @pytest.mark.parametrize(
     "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],)
 )
-@pytest.mark.parametrize("density", (False, ))
+@pytest.mark.parametrize("density", (False,))
 @pytest.mark.parametrize("ranges", ((3, 6),))
 # @pytest.mark.skip(reason="debugging...")
 def test_histogram_ranges(src, bins, weights, density, ranges):
@@ -110,20 +110,20 @@ def test_histogram_ranges(src, bins, weights, density, ranges):
         src_array, bins, density=density, weights=weights_array, range=ranges
     )
 
-    print(("##### numpy: %s, %s")%(str(np_out), str(np_bins_out)))
-    
+    print(("##### numpy: %s, %s") % (str(np_out), str(np_bins_out)))
+
     num_out, num_bins_out = num.histogram(
         src_array, bins, density=density, weights=weights_array, bounds=ranges
     )
 
-    print(("##### cunumeric: %s, %s")%(str(num_out), str(num_bins_out)))
+    print(("##### cunumeric: %s, %s") % (str(num_out), str(num_bins_out)))
 
     assert allclose(np_bins_out, num_bins_out, atol=eps)
     assert allclose(np_out, num_out, atol=eps)
 
 
 @pytest.mark.parametrize("src", ([2, 3, 3, 5, 2, 7, 6, 4],))
-@pytest.mark.parametrize("bins", ([3.,  3.6, 4.2, 4.8, 5.4, 6.], ))
+@pytest.mark.parametrize("bins", ([3.0, 3.6, 4.2, 4.8, 5.4, 6.0],))
 @pytest.mark.parametrize(
     "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],)
 )
@@ -135,14 +135,16 @@ def test_histogram_w_d_bins(src, bins, weights):
     weights_array = np.array(weights)
 
     np_out, np_bins_out = np.histogram(
-        src_array, bins_array, weights=weights_array)
+        src_array, bins_array, weights=weights_array
+    )
 
-    print(("##### numpy: %s, %s")%(str(np_out), str(np_bins_out)))
-    
+    print(("##### numpy: %s, %s") % (str(np_out), str(np_bins_out)))
+
     num_out, num_bins_out = num.histogram(
-        src_array, bins_array, weights=weights_array)
+        src_array, bins_array, weights=weights_array
+    )
 
-    print(("##### cunumeric: %s, %s")%(str(num_out), str(num_bins_out)))
+    print(("##### cunumeric: %s, %s") % (str(num_out), str(num_bins_out)))
 
     assert allclose(np_bins_out, num_bins_out, atol=eps)
     assert allclose(np_out, num_out, atol=eps)
