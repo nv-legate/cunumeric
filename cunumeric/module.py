@@ -6676,15 +6676,6 @@ def histogram(
 
         num_elems = num_intervals + 1
 
-        min_x = ndarray._perform_unary_reduction(UnaryRedCode.MIN, x)
-        max_x = ndarray._perform_unary_reduction(UnaryRedCode.MAX, x)
-
-        min_src = float(min_x)
-        max_src = float(max_x)
-
-        lower_b = min_src
-        higher_b = max_src
-
         if range is not None:
             assert isinstance(range, tuple)  # how to check: tuple(,)?
             if range[0] >= range[1]:
@@ -6692,6 +6683,9 @@ def histogram(
 
             lower_b = range[0]
             higher_b = range[1]
+        else:
+            lower_b = float(ndarray._perform_unary_reduction(UnaryRedCode.MIN, x))
+            higher_b = float(ndarray._perform_unary_reduction(UnaryRedCode.MAX, x))
 
         step = (higher_b - lower_b) / num_intervals
 
