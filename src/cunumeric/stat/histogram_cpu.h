@@ -99,16 +99,10 @@ struct segmented_sum_t<
   void operator()(void)
   {
     for (auto interval_index = 0; interval_index < n_intervals_; ++interval_index) {
-      auto offset_index = interval_index + 1;
-      auto* it_right    = ptr_weights_ + ptr_offsets_[offset_index];
+      auto next_index = interval_index + 1;
 
-      // if (ptr_offsets_[offset_index] == ptr_offsets_[n_intervals_])
-      //  equivalent:
-      //
-      if (offset_index == n_intervals_) it_right = ptr_weights_ + n_samples_;
-
-      ptr_hist_[interval_index] =
-        std::accumulate(ptr_weights_ + ptr_offsets_[interval_index], it_right, 0.0);
+      ptr_hist_[interval_index] = std::accumulate(
+        ptr_weights_ + ptr_offsets_[interval_index], ptr_weights_ + ptr_offsets_[next_index], 0.0);
     }
   }
 
