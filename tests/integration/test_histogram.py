@@ -79,28 +79,28 @@ def test_histogram_weights(src, bins, weights, density):
     assert allclose(np_bins_out, num_bins_out, atol=eps)
 
 
-# @pytest.mark.parametrize(
-#     "src", ([2,3,3,5,2,7,6,4], [0, 2, 1, 3, 1, 4, 3, 2])
-# )
-# @pytest.mark.parametrize(
-#     "bins", (5, 7)
-# )
-# @pytest.mark.parametrize(
-#     "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
-#                 [0.3, 0.1, 0.5, 0.1, 0.7, 0.2, 0.8, 1.3])
-# )
-# @pytest.mark.parametrize("density", (False, True))
-# @pytest.mark.parametrize(
-#     "ranges", ((3,6), (1, 3))
-# )
-@pytest.mark.parametrize("src", ([2, 3, 3, 5, 2, 7, 6, 4],))
-@pytest.mark.parametrize("bins", (5,))
 @pytest.mark.parametrize(
-    "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],)
+    "src", ([2,3,3,5,2,7,6,4], [0, 2, 1, 3, 1, 4, 3, 2])
 )
-@pytest.mark.parametrize("density", (False,))
-@pytest.mark.parametrize("ranges", ((3, 6),))
-# @pytest.mark.skip(reason="debugging...")
+@pytest.mark.parametrize(
+    "bins", (5, 7)
+)
+@pytest.mark.parametrize(
+    "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+                [0.3, 0.1, 0.5, 0.1, 0.7, 0.2, 0.8, 1.3])
+)
+@pytest.mark.parametrize("density", (False, True))
+@pytest.mark.parametrize(
+    "ranges", ((3,6), (1, 3))
+)
+# @pytest.mark.parametrize("src", ([2, 3, 3, 5, 2, 7, 6, 4],))
+# @pytest.mark.parametrize("bins", (5,))
+# @pytest.mark.parametrize(
+#     "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],)
+# )
+# @pytest.mark.parametrize("density", (False,))
+# @pytest.mark.parametrize("ranges", ((3, 6),))
+### @pytest.mark.skip(reason="debugging...")
 def test_histogram_ranges(src, bins, weights, density, ranges):
     eps = 1.0e-8
     src_array = np.array(src)
