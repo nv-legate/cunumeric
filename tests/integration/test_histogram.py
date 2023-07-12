@@ -121,8 +121,11 @@ def test_histogram_ranges(src, bins, weights, density, ranges):
     "bins", ([5, 8, 14], [0, 0.1, 0.7, 1.0, 1.2], [1, 2, 3, 3, 5, 6, 7])
 )
 @pytest.mark.parametrize(
-    "weights", ([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
-                [0.3, 0.1, 0.5, 0.1, 0.7, 0.2, 0.8, 1.3])
+    "weights",
+    (
+        [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8],
+        [0.3, 0.1, 0.5, 0.1, 0.7, 0.2, 0.8, 1.3],
+    ),
 )
 # @pytest.mark.skip(reason="debugging...")
 def test_histogram_extreme_bins(src, bins, weights):
