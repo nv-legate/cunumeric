@@ -28,8 +28,6 @@ struct HistogramImplBody;
 
 template <Type::Code CODE>
 inline constexpr bool is_candidate = (is_floating_point<CODE>::value || is_integral<CODE>::value);
-// &&
-//                                     (!std::is_same_v<typename LegateTypeOf<CODE>::type, __half>);
 
 template <VariantKind KIND>
 struct HistogramImpl {
@@ -50,7 +48,7 @@ struct HistogramImpl {
 
     if (src_rect.empty()) return;
 
-    auto result  = args.result.reduce_accessor<SumReduction<double>, true, 1>(result_rect);
+    auto result  = args.result.reduce_accessor<SumReduction<WeightType>, true, 1>(result_rect);
     auto src     = args.src.read_accessor<VAL, 1>(src_rect);
     auto bins    = args.bins.read_accessor<BinType, 1>(bins_rect);
     auto weights = args.weights.read_accessor<WeightType, 1>(weights_rect);
