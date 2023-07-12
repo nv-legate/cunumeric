@@ -70,6 +70,7 @@ _builtin_any = any
 _builtin_max = max
 _builtin_min = min
 _builtin_sum = sum
+_builtin_range = range
 
 casting_kinds: tuple[CastingKind, ...] = (
     "no",
@@ -6635,7 +6636,7 @@ def bincount(
 def histogram(
     x: ndarray,
     bins: Optional[Union[ndarray, int]] = 10,
-    bounds: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
+    range: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
     weights: Optional[ndarray] = None,
     density: bool = False,
 ) -> ndarray:
@@ -6684,18 +6685,18 @@ def histogram(
         lower_b = min_src
         higher_b = max_src
 
-        if bounds is not None:
-            assert isinstance(bounds, tuple)  # how to check: tuple(,)?
-            if bounds[0] >= bounds[1]:
+        if range is not None:
+            assert isinstance(range, tuple)  # how to check: tuple(,)?
+            if range[0] >= range[1]:
                 raise ValueError("range must be a pair of increasing values.")
 
-            lower_b = bounds[0]
-            higher_b = bounds[1]
+            lower_b = range[0]
+            higher_b = range[1]
 
         step = (higher_b - lower_b) / num_intervals
 
         bins_array = asarray(
-            [lower_b + k * step for k in range(0, num_elems)], dtype=float
+            [lower_b + k * step for k in _builtin_range(0, num_elems)], dtype=float
         )
 
         bins_orig_type = bins_array.dtype
@@ -6737,7 +6738,7 @@ def histogram(
         Sw = sum(hist)
         hist /= [
             Sw * (bins_array[i + 1] - bins_array[i])
-            for i in range(0, hist.size)
+            for i in _builtin_range(0, hist.size)
         ]
 
     return hist.astype(result_type), bins_array.astype(bins_orig_type)
