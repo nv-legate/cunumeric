@@ -64,32 +64,6 @@ struct lower_bound_op_t {
   size_t n_intervs_;
 };
 
-template <typename exe_policy_t, typename bin_t, typename weight_t>
-struct transform_op_t {
-  transform_op_t(exe_policy_t exe_pol, bin_t const* p_bins, weight_t* p_hist, size_t n_intervs)
-    : ptr_bins_(p_bins)
-  {
-    Sw_ = thrust::reduce(exe_pol, p_hist, p_hist + n_intervs);
-  }
-
-  __host__ __device__ weight_t operator()(size_t index, weight_t h_i)
-  {
-    auto d_i = ptr_bins_[index + 1] - ptr_bins_[index];
-
-#ifdef _ZERO_WIDTH_RET_ZERO_
-    if (d_i == 0)
-      return static_cast<weight_t>(0);
-    else
-#endif
-      return h_i / (Sw_ * d_i);
-  }
-
- private:
-  bin_t const* ptr_bins_;
-  weight_t* ptr_h_;
-  weight_t Sw_{0};
-};
-
 template <typename exe_policy_t,
           typename elem_t,
           typename bin_t,
