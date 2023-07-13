@@ -16,23 +16,25 @@
 
 #pragma once
 
+#include "cunumeric/stat/histogram_gen.h"
+
 namespace cunumeric {
 namespace detail {
 
-template <typename exe_policy_t, typename array_t, typename bin_t>
+template <typename exe_policy_t, typename elem_t, typename bin_t>
 struct lower_bound_op_t {
   lower_bound_op_t(exe_policy_t, bin_t const* p_bins, size_t n_intervs)
     : p_bins_(p_bins), n_intervs_(n_intervs)  // CTAD
   {
   }
-  __host__ __device__ bool operator()(array_t left, bin_t right) const
+  __host__ __device__ bool operator()(elem_t left, bin_t right) const
   {
     // sentinel logic accounts for comparison
     // against last bin's upper bound, when
     // (<) is to be replaced by (<=):
     //
     auto sentinel = p_bins_[n_intervs_];
-    if constexpr (std::is_same_v<array_t, __half> && (!std::is_integral_v<bin_t>)) {
+    if constexpr (std::is_same_v<elem_t, __half> && (!std::is_integral_v<bin_t>)) {
       // upcast operands:
       //
       bin_t left_up  = static_cast<bin_t>(left);
@@ -41,10 +43,10 @@ struct lower_bound_op_t {
         return true;
       else
         return left_up < right_up;
-    } else if (std::is_same_v<array_t, __half> && std::is_integral_v<bin_t>) {
+    } else if (std::is_same_v<elem_t, __half> && std::is_integral_v<bin_t>) {
       // upcast sentinel:
       //
-      array_t sentinel_up = static_cast<array_t>(sentinel);
+      elem_t sentinel_up = static_cast<elem_t>(sentinel);
       if (left == sentinel_up && right == sentinel_up)
         return true;
       else
@@ -89,15 +91,15 @@ struct transform_op_t {
 };
 
 template <typename exe_policy_t,
-          typename array_t,
+          typename elem_t,
           typename bin_t,
           template <typename...> typename alloc_t = allocator_t,
-          typename weight_t                       = array_t,
+          typename weight_t                       = elem_t,
           typename offset_t                       = size_t>
 void histogram_weights(exe_policy_t exe_pol,
-                       array_t* ptr_src,  // source array, a
+                       elem_t* ptr_src,  // source array, a
                        size_t n_samples,
-                       bin_t const* ptr_over,          // bins array,
+                       bin_t const* ptr_bins,          // bins array,
                        size_t n_intervals,             // |bins| - 1
                        weight_t* ptr_hist,             // result; pre-allocated, sz = n_intervals
                        weight_t* ptr_w     = nullptr,  // weights array, w
@@ -118,12 +120,12 @@ void histogram_weights(exe_policy_t exe_pol,
 
   // l-b functor:
   //
-  lower_bound_op_t<exe_policy_t, array_t, bin_t> lbop{exe_pol, ptr_over, n_intervals};
+  lower_bound_op_t<exe_policy_t, elem_t, bin_t> lbop{exe_pol, ptr_bins, n_intervals};
 
   // vectorized lower-bounds of bins against src:
   //
   thrust::lower_bound(
-    exe_pol, ptr_src, ptr_src + n_samples, ptr_over, ptr_over + n_intervals + 1, ptr_offsets, lbop);
+    exe_pol, ptr_src, ptr_src + n_samples, ptr_bins, ptr_bins + n_intervals + 1, ptr_offsets, lbop);
 
   alloc_t<unsigned char, exe_policy_t> alloc_scratch;
 
