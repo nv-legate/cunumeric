@@ -109,8 +109,10 @@ struct segmented_sum_t<
     for (auto interval_index = 0; interval_index < n_intervals_; ++interval_index) {
       auto next_index = interval_index + 1;
 
-      ptr_hist_[interval_index] = std::accumulate(
-        ptr_weights_ + ptr_offsets_[interval_index], ptr_weights_ + ptr_offsets_[next_index], 0.0);
+      ptr_hist_[interval_index] = thrust::reduce(thrust::seq,
+                                                 ptr_weights_ + ptr_offsets_[interval_index],
+                                                 ptr_weights_ + ptr_offsets_[next_index],
+                                                 0.0);
     }
   }
 

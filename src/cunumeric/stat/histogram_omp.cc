@@ -148,7 +148,7 @@ struct HistogramImplBody<VariantKind::OMP, CODE> {
       local_result_ptr + num_intervals,
       global_result_ptr,
       global_result_ptr,
-      [] __device__(auto local_value, auto global_value) { return local_value + global_value; });
+      [](auto local_value, auto global_value) { return local_value + global_value; });
 #else
     auto&& [src_size, src_ptr] = detail::get_accessor_ptr(src, src_rect);
 
