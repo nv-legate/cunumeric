@@ -52,8 +52,8 @@ struct lower_bound_op_t {
       else
         return left < right;
     } else {
-      if (left == sentinel && right == sentinel)
-        return true;
+      if (right == sentinel)
+        return left <= right;
       else
         return left < right;
     }
