@@ -37,12 +37,12 @@ struct lower_bound_op_t {
     if constexpr (std::is_same_v<elem_t, __half> && (!std::is_integral_v<bin_t>)) {
       // upcast operands:
       //
-      bin_t left_up  = static_cast<bin_t>(left);
-      bin_t right_up = static_cast<bin_t>(right);
-      if (left_up == sentinel && right_up == sentinel)
+      bin_t left_up = static_cast<bin_t>(left);
+
+      if (left_up == sentinel && right == sentinel)
         return true;
       else
-        return left_up < right_up;
+        return left_up < right;
     } else if constexpr (std::is_same_v<elem_t, __half> && std::is_integral_v<bin_t>) {
       // upcast sentinel:
       //
