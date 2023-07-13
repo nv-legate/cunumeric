@@ -127,6 +127,8 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
                                cudaMemcpyDeviceToDevice,
                                stream));
 
+    assert(weights_size == src_size);
+
     auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
 
     auto num_intervals = bins_size - 1;

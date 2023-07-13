@@ -115,6 +115,8 @@ struct HistogramImplBody<VariantKind::CPU, CODE> {
       detail::make_accessor_copy(weights, weights_rect);
     std::copy_n(weights_ptr, weights_size, weights_copy.ptr(0));
 
+    assert(weights_size == src_size);
+
     auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
 
     auto num_intervals              = bins_size - 1;
