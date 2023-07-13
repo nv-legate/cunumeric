@@ -51,7 +51,15 @@ struct allocator_t<
 
   allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
 
-  elem_t* operator()(exe_policy_t exe_pol, size_t size, elem_t init = 0)
+  elem_t* operator()(exe_policy_t exe_pol, size_t size)
+  {
+    d_buffer_     = create_buffer<elem_t>(size);
+    elem_t* d_ptr = get_raw_ptr(d_buffer_);
+
+    return d_ptr;
+  }
+
+  elem_t* operator()(exe_policy_t exe_pol, size_t size, elem_t init)
   {
     d_buffer_     = create_buffer<elem_t>(size);
     elem_t* d_ptr = get_raw_ptr(d_buffer_);
