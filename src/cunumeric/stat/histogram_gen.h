@@ -36,7 +36,7 @@ std::tuple<size_t, const VAL*> get_accessor_ptr(const AccessorRO<VAL, 1>& src_ac
 {
   size_t src_strides[1];
   const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
-  assert(src_strides[0] == 1);
+  assert(src_rect.volume() == 1 || src_strides[0] == 1);
   //
   // const VAL* src_ptr: need to create a copy with create_buffer(...);
   // since src will get sorted (in-place);
@@ -52,7 +52,7 @@ std::tuple<size_t, VAL*> get_accessor_ptr(const AccessorRD<SumReduction<VAL>, tr
 {
   size_t src_strides[1];
   VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
-  assert(src_strides[0] == 1);
+  assert(src_rect.volume() == 1 || src_strides[0] == 1);
   //
   // const VAL* src_ptr: need to create a copy with create_buffer(...);
   // since src will get sorted (in-place);
@@ -69,7 +69,7 @@ std::tuple<size_t, Buffer<VAL>, const VAL*> make_accessor_copy(exe_policy_t exe_
 {
   size_t src_strides[1];
   const VAL* src_ptr = src_acc.ptr(src_rect, src_strides);
-  assert(src_strides[0] == 1);
+  assert(src_rect.volume() == 1 || src_strides[0] == 1);
   //
   // const VAL* src_ptr: need to create a copy with create_buffer(...);
   // since src will get sorted (in-place);

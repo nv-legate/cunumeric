@@ -3587,7 +3587,7 @@ class DeferredArray(NumPyThunk):
         src_array = src
         bins_array = bins
         dst_array = self
-        assert src_array.size > 1
+        assert src_array.size > 0
         assert dst_array.ndim == 1
         assert (
             (len(src_array.shape) == 1)
