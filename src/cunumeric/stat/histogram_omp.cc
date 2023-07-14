@@ -110,24 +110,23 @@ struct HistogramImplBody<VariantKind::OMP, CODE> {
                   const AccessorRD<SumReduction<WeightType>, true, 1>& result,
                   const Rect<1>& result_rect) const
   {
-    auto&& [global_result_size, global_result_ptr] = detail::get_accessor_ptr(result, result_rect);
+    namespace det_acc = detail::accessors;
+
+    auto exe_pol                                   = thrust::omp::par;
+    auto&& [global_result_size, global_result_ptr] = det_acc::get_accessor_ptr(result, result_rect);
 
 #ifdef _USE_THRUST_
-    auto&& [src_size, src_copy, src_ptr] = detail::make_accessor_copy(src, src_rect);
-    std::copy_n(src_ptr, src_size, src_copy.ptr(0));
+    auto&& [src_size, src_copy, src_ptr] = det_acc::make_accessor_copy(exe_pol, src, src_rect);
 
     auto&& [weights_size, weights_copy, weights_ptr] =
-      detail::make_accessor_copy(weights, weights_rect);
-    std::copy_n(weights_ptr, weights_size, weights_copy.ptr(0));
+      det_acc::make_accessor_copy(exe_pol, weights, weights_rect);
 
-    auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
+    auto&& [bins_size, bins_ptr] = det_acc::get_accessor_ptr(bins, bins_rect);
 
     auto num_intervals              = bins_size - 1;
     Buffer<WeightType> local_result = create_buffer<WeightType>(num_intervals);
 
     WeightType* local_result_ptr = local_result.ptr(0);
-
-    auto exe_pol = thrust::omp::par;
 
     detail::histogram_weights(exe_pol,
                               src_copy.ptr(0),
@@ -150,11 +149,11 @@ struct HistogramImplBody<VariantKind::OMP, CODE> {
       global_result_ptr,
       [](auto local_value, auto global_value) { return local_value + global_value; });
 #else
-    auto&& [src_size, src_ptr] = detail::get_accessor_ptr(src, src_rect);
+    auto&& [src_size, src_ptr] = det_acc::get_accessor_ptr(src, src_rect);
 
-    auto&& [weights_size, weights_ptr] = detail::get_accessor_ptr(weights, weights_rect);
+    auto&& [weights_size, weights_ptr] = det_acc::get_accessor_ptr(weights, weights_rect);
 
-    auto&& [bins_size, bins_ptr] = detail::get_accessor_ptr(bins, bins_rect);
+    auto&& [bins_size, bins_ptr] = det_acc::get_accessor_ptr(bins, bins_rect);
 
     auto num_intervals              = bins_size - 1;
     Buffer<WeightType> local_result = create_buffer<WeightType>(num_intervals);
