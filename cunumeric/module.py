@@ -6664,7 +6664,7 @@ def histogram(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    result_type = x.dtype
+    result_type = np.int64
 
     # check isscalar(bins):
     #
