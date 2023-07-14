@@ -6707,7 +6707,7 @@ def histogram(
         num_intervals = bins_array.shape[0] - 1
 
     if x.ndim != 1:
-        raise ValueError("the input array must be 1-dimensional")
+        x = x.flatten()
 
     if weights is not None:
         if weights.shape != x.shape:
