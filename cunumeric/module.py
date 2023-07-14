@@ -6667,13 +6667,13 @@ def histogram(
     result_type = np.int64
 
     if np.ndim(bins) > 1:
-        raise ValueError("bins must be 1d, when an array")
+        raise ValueError("`bins` must be 1d, when an array")
 
     # check isscalar(bins):
     #
     if np.ndim(bins) == 0:
         if not isinstance(bins, int):
-            raise TypeError("bins must be array or integer type")
+            raise TypeError("`bins` must be array or integer type")
 
         num_intervals = bins
 
@@ -6682,7 +6682,7 @@ def histogram(
         if range is not None:
             assert isinstance(range, tuple)  # how to check: tuple(,)?
             if range[0] >= range[1]:
-                raise ValueError("range must be a pair of increasing values.")
+                raise ValueError("`range` must be a pair of increasing values.")
 
             lower_b = range[0]
             higher_b = range[1]
@@ -6709,12 +6709,15 @@ def histogram(
         bins_array = bins_as_arr.astype(float)
         num_intervals = bins_array.shape[0] - 1
 
+        if not all((bins_array[1:] - bins_array[:-1]) >= 0):
+            raise ValueError("`bins` must increase monotonically, when an array")
+
     if x.ndim != 1:
         x = x.flatten()
 
     if weights is not None:
         if weights.shape != x.shape:
-            raise ValueError("weights array must be same shape for histogram")
+            raise ValueError("`weights` array must be same shape for histogram")
 
         result_type = weights.dtype
         weights_array = weights.astype(float)
