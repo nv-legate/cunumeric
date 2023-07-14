@@ -3603,6 +3603,7 @@ class DeferredArray(NumPyThunk):
         task.add_input(bins_array.base)
         task.add_input(weight_array.base)  # type: ignore
 
+        task.add_broadcast(bins_array.base)
         task.add_broadcast(dst_array.base)
 
         task.execute()
