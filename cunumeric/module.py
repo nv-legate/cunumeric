@@ -6635,7 +6635,7 @@ def bincount(
 @add_boilerplate("x", "weights")
 def histogram(
     x: ndarray,
-    bins: Optional[Union[ndarray, int]] = 10,
+    bins: Union[ndarray, npt.ArrayLike, int] = 10,
     range: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
     weights: Optional[ndarray] = None,
     density: bool = False,
