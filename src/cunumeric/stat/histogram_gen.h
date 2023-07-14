@@ -27,8 +27,5 @@ template <typename exe_policy_t,
           typename = void>
 struct segmented_sum_t;
 
-template <typename elem_t, typename exe_policy_t, typename = void>
-struct allocator_t;
-
 }  // namespace detail
 }  // namespace cunumeric

@@ -50,41 +50,7 @@ decltype(auto) get_raw_ptr(Buffer<element_t>& v)
   return v.ptr(0);
 }
 
-// rudimentary device allocator:
-//
-template <typename elem_t, typename exe_policy_t>
-struct allocator_t<
-  elem_t,
-  exe_policy_t,
-  std::enable_if_t<!std::is_same_v<exe_policy_t, thrust::detail::host_t> &&
-                   !std::is_same_v<exe_policy_t, thrust::system::omp::detail::par_t>>> {
-  allocator_t(void) {}
-
-  allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
-
-  elem_t* operator()(exe_policy_t exe_pol, size_t size)
-  {
-    d_buffer_     = create_buffer<elem_t>(size, Legion::Memory::Kind::GPU_FB_MEM);
-    elem_t* d_ptr = get_raw_ptr(d_buffer_);
-
-    return d_ptr;
-  }
-
-  elem_t* operator()(exe_policy_t exe_pol, size_t size, elem_t init)
-  {
-    d_buffer_     = create_buffer<elem_t>(size, Legion::Memory::Kind::GPU_FB_MEM);
-    elem_t* d_ptr = get_raw_ptr(d_buffer_);
-
-    thrust::fill_n(exe_pol, d_ptr, size, init);
-
-    return d_ptr;
-  }
-
- private:
-  Buffer<elem_t> d_buffer_;
-};
-
-// device version:
+// device specialization:
 //
 template <typename exe_policy_t, typename weight_t, typename offset_t, typename allocator_t>
 struct segmented_sum_t<
