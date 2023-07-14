@@ -170,9 +170,10 @@ LOW_HIGH = [
 ]
 SMALL_RNG_SIZES = [5, 1024, (1, 2)]
 LARGE_RNG_SIZES = [10000, (20, 50, 4)]
-ALL_RNG_SIZES = SMALL_RNG_SIZES + LARGE_RNG_SIZES
+ALL_RNG_SIZES = SMALL_RNG_SIZES + LARGE_RNG_SIZES + [None]
 INT_DTYPES = [np.int64, np.int32, np.int16]
 UINT_DTYPES = [np.uint64, np.uint16, np.uint0]
+FLOAT_DTYPES = [np.float16, np.float128, np.float64]
 
 
 @pytest.mark.parametrize("size", ALL_RNG_SIZES, ids=str)
@@ -182,10 +183,10 @@ def test_randint_basic_stats(low, high, size, dtype):
     arr_np, arr_num = gen_random_from_both(
         "randint", low=low, high=high, size=size, dtype=dtype
     )
-    assert arr_np.dtype == arr_np.dtype
+    assert arr_np.dtype == arr_num.dtype
     assert arr_np.shape == arr_num.shape
     assert np.min(arr_num) >= low
-    assert np.max(arr_num) <= high
+    assert np.max(arr_num) < high
 
 
 @pytest.mark.parametrize("low", [1024, 1025, 12345], ids=str)
@@ -207,6 +208,13 @@ def test_randint_high_limit():
     arr_np, arr_num = gen_random_from_both("randint", 10, size=100)
     assert np.max(arr_np) < limit
     assert np.max(arr_num) < limit
+
+
+def test_random_integers_high_limit():
+    limit = 10
+    arr_np, arr_num = gen_random_from_both("random_integers", 10, size=100)
+    assert np.max(arr_np) <= limit
+    assert np.max(arr_num) <= limit
 
 
 @pytest.mark.xfail(reason="cuNumeric raises NotImplementedError")
@@ -295,7 +303,7 @@ def test_random_integers(low, high, size):
     )
 
 
-@pytest.mark.parametrize("size", ALL_RNG_SIZES, ids=str)
+@pytest.mark.parametrize("size", SMALL_RNG_SIZES + LARGE_RNG_SIZES, ids=str)
 def test_random_sample_basic_stats(size):
     arr_np, arr_num = gen_random_from_both("random_sample", size=size)
     assert arr_np.shape == arr_num.shape
@@ -315,6 +323,22 @@ def test_random_sample(size):
     assert_distribution(
         arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
     )
+
+
+@pytest.mark.parametrize("size", SMALL_RNG_SIZES, ids=str)
+def test_random_std_exponential_basic_stats(size):
+    arr_np, arr_num = gen_random_from_both("standard_exponential", size=size)
+    assert arr_np.shape == arr_num.shape
+    assert arr_np.dtype == arr_num.dtype
+
+
+@pytest.mark.parametrize("size", SMALL_RNG_SIZES, ids=str)
+def test_random_std_gamma_basic_stats(size):
+    arr_np, arr_num = gen_random_from_both(
+        "standard_gamma", shape=3.1415, size=size
+    )
+    assert arr_np.shape == arr_num.shape
+    assert arr_np.dtype == arr_num.dtype
 
 
 class TestRandomErrors:
