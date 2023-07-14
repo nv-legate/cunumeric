@@ -84,12 +84,6 @@ struct allocator_t<
   Buffer<elem_t> d_buffer_;
 };
 
-template <typename exe_policy_t>
-void synchronize_exec(exe_policy_t, cudaStream_t stream)
-{
-  CHECK_CUDA(cudaStreamSynchronize(stream));
-}
-
 // device version:
 //
 template <typename exe_policy_t, typename weight_t, typename offset_t, typename allocator_t>

@@ -90,8 +90,6 @@ void histogram_weights(exe_policy_t exe_pol,
   //
   thrust::sort_by_key(exe_pol, ptr_src, ptr_src + n_samples, ptr_w);
 
-  synchronize_exec(exe_pol, stream);
-
   // l-b functor:
   //
   lower_bound_op_t<exe_policy_t, elem_t, bin_t> lbop{exe_pol, ptr_bins, n_intervals};

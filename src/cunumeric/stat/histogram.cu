@@ -139,7 +139,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
 
     auto&& [global_result_size, global_result_ptr] = detail::get_accessor_ptr(result, result_rect);
 
-    CHECK_CUDA(cudaStreamSynchronize(stream));
+    CHECK_CUDA_STREAM(stream);
 
 #ifdef _DEBUG
     {
@@ -192,7 +192,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
                               weights_copy.ptr(0),
                               stream_);
 
-    CHECK_CUDA(cudaStreamSynchronize(stream));
+    CHECK_CUDA_STREAM(stream);
 
     // fold into RD result:
     //
@@ -225,7 +225,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
       global_result_ptr,
       [] __device__(auto local_value, auto global_value) { return local_value + global_value; });
 
-    CHECK_CUDA(cudaStreamSynchronize(stream));
+    CHECK_CUDA_STREAM(stream);
   }
 };
 
