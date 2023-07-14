@@ -178,6 +178,12 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_COUNT_NONZERO: int
     CUNUMERIC_RED_MAX: int
     CUNUMERIC_RED_MIN: int
+    CUNUMERIC_RED_NANARGMAX: int
+    CUNUMERIC_RED_NANARGMIN: int
+    CUNUMERIC_RED_NANMAX: int
+    CUNUMERIC_RED_NANMIN: int
+    CUNUMERIC_RED_NANPROD: int
+    CUNUMERIC_RED_NANSUM: int
     CUNUMERIC_RED_PROD: int
     CUNUMERIC_RED_SUM: int
     CUNUMERIC_REPEAT: int
@@ -425,7 +431,7 @@ class UnaryOpCode(IntEnum):
     TRUNC = _cunumeric.CUNUMERIC_UOP_TRUNC
 
 
-# Match these to CuNumericRedopCode in cunumeric_c.h
+# Match these to CuNumericUnaryRedCode in cunumeric_c.h
 @unique
 class UnaryRedCode(IntEnum):
     ALL = _cunumeric.CUNUMERIC_RED_ALL
@@ -436,6 +442,12 @@ class UnaryRedCode(IntEnum):
     COUNT_NONZERO = _cunumeric.CUNUMERIC_RED_COUNT_NONZERO
     MAX = _cunumeric.CUNUMERIC_RED_MAX
     MIN = _cunumeric.CUNUMERIC_RED_MIN
+    NANARGMAX = _cunumeric.CUNUMERIC_RED_NANARGMAX
+    NANARGMIN = _cunumeric.CUNUMERIC_RED_NANARGMIN
+    NANMAX = _cunumeric.CUNUMERIC_RED_NANMAX
+    NANMIN = _cunumeric.CUNUMERIC_RED_NANMIN
+    NANPROD = _cunumeric.CUNUMERIC_RED_NANPROD
+    NANSUM = _cunumeric.CUNUMERIC_RED_NANSUM
     PROD = _cunumeric.CUNUMERIC_RED_PROD
     SUM = _cunumeric.CUNUMERIC_RED_SUM
 

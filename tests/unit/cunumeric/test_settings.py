@@ -29,6 +29,7 @@ _expected_settings = (
     "report_coverage",
     "report_dump_callstack",
     "report_dump_csv",
+    "numpy_compat",
     "fast_math",
     "min_gpu_chunk",
     "min_cpu_chunk",
@@ -70,6 +71,7 @@ class TestSettings:
             == 'bool ("0" or "1")'
         )
         assert m.settings.report_dump_csv.convert_type == "str"
+        assert m.settings.numpy_compat.convert_type == 'bool ("0" or "1")'
 
 
 class TestDefaults:
@@ -87,6 +89,9 @@ class TestDefaults:
 
     def test_report_dump_csv(self) -> None:
         assert m.settings.report_dump_csv.default is None
+
+    def test_numpy_compat(self) -> None:
+        assert m.settings.numpy_compat.default is False
 
     @pytest.mark.skip(reason="Does not work in CI (path issue)")
     @pytest.mark.parametrize("name", _settings_with_test_defaults)

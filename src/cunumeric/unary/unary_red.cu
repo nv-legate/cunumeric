@@ -211,11 +211,12 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
 {
   const coord_t tid = threadIdx.x;
   const coord_t bid = blockIdx.x;
-  Point<DIM> point  = blocks.point(bid, tid, domain.lo);
+
+  Point<DIM> point = blocks.point(bid, tid, domain.lo);
   if (!domain.contains(point)) return point;
 
   while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
-    LHS value = OP::convert(point, collapsed_dim, in[point]);
+    LHS value = OP::convert(point, collapsed_dim, identity, in[point]);
     REDOP::template fold<true>(result, value);
     blocks.next_point(point);
   }
