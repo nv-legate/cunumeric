@@ -1707,7 +1707,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.histogram(rhs, bins, weights)
         else:
-            self.array[:] = np.histogram(
+            self.array[:], _ = np.histogram(
                 rhs.array,
                 cast(EagerArray, bins).array,
                 weights=cast(EagerArray, weights).array,
