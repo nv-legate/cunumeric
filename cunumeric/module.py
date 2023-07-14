@@ -6666,6 +6666,9 @@ def histogram(
     """
     result_type = np.int64
 
+    if np.ndim(bins) > 1:
+        raise ValueError("bins must be 1d, when an array")
+
     # check isscalar(bins):
     #
     if np.ndim(bins) == 0:
