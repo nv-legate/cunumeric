@@ -32,7 +32,7 @@ struct allocator_t {
   elem_t* operator()(exe_policy_t exe_pol, size_t size)
   {
     d_buffer_     = create_buffer<elem_t>(size);
-    elem_t* d_ptr = get_raw_ptr(d_buffer_);
+    elem_t* d_ptr = accessors::get_raw_ptr(d_buffer_);
 
     return d_ptr;
   }
@@ -40,7 +40,7 @@ struct allocator_t {
   elem_t* operator()(exe_policy_t exe_pol, size_t size, elem_t init)
   {
     d_buffer_     = create_buffer<elem_t>(size);
-    elem_t* d_ptr = get_raw_ptr(d_buffer_);
+    elem_t* d_ptr = accessors::get_raw_ptr(d_buffer_);
 
     thrust::fill_n(exe_pol, d_ptr, size, init);
 

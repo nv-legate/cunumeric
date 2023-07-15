@@ -28,6 +28,13 @@ template <typename exe_policy_t,
 struct segmented_sum_t;
 
 namespace accessors {
+
+template <typename element_t>
+decltype(auto) get_raw_ptr(Buffer<element_t>& v)
+{
+  return v.ptr(0);
+}
+
 // RO accessor (size, pointer) extractor:
 //
 template <typename VAL>

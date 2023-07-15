@@ -31,13 +31,12 @@
 
 #include "cunumeric/stat/histogram_gen.h"
 
+#ifndef LEGATE_USE_CUDA
+using cudaStream_t = void*;
+#endif
+
 namespace cunumeric {
 namespace detail {
-template <typename element_t>
-decltype(auto) get_raw_ptr(Buffer<element_t>& v)
-{
-  return v.ptr(0);
-}
 
 // host specialization:
 //
