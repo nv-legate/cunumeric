@@ -6702,7 +6702,7 @@ def histogram(
         num_elems = num_intervals + 1
 
         if range is not None:
-            assert isinstance(range, tuple)  # how to check: tuple(,)?
+            assert isinstance(range, tuple) and len(range) == 2
             if range[0] >= range[1]:
                 raise ValueError(
                     "`range` must be a pair of increasing values."
