@@ -6768,10 +6768,7 @@ def histogram(
     # handle (density = True):
     #
     if density:
-        Sw = sum(hist)
-        hist /= [
-            Sw * (bins_array[i + 1] - bins_array[i])
-            for i in _builtin_range(0, hist.size)
-        ]
+        hist /= sum(hist)
+        hist /= bins_array[1:] - bins_array[:-1]
 
     return hist.astype(result_type), bins_array.astype(bins_orig_type)
