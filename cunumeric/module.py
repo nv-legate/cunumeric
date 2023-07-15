@@ -6717,7 +6717,8 @@ def histogram(
         step = (higher_b - lower_b) / num_intervals
 
         bins_array = asarray(
-            [lower_b + k * step for k in _builtin_range(0, num_intervals)] + [higher_b],
+            [lower_b + k * step for k in _builtin_range(0, num_intervals)]
+            + [higher_b],
             dtype=np.dtype(np.float64),
         )
 
