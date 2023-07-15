@@ -6756,7 +6756,7 @@ def histogram(
     hist = ndarray(
         (num_intervals,),
         dtype=weights_array.dtype,
-        inputs=(x, bins, weights_array),
+        inputs=(x, bins_array, weights_array),
     )
     hist._thunk.histogram(
         x._thunk, bins_array._thunk, weights=weights_array._thunk
