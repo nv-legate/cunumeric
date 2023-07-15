@@ -6639,32 +6639,54 @@ def histogram(
     range: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
     weights: Optional[ndarray] = None,
     density: bool = False,
-) -> ndarray:
+) -> tuple[ndarray, ndarray]:
     """
-    ***** TODO: *****
+    Compute the histogram of a dataset.
+
+    Parameters
+    ----------
+    a : array_like
+        Input data. The histogram is computed over the flattened array.
+    bins : int or sequence of scalars, optional
+        If `bins` is an int, it defines the number of equal-width bins in the
+        given range (10, by default). If `bins` is a sequence, it defines a
+        monotonically increasing array of bin edges, including the rightmost
+        edge, allowing for non-uniform bin widths.
+    range : (float, float), optional
+        The lower and upper range of the bins. If not provided, range is simply
+        ``(a.min(), a.max())``. Values outside the range are ignored. The first
+        element of the range must be smaller than the second. This argument is
+        ignored when bin edges are provided explicitly.
+    weights : array_like, optional
+        An array of weights, of the same shape as `a`. Each value in `a` only
+        contributes its associated weight towards the bin count (instead of 1).
+        If `density` is True, the weights are normalized, so that the integral
+        of the density over the range remains 1.
+    density : bool, optional
+        If ``False``, the result will contain the number of samples in each
+        bin. If ``True``, the result is the value of the probability *density*
+        function at the bin, normalized such that the *integral* over the range
+        is 1. Note that the sum of the histogram values will not be equal to 1
+        unless bins of unity width are chosen; it is not a probability *mass*
+        function.
 
     Returns
     -------
-    out : ndarray[int]
-        TODO:
-
-    Raises
-    ------
-    ValueError
-        TODO:
-    TypeError
-        TODO:
+    hist : array
+        The values of the histogram. See `density` and `weights` for a
+        description of the possible semantics.
+    bin_edges : array
+        Return the bin edges ``(length(hist)+1)``.
 
     See Also
     --------
     numpy.histogram
-    numpy.histogram(a, bins=10, range=None, density=None, weights=None)
 
     Availability
     --------
     Multiple GPUs, Multiple CPUs
     """
-    result_type = np.int64
+    result_type = np.dtype(np.int64)
 
     if np.ndim(bins) > 1:
         raise ValueError("`bins` must be 1d, when an array")
@@ -6700,7 +6722,7 @@ def histogram(
 
         bins_array = asarray(
             [lower_b + k * step for k in _builtin_range(0, num_elems)],
-            dtype=float,
+            dtype=np.dtype(np.float64),
         )
 
         bins_orig_type = bins_array.dtype
@@ -6708,7 +6730,7 @@ def histogram(
         bins_as_arr = asarray(bins)
         bins_orig_type = bins_as_arr.dtype
 
-        bins_array = bins_as_arr.astype(float)
+        bins_array = bins_as_arr.astype(np.dtype(np.float64))
         num_intervals = bins_array.shape[0] - 1
 
         if not all((bins_array[1:] - bins_array[:-1]) >= 0):
@@ -6726,13 +6748,13 @@ def histogram(
             )
 
         result_type = weights.dtype
-        weights_array = weights.astype(float)
+        weights_array = weights.astype(np.dtype(np.float64))
     else:
         # case weights == None cannot be handled inside _thunk.histogram,
         # bc/ of hist ndarray inputs(), below;
         # needs to be handled here:
         #
-        weights_array = ones(x.shape, dtype=float)
+        weights_array = ones(x.shape, dtype=np.dtype(np.float64))
 
     hist = ndarray(
         (num_intervals,),

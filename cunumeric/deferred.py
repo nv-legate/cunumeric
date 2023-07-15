@@ -3580,9 +3580,7 @@ class DeferredArray(NumPyThunk):
 
     # Perform a histogram operation on the array
     @auto_convert("src", "bins", "weights")
-    def histogram(
-        self, src: NumPyThunk, bins: NumPyThunk, weights: NumPyThunk
-    ) -> None:
+    def histogram(self, src: Any, bins: Any, weights: Any) -> None:
         weight_array = weights
         src_array = src
         bins_array = bins
@@ -3601,7 +3599,7 @@ class DeferredArray(NumPyThunk):
         task.add_reduction(dst_array.base, ReductionOp.ADD)
         task.add_input(src_array.base)
         task.add_input(bins_array.base)
-        task.add_input(weight_array.base)  # type: ignore
+        task.add_input(weight_array.base)
 
         task.add_broadcast(bins_array.base)
         task.add_broadcast(dst_array.base)

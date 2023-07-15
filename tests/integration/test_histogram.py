@@ -35,8 +35,6 @@ def test_histogram_no_weights(src, bins):
         assert bins_maybe_array.shape[0] > 0
 
     np_out, np_bins_out = np.histogram(src_array, bins_maybe_array)
-    np_float_out = np_out.astype(float)
-
     num_out, num_bins_out = num.histogram(src_array, bins_maybe_array)
 
     assert allclose(np_out, num_out, atol=eps)
@@ -92,7 +90,7 @@ def test_histogram_weights(src, bins, weights, density):
 )
 @pytest.mark.parametrize("density", (False, True))
 @pytest.mark.parametrize("ranges", ((3, 6), (1, 3)))
-### @pytest.mark.skip(reason="debugging...")
+# @pytest.mark.skip(reason="debugging...")
 def test_histogram_ranges(src, bins, weights, density, ranges):
     eps = 1.0e-8
     src_array = np.array(src)
@@ -210,5 +208,4 @@ if __name__ == "__main__":
     import sys
 
     np.random.seed(12345)
-
     sys.exit(pytest.main(sys.argv))
