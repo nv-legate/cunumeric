@@ -133,6 +133,7 @@ def test_CuNumericOpCode() -> None:
         "FILL",
         "FLIP",
         "GEMM",
+        "HISTOGRAM",
         "LOAD_CUDALIBS",
         "MATMUL",
         "MATVECMUL",
