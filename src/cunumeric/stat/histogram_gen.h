@@ -20,11 +20,7 @@ namespace cunumeric {
 namespace detail {
 // primary templates, to be specialized (SFINAEd)
 //
-template <typename exe_policy_t,
-          typename weight_t,
-          typename offset_t,
-          typename allocator_t,
-          typename = void>
+template <typename exe_policy_t, typename weight_t, typename offset_t, typename = void>
 struct segmented_sum_t;
 
 namespace accessors {
@@ -90,5 +86,36 @@ std::tuple<size_t, Buffer<VAL>, const VAL*> make_accessor_copy(exe_policy_t exe_
 }
 
 }  // namespace accessors
+
+// device / host allocator:
+//
+template <typename elem_t, typename exe_policy_t>
+struct allocator_t {
+  allocator_t(void) {}
+
+  allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
+
+  elem_t* operator()(exe_policy_t exe_pol, size_t size)
+  {
+    d_buffer_     = create_buffer<elem_t>(size);
+    elem_t* d_ptr = accessors::get_raw_ptr(d_buffer_);
+
+    return d_ptr;
+  }
+
+  elem_t* operator()(exe_policy_t exe_pol, size_t size, elem_t init)
+  {
+    d_buffer_     = create_buffer<elem_t>(size);
+    elem_t* d_ptr = accessors::get_raw_ptr(d_buffer_);
+
+    thrust::fill_n(exe_pol, d_ptr, size, init);
+
+    return d_ptr;
+  }
+
+ private:
+  Buffer<elem_t> d_buffer_;
+};
+
 }  // namespace detail
 }  // namespace cunumeric

@@ -21,36 +21,6 @@
 namespace cunumeric {
 namespace detail {
 
-// device / host allocator:
-//
-template <typename elem_t, typename exe_policy_t>
-struct allocator_t {
-  allocator_t(void) {}
-
-  allocator_t(elem_t, exe_policy_t) {}  // tag-dispatch for CTAD
-
-  elem_t* operator()(exe_policy_t exe_pol, size_t size)
-  {
-    d_buffer_     = create_buffer<elem_t>(size);
-    elem_t* d_ptr = accessors::get_raw_ptr(d_buffer_);
-
-    return d_ptr;
-  }
-
-  elem_t* operator()(exe_policy_t exe_pol, size_t size, elem_t init)
-  {
-    d_buffer_     = create_buffer<elem_t>(size);
-    elem_t* d_ptr = accessors::get_raw_ptr(d_buffer_);
-
-    thrust::fill_n(exe_pol, d_ptr, size, init);
-
-    return d_ptr;
-  }
-
- private:
-  Buffer<elem_t> d_buffer_;
-};
-
 template <typename exe_policy_t, typename elem_t, typename bin_t>
 struct lower_bound_op_t {
   lower_bound_op_t(exe_policy_t, bin_t const* p_bins, size_t n_intervs)
@@ -127,13 +97,11 @@ void histogram_weights(exe_policy_t exe_pol,
   thrust::lower_bound(
     exe_pol, ptr_src, ptr_src + n_samples, ptr_bins, ptr_bins + n_intervals + 1, ptr_offsets, lbop);
 
-  alloc_t<unsigned char, exe_policy_t> alloc_scratch;
-
   // needs explicit template args;
   // CTAD won't work with SFINAE;
   //
-  segmented_sum_t<exe_policy_t, weight_t, offset_t, decltype(alloc_scratch)> segsum{
-    exe_pol, ptr_w, n_samples, ptr_hist, n_intervals, ptr_offsets, stream, alloc_scratch};
+  segmented_sum_t<exe_policy_t, weight_t, offset_t> segsum{
+    exe_pol, ptr_w, n_samples, ptr_hist, n_intervals, ptr_offsets, stream};
 
   segsum();
 }

@@ -40,12 +40,11 @@ namespace detail {
 
 // host specialization:
 //
-template <typename exe_policy_t, typename weight_t, typename offset_t, typename allocator_t>
+template <typename exe_policy_t, typename weight_t, typename offset_t>
 struct segmented_sum_t<
   exe_policy_t,
   weight_t,
   offset_t,
-  allocator_t,
   std::enable_if_t<std::is_same_v<exe_policy_t, thrust::detail::host_t> ||
                    std::is_same_v<exe_policy_t, thrust::system::omp::detail::par_t>>> {
   segmented_sum_t(exe_policy_t exe_pol,
@@ -54,8 +53,7 @@ struct segmented_sum_t<
                   weight_t* p_hist,
                   size_t n_intervals,
                   offset_t* p_offsets,
-                  cudaStream_t stream,
-                  allocator_t& allocator)
+                  cudaStream_t stream)
     : ptr_weights_(p_weights),
       n_samples_(n_samples),
       ptr_hist_(p_hist),
