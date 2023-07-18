@@ -72,6 +72,7 @@ _builtin_any = any
 _builtin_max = max
 _builtin_min = min
 _builtin_sum = sum
+_builtin_range = range
 
 casting_kinds: tuple[CastingKind, ...] = (
     "no",
@@ -7157,3 +7158,149 @@ def bincount(
             )
             out._thunk.bincount(x._thunk, weights=weights._thunk)
     return out
+
+
+@add_boilerplate("x", "weights")
+def histogram(
+    x: ndarray,
+    bins: Union[ndarray, npt.ArrayLike, int] = 10,
+    range: Optional[Union[tuple[int, int], tuple[float, float]]] = None,
+    weights: Optional[ndarray] = None,
+    density: bool = False,
+) -> tuple[ndarray, ndarray]:
+    """
+    Compute the histogram of a dataset.
+
+    Parameters
+    ----------
+    a : array_like
+        Input data. The histogram is computed over the flattened array.
+    bins : int or sequence of scalars, optional
+        If `bins` is an int, it defines the number of equal-width bins in the
+        given range (10, by default). If `bins` is a sequence, it defines a
+        monotonically increasing array of bin edges, including the rightmost
+        edge, allowing for non-uniform bin widths.
+    range : (float, float), optional
+        The lower and upper range of the bins. If not provided, range is simply
+        ``(a.min(), a.max())``. Values outside the range are ignored. The first
+        element of the range must be smaller than the second. This argument is
+        ignored when bin edges are provided explicitly.
+    weights : array_like, optional
+        An array of weights, of the same shape as `a`. Each value in `a` only
+        contributes its associated weight towards the bin count (instead of 1).
+        If `density` is True, the weights are normalized, so that the integral
+        of the density over the range remains 1.
+    density : bool, optional
+        If ``False``, the result will contain the number of samples in each
+        bin. If ``True``, the result is the value of the probability *density*
+        function at the bin, normalized such that the *integral* over the range
+        is 1. Note that the sum of the histogram values will not be equal to 1
+        unless bins of unity width are chosen; it is not a probability *mass*
+        function.
+
+    Returns
+    -------
+    hist : array
+        The values of the histogram. See `density` and `weights` for a
+        description of the possible semantics.
+    bin_edges : array
+        Return the bin edges ``(length(hist)+1)``.
+
+    See Also
+    --------
+    numpy.histogram
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    result_type = np.dtype(np.int64)
+
+    if np.ndim(bins) > 1:
+        raise ValueError("`bins` must be 1d, when an array")
+
+    # check isscalar(bins):
+    #
+    if np.ndim(bins) == 0:
+        if not isinstance(bins, int):
+            raise TypeError("`bins` must be array or integer type")
+
+        num_intervals = bins
+
+        if range is not None:
+            assert isinstance(range, tuple) and len(range) == 2
+            if range[0] >= range[1]:
+                raise ValueError(
+                    "`range` must be a pair of increasing values."
+                )
+
+            lower_b = range[0]
+            higher_b = range[1]
+        elif x.size == 0:
+            lower_b = 0.0
+            higher_b = 1.0
+        else:
+            lower_b = float(min(x))
+            higher_b = float(max(x))
+
+        step = (higher_b - lower_b) / num_intervals
+
+        bins_array = asarray(
+            [lower_b + k * step for k in _builtin_range(0, num_intervals)]
+            + [higher_b],
+            dtype=np.dtype(np.float64),
+        )
+
+        bins_orig_type = bins_array.dtype
+    else:
+        bins_as_arr = asarray(bins)
+        bins_orig_type = bins_as_arr.dtype
+
+        bins_array = bins_as_arr.astype(np.dtype(np.float64))
+        num_intervals = bins_array.shape[0] - 1
+
+        if not all((bins_array[1:] - bins_array[:-1]) >= 0):
+            raise ValueError(
+                "`bins` must increase monotonically, when an array"
+            )
+
+    if x.ndim != 1:
+        x = x.flatten()
+
+    if weights is not None:
+        if weights.shape != x.shape:
+            raise ValueError(
+                "`weights` array must be same shape for histogram"
+            )
+
+        result_type = weights.dtype
+        weights_array = weights.astype(np.dtype(np.float64))
+    else:
+        # case weights == None cannot be handled inside _thunk.histogram,
+        # bc/ of hist ndarray inputs(), below;
+        # needs to be handled here:
+        #
+        weights_array = ones(x.shape, dtype=np.dtype(np.float64))
+
+    if x.size == 0:
+        return (
+            zeros((num_intervals,), dtype=result_type),
+            bins_array.astype(bins_orig_type),
+        )
+
+    hist = ndarray(
+        (num_intervals,),
+        dtype=weights_array.dtype,
+        inputs=(x, bins_array, weights_array),
+    )
+    hist._thunk.histogram(
+        x._thunk, bins_array._thunk, weights=weights_array._thunk
+    )
+
+    # handle (density = True):
+    #
+    if density:
+        hist /= sum(hist)
+        hist /= bins_array[1:] - bins_array[:-1]
+
+    return hist.astype(result_type), bins_array.astype(bins_orig_type)

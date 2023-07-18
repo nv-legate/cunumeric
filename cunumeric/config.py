@@ -158,6 +158,7 @@ class _CunumericSharedLib:
     CUNUMERIC_FILL: int
     CUNUMERIC_FLIP: int
     CUNUMERIC_GEMM: int
+    CUNUMERIC_HISTOGRAM: int
     CUNUMERIC_LOAD_CUDALIBS: int
     CUNUMERIC_MATMUL: int
     CUNUMERIC_MATVECMUL: int
@@ -345,6 +346,7 @@ class CuNumericOpCode(IntEnum):
     FILL = _cunumeric.CUNUMERIC_FILL
     FLIP = _cunumeric.CUNUMERIC_FLIP
     GEMM = _cunumeric.CUNUMERIC_GEMM
+    HISTOGRAM = _cunumeric.CUNUMERIC_HISTOGRAM
     LOAD_CUDALIBS = _cunumeric.CUNUMERIC_LOAD_CUDALIBS
     MATMUL = _cunumeric.CUNUMERIC_MATMUL
     MATVECMUL = _cunumeric.CUNUMERIC_MATVECMUL
