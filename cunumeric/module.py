@@ -6699,8 +6699,6 @@ def histogram(
 
         num_intervals = bins
 
-        num_elems = num_intervals + 1
-
         if range is not None:
             assert isinstance(range, tuple) and len(range) == 2
             if range[0] >= range[1]:
@@ -6710,6 +6708,9 @@ def histogram(
 
             lower_b = range[0]
             higher_b = range[1]
+        elif x.size == 0:
+            lower_b = 0.0
+            higher_b = 1.0
         else:
             lower_b = float(min(x))
             higher_b = float(max(x))
@@ -6752,6 +6753,12 @@ def histogram(
         # needs to be handled here:
         #
         weights_array = ones(x.shape, dtype=np.dtype(np.float64))
+
+    if x.size == 0:
+        return (
+            zeros((num_intervals,), dtype=result_type),
+            bins_array.astype(bins_orig_type),
+        )
 
     hist = ndarray(
         (num_intervals,),

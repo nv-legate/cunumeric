@@ -144,7 +144,7 @@ def test_histogram_extreme_bins(src, bins, weights):
 
 
 @pytest.mark.parametrize(
-    "src", ([2, 3, 3, 5, 2, 7, 6, 4], [0, 2, 1, 3, 1, 4, 3, 2])
+    "src", ([], [2, 3, 3, 5, 2, 7, 6, 4], [0, 2, 1, 3, 1, 4, 3, 2])
 )
 @pytest.mark.parametrize("bins", (5, 7))
 def test_histogram_no_weights_scalar_bin(src, bins):
@@ -188,9 +188,9 @@ def test_histogram_weights_scalar_bin(src, bins, weights, density):
     assert allclose(np_bins_out, num_bins_out, atol=eps)
 
 
-@pytest.mark.parametrize("src", ([2], [5]))
+@pytest.mark.parametrize("src", ([], [2], [5]))
 @pytest.mark.parametrize("bins", ([1, 5, 8], [1, 2, 3, 4, 5, 6, 7]))
-def test_histogram_singleton(src, bins):
+def test_histogram_singleton_empty(src, bins):
     eps = 1.0e-8
     src_array = np.array(src)
 
