@@ -118,7 +118,18 @@ def test_geometric(t):
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 @pytest.mark.parametrize(
-    "s", (7.5, pytest.param((1.2, 3.1415), marks=pytest.mark.xfail)), ids=str
+    "s",
+    (
+        7.5,
+        pytest.param(
+            (1.2, 3.1415),
+            marks=pytest.mark.xfail,
+            # NumPy returns 1-dim array
+            # cuNumeric raises TypeError: float() argument must be a string
+            # or a real number, not 'tuple'
+        ),
+    ),
+    ids=str,
 )
 def test_zipf(t, s):
     bitgen = t(seed=42)
