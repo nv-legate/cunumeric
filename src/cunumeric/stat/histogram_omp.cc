@@ -63,10 +63,10 @@ struct HistogramImplBody<VariantKind::OMP, CODE> {
 #ifdef _USE_THRUST_
     auto&& [src_size, src_copy, src_ptr] = det_acc::make_accessor_copy(exe_pol, src, src_rect);
 
-    assert(weights_size == src_size);
-
     auto&& [weights_size, weights_copy, weights_ptr] =
       det_acc::make_accessor_copy(exe_pol, weights, weights_rect);
+
+    assert(weights_size == src_size);
 
     auto&& [bins_size, bins_ptr] = det_acc::get_accessor_ptr(bins, bins_rect);
 
