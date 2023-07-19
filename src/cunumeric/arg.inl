@@ -112,4 +112,35 @@ __CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs)
   }
 }
 
+// Declare these here, to work around undefined-var-template warnings
+
+#define DECLARE_ARGMAX_IDENTITY(TYPE) \
+  template <>                         \
+  const Argval<TYPE> ArgmaxReduction<TYPE>::identity;
+
+#define DECLARE_ARGMIN_IDENTITY(TYPE) \
+  template <>                         \
+  const Argval<TYPE> ArgminReduction<TYPE>::identity;
+
+#define DECLARE_IDENTITIES(TYPE) \
+  DECLARE_ARGMAX_IDENTITY(TYPE)  \
+  DECLARE_ARGMIN_IDENTITY(TYPE)
+
+DECLARE_IDENTITIES(__half)
+DECLARE_IDENTITIES(float)
+DECLARE_IDENTITIES(double)
+DECLARE_IDENTITIES(bool)
+DECLARE_IDENTITIES(int8_t)
+DECLARE_IDENTITIES(int16_t)
+DECLARE_IDENTITIES(int32_t)
+DECLARE_IDENTITIES(int64_t)
+DECLARE_IDENTITIES(uint8_t)
+DECLARE_IDENTITIES(uint16_t)
+DECLARE_IDENTITIES(uint32_t)
+DECLARE_IDENTITIES(uint64_t)
+
+#undef DECLARE_IDENTITIES
+#undef DECLARE_ARGMIN_IDENTITY
+#undef DECLARE_ARGMAX_IDENTITY
+
 }  // namespace cunumeric
