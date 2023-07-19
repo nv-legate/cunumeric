@@ -287,7 +287,6 @@ class TestBitGeneratorErrors:
             # NotImplementedError: type for random.uniform has to be float64
             # or float32
 
-    @pytest.mark.xfail
     def test_random_out_dtype_mismatch(self):
         expected_exc = TypeError
         seed = 42
@@ -300,14 +299,9 @@ class TestBitGeneratorErrors:
         out_num = num.empty(out_shape, dtype=out_dtype)
         with pytest.raises(expected_exc):
             gen_np.random(out=out_np, dtype=dtype)
-            # TypeError: Supplied output array has the wrong type.
-            # Expected float32, got float64
         with pytest.raises(expected_exc):
             gen_num.random(out=out_num, dtype=dtype)
-            # assert out.dtype == dtype
-            # AssertionError
 
-    @pytest.mark.xfail
     def test_random_out_shape_mismatch(self):
         expected_exc = ValueError
         seed = 42
@@ -319,11 +313,8 @@ class TestBitGeneratorErrors:
         out_num = num.empty(out_shape)
         with pytest.raises(expected_exc):
             gen_np.random(size=size, out=out_np)
-            # ValueError: size must match out.shape when used together
         with pytest.raises(expected_exc):
             gen_num.random(size=size, out=out_num)
-            # assert out.shape == size
-            # AssertionError
 
 
 if __name__ == "__main__":
