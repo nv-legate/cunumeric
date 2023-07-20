@@ -9,6 +9,8 @@ on:
     branches:
       - "pull-request/[0-9]+"
       - "branch-*"
+      # TODO: undo
+      - "*"
 
 jobs:
   build-cpu:
