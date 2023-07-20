@@ -1,0 +1,6 @@
+﻿cunumeric.vstack
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: vstack

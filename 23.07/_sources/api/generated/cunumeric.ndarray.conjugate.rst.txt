@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.conjugate
+===========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.conjugate

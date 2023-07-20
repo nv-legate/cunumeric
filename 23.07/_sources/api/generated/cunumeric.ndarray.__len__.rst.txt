@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_len\_\_
+=============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__len__

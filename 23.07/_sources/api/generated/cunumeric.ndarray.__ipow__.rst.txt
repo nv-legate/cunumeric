@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_ipow\_\_
+==============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__ipow__

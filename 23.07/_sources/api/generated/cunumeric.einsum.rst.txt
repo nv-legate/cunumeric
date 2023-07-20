@@ -1,0 +1,6 @@
+﻿cunumeric.einsum
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: einsum

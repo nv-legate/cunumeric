@@ -1,0 +1,6 @@
+﻿cunumeric.radians
+=================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: radians

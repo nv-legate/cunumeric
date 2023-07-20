@@ -1,0 +1,6 @@
+﻿cunumeric.right\_shift
+======================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: right_shift

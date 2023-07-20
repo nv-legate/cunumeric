@@ -1,0 +1,6 @@
+﻿cunumeric.frexp
+===============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: frexp

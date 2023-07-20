@@ -1,0 +1,6 @@
+﻿cunumeric.random.rayleigh
+=========================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: rayleigh

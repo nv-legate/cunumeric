@@ -1,0 +1,6 @@
+﻿cunumeric.fft.fftn
+==================
+
+.. currentmodule:: cunumeric.fft
+
+.. autofunction:: fftn

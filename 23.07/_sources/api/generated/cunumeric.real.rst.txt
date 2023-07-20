@@ -1,0 +1,6 @@
+﻿cunumeric.real
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: real

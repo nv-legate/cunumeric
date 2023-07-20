@@ -1,0 +1,6 @@
+﻿cunumeric.logaddexp2
+====================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: logaddexp2
