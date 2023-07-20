@@ -9,8 +9,6 @@ on:
     branches:
       - "pull-request/[0-9]+"
       - "branch-*"
-      # TODO: undo
-      - "*"
 
 jobs:
   build-cpu:
@@ -19,9 +17,7 @@ jobs:
     with:
       build-target: cpu
       # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
-      # TODO: undo
-      # runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
-      runs-on: ${{ 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+      runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
       sha: ${{ github.sha }}
 
   # test-cpu:

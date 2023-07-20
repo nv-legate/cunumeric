@@ -47,8 +47,7 @@ jobs:
           fetch-depth: 0
           path: cunumeric
 
-      - # TODO: undo
-        # if: github.repository_owner == 'nv-legate'
+      - if: github.repository_owner == 'nv-legate'
         name: Get AWS credentials for sccache bucket
         uses: aws-actions/configure-aws-credentials@v2
         with:
