@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.sort
+======================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.sort

@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.compress
+==========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.compress

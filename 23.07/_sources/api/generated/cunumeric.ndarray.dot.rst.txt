@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.dot
+=====================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.dot

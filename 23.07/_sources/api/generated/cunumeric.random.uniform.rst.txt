@@ -1,0 +1,6 @@
+﻿cunumeric.random.uniform
+========================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: uniform

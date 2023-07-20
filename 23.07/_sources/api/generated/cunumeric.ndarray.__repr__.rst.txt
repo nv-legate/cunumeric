@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_repr\_\_
+==============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__repr__

@@ -1,0 +1,6 @@
+﻿cunumeric.flatnonzero
+=====================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: flatnonzero

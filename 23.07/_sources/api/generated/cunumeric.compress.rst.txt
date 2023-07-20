@@ -1,0 +1,6 @@
+﻿cunumeric.compress
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: compress

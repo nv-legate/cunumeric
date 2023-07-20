@@ -1,0 +1,6 @@
+﻿cunumeric.mean
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: mean

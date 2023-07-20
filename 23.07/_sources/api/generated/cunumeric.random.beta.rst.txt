@@ -1,0 +1,6 @@
+﻿cunumeric.random.beta
+=====================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: beta

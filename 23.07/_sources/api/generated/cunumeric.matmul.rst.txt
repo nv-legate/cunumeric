@@ -1,0 +1,6 @@
+﻿cunumeric.matmul
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: matmul

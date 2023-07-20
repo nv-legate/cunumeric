@@ -1,0 +1,6 @@
+﻿cunumeric.random.wald
+=====================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: wald

@@ -1,0 +1,6 @@
+﻿cunumeric.blackman
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: blackman

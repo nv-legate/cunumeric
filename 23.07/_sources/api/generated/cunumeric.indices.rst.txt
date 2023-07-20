@@ -1,0 +1,6 @@
+﻿cunumeric.indices
+=================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: indices
