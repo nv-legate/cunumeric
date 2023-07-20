@@ -38,6 +38,7 @@ jobs:
           # TODO: undo
           # repository: nv-legate/legate.core
           repository: sandeepd-nv/legate.core
+          ref: 'make_ghci_parts_reusable_from_cunumeric'
           fetch-depth: 0
           path: legate
 
