@@ -339,6 +339,47 @@ def test_bytes(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+FUNC_ARGS = (
+    ("exponential", ()),
+    ("gumbel", ()),
+    ("laplace", ()),
+    ("logistic", ()),
+    ("pareto", (30.0,)),
+    ("power", (3.0,)),
+    ("rayleigh", (np.pi,)),
+    ("standard_cauchy", ()),
+    ("standard_exponential", ()),
+    ("triangular", (1.414, 2.7, 3.1415)),
+    ("weibull", (3.1415,)),
+)
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+@pytest.mark.parametrize("func, args", FUNC_ARGS, ids=str)
+@pytest.mark.parametrize("size", ((2048 * 2048), (4096,), 25535), ids=str)
+def test_beta_sizes(t, func, args, size):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(t(seed=seed))
+    a_np = getattr(gen_np, func)(*args, size=size)
+    a_num = getattr(gen_num, func)(*args, size=size)
+    assert a_np.shape == a_num.shape
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+@pytest.mark.parametrize("func, args", FUNC_ARGS, ids=str)
+def test_beta_size_none(t, func, args):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(t(seed=seed))
+    a_np = getattr(gen_np, func)(*args, size=None)
+    a_num = getattr(gen_num, func)(*args, size=None)
+    # cuNumeric returns singleton array
+    # NumPy returns scalar
+    assert np.ndim(a_np) == np.ndim(a_num)
+
+
 if __name__ == "__main__":
     import sys
 

@@ -292,9 +292,15 @@ class Generator:
         out: Union[ndarray, None] = None,
     ) -> ndarray:
         if out is not None:
-            if size is not None:
-                assert out.shape == size
-            assert out.dtype == dtype
+            if size is not None and out.shape != size:
+                raise ValueError(
+                    "size must match out.shape when used together"
+                )
+            if out.dtype != dtype:
+                raise TypeError(
+                    "Supplied output array has the wrong type. "
+                    "Expected {}, got {}".format(dtype, out.dtype)
+                )
         return self.bit_generator.random(size, dtype, out)
 
     def rayleigh(
