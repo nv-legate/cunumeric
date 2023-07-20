@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+
+. cunumeric-conda-utils
+
+test-cunumeric() {
+    set -x
+    cd ~/
+
+    make_empty_conda_env;
+
+    install_cunumeric;
+
+    activate_conda_env;
+
+    conda info;
+
+    set -xeuo pipefail
+
+    case "$1" in
+        "test")
+            echo "Executing tests..."
+            shift;
+            update_conda_env_using_section tests
+            cd cunumeric
+            set -- \
+                timeout -v -s 9 92m \
+                timeout -v --foreground 90m \
+                ./test.py --verbose "$@"
+            ;;
+        "mypy")
+            echo "Executing mypy..."
+            shift;
+            update_conda_env_using_section tests docs
+            cd cunumeric
+            set -- mypy cunumeric
+            ;;
+        "docs")
+            echo "Building docs..."
+            shift;
+            update_conda_env_using_section docs
+            cd cunumeric/docs/cunumeric
+            set -- make clean html
+            ;;
+        *)
+            echo "Invalid command: $1"
+            return 1
+            ;;
+    esac
+
+    # Use exec so the command replaces the bash script and signals are passed down
+    exec "$@"
+}
+
+(test-cunumeric "$@");

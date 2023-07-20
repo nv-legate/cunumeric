@@ -1,0 +1,65 @@
+name: Test cunumeric on GH
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        required: true
+        type: string
+      build-target:
+        required: true
+        type: string
+      runs-on:
+        required: true
+        type: string
+      has-gpu:
+        required: true
+        type: boolean
+        description: "The runner has GPU(s)."
+      sha:
+        required: true
+        type: string
+      test-options:
+        required: true
+        type: string
+      log-name:
+        required: true
+        type: string
+      enabled:
+        required: true
+        type: boolean
+
+jobs:
+  test:
+    name: ${{ inputs.name }}
+    if: inputs.enabled && github.repository_owner == 'nv-legate'
+    runs-on: ${{ inputs.runs-on }}
+    container:
+      options: -u root
+      image: ghcr.io/nv-legate/cunumeric-${{ inputs.build-target }}:${{ inputs.sha }}
+      volumes:
+        - ${{ github.workspace }}/test_logs:/home/coder/.test_logs
+      env:
+        PYTHONDONTWRITEBYTECODE: 1
+        NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
+
+    steps:
+      - if: inputs.has-gpu
+        name: Run nvidia-smi to make sure GPU is working
+        run: nvidia-smi
+
+      - name: Run cunumeric test / analysis
+        shell: su coder {0}
+        run: |
+          set -x
+          mkdir -p ~/.test_logs
+          sudo chown -R coder:coder ~/.test_logs
+
+          set -eo pipefail
+          test-cunumeric ${{ inputs.test-options }} 2>&1 | tee ~/.test_logs/cunumeric-${{ inputs.sha }}-test-${{ inputs.log-name }}.log
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: "cunumeric-${{ inputs.build-target }}-${{ inputs.sha }}-test-${{ inputs.log-name }}-log"
+          path: test_logs/cunumeric-${{ inputs.sha }}-test-${{ inputs.log-name }}.log

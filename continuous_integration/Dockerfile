@@ -30,12 +30,19 @@ ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 ARG AWS_SECRET_ACCESS_KEY
 ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
+ENV USE_OPENMP=ON
+
 COPY --chown=coder:coder .creds /run/secrets
 
 RUN entrypoint build-cunumeric-all
 
 #---------------------------------------------------
 FROM stage0 as final
+USER root
+RUN export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get install -y numactl
+
 USER coder
 WORKDIR /home/coder
 
