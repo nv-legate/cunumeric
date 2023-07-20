@@ -1,0 +1,51 @@
+name: Build and test CPU legate.core on GH
+
+concurrency:
+  group: ci-cpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
+  cancel-in-progress: true
+
+on:
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+      - "branch-*"
+
+jobs:
+  build-cpu:
+    uses:
+      ./.github/workflows/gh-build.yml
+    with:
+      build-target: cpu
+      # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
+      runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+      sha: ${{ github.sha }}
+
+  # test-cpu:
+  #   needs:
+  #     - build-cpu
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - { name: Pytest Unit Tests, test-scope: unit }
+  #         - { name: mypy, test-scope: mypy }
+  #   name: ${{ matrix.name }}
+  #   uses:
+  #     ./.github/workflows/gh-test.yml
+  #   with:
+  #     build-target: cpu
+  #     runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+  #     sha: ${{ github.sha }}
+  #     test-scope: ${{ matrix.test-scope }}
+
+  cleanup:
+    needs:
+      - build-cpu
+      # - test-cpu
+    # This ensures the cleanup job runs even if previous jobs fail or the workflow is cancelled.
+    if: always()
+    uses:
+      ./.github/workflows/gh-cleanup.yml
+    with:
+      build-target: cpu
+      sha: ${{ github.sha }}

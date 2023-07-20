@@ -1,0 +1,106 @@
+name: Build cunumeric on GH
+
+on:
+  workflow_call:
+    inputs:
+      build-target:
+        required: true
+        type: string
+      runs-on:
+        required: true
+        type: string
+      sha:
+        required: true
+        type: string
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  BASE_IMAGE: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
+  IMAGE_NAME_LEGATE: legate.core-${{ inputs.build-target }}
+  IMAGE_NAME_CUNUMERIC: cunumeric-${{ inputs.build-target }}
+  USE_CUDA: ${{ (inputs.build-target == 'cpu' && 'OFF') || 'ON' }}
+
+jobs:
+  build:
+    name: build-${{ inputs.build-target }}-sub-workflow
+
+    permissions:
+      id-token: write # This is required for configure-aws-credentials
+      contents: read  # This is required for actions/checkout
+      packages: write # This is required to push docker image to ghcr.io
+
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Checkout legate.core
+        uses: actions/checkout@v3
+        with:
+          repository: nv-legate/legate.core
+          fetch-depth: 0
+          path: legate
+
+      - name: Checkout cunumeric (= this repo)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: cunumeric
+
+      - if: github.repository_owner == 'nv-legate'
+        name: Get AWS credentials for sccache bucket
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-2
+          role-duration-seconds: 28800 # 8 hours
+          role-to-assume: arn:aws:iam::279114543810:role/gha-oidc-nv-legate
+
+      - name: Build legate.core using docker build
+        run: |
+          echo BUILD_TARGET: ${{ inputs.build-target }}
+          echo USE_CUDA: ${{ env.USE_CUDA }}
+
+          chmod +x legate/continuous_integration/build-docker-image
+          legate/continuous_integration/build-docker-image \
+            --base-image "$BASE_IMAGE" \
+            --image-name "$IMAGE_NAME_LEGATE" \
+            --sha ${{ inputs.sha }} \
+            --source-dir legate
+
+      - name: Build cunumeric using docker build
+        run: |
+          legate/continuous_integration/build-docker-image \
+            --base-image "$IMAGE_NAME_LEGATE:${{ inputs.sha }}" \
+            --image-name "$IMAGE_NAME_CUNUMERIC" \
+            --sha ${{ inputs.sha }} \
+            --source-dir cunumeric
+
+      - name: Log in to container image registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+
+      - name: Push cunumeric image
+        run: |
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME_CUNUMERIC
+
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          VERSION=${{ inputs.sha }}
+
+          docker tag $IMAGE_NAME_CUNUMERIC:$VERSION $IMAGE_ID:$VERSION
+          docker push $IMAGE_ID:$VERSION
+
+      - name: Copy artifacts back to the host
+        run: |
+          mkdir -p artifacts
+          docker run  -v "$(pwd)/artifacts:/home/coder/.artifacts" --rm -t $IMAGE_NAME_CUNUMERIC:${{ inputs.sha }} copy-artifacts
+          echo --------- DOCKER HISTORY START -----------
+          docker history $IMAGE_NAME_CUNUMERIC:${{ inputs.sha }}
+          echo --------- DOCKER HISTORY END -----------
+
+      - name: Display structure of workdir
+        run: ls -R
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: "cunumeric-${{ inputs.build-target }}-${{ inputs.sha }}"
+          path: artifacts
