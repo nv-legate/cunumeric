@@ -55,7 +55,7 @@ SKIP = {
     "size",
     "sometrue",
     "test",
-    "Tester"
+    "Tester",
 }
 
 # these do not have valid intersphinx references
