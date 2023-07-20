@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -6,7 +7,7 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>cunumeric.random.hypergeometric &#8212; cuNumeric  documentation</title>
   
@@ -42,8 +43,6 @@
     <script src="../../_static/clipboard.min.js"></script>
     <script src="../../_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/cunumeric.random.hypergeometric';</script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -885,31 +884,23 @@ document.write(`
 parameters, <cite>ngood</cite> (ways to make a good selection), <cite>nbad</cite> (ways to make
 a bad selection), and <cite>nsample</cite> (number of items sampled, which is less
 than or equal to the sum <code class="docutils literal notranslate"><span class="pre">ngood</span> <span class="pre">+</span> <span class="pre">nbad</span></code>).</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>New code should use the
-<cite>~numpy.random.Generator.hypergeometric</cite>
-method of a <cite>~numpy.random.Generator</cite> instance instead;
-please see the <a class="reference external" href="https://numpy.org/doc/stable/reference/random/index.html#random-quick-start" title="(in NumPy v1.25)"><span>Quick Start</span></a>.</p>
-</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>ngood</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em> or </em><em>array_like</em><em> of </em><em>ints</em>) – Number of ways to make a good selection.  Must be nonnegative.</p></li>
-<li><p><strong>nbad</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em> or </em><em>array_like</em><em> of </em><em>ints</em>) – Number of ways to make a bad selection.  Must be nonnegative.</p></li>
-<li><p><strong>nsample</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em> or </em><em>array_like</em><em> of </em><em>ints</em>) – Number of items sampled.  Must be at least 1 and at most
+<li><p><strong>ngood</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Number of ways to make a good selection.  Must be nonnegative.</p></li>
+<li><p><strong>nbad</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Number of ways to make a bad selection.  Must be nonnegative.</p></li>
+<li><p><strong>nsample</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a>) – Number of items sampled.  Must be at least 1 and at most
 <code class="docutils literal notranslate"><span class="pre">ngood</span> <span class="pre">+</span> <span class="pre">nbad</span></code>.</p></li>
 <li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.11)"><em>tuple</em></a><em> of </em><em>ints</em><em>, </em><em>optional</em>) – Output shape.  If the given shape is, e.g., <code class="docutils literal notranslate"><span class="pre">(m,</span> <span class="pre">n,</span> <span class="pre">k)</span></code>, then
 <code class="docutils literal notranslate"><span class="pre">m</span> <span class="pre">*</span> <span class="pre">n</span> <span class="pre">*</span> <span class="pre">k</span></code> samples are drawn.  If size is <code class="docutils literal notranslate"><span class="pre">None</span></code> (default),
-a single value is returned if <cite>ngood</cite>, <cite>nbad</cite>, and <cite>nsample</cite>
-are all scalars.  Otherwise, <code class="docutils literal notranslate"><span class="pre">np.broadcast(ngood,</span> <span class="pre">nbad,</span> <span class="pre">nsample).size</span></code>
-samples are drawn.</p></li>
+a single value is returned.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><strong>out</strong> – Drawn samples from the parameterized hypergeometric distribution. Each
 sample is the number of good items within a randomly selected subset of
-size <cite>nsample</cite> taken from a set of <cite>ngood</cite> good items and <cite>nbad</cite> bad items.</p>
+size <cite>nsample</cite> taken from a set of <cite>ngood</cite> good items and <cite>nbad</cite> bad
+items.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p><a class="reference internal" href="../_ndarray.html#cunumeric.ndarray" title="cunumeric.ndarray">ndarray</a> or scalar</p>
@@ -917,66 +908,13 @@ size <cite>nsample</cite> taken from a set of <cite>ngood</cite> good items and 
 </dl>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.stats.hypergeom</span></code></dt><dd><p>probability density function, distribution or cumulative density function, etc.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">random.Generator.hypergeometric</span></code></dt><dd><p>which should be used for new code.</p>
+<p><a class="reference external" href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.hypergeometric.html#numpy.random.hypergeometric" title="(in NumPy v1.25)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.random.hypergeometric</span></code></a></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Availability<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Multiple GPUs, Multiple CPUs</em></p>
 </dd>
 </dl>
-</div>
-<p class="rubric">Notes</p>
-<p>The probability density for the Hypergeometric distribution is</p>
-<div class="math notranslate nohighlight">
-\[P(x) = \frac{\binom{g}{x}\binom{b}{n-x}}{\binom{g+b}{n}},\]</div>
-<p>where <span class="math notranslate nohighlight">\(0 \le x \le n\)</span> and <span class="math notranslate nohighlight">\(n-b \le x \le g\)</span></p>
-<p>for P(x) the probability of <code class="docutils literal notranslate"><span class="pre">x</span></code> good results in the drawn sample,
-g = <cite>ngood</cite>, b = <cite>nbad</cite>, and n = <cite>nsample</cite>.</p>
-<p>Consider an urn with black and white marbles in it, <cite>ngood</cite> of them
-are black and <cite>nbad</cite> are white. If you draw <cite>nsample</cite> balls without
-replacement, then the hypergeometric distribution describes the
-distribution of black balls in the drawn sample.</p>
-<p>Note that this distribution is very similar to the binomial
-distribution, except that in this case, samples are drawn without
-replacement, whereas in the Binomial case samples are drawn with
-replacement (or the sample space is infinite). As the sample space
-becomes large, this distribution approaches the binomial.</p>
-<p class="rubric">References</p>
-<aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id1" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></span>
-<p>Lentner, Marvin, “Elementary Applied Statistics”, Bogden
-and Quigley, 1972.</p>
-</aside>
-<aside class="footnote brackets" id="id2" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></span>
-<p>Weisstein, Eric W. “Hypergeometric Distribution.” From
-MathWorld–A Wolfram Web Resource.
-<a class="reference external" href="http://mathworld.wolfram.com/HypergeometricDistribution.html">http://mathworld.wolfram.com/HypergeometricDistribution.html</a></p>
-</aside>
-<aside class="footnote brackets" id="id3" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></span>
-<p>Wikipedia, “Hypergeometric distribution”,
-<a class="reference external" href="https://en.wikipedia.org/wiki/Hypergeometric_distribution">https://en.wikipedia.org/wiki/Hypergeometric_distribution</a></p>
-</aside>
-</aside>
-<p class="rubric">Examples</p>
-<p>Draw samples from the distribution:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ngood</span><span class="p">,</span> <span class="n">nbad</span><span class="p">,</span> <span class="n">nsamp</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">10</span>
-<span class="go"># number of good, number of bad, and number of samples</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">hypergeometric</span><span class="p">(</span><span class="n">ngood</span><span class="p">,</span> <span class="n">nbad</span><span class="p">,</span> <span class="n">nsamp</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">import</span> <span class="n">hist</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">hist</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
-<span class="go">#   note that it is very unlikely to grab both bad items</span>
-</pre></div>
-</div>
-<p>Suppose you have an urn with 15 white and 15 black marbles.
-If you pull 15 marbles at random, how likely is it that
-12 or more of them are one color?</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">hypergeometric</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">100000</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">sum</span><span class="p">(</span><span class="n">s</span><span class="o">&gt;=</span><span class="mi">12</span><span class="p">)</span><span class="o">/</span><span class="mf">100000.</span> <span class="o">+</span> <span class="nb">sum</span><span class="p">(</span><span class="n">s</span><span class="o">&lt;=</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mf">100000.</span>
-<span class="go">#   answer = 0.003 ... pretty unlikely!</span>
-</pre></div>
-</div>
 </dd></dl>
 
 </section>

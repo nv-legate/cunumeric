@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -6,7 +7,7 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>cunumeric.random.seed &#8212; cuNumeric  documentation</title>
   
@@ -878,7 +879,15 @@ document.write(`
 <dl class="py function">
 <dt class="sig sig-object py" id="cunumeric.random.seed">
 <span class="sig-prename descclassname"><span class="pre">cunumeric.random.</span></span><span class="sig-name descname"><span class="pre">seed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">init</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cunumeric.random.seed" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dd><p>Reseed the legacy random number generator.</p>
+<p>This function is effective only when cuRAND is NOT used in the build
+and is a no-op otherwise.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Availability<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Multiple GPUs, Multiple CPUs</em></p>
+</dd>
+</dl>
+</dd></dl>
 
 </section>
 

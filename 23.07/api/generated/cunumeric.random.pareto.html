@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -6,7 +7,7 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>cunumeric.random.pareto &#8212; cuNumeric  documentation</title>
   
@@ -42,8 +43,6 @@
     <script src="../../_static/clipboard.min.js"></script>
     <script src="../../_static/copybutton.js"></script>
     <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-    <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-    <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/cunumeric.random.pareto';</script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
@@ -885,7 +884,7 @@ specified shape.</p>
 <p>The Lomax or Pareto II distribution is a shifted Pareto
 distribution. The classical Pareto distribution can be
 obtained from the Lomax distribution by adding 1 and
-multiplying by the scale parameter <code class="docutils literal notranslate"><span class="pre">m</span></code> (see Notes).  The
+multiplying by the scale parameter <code class="docutils literal notranslate"><span class="pre">m</span></code>.  The
 smallest value of the Lomax distribution is zero while for the
 classical Pareto distribution it is <code class="docutils literal notranslate"><span class="pre">mu</span></code>, where the standard
 Pareto distribution has location <code class="docutils literal notranslate"><span class="pre">mu</span> <span class="pre">=</span> <span class="pre">1</span></code>.  Lomax can also
@@ -897,20 +896,13 @@ unbounded above.  It is also known as the “80-20 rule”.  In
 this distribution, 80 percent of the weights are in the lowest
 20 percent of the range, while the other 20 percent fill the
 remaining 80 percent of the range.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>New code should use the <cite>~numpy.random.Generator.pareto</cite>
-method of a <cite>~numpy.random.Generator</cite> instance instead;
-please see the <a class="reference external" href="https://numpy.org/doc/stable/reference/random/index.html#random-quick-start" title="(in NumPy v1.25)"><span>Quick Start</span></a>.</p>
-</div>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>a</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a><em> or </em><em>array_like</em><em> of </em><em>floats</em>) – Shape of the distribution. Must be positive.</p></li>
+<li><p><strong>a</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.11)"><em>float</em></a>) – Shape of the distribution. Must be positive.</p></li>
 <li><p><strong>size</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em> or </em><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#tuple" title="(in Python v3.11)"><em>tuple</em></a><em> of </em><em>ints</em><em>, </em><em>optional</em>) – Output shape.  If the given shape is, e.g., <code class="docutils literal notranslate"><span class="pre">(m,</span> <span class="pre">n,</span> <span class="pre">k)</span></code>, then
 <code class="docutils literal notranslate"><span class="pre">m</span> <span class="pre">*</span> <span class="pre">n</span> <span class="pre">*</span> <span class="pre">k</span></code> samples are drawn.  If size is <code class="docutils literal notranslate"><span class="pre">None</span></code> (default),
-a single value is returned if <code class="docutils literal notranslate"><span class="pre">a</span></code> is a scalar.  Otherwise,
-<code class="docutils literal notranslate"><span class="pre">np.array(a).size</span></code> samples are drawn.</p></li>
+a single value is returned.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -922,67 +914,13 @@ a single value is returned if <code class="docutils literal notranslate"><span c
 </dl>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
-<dl class="simple">
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.stats.lomax</span></code></dt><dd><p>probability density function, distribution or cumulative density function, etc.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">scipy.stats.genpareto</span></code></dt><dd><p>probability density function, distribution or cumulative density function, etc.</p>
-</dd>
-<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">random.Generator.pareto</span></code></dt><dd><p>which should be used for new code.</p>
+<p><a class="reference external" href="https://numpy.org/doc/stable/reference/random/generated/numpy.random.pareto.html#numpy.random.pareto" title="(in NumPy v1.25)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.random.pareto</span></code></a></p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Availability<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Multiple GPUs, Multiple CPUs</em></p>
 </dd>
 </dl>
-</div>
-<p class="rubric">Notes</p>
-<p>The probability density for the Pareto distribution is</p>
-<div class="math notranslate nohighlight">
-\[p(x) = \frac{am^a}{x^{a+1}}\]</div>
-<p>where <span class="math notranslate nohighlight">\(a\)</span> is the shape and <span class="math notranslate nohighlight">\(m\)</span> the scale.</p>
-<p>The Pareto distribution, named after the Italian economist
-Vilfredo Pareto, is a power law probability distribution
-useful in many real world problems.  Outside the field of
-economics it is generally referred to as the Bradford
-distribution. Pareto developed the distribution to describe
-the distribution of wealth in an economy.  It has also found
-use in insurance, web page access statistics, oil field sizes,
-and many other problems, including the download frequency for
-projects in Sourceforge <a class="footnote-reference brackets" href="#id2" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a>.  It is one of the so-called
-“fat-tailed” distributions.</p>
-<p class="rubric">References</p>
-<aside class="footnote-list brackets">
-<aside class="footnote brackets" id="id2" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
-<p>Francis Hunt and Paul Johnson, On the Pareto Distribution of
-Sourceforge projects.</p>
-</aside>
-<aside class="footnote brackets" id="id3" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></span>
-<p>Pareto, V. (1896). Course of Political Economy. Lausanne.</p>
-</aside>
-<aside class="footnote brackets" id="id4" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>3<span class="fn-bracket">]</span></span>
-<p>Reiss, R.D., Thomas, M.(2001), Statistical Analysis of Extreme
-Values, Birkhauser Verlag, Basel, pp 23-30.</p>
-</aside>
-<aside class="footnote brackets" id="id5" role="doc-footnote">
-<span class="label"><span class="fn-bracket">[</span>4<span class="fn-bracket">]</span></span>
-<p>Wikipedia, “Pareto distribution”,
-<a class="reference external" href="https://en.wikipedia.org/wiki/Pareto_distribution">https://en.wikipedia.org/wiki/Pareto_distribution</a></p>
-</aside>
-</aside>
-<p class="rubric">Examples</p>
-<p>Draw samples from the distribution:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="mf">3.</span><span class="p">,</span> <span class="mf">2.</span>  <span class="c1"># shape and mode</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">pareto</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">1000</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">m</span>
-</pre></div>
-</div>
-<p>Display the histogram of the samples, along with the probability
-density function:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">count</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span> <span class="o">=</span> <span class="n">a</span><span class="o">*</span><span class="n">m</span><span class="o">**</span><span class="n">a</span> <span class="o">/</span> <span class="n">bins</span><span class="o">**</span><span class="p">(</span><span class="n">a</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="n">count</span><span class="p">)</span><span class="o">*</span><span class="n">fit</span><span class="o">/</span><span class="nb">max</span><span class="p">(</span><span class="n">fit</span><span class="p">),</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;r&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
-</pre></div>
-</div>
 </dd></dl>
 
 </section>

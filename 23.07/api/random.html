@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -6,7 +7,7 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>Random sampling (cunumeric.random) &#8212; cuNumeric  documentation</title>
   
@@ -875,7 +876,7 @@ document.write(`
 <table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.default_rng.html#cunumeric.random.default_rng" title="cunumeric.random.default_rng"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_rng</span></code></a>([seed])</p></td>
-<td><p>Construct a new Generator with the default BitGenerator (PCG64).</p></td>
+<td><p>Construct a new Generator with the default BitGenerator (XORWOW).</p></td>
 </tr>
 </tbody>
 </table>
@@ -892,7 +893,7 @@ document.write(`
 <table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.seed.html#cunumeric.random.seed" title="cunumeric.random.seed"><code class="xref py py-obj docutils literal notranslate"><span class="pre">seed</span></code></a>([init])</p></td>
-<td><p></p></td>
+<td><p>Reseed the legacy random number generator.</p></td>
 </tr>
 </tbody>
 </table>
@@ -902,7 +903,7 @@ document.write(`
 <table class="autosummary longtable table autosummary">
 <tbody>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.default_rng.html#cunumeric.random.default_rng" title="cunumeric.random.default_rng"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_rng</span></code></a>([seed])</p></td>
-<td><p>Construct a new Generator with the default BitGenerator (PCG64).</p></td>
+<td><p>Construct a new Generator with the default BitGenerator (XORWOW).</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.rand.html#cunumeric.random.rand" title="cunumeric.random.rand"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rand</span></code></a>(d0, d1, ..., dn)</p></td>
 <td><p>Random values in a given shape.</p></td>
@@ -920,7 +921,7 @@ document.write(`
 <td><p>Random integers of type <cite>np.int_</cite> between <cite>low</cite> and <cite>high</cite>, inclusive.</p></td>
 </tr>
 <tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.random_sample.html#cunumeric.random.random_sample" title="cunumeric.random.random_sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">random_sample</span></code></a>([size])</p></td>
-<td><p>Return random floats in the half-open interval [0.0, 1.0).</p></td>
+<td><p>Return random floats in the half-open interval <code class="docutils literal notranslate"><span class="pre">[0.0,</span> <span class="pre">1.0)</span></code>.</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.bytes.html#cunumeric.random.bytes" title="cunumeric.random.bytes"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bytes</span></code></a>(length)</p></td>
 <td><p>Return random bytes.</p></td>
@@ -992,14 +993,14 @@ document.write(`
 <tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.power.html#cunumeric.random.power" title="cunumeric.random.power"><code class="xref py py-obj docutils literal notranslate"><span class="pre">power</span></code></a>(a[, size])</p></td>
 <td><p>Draws samples in [0, 1] from a power distribution with positive exponent a - 1.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.ranf.html#cunumeric.random.ranf" title="cunumeric.random.ranf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ranf</span></code></a></p></td>
-<td><p>This is an alias of <cite>random_sample</cite>.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.ranf.html#cunumeric.random.ranf" title="cunumeric.random.ranf"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ranf</span></code></a>([size, dtype])</p></td>
+<td><p>random_sample(size=None)</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.rayleigh.html#cunumeric.random.rayleigh" title="cunumeric.random.rayleigh"><code class="xref py py-obj docutils literal notranslate"><span class="pre">rayleigh</span></code></a>([scale, size])</p></td>
 <td><p>Draw samples from a Rayleigh distribution.</p></td>
 </tr>
-<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.sample.html#cunumeric.random.sample" title="cunumeric.random.sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code></a></p></td>
-<td><p>This is an alias of <cite>random_sample</cite>.</p></td>
+<tr class="row-odd"><td><p><a class="reference internal" href="generated/cunumeric.random.sample.html#cunumeric.random.sample" title="cunumeric.random.sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code></a>([size, dtype])</p></td>
+<td><p>random_sample(size=None)</p></td>
 </tr>
 <tr class="row-even"><td><p><a class="reference internal" href="generated/cunumeric.random.standard_cauchy.html#cunumeric.random.standard_cauchy" title="cunumeric.random.standard_cauchy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">standard_cauchy</span></code></a>([size])</p></td>
 <td><p>Draw samples from a standard Cauchy distribution with mode = 0.</p></td>

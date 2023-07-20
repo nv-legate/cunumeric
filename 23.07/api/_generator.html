@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -6,7 +7,7 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>cunumeric.random.Generator &#8212; cuNumeric  documentation</title>
   
@@ -877,50 +878,40 @@ document.write(`
 <h1>cunumeric.random.Generator<a class="headerlink" href="#cunumeric-random-generator" title="Permalink to this heading">#</a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="cunumeric.random.Generator">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cunumeric.random.</span></span><span class="sig-name descname"><span class="pre">Generator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bit_generator</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.random.Generator" title="Permalink to this definition">#</a></dt>
-<dd><p>Container for the BitGenerators.</p>
-<p><code class="docutils literal notranslate"><span class="pre">Generator</span></code> exposes a number of methods for generating random
-numbers drawn from a variety of probability distributions. In addition to
-the distribution-specific arguments, each method takes a keyword argument
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">cunumeric.random.</span></span><span class="sig-name descname"><span class="pre">Generator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bit_generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="_bitgenerator.html#cunumeric.random.BitGenerator" title="cunumeric.random.bitgenerator.BitGenerator"><span class="pre">BitGenerator</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.random.Generator" title="Permalink to this definition">#</a></dt>
+<dd><dl class="py method">
+<dt class="sig sig-object py" id="cunumeric.random.Generator.__init__">
+<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bit_generator</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="_bitgenerator.html#cunumeric.random.BitGenerator" title="cunumeric.random.bitgenerator.BitGenerator"><span class="pre">BitGenerator</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#cunumeric.random.Generator.__init__" title="Permalink to this definition">#</a></dt>
+<dd><p>Generator(bit_generator)</p>
+<p>Container for the BitGenerators.</p>
+<p><code class="docutils literal notranslate"><span class="pre">Generator</span></code> exposes a number of methods for generating random numbers
+drawn from a variety of probability distributions. In addition to the
+distribution-specific arguments, each method takes a keyword argument
 <cite>size</cite> that defaults to <code class="docutils literal notranslate"><span class="pre">None</span></code>. If <cite>size</cite> is <code class="docutils literal notranslate"><span class="pre">None</span></code>, then a single
 value is generated and returned. If <cite>size</cite> is an integer, then a 1-D
 array filled with generated values is returned. If <cite>size</cite> is a tuple,
 then an array with that shape is filled and returned.</p>
-<p>The function <a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng" title="(in NumPy v1.25)"><code class="xref py py-func docutils literal notranslate"><span class="pre">numpy.random.default_rng()</span></code></a> will instantiate
-a <cite>Generator</cite> with numpy’s default <cite>BitGenerator</cite>.</p>
-<p><strong>No Compatibility Guarantee</strong></p>
-<p><code class="docutils literal notranslate"><span class="pre">Generator</span></code> does not provide a version compatibility guarantee. In
-particular, as better algorithms evolve the bit stream may change.</p>
+<p>The function <a class="reference internal" href="generated/cunumeric.random.default_rng.html#cunumeric.random.default_rng" title="cunumeric.random.default_rng"><code class="xref py py-func docutils literal notranslate"><span class="pre">cunumeric.random.default_rng()</span></code></a> will instantiate
+a <cite>Generator</cite> with cuNumeric’s default <cite>BitGenerator</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>bit_generator</strong> (<a class="reference internal" href="_bitgenerator.html#cunumeric.random.BitGenerator" title="cunumeric.random.BitGenerator"><em>BitGenerator</em></a>) – BitGenerator to use as the core generator.</p>
 </dd>
 </dl>
-<p class="rubric">Notes</p>
-<p>The Python stdlib module <cite>random</cite> contains pseudo-random number generator
-with a number of methods that are similar to the ones available in
-<code class="docutils literal notranslate"><span class="pre">Generator</span></code>. It uses Mersenne Twister, and this bit generator can
-be accessed using <code class="docutils literal notranslate"><span class="pre">MT19937</span></code>. <code class="docutils literal notranslate"><span class="pre">Generator</span></code>, besides being
-NumPy-aware, has the advantage that it provides a much larger number
-of probability distributions to choose from.</p>
-<p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">numpy.random</span> <span class="kn">import</span> <span class="n">Generator</span><span class="p">,</span> <span class="n">PCG64</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">Generator</span><span class="p">(</span><span class="n">PCG64</span><span class="p">())</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span><span class="o">.</span><span class="n">standard_normal</span><span class="p">()</span>
-<span class="go">-0.203  # random</span>
-</pre></div>
-</div>
 <div class="admonition seealso">
 <p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.Generator" title="(in NumPy v1.25)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.random.Generator</span></code></a></p>
 <dl class="simple">
 <dt><a class="reference internal" href="generated/cunumeric.random.default_rng.html#cunumeric.random.default_rng" title="cunumeric.random.default_rng"><code class="xref py py-obj docutils literal notranslate"><span class="pre">default_rng</span></code></a></dt><dd><p>Recommended constructor for <cite>Generator</cite>.</p>
 </dd>
 </dl>
 </div>
-<dl class="py method">
-<dt class="sig sig-object py" id="cunumeric.random.Generator.__init__">
-<span class="sig-name descname"><span class="pre">__init__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.random.Generator.__init__" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
+<dl class="field-list simple">
+<dt class="field-odd">Availability<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Multiple GPUs, Multiple CPUs</em></p>
+</dd>
+</dl>
+</dd></dl>
 
 <p class="rubric">Methods</p>
 <table class="autosummary longtable table autosummary">

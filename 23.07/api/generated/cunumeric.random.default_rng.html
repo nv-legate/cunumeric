@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -6,7 +7,7 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>cunumeric.random.default_rng &#8212; cuNumeric  documentation</title>
   
@@ -877,17 +878,15 @@ document.write(`
 <h1>cunumeric.random.default_rng<a class="headerlink" href="#cunumeric-random-default-rng" title="Permalink to this heading">#</a></h1>
 <dl class="py function">
 <dt class="sig sig-object py" id="cunumeric.random.default_rng">
-<span class="sig-prename descclassname"><span class="pre">cunumeric.random.</span></span><span class="sig-name descname"><span class="pre">default_rng</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.random.default_rng" title="Permalink to this definition">#</a></dt>
-<dd><p>Construct a new Generator with the default BitGenerator (PCG64).</p>
+<span class="sig-prename descclassname"><span class="pre">cunumeric.random.</span></span><span class="sig-name descname"><span class="pre">default_rng</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="../_bitgenerator.html#cunumeric.random.BitGenerator" title="cunumeric.random.bitgenerator.BitGenerator"><span class="pre">BitGenerator</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="../_generator.html#cunumeric.random.Generator" title="cunumeric.random.generator.Generator"><span class="pre">Generator</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="../_generator.html#cunumeric.random.Generator" title="cunumeric.random.generator.Generator"><span class="pre">Generator</span></a></span></span><a class="headerlink" href="#cunumeric.random.default_rng" title="Permalink to this definition">#</a></dt>
+<dd><p>Construct a new Generator with the default BitGenerator (XORWOW).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>seed</strong> (<em>{None</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>array_like</em><em>[</em><em>ints</em><em>]</em><em>, </em><em>SeedSequence</em><em>, </em><a class="reference internal" href="../_bitgenerator.html#cunumeric.random.BitGenerator" title="cunumeric.random.BitGenerator"><em>BitGenerator</em></a><em>, </em><em>Generator}</em><em>, </em><em>optional</em>) – A seed to initialize the <cite>BitGenerator</cite>. If None, then fresh,
-unpredictable entropy will be pulled from the OS. If an <code class="docutils literal notranslate"><span class="pre">int</span></code> or
-<code class="docutils literal notranslate"><span class="pre">array_like[ints]</span></code> is passed, then it will be passed to
-<cite>SeedSequence</cite> to derive the initial <cite>BitGenerator</cite> state. One may also
-pass in a <cite>SeedSequence</cite> instance.
-Additionally, when passed a <cite>BitGenerator</cite>, it will be wrapped by
-<cite>Generator</cite>. If passed a <cite>Generator</cite>, it will be returned unaltered.</p>
+<dd class="field-odd"><p><strong>seed</strong> (<em>{None</em><em>, </em><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>,  </em><a class="reference internal" href="../_bitgenerator.html#cunumeric.random.BitGenerator" title="cunumeric.random.BitGenerator"><em>BitGenerator</em></a><em>, </em><em>Generator}</em><em>, </em><em>optional</em>) – A seed to initialize the <code class="docutils literal notranslate"><span class="pre">BitGenerator</span></code>. If <code class="docutils literal notranslate"><span class="pre">None</span></code>, then fresh,
+unpredictable entropy will be pulled from the OS.
+Additionally, when passed a <code class="docutils literal notranslate"><span class="pre">BitGenerator</span></code>, it will be wrapped by
+<code class="docutils literal notranslate"><span class="pre">Generator</span></code>. If passed a <code class="docutils literal notranslate"><span class="pre">Generator</span></code>, it will be returned
+unaltered.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>The initialized generator object.</p>
@@ -897,58 +896,18 @@ Additionally, when passed a <cite>BitGenerator</cite>, it will be wrapped by
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p>If <code class="docutils literal notranslate"><span class="pre">seed</span></code> is not a <cite>BitGenerator</cite> or a <cite>Generator</cite>, a new <cite>BitGenerator</cite>
-is instantiated. This function does not manage a default global instance.</p>
-<p class="rubric">Examples</p>
-<p><code class="docutils literal notranslate"><span class="pre">default_rng</span></code> is the recommended constructor for the random number class
-<code class="docutils literal notranslate"><span class="pre">Generator</span></code>. Here are several ways we can construct a random
-number generator using <code class="docutils literal notranslate"><span class="pre">default_rng</span></code> and the <code class="docutils literal notranslate"><span class="pre">Generator</span></code> class.</p>
-<p>Here we use <code class="docutils literal notranslate"><span class="pre">default_rng</span></code> to generate a random float:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
-<span class="go">Generator(PCG64)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rfloat</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rfloat</span>
-<span class="go">0.22733602246716966</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">rfloat</span><span class="p">)</span>
-<span class="go">&lt;class &#39;float&#39;&gt;</span>
-</pre></div>
+<p>If <code class="docutils literal notranslate"><span class="pre">seed</span></code> is not a <code class="docutils literal notranslate"><span class="pre">BitGenerator</span></code> or a <code class="docutils literal notranslate"><span class="pre">Generator</span></code>, a new
+<code class="docutils literal notranslate"><span class="pre">BitGenerator</span></code> is instantiated. This function does not manage
+a default global instance.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<p><a class="reference external" href="https://numpy.org/doc/stable/reference/random/generator.html#numpy.random.default_rng" title="(in NumPy v1.25)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">numpy.random.default_rng</span></code></a></p>
 </div>
-<p>Here we use <code class="docutils literal notranslate"><span class="pre">default_rng</span></code> to generate 3 random integers between 0
-(inclusive) and 10 (exclusive):</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="mi">12345</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rints</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">integers</span><span class="p">(</span><span class="n">low</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">high</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rints</span>
-<span class="go">array([6, 2, 7])</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">type</span><span class="p">(</span><span class="n">rints</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-<span class="go">&lt;class &#39;numpy.int64&#39;&gt;</span>
-</pre></div>
-</div>
-<p>Here we specify a seed so that we have reproducible results:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">rng</span><span class="p">)</span>
-<span class="go">Generator(PCG64)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">arr1</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">arr1</span>
-<span class="go">array([[0.77395605, 0.43887844, 0.85859792],</span>
-<span class="go">       [0.69736803, 0.09417735, 0.97562235],</span>
-<span class="go">       [0.7611397 , 0.78606431, 0.12811363]])</span>
-</pre></div>
-</div>
-<p>If we exit and restart our Python interpreter, we’ll see that we
-generate the same random numbers again:</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">rng</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">default_rng</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">arr2</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">arr2</span>
-<span class="go">array([[0.77395605, 0.43887844, 0.85859792],</span>
-<span class="go">       [0.69736803, 0.09417735, 0.97562235],</span>
-<span class="go">       [0.7611397 , 0.78606431, 0.12811363]])</span>
-</pre></div>
-</div>
+<dl class="field-list simple">
+<dt class="field-odd">Availability<span class="colon">:</span></dt>
+<dd class="field-odd"><p><em>Multiple GPUs, Multiple CPUs</em></p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>

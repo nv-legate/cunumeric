@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 
 
@@ -6,7 +7,7 @@
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
     <title>cunumeric.random.randn &#8212; cuNumeric  documentation</title>
   
@@ -879,17 +880,22 @@ document.write(`
 <dt class="sig sig-object py" id="cunumeric.random.randn">
 <span class="sig-prename descclassname"><span class="pre">cunumeric.random.</span></span><span class="sig-name descname"><span class="pre">randn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">d0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">...</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dn</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cunumeric.random.randn" title="Permalink to this definition">#</a></dt>
 <dd><p>Return a sample (or samples) from the “standard normal” distribution.</p>
+<p>If positive int_like arguments are provided, <cite>randn</cite> generates an array
+of shape <code class="docutils literal notranslate"><span class="pre">(d0,</span> <span class="pre">d1,</span> <span class="pre">...,</span> <span class="pre">dn)</span></code>, filled
+with random floats sampled from a univariate “normal” (Gaussian)
+distribution of mean 0 and variance 1. A single float randomly sampled
+from the distribution is returned if no argument is provided.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>d0</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – The dimensions of the returned array, must be non-negative.
-If no argument is given a single Python float is returned.</p></li>
+If no argument is given a single float is returned.</p></li>
 <li><p><strong>d1</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – The dimensions of the returned array, must be non-negative.
-If no argument is given a single Python float is returned.</p></li>
+If no argument is given a single float is returned.</p></li>
 <li><p><strong>...</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – The dimensions of the returned array, must be non-negative.
-If no argument is given a single Python float is returned.</p></li>
+If no argument is given a single float is returned.</p></li>
 <li><p><strong>dn</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><em>int</em></a><em>, </em><em>optional</em>) – The dimensions of the returned array, must be non-negative.
-If no argument is given a single Python float is returned.</p></li>
+If no argument is given a single float is returned.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
