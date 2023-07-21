@@ -24,12 +24,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int32_t DIM>
+template <VariantKind KIND, Type::Code CODE, int32_t DIM>
 struct NonzeroImplBody;
 
 template <VariantKind KIND>
 struct NonzeroImpl {
-  template <LegateTypeCode CODE, int32_t DIM>
+  template <Type::Code CODE, int32_t DIM>
   void operator()(NonzeroArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -40,7 +40,7 @@ struct NonzeroImpl {
     size_t volume = pitches.flatten(rect);
 
     if (volume == 0) {
-      for (auto& store : args.results) store.make_empty();
+      for (auto& store : args.results) store.bind_empty_data();
       return;
     }
 

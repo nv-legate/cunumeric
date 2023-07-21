@@ -19,3 +19,4 @@ Histograms
    :toctree: generated/
 
    bincount
+   histogram

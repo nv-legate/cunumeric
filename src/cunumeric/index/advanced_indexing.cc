@@ -21,7 +21,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
+template <Type::Code CODE, int DIM, typename OUT_TYPE>
 struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 
@@ -31,9 +31,9 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
                       const AccessorRO<bool, DIM>& index,
                       const Pitches<DIM - 1>& pitches,
                       const Rect<DIM>& rect,
-                      const int volume,
-                      const int key_dim,
-                      const int skip_size) const
+                      const size_t volume,
+                      const size_t key_dim,
+                      const size_t skip_size) const
   {
     size_t out_idx = 0;
     for (size_t idx = 0; idx < volume; ++idx) {
@@ -65,7 +65,7 @@ struct AdvancedIndexingImplBody<VariantKind::CPU, CODE, DIM, OUT_TYPE> {
   {
     // skip_size is number of elements per each out[key_dim-1] sub-array
     size_t skip_size = 1;
-    for (int i = key_dim; i < DIM; i++) {
+    for (size_t i = key_dim; i < DIM; i++) {
       auto diff = 1 + rect.hi[i] - rect.lo[i];
       if (diff != 0) skip_size *= diff;
     }

@@ -21,7 +21,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
@@ -35,8 +35,9 @@ struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
                   size_t volume) const
   {
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto point = pitches.unflatten(idx, rect.lo);
-      lhs.reduce(point, OP::convert(point, collapsed_dim, rhs[point]));
+      auto point    = pitches.unflatten(idx, rect.lo);
+      auto identity = LG_OP::identity;
+      lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
     }
   }
 };

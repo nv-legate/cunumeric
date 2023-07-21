@@ -137,13 +137,16 @@ DATA_ARGS = [
     (np.arange(24).reshape(4, 3, 2), "f4"),
 ]
 LIKE_FUNCTIONS = ("zeros_like", "ones_like")
+SHAPE_ARG = (None, (-1,), (1, -1))
 
 
 @pytest.mark.parametrize("x_np,dtype", DATA_ARGS)
-def test_empty_like(x_np, dtype):
+@pytest.mark.parametrize("shape", SHAPE_ARG)
+def test_empty_like(x_np, dtype, shape):
+    shape = shape if shape is None else x_np.reshape(shape).shape
     x = num.array(x_np)
-    xfl = num.empty_like(x, dtype=dtype)
-    yfl = np.empty_like(x_np, dtype=dtype)
+    xfl = num.empty_like(x, dtype=dtype, shape=shape)
+    yfl = np.empty_like(x_np, dtype=dtype, shape=shape)
 
     assert xfl.shape == yfl.shape
     assert xfl.dtype == yfl.dtype
@@ -151,13 +154,15 @@ def test_empty_like(x_np, dtype):
 
 @pytest.mark.parametrize("x_np,dtype", DATA_ARGS)
 @pytest.mark.parametrize("fn", LIKE_FUNCTIONS)
-def test_func_like(fn, x_np, dtype):
+@pytest.mark.parametrize("shape", SHAPE_ARG)
+def test_func_like(fn, x_np, dtype, shape):
+    shape = shape if shape is None else x_np.reshape(shape).shape
     num_f = getattr(num, fn)
     np_f = getattr(np, fn)
 
     x = num.array(x_np)
-    xfl = num_f(x, dtype=dtype)
-    yfl = np_f(x_np, dtype=dtype)
+    xfl = num_f(x, dtype=dtype, shape=shape)
+    yfl = np_f(x_np, dtype=dtype, shape=shape)
 
     assert np.array_equal(xfl, yfl)
     assert xfl.dtype == yfl.dtype
@@ -165,11 +170,13 @@ def test_func_like(fn, x_np, dtype):
 
 @pytest.mark.parametrize("value", FILLED_VALUES)
 @pytest.mark.parametrize("x_np, dtype", DATA_ARGS)
-def test_full_like(x_np, dtype, value):
+@pytest.mark.parametrize("shape", SHAPE_ARG)
+def test_full_like(x_np, dtype, value, shape):
+    shape = shape if shape is None else x_np.reshape(shape).shape
     x = num.array(x_np)
 
-    xfl = num.full_like(x, value, dtype=dtype)
-    yfl = np.full_like(x_np, value, dtype=dtype)
+    xfl = num.full_like(x, value, dtype=dtype, shape=shape)
+    yfl = np.full_like(x_np, value, dtype=dtype, shape=shape)
     assert np.array_equal(xfl, yfl)
     assert xfl.dtype == yfl.dtype
 
@@ -184,11 +191,12 @@ ARANGE_ARGS = [
     (0,),
     (10,),
     (3.5,),
-    pytest.param((-10), marks=pytest.mark.xfail),
+    (3.0, 8, None),
+    (-10,),
     (2, 10),
-    pytest.param((2, -10), marks=pytest.mark.xfail),
+    (2, -10),
     (-2.5, 10.0),
-    pytest.param((1, -10, -2.5), marks=pytest.mark.xfail),
+    (1, -10, -2.5),
     (1.0, -10.0, -2.5),
     (-10, 10, 10),
     (-10, 10, -100),

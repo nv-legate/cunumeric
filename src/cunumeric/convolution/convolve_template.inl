@@ -26,12 +26,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, Type::Code CODE, int DIM>
 struct ConvolveImplBody;
 
 template <VariantKind KIND>
 struct ConvolveImpl {
-  template <LegateTypeCode CODE, int DIM, std::enable_if_t<(DIM <= 3)>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<(DIM <= 3)>* = nullptr>
   void operator()(ConvolveArgs& args) const
   {
     using VAL        = legate_type_of<CODE>;
@@ -55,7 +55,7 @@ struct ConvolveImpl {
     ConvolveImplBody<KIND, CODE, DIM>()(out, filter, input, root_rect, subrect, filter_rect);
   }
 
-  template <LegateTypeCode CODE, int DIM, std::enable_if_t<!(DIM <= 3)>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<!(DIM <= 3)>* = nullptr>
   void operator()(ConvolveArgs& args) const
   {
     assert(false);

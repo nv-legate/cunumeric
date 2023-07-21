@@ -42,14 +42,14 @@
 
 namespace cunumeric {
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct support_cub : std::true_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX64_LT> : std::false_type {};
+struct support_cub<Type::Code::COMPLEX64> : std::false_type {};
 template <>
-struct support_cub<LegateTypeCode::COMPLEX128_LT> : std::false_type {};
+struct support_cub<Type::Code::COMPLEX128> : std::false_type {};
 
-template <LegateTypeCode CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
+template <Type::Code CODE, std::enable_if_t<support_cub<CODE>::value>* = nullptr>
 void local_sort(const legate_type_of<CODE>* values_in,
                 legate_type_of<CODE>* values_out,
                 const int64_t* indices_in,
@@ -69,7 +69,7 @@ void local_sort(const legate_type_of<CODE>* values_in,
   }
 }
 
-template <LegateTypeCode CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
+template <Type::Code CODE, std::enable_if_t<!support_cub<CODE>::value>* = nullptr>
 void local_sort(const legate_type_of<CODE>* values_in,
                 legate_type_of<CODE>* values_out,
                 const int64_t* indices_in,
@@ -566,7 +566,7 @@ struct negative_plus : public thrust::binary_function<int64_t, int64_t, int64_t>
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 SegmentMergePiece<legate_type_of<CODE>> merge_all_buffers(
   std::vector<SegmentMergePiece<legate_type_of<CODE>>>& merge_buffers,
   bool segmented,
@@ -1187,7 +1187,7 @@ void rebalance_data(SegmentMergePiece<VAL>& merge_buffer,
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
                          Array& output_array_unbound,  // only for unbound usage when !rebalance
                          void* output_ptr,
@@ -1209,7 +1209,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
   using VAL = legate_type_of<CODE>;
 
   size_t volume              = local_sorted.size;
-  bool is_unbound_1d_storage = output_array_unbound.is_output_store();
+  bool is_unbound_1d_storage = output_array_unbound.is_unbound_store();
 
   /////////////////////////////////////////////////////////////////////////////////////////////////
   /////////////// Part 0: detection of empty nodes
@@ -1241,10 +1241,10 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
         // we need to return an empty buffer here
         if (argsort) {
           auto buffer = create_buffer<int64_t>(0, legate::Memory::GPU_FB_MEM);
-          output_array_unbound.return_data(buffer, Point<1>(0));
+          output_array_unbound.bind_data(buffer, Point<1>(0));
         } else {
           auto buffer = create_buffer<VAL>(0, legate::Memory::GPU_FB_MEM);
-          output_array_unbound.return_data(buffer, Point<1>(0));
+          output_array_unbound.bind_data(buffer, Point<1>(0));
         }
       }
       return;
@@ -1640,9 +1640,9 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
     merged_result.segments.destroy();
     if (argsort) {
       merged_result.values.destroy();
-      output_array_unbound.return_data(merged_result.indices, Point<1>(merged_result.size));
+      output_array_unbound.bind_data(merged_result.indices, Point<1>(merged_result.size));
     } else {
-      output_array_unbound.return_data(merged_result.values, Point<1>(merged_result.size));
+      output_array_unbound.bind_data(merged_result.values, Point<1>(merged_result.size));
     }
   }
 }
@@ -1658,7 +1658,7 @@ void sample_sort_nccl_nd(SortPiece<legate_type_of<CODE>> local_sorted,
 /////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////
 
-template <LegateTypeCode CODE, int32_t DIM>
+template <Type::Code CODE, int32_t DIM>
 struct SortImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
@@ -1684,7 +1684,7 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
 
     auto stream = get_cached_stream();
 
-    bool is_unbound_1d_storage = output_array.is_output_store();
+    bool is_unbound_1d_storage = output_array.is_unbound_store();
     bool need_distributed_sort = segment_size_l != segment_size_g || is_unbound_1d_storage;
     bool rebalance             = !is_unbound_1d_storage;
     assert(DIM == 1 || !is_unbound_1d_storage);
@@ -1792,9 +1792,9 @@ struct SortImplBody<VariantKind::GPU, CODE, DIM> {
         // edge case where we have an unbound store but only 1 GPU was assigned with the task
         if (argsort) {
           local_sorted.values.destroy();
-          output_array.return_data(local_sorted.indices, Point<1>(local_sorted.size));
+          output_array.bind_data(local_sorted.indices, Point<1>(local_sorted.size));
         } else {
-          output_array.return_data(local_sorted.values, Point<1>(local_sorted.size));
+          output_array.bind_data(local_sorted.values, Point<1>(local_sorted.size));
         }
       }
     } else if (argsort) {

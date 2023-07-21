@@ -24,12 +24,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, Type::Code CODE, int DIM>
 struct RepeatImplBody;
 
 template <VariantKind KIND>
 struct RepeatImpl {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(RepeatArgs& args) const
   {
     using VAL       = legate_type_of<CODE>;
@@ -37,7 +37,7 @@ struct RepeatImpl {
     auto input_arr  = args.input.read_accessor<VAL, DIM>(input_rect);
 
     if (input_rect.empty()) {
-      args.output.make_empty();
+      args.output.bind_empty_data();
       return;
     }
 

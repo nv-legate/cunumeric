@@ -18,11 +18,9 @@
 
 #include "cunumeric/cunumeric.h"
 
-#include "core/mapping/base_mapper.h"
-
 namespace cunumeric {
 
-class CuNumericMapper : public legate::mapping::LegateMapper {
+class CuNumericMapper : public legate::mapping::Mapper {
  public:
   CuNumericMapper();
   virtual ~CuNumericMapper(void) {}
@@ -47,7 +45,6 @@ class CuNumericMapper : public legate::mapping::LegateMapper {
   const int32_t min_gpu_chunk;
   const int32_t min_cpu_chunk;
   const int32_t min_omp_chunk;
-  const int32_t eager_fraction;
 };
 
 }  // namespace cunumeric

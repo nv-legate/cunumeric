@@ -31,10 +31,8 @@ from typing import (
     cast,
 )
 
-import legate.core.types as ty
 import numpy as np
-import pyarrow  # type: ignore  [import]
-from legate.core import Array
+from legate.core import Array, Field
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
     normalize_axis_index,
 )
@@ -53,10 +51,10 @@ from .config import (
     UnaryOpCode,
     UnaryRedCode,
 )
-from .coverage import FALLBACK_WARNING, clone_class
+from .coverage import FALLBACK_WARNING, clone_class, is_implemented
 from .runtime import runtime
 from .types import NdShape
-from .utils import deep_apply, dot_modes
+from .utils import deep_apply, dot_modes, to_core_dtype
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -136,6 +134,8 @@ def add_boilerplate(
                     kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
+                    if not kwargs[k].flags.writeable:
+                        raise ValueError("out is not writeable")
                 elif k in keys:
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
 
@@ -152,7 +152,10 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
         return obj
     # Ask the runtime to make a numpy thunk for this object
     thunk = runtime.get_numpy_thunk(obj, share=share)
-    return ndarray(shape=None, thunk=thunk)
+    writeable = (
+        obj.flags.writeable if isinstance(obj, np.ndarray) and share else True
+    )
+    return ndarray(shape=None, thunk=thunk, writeable=writeable)
 
 
 def convert_to_predicate_ndarray(obj: Any) -> bool:
@@ -174,19 +177,82 @@ def maybe_convert_to_np_ndarray(obj: Any) -> Any:
     return obj
 
 
-# FIXME: we can't give an accurate return type as mypy thinks
-# the pyarrow import can be ignored, and can't override the check
-# either, because no-any-unimported needs Python >= 3.10. We can
-# fix it once we bump up the Python version
-def convert_numpy_dtype_to_pyarrow(dtype: np.dtype[Any]) -> Any:
-    if dtype.kind != "c":
-        return pyarrow.from_numpy_dtype(dtype)
-    elif dtype == np.complex64:
-        return ty.complex64
-    elif dtype == np.complex128:
-        return ty.complex128
-    else:
-        raise ValueError(f"Unsupported NumPy dtype: {dtype}")
+def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
+    """
+    Check if the current array is writeable
+    This check needs to be manually inserted
+    with consideration on the behavior of the corresponding method
+    """
+    if arr is None:
+        return
+    check_list = (arr,) if not isinstance(arr, tuple) else arr
+    if any(not arr.flags.writeable for arr in check_list):
+        raise ValueError("array is not writeable")
+
+
+class flagsobj:
+    """
+    Information about the memory layout of the array.
+
+    These flags don't reflect the properties of the cuNumeric array, but
+    rather the NumPy array that will be produced if the cuNumeric array is
+    materialized on a single node.
+    """
+
+    def __init__(self, array: ndarray) -> None:
+        # prevent infinite __setattr__ recursion
+        object.__setattr__(self, "_array", array)
+
+    def __repr__(self) -> str:
+        return f"""\
+  C_CONTIGUOUS : {self["C"]}
+  F_CONTIGUOUS : {self["F"]}
+  OWNDATA : {self["O"]}
+  WRITEABLE : {self["W"]}
+  ALIGNED : {self["A"]}
+  WRITEBACKIFCOPY : {self["X"]}
+"""
+
+    def __eq__(self, other: Any) -> bool:
+        flags = ("C", "F", "O", "W", "A", "X")
+        if not isinstance(other, (flagsobj, np.core.multiarray.flagsobj)):
+            return False
+
+        return all(self[f] == other[f] for f in flags)  # type: ignore [index]
+
+    def __getattr__(self, name: str) -> Any:
+        if name == "writeable":
+            return self._array._writeable
+        flags = self._array.__array__().flags
+        return getattr(flags, name)
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        if name == "writeable":
+            self._check_writeable(value)
+            self._array._writeable = bool(value)
+        else:
+            flags = self._array.__array__().flags
+            setattr(flags, name, value)
+
+    def __getitem__(self, key: Any) -> bool:
+        if key == "W":
+            return self._array._writeable
+        flags = self._array.__array__().flags
+        return flags[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        if key == "W":
+            self._check_writeable(value)
+            self._array._writeable = bool(value)
+        else:
+            flags = self._array.__array__().flags
+            flags[key] = value
+
+    def _check_writeable(self, value: Any) -> None:
+        if value and not self._array._writeable:
+            raise ValueError(
+                "non-writeable cunumeric arrays cannot be made writeable"
+            )
 
 
 NDARRAY_INTERNAL = {
@@ -213,6 +279,7 @@ class ndarray:
         order: Union[OrderType, None] = None,
         thunk: Union[NumPyThunk, None] = None,
         inputs: Union[Any, None] = None,
+        writeable: bool = True,
     ) -> None:
         # `inputs` being a cuNumeric ndarray is definitely a bug
         assert not isinstance(inputs, ndarray)
@@ -242,12 +309,20 @@ class ndarray:
                         for inp in inputs
                         if isinstance(inp, ndarray)
                     ]
-                self._thunk = runtime.create_empty_thunk(
-                    sanitized_shape, dtype, inputs
-                )
+                core_dtype = to_core_dtype(dtype)
+                if core_dtype is not None:
+                    self._thunk = runtime.create_empty_thunk(
+                        sanitized_shape, core_dtype, inputs
+                    )
+                else:
+                    self._thunk = runtime.create_eager_thunk(
+                        sanitized_shape, dtype
+                    )
         else:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
+
+        self._writeable = writeable
 
     @staticmethod
     def _sanitize_shape(
@@ -280,24 +355,17 @@ class ndarray:
     @property
     def __legate_data_interface__(self) -> dict[str, Any]:
         if self._legate_data is None:
-            # All of our thunks implement the Legate Store interface
-            # so we just need to convert our type and stick it in
-            # a Legate Array
-            arrow_type = convert_numpy_dtype_to_pyarrow(self.dtype)
             # If the thunk is an eager array, we need to convert it to a
             # deferred array so we can extract a legate store
             deferred_thunk = runtime.to_deferred_array(self._thunk)
             # We don't have nullable data for the moment
             # until we support masked arrays
-            array = Array(arrow_type, [None, deferred_thunk.base])
+            dtype = deferred_thunk.base.type
+            array = Array(dtype, [None, deferred_thunk.base])
             self._legate_data = dict()
             self._legate_data["version"] = 1
-            data = dict()
-            field = pyarrow.field(
-                "cuNumeric Array", arrow_type, nullable=False
-            )
-            data[field] = array
-            self._legate_data["data"] = data
+            field = Field("cuNumeric Array", dtype)
+            self._legate_data["data"] = {field: array}
         return self._legate_data
 
     # Properties for ndarray
@@ -325,14 +393,11 @@ class ndarray:
 
         what = func.__name__
 
-        # TODO: We should technically check at this point that all array-like
-        # arguments are convertible to `cunumeric.ndarray`, and if not then
-        # return `NotImplemented`, to give a chance to those other types to
-        # handle this call (assuming they also implement `__array_function__`).
-        # For now we will just attempt our own implementation (converting any
-        # array-like arguments to baseline NumPy arrays if necessary, then to
-        # `cunumeric.ndarray`s). If that fails, we convert all
-        # `cunumeric.ndarray`s into NumPy arrays and pass to NumPy.
+        for t in types:
+            # Be strict about which types we support.  Accept superclasses
+            # (for basic subclassing support) and NumPy.
+            if not issubclass(type(self), t) and t is not np.ndarray:
+                return NotImplemented
 
         # We are wrapping all NumPy modules, so we can expect to find every
         # NumPy API call in cuNumeric, even if just an "unimplemented" stub.
@@ -349,7 +414,7 @@ class ndarray:
         # arguments. Conversely, if the user calls `cn.foo(x, bar=True)`
         # directly, that means they requested the cuNumeric implementation
         # specifically, and the `NotImplementedError` should not be hidden.
-        if cn_func._cunumeric.implemented:
+        if is_implemented(cn_func):
             try:
                 return cn_func(*args, **kwargs)
             except NotImplementedError:
@@ -372,11 +437,24 @@ class ndarray:
     ) -> Any:
         from . import _ufunc
 
-        what = f"{ufunc.__name__}.{method}"
+        # Check whether we should handle the arguments
+        array_args = inputs
+        array_args += kwargs.get("out", ())
+        if (where := kwargs.get("where", True)) is not True:
+            array_args += (where,)
 
-        # TODO: Similar to __array_function__, we should technically confirm
-        # that all array-like arguments are convertible to `cunumeric.ndarray`.
+        for arg in array_args:
+            if not hasattr(arg, "__array_ufunc__"):
+                continue
+
+            t = type(arg)
+            # Reject arguments we do not know (see __array_function__)
+            if not issubclass(type(self), t) and t is not np.ndarray:
+                return NotImplemented
+
         # TODO: The logic below should be moved to a "clone_ufunc" wrapper.
+
+        what = f"{ufunc.__name__}.{method}"
 
         if hasattr(_ufunc, ufunc.__name__):
             cn_ufunc = getattr(_ufunc, ufunc.__name__)
@@ -456,6 +534,10 @@ class ndarray:
         """
         Information about the memory layout of the array.
 
+        These flags don't reflect the properties of the cuNumeric array, but
+        rather the NumPy array that will be produced if the cuNumeric array is
+        materialized on a single node.
+
         Attributes
         ----------
         C_CONTIGUOUS (C)
@@ -524,7 +606,7 @@ class ndarray:
         for C-style contiguous arrays or ``self.strides[0] == self.itemsize``
         for Fortran-style contiguous arrays is true.
         """
-        return self.__array__().flags
+        return flagsobj(self)
 
     @property
     def flat(self) -> np.flatiter[npt.NDArray[Any]]:
@@ -754,10 +836,12 @@ class ndarray:
         dtype of the array.
 
         """
-        if dtype is None:
-            return self._thunk.__numpy_array__()
-        else:
-            return self._thunk.__numpy_array__().__array__(dtype)
+        numpy_array = self._thunk.__numpy_array__()
+        if numpy_array.flags.writeable and not self._writeable:
+            numpy_array.flags.writeable = False
+        if dtype is not None:
+            numpy_array = numpy_array.astype(dtype)
+        return numpy_array
 
     # def __array_prepare__(self, *args, **kwargs):
     #    return self.__array__().__array_prepare__(*args, **kwargs)
@@ -1580,7 +1664,6 @@ class ndarray:
         return bitwise_xor(lhs, self)
 
     # __setattr__
-
     @add_boilerplate("value")
     def __setitem__(self, key: Any, value: Any) -> None:
         """__setitem__(key, value, /)
@@ -1588,6 +1671,7 @@ class ndarray:
         Set ``self[key]=value``.
 
         """
+        check_writeable(self)
         if key is None:
             raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
@@ -1989,6 +2073,7 @@ class ndarray:
                 res = res.copy()
             return res
 
+    @add_boilerplate()
     def choose(
         self,
         choices: Any,
@@ -2011,16 +2096,15 @@ class ndarray:
 
         """
         a = self
-        if out is not None:
-            out = convert_to_cunumeric_ndarray(out, share=True)
 
         if isinstance(choices, list):
             choices = tuple(choices)
         is_tuple = isinstance(choices, tuple)
         if is_tuple:
-            n = len(choices)
+            if (n := len(choices)) == 0:
+                raise ValueError("invalid entry in choice array")
             dtypes = [ch.dtype for ch in choices]
-            ch_dtype = np.find_common_type(dtypes, [])
+            ch_dtype = np.result_type(*dtypes)
             choices = tuple(
                 convert_to_cunumeric_ndarray(choices[i]).astype(ch_dtype)
                 for i in range(n)
@@ -2034,10 +2118,11 @@ class ndarray:
 
         if not np.issubdtype(self.dtype, np.integer):
             raise TypeError("a array should be integer type")
+
         if self.dtype != np.int64:
             a = a.astype(np.int64)
         if mode == "raise":
-            if (a < 0).any() | (a >= n).any():
+            if (a < 0).any() or (a >= n).any():
                 raise ValueError("invalid entry in choice array")
         elif mode == "wrap":
             a = a % n
@@ -2080,16 +2165,14 @@ class ndarray:
                 inputs=(a, choices),
             )
 
-        ch = tuple(c._thunk for c in choices)  #
-        out_arr._thunk.choose(
-            a._thunk,
-            *ch,
-        )
+        ch = tuple(c._thunk for c in choices)
+        out_arr._thunk.choose(a._thunk, *ch)
+
         if out is not None and out.dtype != ch_dtype:
             out._thunk.convert(out_arr._thunk)
             return out
-        else:
-            return out_arr
+
+        return out_arr
 
     @add_boilerplate()
     def compress(
@@ -2152,6 +2235,7 @@ class ndarray:
             res = a[index_tuple]
             return res
 
+    @add_boilerplate()
     def clip(
         self,
         min: Union[int, float, npt.ArrayLike, None] = None,
@@ -2198,7 +2282,7 @@ class ndarray:
                     self.__array__().clip(args[0], args[1])
                 )
         return self._perform_unary_op(
-            UnaryOpCode.CLIP, self, dst=out, extra_args=args
+            UnaryOpCode.CLIP, self, out=out, extra_args=args
         )
 
     def conj(self) -> ndarray:
@@ -2508,6 +2592,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        check_writeable(self)
 
         if values.size == 0 or indices.size == 0 or self.size == 0:
             return
@@ -2580,7 +2665,7 @@ class ndarray:
             # default values for axis
             axes = (0, 1)
         elif (axis1 is None) or (axis2 is None):
-            raise ValueError("both axes should be passed")
+            raise TypeError("both axes should be passed")
         else:
             axes = (axis1, axis2)
 
@@ -2705,6 +2790,10 @@ class ndarray:
 
         Common entrypoint for FFT functionality in cunumeric.fft module.
 
+        Notes
+        -----
+        Multi-GPU usage is limited to data parallel axis-wise batching.
+
         See Also
         --------
         cunumeric.fft : FFT functions for different ``kind`` and
@@ -2712,15 +2801,9 @@ class ndarray:
 
         Availability
         --------
-        Single GPU
+        Multiple GPUs
 
         """
-        # Dimensions check
-        if self.ndim > 3:
-            raise NotImplementedError(
-                f"{self.ndim}-D arrays are not supported yet"
-            )
-
         # Type
         fft_output_type = kind.output_dtype
 
@@ -2794,10 +2877,10 @@ class ndarray:
             else:
                 norm_shape = out.shape
             norm_shape_along_axes = [norm_shape[ax] for ax in fft_axes]
-            factor = np.product(norm_shape_along_axes)
+            factor = np.prod(norm_shape_along_axes)
             if fft_norm == FFTNormalization.ORTHOGONAL:
                 factor = np.sqrt(factor)
-            return out / factor
+            return out / factor.astype(fft_output_type)
 
         return out
 
@@ -2816,6 +2899,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        check_writeable(self)
         val = np.array(value, dtype=self.dtype)
         self._thunk.fill(val)
 
@@ -2850,8 +2934,12 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        # Same as 'ravel' because cuNumeric creates a new array by 'reshape'
-        return self.reshape(-1, order=order)
+        # Reshape first and make a copy if the output is a view of the src
+        # the output always should be a copy of the src array
+        result = self.reshape(-1, order=order)
+        if self.ndim <= 1:
+            result = result.copy()
+        return result
 
     def getfield(self, dtype: np.dtype[Any], offset: int = 0) -> None:
         raise NotImplementedError(
@@ -3050,7 +3138,7 @@ class ndarray:
             divisor = self.shape[axis]
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
-        if dtype.kind == "f":
+        if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
                 np.array(divisor, dtype=sum_array.dtype),
             )
@@ -3122,6 +3210,7 @@ class ndarray:
         Multiple GPUs, Single CPU
 
         """
+        check_writeable(self)
         self._thunk.partition(
             rhs=self._thunk, kth=kth, axis=axis, kind=kind, order=order
         )
@@ -3146,7 +3235,7 @@ class ndarray:
 
         Availability
         --------
-        Multiple GPUs, Single CPU
+        Multiple GPUs, Multiple CPUs
 
         """
         result = ndarray(self.shape, np.int64)
@@ -3367,14 +3456,12 @@ class ndarray:
         # Be a bit more careful here, and only pass params that are explicitly
         # set by the caller. The numpy interface specifies only bool values,
         # despite its None defaults.
-        kws = {}
         if write is not None:
-            kws["write"] = write
+            self.flags["W"] = write
         if align is not None:
-            kws["align"] = align
+            self.flags["A"] = align
         if uic is not None:
-            kws["uic"] = uic
-        self.__array__().setflags(**kws)
+            self.flags["X"] = uic
 
     @add_boilerplate()
     def searchsorted(
@@ -3421,7 +3508,7 @@ class ndarray:
         a = self
         # in case we have different dtypes we ned to find a common type
         if a.dtype != v_ndarray.dtype:
-            ch_dtype = np.find_common_type([a.dtype, v_ndarray.dtype], [])
+            ch_dtype = np.result_type(a.dtype, v_ndarray.dtype)
 
             if v_ndarray.dtype != ch_dtype:
                 v_ndarray = v_ndarray.astype(ch_dtype)
@@ -3471,6 +3558,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        check_writeable(self)
         self._thunk.sort(rhs=self._thunk, axis=axis, kind=kind, order=order)
 
     def argsort(
@@ -3646,7 +3734,7 @@ class ndarray:
         Single CPU
 
         """
-        return self.__array__().tofile(fid=fid, sep=sep, format=format)
+        return self.__array__().tofile(fid, sep=sep, format=format)
 
     def tobytes(self, order: OrderType = "C") -> bytes:
         """a.tobytes(order='C')
@@ -3775,7 +3863,11 @@ class ndarray:
             raise ValueError(
                 "axes must be the same size as ndim for transpose"
             )
-        return ndarray(shape=None, thunk=self._thunk.transpose(axes))
+        return ndarray(
+            shape=None,
+            thunk=self._thunk.transpose(axes),
+            writeable=self._writeable,
+        )
 
     def flip(self, axis: Any = None) -> ndarray:
         """
@@ -3855,7 +3947,12 @@ class ndarray:
                 "cuNumeric does not currently support conversion to ndarray "
                 "sub-classes; use __array__() to convert to numpy.ndarray"
             )
-        return ndarray(shape=self.shape, dtype=self.dtype, thunk=self._thunk)
+        return ndarray(
+            shape=self.shape,
+            dtype=self.dtype,
+            thunk=self._thunk,
+            writeable=self._writeable,
+        )
 
     def unique(self) -> ndarray:
         """a.unique()
@@ -3917,7 +4014,7 @@ class ndarray:
                 scalar_types.append(array.dtype)
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)
+        return np.find_common_type(array_types, scalar_types)  # type: ignore
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
@@ -3942,19 +4039,19 @@ class ndarray:
         cls,
         op: UnaryOpCode,
         src: ndarray,
-        dst: Union[Any, None] = None,
+        out: Union[Any, None] = None,
         extra_args: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
         where: Union[bool, ndarray] = True,
         out_dtype: Union[np.dtype[Any], None] = None,
     ) -> ndarray:
-        if dst is not None:
+        if out is not None:
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
             if isinstance(where, ndarray):
-                np.broadcast_shapes(src.shape, dst.shape, where.shape)
+                np.broadcast_shapes(src.shape, out.shape, where.shape)
             else:
-                np.broadcast_shapes(src.shape, dst.shape)
+                np.broadcast_shapes(src.shape, out.shape)
         else:
             # No output yet, so make one
             if isinstance(where, ndarray):
@@ -3962,19 +4059,19 @@ class ndarray:
             else:
                 out_shape = src.shape
             if dtype is not None:
-                dst = ndarray(
+                out = ndarray(
                     shape=out_shape,
                     dtype=dtype,
                     inputs=(src, where),
                 )
             elif out_dtype is not None:
-                dst = ndarray(
+                out = ndarray(
                     shape=out_shape,
                     dtype=out_dtype,
                     inputs=(src, where),
                 )
             else:
-                dst = ndarray(
+                out = ndarray(
                     shape=out_shape,
                     dtype=src.dtype
                     if src.dtype.kind != "c"
@@ -3986,53 +4083,53 @@ class ndarray:
 
         # Quick exit
         if where is False:
-            return dst
+            return out
 
         if out_dtype is None:
-            if dst.dtype != src.dtype and not (
+            if out.dtype != src.dtype and not (
                 op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
             ):
                 temp = ndarray(
-                    dst.shape,
+                    out.shape,
                     dtype=src.dtype,
                     inputs=(src, where),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, out.shape),
                     extra_args,
                 )
-                dst._thunk.convert(temp._thunk)
+                out._thunk.convert(temp._thunk)
             else:
-                dst._thunk.unary_op(
+                out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, out.shape),
                     extra_args,
                 )
         else:
-            if dst.dtype != out_dtype:
+            if out.dtype != out_dtype:
                 temp = ndarray(
-                    dst.shape,
+                    out.shape,
                     dtype=out_dtype,
                     inputs=(src, where),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, out.shape),
                     extra_args,
                 )
-                dst._thunk.convert(temp._thunk)
+                out._thunk.convert(temp._thunk)
             else:
-                dst._thunk.unary_op(
+                out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, dst.shape),
+                    cls._get_where_thunk(where, out.shape),
                     extra_args,
                 )
-        return dst
+        return out
 
     # For performing reduction unary operations
     @classmethod

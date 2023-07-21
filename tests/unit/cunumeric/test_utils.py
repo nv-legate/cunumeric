@@ -23,12 +23,10 @@ import cunumeric.utils as m  # module under test
 
 EXPECTED_SUPPORTED_DTYPES = set(
     [
-        bool,
         np.bool_,
         np.int8,
         np.int16,
         np.int32,
-        int,
         np.int64,
         np.uint8,
         np.uint16,
@@ -36,7 +34,6 @@ EXPECTED_SUPPORTED_DTYPES = set(
         np.uint64,
         np.float16,
         np.float32,
-        float,
         np.float64,
         np.complex64,
         np.complex128,
@@ -116,25 +113,25 @@ class Test_find_last_user_frames:
 
 
 def test__SUPPORTED_DTYPES():
-    assert set(m.SUPPORTED_DTYPES.keys()) == EXPECTED_SUPPORTED_DTYPES
+    assert set(m.SUPPORTED_DTYPES.keys()) == set(
+        np.dtype(ty) for ty in EXPECTED_SUPPORTED_DTYPES
+    )
 
 
 class Test_is_supported_dtype:
-    @pytest.mark.parametrize(
-        "value", ["foo", 10, 10.2, [], (), {}, set(), None]
-    )
+    @pytest.mark.parametrize("value", ["foo", 10, 10.2, (), set()])
     def test_type_bad(self, value) -> None:
         with pytest.raises(TypeError):
-            m.is_supported_dtype(value)
+            m.to_core_dtype(value)
 
     @pytest.mark.parametrize("value", EXPECTED_SUPPORTED_DTYPES)
     def test_supported(self, value) -> None:
-        assert m.is_supported_dtype(np.dtype(value))
+        assert m.to_core_dtype(value) is not None
 
     # This is just a representative sample, not exhasutive
-    @pytest.mark.parametrize("value", [np.float128, np.datetime64])
+    @pytest.mark.parametrize("value", [np.float128, np.datetime64, [], {}])
     def test_unsupported(self, value) -> None:
-        assert not m.is_supported_dtype(np.dtype(value))
+        assert m.to_core_dtype(value) is None
 
 
 @pytest.mark.parametrize(
@@ -142,20 +139,6 @@ class Test_is_supported_dtype:
 )
 def test_calculate_volume(shape, volume) -> None:
     assert m.calculate_volume(shape) == volume
-
-
-def test_get_arg_dtype() -> None:
-    dt = m.get_arg_dtype(np.float32)
-    assert dt.type is np.void
-    assert dt.isalignedstruct
-    assert set(dt.fields) == {"arg", "arg_value"}
-    assert dt.fields["arg"][0] == np.dtype(np.int64)
-    assert dt.fields["arg_value"][0] == np.dtype(np.float32)
-
-
-def test_get_arg_value_dtype() -> None:
-    dt = m.get_arg_dtype(np.float32)
-    assert m.get_arg_value_dtype(dt) is np.float32
 
 
 def _dot_modes_oracle(a_ndim: int, b_ndim: int) -> bool:

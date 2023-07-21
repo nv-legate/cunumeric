@@ -75,7 +75,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   }
 }
 
-template <LegateTypeCode CODE, int DIM, typename OUT_TYPE>
+template <Type::Code CODE, int DIM, typename OUT_TYPE>
 struct AdvancedIndexingImplBody<VariantKind::GPU, CODE, DIM, OUT_TYPE> {
   using VAL = legate_type_of<CODE>;
 

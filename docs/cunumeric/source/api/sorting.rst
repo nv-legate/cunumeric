@@ -26,6 +26,8 @@ Searching
    argmin
    argwhere
    flatnonzero
+   nanargmax
+   nanargmin
    nonzero
    searchsorted
    extract

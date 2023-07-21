@@ -24,12 +24,12 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE, int DIM>
+template <VariantKind KIND, Type::Code CODE, int DIM>
 struct ArgWhereImplBody;
 
 template <VariantKind KIND>
 struct ArgWhereImpl {
-  template <LegateTypeCode CODE, int DIM>
+  template <Type::Code CODE, int DIM>
   void operator()(ArgWhereArgs& args) const
   {
     using VAL = legate_type_of<CODE>;
@@ -40,7 +40,7 @@ struct ArgWhereImpl {
     size_t volume = pitches.flatten(rect_in);
 
     if (volume == 0) {
-      args.out.make_empty();
+      args.out.bind_empty_data();
       return;
     }
 

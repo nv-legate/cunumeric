@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any, Dict, Sequence, Union
 
 import numpy as np
 
-from ..array import convert_to_cunumeric_ndarray, ndarray
+from ..array import check_writeable, convert_to_cunumeric_ndarray, ndarray
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from ..types import NdShape
 
@@ -187,6 +187,10 @@ class ufunc:
         self.__doc__ = doc
 
     @property
+    def __name__(self) -> str:
+        return self._name
+
+    @property
     def nin(self) -> int:
         return self._nin
 
@@ -323,6 +327,7 @@ class ufunc:
                     f"{out.shape} doesn't match the broadcast shape "
                     f"{out_shape}"
                 )
+            check_writeable(out)
 
         if not isinstance(where, bool) or not where:
             raise NotImplementedError(
@@ -553,33 +558,15 @@ class binary_ufunc(ufunc):
         if len(unique_dtypes) == 1 and all_ndarray:
             return arrs[0].dtype
 
-        # FIXME: The following is a miserable attempt to implement type
-        # coercion rules that try to match NumPy's rules for a subset of cases;
-        # for the others, cuNumeric computes a type different from what
-        # NumPy produces for the same operands. Type coercion rules shouldn't
-        # be this difficult to imitate...
-
-        all_scalars = all(arr.ndim == 0 for arr in arrs)
-        all_arrays = all(arr.ndim > 0 for arr in arrs)
-        kinds = set(arr.dtype.kind for arr in arrs)
-        lossy_conversion = ("i" in kinds or "u" in kinds) and (
-            "f" in kinds or "c" in kinds
-        )
-        use_min_scalar = not (all_scalars or all_arrays or lossy_conversion)
-
         scalar_types = []
         array_types = []
         for arr, orig_arg in zip(arrs, orig_args):
             if arr.ndim == 0:
-                scalar_types.append(
-                    np.dtype(np.min_scalar_type(orig_arg))
-                    if use_min_scalar
-                    else arr.dtype
-                )
+                scalar_types.append(orig_arg)
             else:
                 array_types.append(arr.dtype)
 
-        return np.find_common_type(array_types, scalar_types)
+        return np.result_type(*array_types, *scalar_types)
 
     def _resolve_dtype(
         self,
@@ -662,6 +649,7 @@ class binary_ufunc(ufunc):
         arrs, (out,), out_shape, where = self._prepare_operands(
             *args, out=out, where=where
         )
+
         orig_args = args[: self.nin]
 
         # If no dtype is given to prescribe the accuracy, we use the dtype

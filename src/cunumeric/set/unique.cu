@@ -139,7 +139,7 @@ static Piece<VAL> tree_reduce(Array& output,
   return my_piece;
 }
 
-template <LegateTypeCode CODE, int32_t DIM>
+template <Type::Code CODE, int32_t DIM>
 struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 
@@ -193,7 +193,7 @@ struct UniqueImplBody<VariantKind::GPU, CODE, DIM> {
     CHECK_CUDA_STREAM(stream);
 
     // Finally we pack the result
-    output.return_data(result.first, Point<1>(result.second));
+    output.bind_data(result.first, Point<1>(result.second));
   }
 };
 

@@ -1322,13 +1322,10 @@ __host__ static inline void cufft_convolution(AccessorWO<VAL, DIM> out,
 
     CHECK_CUDA_STREAM(stream);
 
-    auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, fftsize);
-    auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, fftsize);
+    auto forward_plan  = get_cufft_plan(ForwardPlanType<VAL>::value, cufftPlanParams(fftsize));
+    auto backward_plan = get_cufft_plan(BackwardPlanType<VAL>::value, cufftPlanParams(fftsize));
 
-    // Set the stream and working area for the plans
-    CHECK_CUFFT(cufftSetStream(forward_plan.handle(), stream));
-    CHECK_CUFFT(cufftSetStream(backward_plan.handle(), stream));
-
+    // Set the working area for the plans
     auto workarea_size = std::max(forward_plan.workareaSize(), backward_plan.workareaSize());
 
     // Create the plan and allocate a temporary buffer for it if it needs one
@@ -1409,7 +1406,7 @@ struct UseCUFFT {
   static constexpr bool value = 1 <= DIM && DIM <= 3 && std::is_floating_point<VAL>::value;
 };
 
-template <LegateTypeCode CODE, int DIM>
+template <Type::Code CODE, int DIM>
 struct ConvolveImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 

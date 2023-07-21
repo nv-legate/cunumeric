@@ -46,6 +46,7 @@ enum CuNumericOpCode {
   CUNUMERIC_FILL,
   CUNUMERIC_FLIP,
   CUNUMERIC_GEMM,
+  CUNUMERIC_HISTOGRAM,
   CUNUMERIC_LOAD_CUDALIBS,
   CUNUMERIC_MATMUL,
   CUNUMERIC_MATVECMUL,
@@ -141,6 +142,12 @@ enum CuNumericUnaryRedCode {
   CUNUMERIC_RED_COUNT_NONZERO,
   CUNUMERIC_RED_MAX,
   CUNUMERIC_RED_MIN,
+  CUNUMERIC_RED_NANARGMAX,
+  CUNUMERIC_RED_NANARGMIN,
+  CUNUMERIC_RED_NANMAX,
+  CUNUMERIC_RED_NANMIN,
+  CUNUMERIC_RED_NANPROD,
+  CUNUMERIC_RED_NANSUM,
   CUNUMERIC_RED_PROD,
   CUNUMERIC_RED_SUM,
 };
@@ -209,9 +216,8 @@ enum CuNumericTunable {
 };
 
 enum CuNumericBounds {
-  CUNUMERIC_MAX_MAPPERS = 1,
-  CUNUMERIC_MAX_REDOPS  = 1024,
-  CUNUMERIC_MAX_TASKS   = 1048576,
+  CUNUMERIC_MAX_REDOPS = 1024,
+  CUNUMERIC_MAX_TASKS  = 1048576,
 };
 
 // Match these to ScanCode in config.py
@@ -320,25 +326,13 @@ enum CuNumericFFTDirection { CUNUMERIC_FFT_FORWARD = -1, CUNUMERIC_FFT_INVERSE =
 // Match these to Bitorder in config.py
 enum CuNumericBitorder { CUNUMERIC_BITORDER_BIG = 0, CUNUMERIC_BITORDER_LITTLE = 1 };
 
-// Match these to CuNumericTypeCodes in config.py
-enum CuNumericTypeCodes {
-  CUNUMERIC_TYPE_POINT1 = MAX_TYPE_NUMBER + 1,
-  CUNUMERIC_TYPE_POINT2,
-  CUNUMERIC_TYPE_POINT3,
-  CUNUMERIC_TYPE_POINT4,
-  CUNUMERIC_TYPE_POINT5,
-  CUNUMERIC_TYPE_POINT6,
-  CUNUMERIC_TYPE_POINT7,
-  CUNUMERIC_TYPE_POINT8,
-  CUNUMERIC_TYPE_POINT9,
-};
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 void cunumeric_perform_registration();
 bool cunumeric_has_curand();
+void cunumeric_register_reduction_op(int32_t type_uid, int32_t elem_type_code);
 
 #ifdef __cplusplus
 }
