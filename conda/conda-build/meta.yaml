@@ -135,6 +135,7 @@ requirements:
 {% else %}
     - legate-core ={{ core_version }}
     - cuda-cudart >={{ cuda_version }},<{{ cuda_major+1 }}
+    - cuda-version >={{ cuda_version }},<{{ cuda_major+1 }}
     - cutensor >=1.3 =*_*
     - libcublas
     - libcusolver =11.4.1.48-0
