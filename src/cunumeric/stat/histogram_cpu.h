@@ -45,8 +45,8 @@ struct segmented_sum_t<
   exe_policy_t,
   weight_t,
   offset_t,
-  std::enable_if_t<std::is_same_v<exe_policy_t, thrust::detail::host_t> ||
-                   std::is_same_v<exe_policy_t, thrust::system::omp::detail::par_t>>> {
+  std::enable_if_t<std::is_same_v<exe_policy_t, std::remove_cv_t<decltype(thrust::host)>> ||
+                   std::is_same_v<exe_policy_t, std::remove_cv_t<decltype(thrust::omp::par)>>>> {
   segmented_sum_t(exe_policy_t exe_pol,
                   weight_t const* p_weights,
                   size_t n_samples,
