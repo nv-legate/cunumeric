@@ -17,7 +17,9 @@ jobs:
     with:
       build-target: cpu
       # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
-      runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+      # TODO: undo
+      runs-on: ${{ 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+      # runs-on: ${{ github.repository == 'nv-legate/legate.core' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
       sha: ${{ github.sha }}
 
   # test-cpu:
