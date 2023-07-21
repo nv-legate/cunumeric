@@ -55,9 +55,12 @@ struct HistogramImplBody<VariantKind::OMP, CODE> {
                   const AccessorRD<SumReduction<WeightType>, true, 1>& result,
                   const Rect<1>& result_rect) const
   {
-    namespace det_acc = detail::accessors;
-
-    auto exe_pol                                   = thrust::omp::par;
+    auto exe_pol = thrust::omp::par;
+#ifndef _USE_VERBOSE_IMPL_
+    detail::histogram_wrapper(
+      exe_pol, src, src_rect, bins, bins_rect, weights, weights_rect, result, result_rect);
+#else
+    namespace det_acc                              = detail::accessors;
     auto&& [global_result_size, global_result_ptr] = det_acc::get_accessor_ptr(result, result_rect);
 
 #ifdef _USE_THRUST_
@@ -144,6 +147,7 @@ struct HistogramImplBody<VariantKind::OMP, CODE> {
       }
     }
 #endif
+#endif  // _USE_VERBOSE_IMPL_
   }
 };
 

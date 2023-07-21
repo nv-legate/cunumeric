@@ -55,9 +55,14 @@ struct HistogramImplBody<VariantKind::CPU, CODE> {
                   const AccessorRD<SumReduction<WeightType>, true, 1>& result,
                   const Rect<1>& result_rect) const
   {
+    auto exe_pol = thrust::host;
+
+#ifndef _USE_VERBOSE_IMPL_
+    detail::histogram_wrapper(
+      exe_pol, src, src_rect, bins, bins_rect, weights, weights_rect, result, result_rect);
+#else
     namespace det_acc = detail::accessors;
 
-    auto exe_pol                         = thrust::host;
     auto&& [src_size, src_copy, src_ptr] = det_acc::make_accessor_copy(exe_pol, src, src_rect);
 
     auto&& [weights_size, weights_copy, weights_ptr] =
@@ -114,6 +119,7 @@ struct HistogramImplBody<VariantKind::CPU, CODE> {
       global_result_ptr,
       global_result_ptr,
       [](auto local_value, auto global_value) { return local_value + global_value; });
+#endif  // _USE_VERBOSE_IMPL_
   }
 };
 

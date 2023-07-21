@@ -60,11 +60,15 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
                   const AccessorRD<SumReduction<WeightType>, true, 1>& result,
                   const Rect<1>& result_rect) const
   {
-    namespace det_acc = detail::accessors;
-
     auto stream          = get_cached_stream();
     cudaStream_t stream_ = static_cast<cudaStream_t>(stream);
     auto exe_pol         = DEFAULT_POLICY.on(stream);
+
+#ifndef _USE_VERBOSE_IMPL_
+    detail::histogram_wrapper(
+      exe_pol, src, src_rect, bins, bins_rect, weights, weights_rect, result, result_rect, stream_);
+#else
+    namespace det_acc = detail::accessors;
 
     auto&& [src_size, src_copy, src_ptr] = det_acc::make_accessor_copy(exe_pol, src, src_rect);
 
@@ -169,6 +173,7 @@ struct HistogramImplBody<VariantKind::GPU, CODE> {
       [] __device__(auto local_value, auto global_value) { return local_value + global_value; });
 
     CHECK_CUDA_STREAM(stream);
+#endif  // _USE_VERBOSE_IMPL_
   }
 };
 
