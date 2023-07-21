@@ -42,6 +42,8 @@
 
 #include "cunumeric/stat/histogram_gen.h"
 
+#define CUDA_STREAM_CHECKER
+
 namespace cunumeric {
 namespace detail {
 
