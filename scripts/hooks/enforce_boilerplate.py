@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import NoReturn
 
 BOILERPLATE = [
+    "import random",
+    "random.seed(12345)",
     "np.random.seed(12345)",
     "sys.exit(pytest.main(sys.argv))",
 ]
