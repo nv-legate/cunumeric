@@ -28,8 +28,7 @@ ENV AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
 ARG AWS_SECRET_ACCESS_KEY
 ENV AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
 
-# If .creds exists copy it to /run/secrets
-COPY --chown=coder:coder .cred[s] /run/secrets
+COPY --chown=coder:coder .creds /run/secrets
 
 RUN entrypoint build-cunumeric-all
 
