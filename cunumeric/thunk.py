@@ -736,3 +736,7 @@ class NumPyThunk(ABC):
     @abstractmethod
     def _wrap(self, src: Any, new_len: int) -> None:
         ...
+
+    @abstractmethod
+    def histogram(self, src: Any, bins: Any, weights: Any) -> None:
+        ...

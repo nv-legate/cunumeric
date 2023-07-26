@@ -35,7 +35,7 @@ struct ScalarReductionPolicy<VariantKind::OMP, LG_OP, Tag> {
     {
       const int tid = omp_get_thread_num();
 #pragma omp for schedule(static)
-      for (size_t idx = 0; idx < volume; ++idx) { kernel(locals[tid], idx, Tag{}); }
+      for (size_t idx = 0; idx < volume; ++idx) { kernel(locals[tid], idx, identity, Tag{}); }
     }
     for (auto idx = 0; idx < max_threads; ++idx) out.reduce(0, locals[idx]);
   }

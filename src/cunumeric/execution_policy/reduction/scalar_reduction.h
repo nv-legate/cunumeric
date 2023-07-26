@@ -42,7 +42,7 @@ struct ScalarReductionPolicy<VariantKind::CPU, LG_OP, Tag> {
   void operator()(size_t volume, AccessorRD& out, const LHS& identity, Kernel&& kernel)
   {
     auto result = identity;
-    for (size_t idx = 0; idx < volume; ++idx) { kernel(result, idx, Tag{}); }
+    for (size_t idx = 0; idx < volume; ++idx) { kernel(result, idx, identity, Tag{}); }
     out.reduce(0, result);
   }
 };

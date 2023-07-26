@@ -163,6 +163,12 @@ _UNARY_RED_TO_REDUCTION_OPS: Dict[int, int] = {
     UnaryRedCode.MIN: ReductionOp.MIN,
     UnaryRedCode.ARGMAX: ReductionOp.MAX,
     UnaryRedCode.ARGMIN: ReductionOp.MIN,
+    UnaryRedCode.NANARGMAX: ReductionOp.MAX,
+    UnaryRedCode.NANARGMIN: ReductionOp.MIN,
+    UnaryRedCode.NANMAX: ReductionOp.MAX,
+    UnaryRedCode.NANMIN: ReductionOp.MIN,
+    UnaryRedCode.NANPROD: ReductionOp.MUL,
+    UnaryRedCode.NANSUM: ReductionOp.ADD,
     UnaryRedCode.CONTAINS: ReductionOp.ADD,
     UnaryRedCode.COUNT_NONZERO: ReductionOp.ADD,
     UnaryRedCode.ALL: ReductionOp.MUL,
@@ -211,6 +217,18 @@ _UNARY_RED_IDENTITIES: Dict[UnaryRedCode, Callable[[Any], Any]] = {
     UnaryRedCode.COUNT_NONZERO: lambda _: 0,
     UnaryRedCode.ALL: lambda _: True,
     UnaryRedCode.ANY: lambda _: False,
+    UnaryRedCode.NANARGMAX: lambda ty: (
+        np.iinfo(np.int64).min,
+        max_identity(ty),
+    ),
+    UnaryRedCode.NANARGMIN: lambda ty: (
+        np.iinfo(np.int64).min,
+        min_identity(ty),
+    ),
+    UnaryRedCode.NANMAX: max_identity,
+    UnaryRedCode.NANMIN: min_identity,
+    UnaryRedCode.NANPROD: lambda _: 1,
+    UnaryRedCode.NANSUM: lambda _: 0,
 }
 
 
@@ -3124,7 +3142,12 @@ class DeferredArray(NumPyThunk):
         rhs_array = src
         assert lhs_array.ndim <= rhs_array.ndim
 
-        argred = op in (UnaryRedCode.ARGMAX, UnaryRedCode.ARGMIN)
+        argred = op in (
+            UnaryRedCode.ARGMAX,
+            UnaryRedCode.ARGMIN,
+            UnaryRedCode.NANARGMAX,
+            UnaryRedCode.NANARGMIN,
+        )
 
         if argred:
             argred_dtype = self.runtime.get_argred_type(rhs_array.base.type)
@@ -3577,3 +3600,32 @@ class DeferredArray(NumPyThunk):
         copy.add_source_indirect(indirect.base)
         copy.add_output(self.base)
         copy.execute()
+
+    # Perform a histogram operation on the array
+    @auto_convert("src", "bins", "weights")
+    def histogram(self, src: Any, bins: Any, weights: Any) -> None:
+        weight_array = weights
+        src_array = src
+        bins_array = bins
+        dst_array = self
+        assert src_array.size > 0
+        assert dst_array.ndim == 1
+        assert (
+            (len(src_array.shape) == 1)
+            and (len(weight_array.shape) == 1)
+            and (src_array.size == weight_array.size)
+        )
+
+        dst_array.fill(np.array(0, dst_array.dtype))
+
+        task = self.context.create_auto_task(CuNumericOpCode.HISTOGRAM)
+        task.add_reduction(dst_array.base, ReductionOp.ADD)
+        task.add_input(src_array.base)
+        task.add_input(bins_array.base)
+        task.add_input(weight_array.base)
+
+        task.add_broadcast(bins_array.base)
+        task.add_broadcast(dst_array.base)
+        task.add_alignment(src_array.base, weight_array.base)
+
+        task.execute()

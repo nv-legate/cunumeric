@@ -71,29 +71,31 @@ struct ScalarUnaryRed {
 #endif
   }
 
-  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, DenseReduction) const noexcept
+  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, DenseReduction) const noexcept
   {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
       if (inptr[idx] == to_find) { lhs = true; }
-    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
+    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
+                         OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(p, shape, inptr[idx]));
+      OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
     } else {
-      OP::template fold<true>(lhs, OP::convert(inptr[idx]));
+      OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
     }
   }
 
-  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, SparseReduction) const noexcept
+  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, SparseReduction) const noexcept
   {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
       auto point = pitches.unflatten(idx, origin);
       if (in[point] == to_find) { lhs = true; }
-    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN) {
+    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
+                         OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(p, shape, in[p]));
+      OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
     } else {
       auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(in[p]));
+      OP::template fold<true>(lhs, OP::convert(in[p], identity));
     }
   }
 
