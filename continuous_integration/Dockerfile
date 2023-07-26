@@ -12,7 +12,9 @@ FROM stage0 as setup
 USER coder
 WORKDIR /home/coder
 
-RUN get-yaml-and-make-conda-env
+RUN set -x && . conda-utils && \
+    get_yaml_and_make_conda_env && \
+    install_legate_core_with_war
 
 #---------------------------------------------------
 FROM setup as build
