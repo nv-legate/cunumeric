@@ -133,6 +133,7 @@ def test_CuNumericOpCode() -> None:
         "FILL",
         "FLIP",
         "GEMM",
+        "HISTOGRAM",
         "LOAD_CUDALIBS",
         "MATMUL",
         "MATVECMUL",
@@ -222,10 +223,6 @@ def test_UnaryOpCode() -> None:
 
 def test_RandGenCode() -> None:
     assert (set(m.RandGenCode.__members__)) == {"UNIFORM", "NORMAL", "INTEGER"}
-
-
-def test_CuNumericRedopCode() -> None:
-    assert (set(m.CuNumericRedopCode.__members__)) == {"ARGMIN", "ARGMAX"}
 
 
 def test_CuNumericTunable() -> None:

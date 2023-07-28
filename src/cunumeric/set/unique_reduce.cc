@@ -21,7 +21,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct UniqueReduceImplBody<VariantKind::CPU, CODE> {
   using VAL = legate_type_of<CODE>;
 

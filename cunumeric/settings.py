@@ -14,24 +14,18 @@
 #
 from __future__ import annotations
 
-from legate.util.settings import PrioritizedSetting, Settings, convert_bool
+from legate.util.settings import (
+    EnvOnlySetting,
+    PrioritizedSetting,
+    Settings,
+    convert_bool,
+    convert_int,
+)
 
 __all__ = ("settings",)
 
 
 class CunumericRuntimeSettings(Settings):
-    test: PrioritizedSetting[bool] = PrioritizedSetting(
-        "test",
-        "CUNUMERIC_TEST",
-        default=False,
-        convert=convert_bool,
-        help="""
-        Enable test mode. In test mode, all cuNumeric ndarrays are managed by
-        the distributed runtime and the NumPy fallback for small arrays is
-        turned off.
-        """,
-    )
-
     preload_cudalibs: PrioritizedSetting[bool] = PrioritizedSetting(
         "preload_cudalibs",
         "CUNUMERIC_PRELOAD_CUDALIBS",
@@ -39,7 +33,7 @@ class CunumericRuntimeSettings(Settings):
         convert=convert_bool,
         help="""
         Preload and initialize handles of all CUDA libraries (cuBLAS, cuSOLVER,
-        etc.) used in cuNumeric
+        etc.) used in cuNumeric.
         """,
     )
 
@@ -49,7 +43,7 @@ class CunumericRuntimeSettings(Settings):
         default=False,
         convert=convert_bool,
         help="""
-        Turn on warnings
+        Turn on warnings.
         """,
     )
 
@@ -59,7 +53,7 @@ class CunumericRuntimeSettings(Settings):
         default=False,
         convert=convert_bool,
         help="""
-        Print an overall percentage of cunumeric coverage
+        Print an overall percentage of cunumeric coverage.
         """,
     )
 
@@ -69,7 +63,7 @@ class CunumericRuntimeSettings(Settings):
         default=False,
         convert=convert_bool,
         help="""
-        Print an overall percentage of cunumeric coverage with call stack info
+        Print an overall percentage of cunumeric coverage with call stack info.
         """,
     )
 
@@ -78,7 +72,100 @@ class CunumericRuntimeSettings(Settings):
         "CUNUMERIC_REPORT_DUMP_CSV",
         default=None,
         help="""
-        Save a coverage report to a specified CSV file
+        Save a coverage report to a specified CSV file.
+        """,
+    )
+
+    numpy_compat: PrioritizedSetting[bool] = PrioritizedSetting(
+        "numpy_compat",
+        "CUNUMERIC_NUMPY_COMPATIBILITY",
+        default=False,
+        convert=convert_bool,
+        help="""
+        cuNumeric will issue additional tasks to match numpy's results
+        and behavior. This is currently used in the following
+        APIs: nanmin, nanmax, nanargmin, nanargmax
+        """,
+    )
+
+    fast_math: EnvOnlySetting[int] = EnvOnlySetting(
+        "fast_math",
+        "CUNUMERIC_FAST_MATH",
+        default=False,
+        convert=convert_bool,
+        help="""
+        Enable certain optimized execution modes for floating-point math
+        operations, that may violate strict IEEE specifications. Currently this
+        flag enables the acceleration of single-precision cuBLAS routines using
+        TF32 tensor cores.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    min_gpu_chunk: EnvOnlySetting[int] = EnvOnlySetting(
+        "min_gpu_chunk",
+        "CUNUMERIC_MIN_GPU_CHUNK",
+        default=65536,  # 1 << 16
+        test_default=2,
+        convert=convert_int,
+        help="""
+        Legate will fall back to vanilla NumPy when handling arrays smaller
+        than this, rather than attempt to accelerate using GPUs, as the
+        offloading overhead would likely not be offset by the accelerated
+        operation code.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    min_cpu_chunk: EnvOnlySetting[int] = EnvOnlySetting(
+        "min_cpu_chunk",
+        "CUNUMERIC_MIN_CPU_CHUNK",
+        default=1024,  # 1 << 10
+        test_default=2,
+        convert=convert_int,
+        help="""
+        Legate will fall back to vanilla NumPy when handling arrays smaller
+        than this, rather than attempt to accelerate using native CPU code, as
+        the offloading overhead would likely not be offset by the accelerated
+        operation code.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    min_omp_chunk: EnvOnlySetting[int] = EnvOnlySetting(
+        "min_omp_chunk",
+        "CUNUMERIC_MIN_OMP_CHUNK",
+        default=8192,  # 1 << 13
+        test_default=2,
+        convert=convert_int,
+        help="""
+        Legate will fall back to vanilla NumPy when handling arrays smaller
+        than this, rather than attempt to accelerate using OpenMP, as the
+        offloading overhead would likely not be offset by the accelerated
+        operation code.
+
+        This is a read-only environment variable setting used by the runtime.
+        """,
+    )
+
+    force_thunk: EnvOnlySetting[str | None] = EnvOnlySetting(
+        "force_thunk",
+        "CUNUMERIC_FORCE_THUNK",
+        default=None,
+        test_default="deferred",
+        help="""
+        Force cuNumeric to always use a specific strategy for backing
+        ndarrays: "deferred", i.e. managed by the Legate runtime, which
+        enables distribution and accelerated operations, but has some
+        up-front offloading overhead, or "eager", i.e. falling back to
+        using a vanilla NumPy array. By default cuNumeric will decide
+        this on a per-array basis, based on the size of the array and
+        the accelerator in use.
+
+        This is a read-only environment variable setting used by the runtime.
         """,
     )
 

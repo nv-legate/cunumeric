@@ -24,7 +24,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct DotImplBody<VariantKind::OMP, CODE> {
   using VAL = legate_type_of<CODE>;
   using ACC = acc_type_of<VAL>;

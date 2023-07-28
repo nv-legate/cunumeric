@@ -683,6 +683,10 @@ class NumPyThunk(ABC):
         ...
 
     @abstractmethod
+    def broadcast_to(self, shape: NdShape) -> NumPyThunk:
+        ...
+
+    @abstractmethod
     def argwhere(self) -> NumPyThunk:
         ...
 
@@ -731,4 +735,8 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def _wrap(self, src: Any, new_len: int) -> None:
+        ...
+
+    @abstractmethod
+    def histogram(self, src: Any, bins: Any, weights: Any) -> None:
         ...

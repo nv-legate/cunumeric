@@ -21,7 +21,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <LegateTypeCode CODE, int DIM>
+template <Type::Code CODE, int DIM>
 struct DiagImplBody<VariantKind::OMP, CODE, DIM, true> {
   using VAL = legate_type_of<CODE>;
 
@@ -57,7 +57,7 @@ struct DiagImplBody<VariantKind::OMP, CODE, DIM, true> {
 };
 
 // not extract (create a new 2D matrix with diagonal from vector)
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct DiagImplBody<VariantKind::OMP, CODE, 2, false> {
   using VAL = legate_type_of<CODE>;
 

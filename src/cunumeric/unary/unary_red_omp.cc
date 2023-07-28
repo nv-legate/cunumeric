@@ -72,7 +72,7 @@ class Splitter {
   size_t pitches_[DIM];
 };
 
-template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
@@ -91,8 +91,9 @@ struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
 #pragma omp parallel for schedule(static)
     for (size_t o_idx = 0; o_idx < split.outer; ++o_idx)
       for (size_t i_idx = 0; i_idx < split.inner; ++i_idx) {
-        auto point = splitter.combine(o_idx, i_idx, rect.lo);
-        lhs.reduce(point, OP::convert(point, collapsed_dim, rhs[point]));
+        auto point    = splitter.combine(o_idx, i_idx, rect.lo);
+        auto identity = LG_OP::identity;
+        lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
       }
   }
 };

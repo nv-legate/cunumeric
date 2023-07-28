@@ -18,9 +18,9 @@ from typing import TYPE_CHECKING
 
 from legate.core import Rect, types as ty
 from legate.core.shape import Shape
+from legate.settings import settings
 
 from cunumeric.config import CuNumericOpCode
-from cunumeric.settings import settings
 
 from .exception import LinAlgError
 
@@ -40,7 +40,7 @@ def transpose_copy_single(
     task.add_input(input)
     # Output has the same shape as input, but is mapped
     # to a column major instance
-    task.add_scalar_arg(False, ty.int32)
+    task.add_scalar_arg(False, ty.bool_)
 
     task.add_broadcast(output)
     task.add_broadcast(input)
@@ -62,7 +62,7 @@ def transpose_copy(
     task.add_input(p_input)
     # Output has the same shape as input, but is mapped
     # to a column major instance
-    task.add_scalar_arg(False, ty.int32)
+    task.add_scalar_arg(False, ty.bool_)
 
     task.execute()
 
@@ -178,10 +178,10 @@ def tril_single(context: Context, output: Store) -> None:
     task = context.create_auto_task(CuNumericOpCode.TRILU)
     task.add_output(output)
     task.add_input(output)
-    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(True, ty.bool_)
     task.add_scalar_arg(0, ty.int32)
     # Add a fake task argument to indicate that this is for Cholesky
-    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(True, ty.bool_)
 
     task.execute()
 
@@ -194,10 +194,10 @@ def tril(context: Context, p_output: StorePartition, n: int) -> None:
 
     task.add_output(p_output)
     task.add_input(p_output)
-    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(True, ty.bool_)
     task.add_scalar_arg(0, ty.int32)
     # Add a fake task argument to indicate that this is for Cholesky
-    task.add_scalar_arg(True, bool)
+    task.add_scalar_arg(True, ty.bool_)
 
     task.execute()
 

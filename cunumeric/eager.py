@@ -106,13 +106,28 @@ _UNARY_OPS: Dict[UnaryOpCode, Any] = {
     UnaryOpCode.TRUNC: np.trunc,
 }
 
-_UNARY_RED_OPS: Dict[UnaryRedCode, Any] = {
+# Unary reduction operations that don't return the argument of the
+# reduction operation
+_UNARY_RED_OPS_WITHOUT_ARG: Dict[UnaryRedCode, Any] = {
     UnaryRedCode.ALL: np.all,
     UnaryRedCode.ANY: np.any,
     UnaryRedCode.MAX: np.max,
     UnaryRedCode.MIN: np.min,
     UnaryRedCode.PROD: np.prod,
     UnaryRedCode.SUM: np.sum,
+    UnaryRedCode.NANMAX: np.nanmax,
+    UnaryRedCode.NANMIN: np.nanmin,
+    UnaryRedCode.NANPROD: np.nanprod,
+    UnaryRedCode.NANSUM: np.nansum,
+}
+
+# Unary reduction operations that return the argument of the
+# reduction operation
+_UNARY_RED_OPS_WITH_ARG: Dict[UnaryRedCode, Any] = {
+    UnaryRedCode.ARGMIN: np.argmin,
+    UnaryRedCode.ARGMAX: np.argmax,
+    UnaryRedCode.NANARGMAX: np.nanargmax,
+    UnaryRedCode.NANARGMIN: np.nanargmin,
 }
 
 _BINARY_OPS: Dict[BinaryOpCode, Any] = {
@@ -559,6 +574,22 @@ class EagerArray(NumPyThunk):
         else:
             self.array = np.flip(rhs.array, axes)
 
+    def broadcast_to(self, shape: NdShape) -> NumPyThunk:
+        # When Eager and Deferred broadcasted arrays are used for computation,
+        # eager arrays are converted by 'to_deferred()'
+        # this method uses array.base to create a deferred array,
+        # which is different from the shape of the broadcasted arrays
+        if self.deferred is not None:
+            return self.deferred.broadcast_to(shape)
+        child = np.broadcast_to(self.array, shape)
+        # Should be aliased with parent region
+        assert child.base is not None
+        result = EagerArray(
+            self.runtime, child, parent=self, key=("broadcast_to", shape)
+        )
+        self.children.append(result)
+        return result
+
     def contract(
         self,
         lhs_modes: list[str],
@@ -743,9 +774,9 @@ class EagerArray(NumPyThunk):
             )
         else:
             if self.array.size == 1:
-                self.array.fill(np.random.random_integers(low, high))
+                self.array.fill(np.random.randint(low, high))
             else:
-                a = np.random.random_integers(low, high, size=self.array.shape)
+                a = np.random.randint(low, high, size=self.array.shape)
                 self.array[:] = a
 
     def bitgenerator_lognormal(
@@ -1468,8 +1499,18 @@ class EagerArray(NumPyThunk):
                 initial,
             )
             return
-        if op in _UNARY_RED_OPS:
-            fn = _UNARY_RED_OPS[op]
+        if op in _UNARY_RED_OPS_WITH_ARG:
+            fn = _UNARY_RED_OPS_WITH_ARG[op]
+            # arg based APIs don't have the following arguments: where, initial
+            if op in _UNARY_RED_OPS_WITH_ARG:
+                fn(
+                    rhs.array,
+                    out=self.array,
+                    axis=orig_axis,
+                    keepdims=keepdims,
+                )
+        elif op in _UNARY_RED_OPS_WITHOUT_ARG:
+            fn = _UNARY_RED_OPS_WITHOUT_ARG[op]
             # Need to be more careful here, Numpy does not use None to mean
             # "was not passed in" in this instance
             kws = {"initial": initial} if initial is not None else {}
@@ -1482,14 +1523,6 @@ class EagerArray(NumPyThunk):
                 if not isinstance(where, EagerArray)
                 else where.array,
                 **kws,
-            )
-        elif op == UnaryRedCode.ARGMAX:
-            np.argmax(
-                rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
-            )
-        elif op == UnaryRedCode.ARGMIN:
-            np.argmin(
-                rhs.array, out=self.array, axis=orig_axis, keepdims=keepdims
             )
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
@@ -1683,3 +1716,14 @@ class EagerArray(NumPyThunk):
                 if reps > 1:
                     src_flat = np.tile(src_flat, reps)
                 self.array[:] = src_flat[:new_len]
+
+    def histogram(self, rhs: Any, bins: Any, weights: Any) -> None:
+        self.check_eager_args(rhs, bins, weights)
+        if self.deferred is not None:
+            self.deferred.histogram(rhs, bins, weights)
+        else:
+            self.array[:], _ = np.histogram(
+                rhs.array,
+                cast(EagerArray, bins).array,
+                weights=cast(EagerArray, weights).array,
+            )

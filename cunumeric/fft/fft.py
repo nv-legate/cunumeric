@@ -96,6 +96,7 @@ def fft(
     -----
     This is really `fftn` with different defaults.
     For more details see `fftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -103,7 +104,7 @@ def fft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     axes = (axis,) if axis is not None else None
@@ -155,6 +156,7 @@ def fft2(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -162,7 +164,7 @@ def fft2(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     return fftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -212,6 +214,7 @@ def fftn(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -219,7 +222,7 @@ def fftn(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     if a.dtype == np.float32:
         a = a.astype(np.complex64)
@@ -298,6 +301,7 @@ def ifft(
     -----
     This is really `ifftn` with different defaults.
     For more details see `ifftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -305,7 +309,7 @@ def ifft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None
@@ -364,6 +368,7 @@ def ifft2(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -371,7 +376,7 @@ def ifft2(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     return ifftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -430,6 +435,7 @@ def ifftn(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -437,7 +443,7 @@ def ifftn(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     # Convert to complex if real
     if a.dtype == np.float32:
@@ -504,6 +510,7 @@ def rfft(
     ------
     This is really `rfftn` with different defaults.
     For more details see `rfftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -511,7 +518,7 @@ def rfft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None
@@ -550,6 +557,7 @@ def rfft2(
     ------
     This is really `rfftn` with different defaults.
     For more details see `rfftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -557,7 +565,7 @@ def rfft2(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     return rfftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -611,6 +619,7 @@ def rfftn(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -618,7 +627,7 @@ def rfftn(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     # Convert to real if complex
     if a.dtype != np.float32 and a.dtype != np.float64:
@@ -711,6 +720,7 @@ def irfft(
     ------
     This is really `irfftn` with different defaults.
     For more details see `irfftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -718,7 +728,7 @@ def irfft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None
@@ -759,6 +769,7 @@ def irfft2(
     ------
     This is really `irfftn` with different defaults.
     For more details see `irfftn`.
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -766,7 +777,7 @@ def irfft2(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     return irfftn(a=a, s=s, axes=axes, norm=norm)
 
@@ -831,6 +842,7 @@ def irfftn(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See Also
     --------
@@ -838,7 +850,7 @@ def irfftn(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     # Convert to complex if real
     if a.dtype == np.float32:
@@ -922,6 +934,7 @@ def hfft(
 
     Notes
     ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
 
     See also
     --------
@@ -929,7 +942,7 @@ def hfft(
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None
@@ -979,13 +992,17 @@ def ihfft(
         indicated by `axis`, or the last one if `axis` is not specified.
         The length of the transformed axis is ``n//2 + 1``.
 
+    Notes
+    ------
+    Multi-GPU usage is limited to data parallel axis-wise batching.
+
     See also
     --------
     numpy.fft.ihfft
 
     Availability
     --------
-    Single GPU
+    Multiple GPUs
     """
     s = (n,) if n is not None else None
     computed_axis = (axis,) if axis is not None else None

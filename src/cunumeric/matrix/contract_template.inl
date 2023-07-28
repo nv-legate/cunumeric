@@ -28,21 +28,21 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, LegateTypeCode CODE>
+template <VariantKind KIND, Type::Code CODE>
 struct ContractImplBody;
 
-template <LegateTypeCode CODE>
+template <Type::Code CODE>
 struct support_contract : std::false_type {};
 template <>
-struct support_contract<LegateTypeCode::HALF_LT> : std::true_type {};
+struct support_contract<Type::Code::FLOAT16> : std::true_type {};
 template <>
-struct support_contract<LegateTypeCode::FLOAT_LT> : std::true_type {};
+struct support_contract<Type::Code::FLOAT32> : std::true_type {};
 template <>
-struct support_contract<LegateTypeCode::DOUBLE_LT> : std::true_type {};
+struct support_contract<Type::Code::FLOAT64> : std::true_type {};
 template <>
-struct support_contract<LegateTypeCode::COMPLEX64_LT> : std::true_type {};
+struct support_contract<Type::Code::COMPLEX64> : std::true_type {};
 template <>
-struct support_contract<LegateTypeCode::COMPLEX128_LT> : std::true_type {};
+struct support_contract<Type::Code::COMPLEX128> : std::true_type {};
 
 #if 0  // debugging output
 
@@ -77,9 +77,7 @@ void print_ptr(const char* title, const T* vals, size_t len)
 
 template <VariantKind KIND>
 struct ContractImpl {
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<support_contract<CODE>::value>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<support_contract<CODE>::value>* = nullptr>
   void operator()(ContractArgs& args) const
   {
     using T = legate_type_of<CODE>;
@@ -195,9 +193,7 @@ struct ContractImpl {
 #endif
   }
 
-  template <LegateTypeCode CODE,
-            int DIM,
-            std::enable_if_t<!support_contract<CODE>::value>* = nullptr>
+  template <Type::Code CODE, int DIM, std::enable_if_t<!support_contract<CODE>::value>* = nullptr>
   void operator()(ContractArgs& args) const
   {
     assert(false);

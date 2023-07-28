@@ -37,9 +37,18 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Set a default build type if none was specified
 rapids_cmake_build_type(Release)
 
-# ############################################################################
-# * conda environment --------------------------------------------------------
+##############################################################################
+# - conda environment --------------------------------------------------------
+
 rapids_cmake_support_conda_env(conda_env MODIFY_PREFIX_PATH)
+
+# We're building python extension libraries, which must always be installed
+# under lib/, even if the system normally uses lib64/. Rapids-cmake currently
+# doesn't realize this when we're going through scikit-build, see
+# https://github.com/rapidsai/rapids-cmake/issues/426
+if(TARGET conda_env)
+  set(CMAKE_INSTALL_LIBDIR "lib")
+endif()
 
 ##############################################################################
 # - Dependencies -------------------------------------------------------------
@@ -156,10 +165,11 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/stat/bincount.cc
   src/cunumeric/convolution/convolve.cc
   src/cunumeric/transform/flip.cc
-  src/cunumeric/arg.cc
+  src/cunumeric/arg_redop_register.cc
   src/cunumeric/mapper.cc
   src/cunumeric/cephes/chbevl.cc
   src/cunumeric/cephes/i0.cc
+  src/cunumeric/stat/histogram.cc
 )
 
 if(Legion_USE_OpenMP)
@@ -205,6 +215,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/stat/bincount_omp.cc
     src/cunumeric/convolution/convolve_omp.cc
     src/cunumeric/transform/flip_omp.cc
+    src/cunumeric/stat/histogram_omp.cc    
   )
 endif()
 
@@ -254,8 +265,9 @@ if(Legion_USE_CUDA)
     src/cunumeric/convolution/convolve.cu
     src/cunumeric/fft/fft.cu
     src/cunumeric/transform/flip.cu
+    src/cunumeric/arg_redop_register.cu
     src/cunumeric/cudalibs.cu
-    src/cunumeric/cunumeric.cu
+    src/cunumeric/stat/histogram.cu
   )
 endif()
 

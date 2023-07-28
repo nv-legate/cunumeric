@@ -43,6 +43,39 @@ def test_einsum_path(optimize):
     assert path_np == path_num
 
 
+OPTIMIZE_OPPOSITE = [
+    2,
+    2.2,
+    ("optimal", 4, 5),
+]
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("optimize", OPTIMIZE_OPPOSITE)
+def test_einsum_path_optimize_opposite(optimize):
+    expected_exc = TypeError
+    with pytest.raises(expected_exc):
+        path_np, _ = np.einsum_path(expr, np_a, np_b, np_c, optimize=optimize)
+        # Numpy raises: TypeError: object of type 'int' has no len()
+    with pytest.raises(expected_exc):
+        path_num, _ = num.einsum_path(
+            expr, num_a, num_b, num_c, optimize=optimize
+        )
+        # cuNumeric raises ValueError: einsum_path: unexpected value
+        # for optimize: 2
+
+
+@pytest.mark.xfail
+def test_einsum_path_optimize_none():
+    optimize = None
+    path_np, _ = np.einsum_path(expr, np_a, np_b, np_c, optimize=optimize)
+    # Numpy returns results
+    path_num, _ = num.einsum_path(expr, num_a, num_b, num_c, optimize=optimize)
+    # cunumeric raises ValueError: einsum_path: unexpected value
+    # for optimize: None
+    assert path_np == path_num
+
+
 if __name__ == "__main__":
     import sys
 

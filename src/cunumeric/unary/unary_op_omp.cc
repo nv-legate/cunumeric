@@ -21,7 +21,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using OP  = UnaryOp<OP_CODE, CODE>;
   using ARG = typename OP::T;
@@ -74,7 +74,7 @@ struct PointCopyImplBody<VariantKind::OMP, VAL, DIM> {
   }
 };
 
-template <UnaryOpCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryOpCode OP_CODE, Type::Code CODE, int DIM>
 struct MultiOutUnaryOpImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
   using OP   = MultiOutUnaryOp<OP_CODE, CODE>;
   using RHS1 = typename OP::RHS1;

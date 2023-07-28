@@ -19,6 +19,7 @@
 #include "cunumeric/cunumeric.h"
 #include "cunumeric/arg.h"
 #include "cunumeric/arg.inl"
+#include "cunumeric/unary/isnan.h"
 
 namespace cunumeric {
 
@@ -31,6 +32,12 @@ enum class UnaryRedCode : int {
   COUNT_NONZERO = CUNUMERIC_RED_COUNT_NONZERO,
   MAX           = CUNUMERIC_RED_MAX,
   MIN           = CUNUMERIC_RED_MIN,
+  NANARGMAX     = CUNUMERIC_RED_NANARGMAX,
+  NANARGMIN     = CUNUMERIC_RED_NANARGMIN,
+  NANMAX        = CUNUMERIC_RED_NANMAX,
+  NANMIN        = CUNUMERIC_RED_NANMIN,
+  NANPROD       = CUNUMERIC_RED_NANPROD,
+  NANSUM        = CUNUMERIC_RED_NANSUM,
   PROD          = CUNUMERIC_RED_PROD,
   SUM           = CUNUMERIC_RED_SUM,
 };
@@ -41,6 +48,10 @@ template <>
 struct is_arg_reduce<UnaryRedCode::ARGMAX> : std::true_type {};
 template <>
 struct is_arg_reduce<UnaryRedCode::ARGMIN> : std::true_type {};
+template <>
+struct is_arg_reduce<UnaryRedCode::NANARGMAX> : std::true_type {};
+template <>
+struct is_arg_reduce<UnaryRedCode::NANARGMIN> : std::true_type {};
 
 template <typename Functor, typename... Fnargs>
 constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&... args)
@@ -62,6 +73,18 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::MIN:
       return f.template operator()<UnaryRedCode::MIN>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::NANARGMAX:
+      return f.template operator()<UnaryRedCode::NANARGMAX>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::NANARGMIN:
+      return f.template operator()<UnaryRedCode::NANARGMIN>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::NANMAX:
+      return f.template operator()<UnaryRedCode::NANMAX>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::NANMIN:
+      return f.template operator()<UnaryRedCode::NANMIN>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::NANPROD:
+      return f.template operator()<UnaryRedCode::NANPROD>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::NANSUM:
+      return f.template operator()<UnaryRedCode::NANSUM>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::PROD:
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
@@ -72,14 +95,14 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
   return f.template operator()<UnaryRedCode::MAX>(std::forward<Fnargs>(args)...);
 }
 
-template <UnaryRedCode OP_CODE, legate::LegateTypeCode TYPE_CODE>
+template <UnaryRedCode OP_CODE, legate::Type::Code TYPE_CODE, typename Tag = void>
 struct UnaryRedOp {
   static constexpr bool valid = false;
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
-  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
+  static constexpr bool valid = TYPE_CODE != legate::Type::Code::COMPLEX128;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = bool;
@@ -92,17 +115,17 @@ struct UnaryRedOp<UnaryRedCode::ALL, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs != RHS(0);
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs != RHS(0); }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs != RHS(0); }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ANY, TYPE_CODE> {
-  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
+  static constexpr bool valid = TYPE_CODE != legate::Type::Code::COMPLEX128;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = bool;
@@ -115,15 +138,15 @@ struct UnaryRedOp<UnaryRedCode::ANY, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs != RHS(0);
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs != RHS(0); }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs != RHS(0); }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::COUNT_NONZERO, TYPE_CODE> {
   static constexpr bool valid = true;
 
@@ -138,15 +161,18 @@ struct UnaryRedOp<UnaryRedCode::COUNT_NONZERO, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return static_cast<VAL>(rhs != RHS(0));
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return static_cast<VAL>(rhs != RHS(0)); }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL)
+  {
+    return static_cast<VAL>(rhs != RHS(0));
+  }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
@@ -161,15 +187,15 @@ struct UnaryRedOp<UnaryRedCode::MAX, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs; }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
   static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
@@ -184,17 +210,17 @@ struct UnaryRedOp<UnaryRedCode::MIN, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs; }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
-  static constexpr bool valid = TYPE_CODE != legate::LegateTypeCode::COMPLEX128_LT;
+  static constexpr bool valid = TYPE_CODE != legate::Type::Code::COMPLEX128;
 
   using RHS = legate::legate_type_of<TYPE_CODE>;
   using VAL = RHS;
@@ -207,15 +233,15 @@ struct UnaryRedOp<UnaryRedCode::PROD, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs; }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   static constexpr bool valid = true;
 
@@ -230,15 +256,15 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs; }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
@@ -255,6 +281,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  int32_t collapsed_dim,
+                                 const VAL,
                                  const RHS& rhs)
   {
     return VAL(point[collapsed_dim], rhs);
@@ -263,6 +290,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  const legate::Point<DIM>& shape,
+                                 const VAL,
                                  const RHS& rhs)
   {
     int64_t idx = 0;
@@ -271,7 +299,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMAX, TYPE_CODE> {
   }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   static constexpr bool valid = !legate::is_complex<TYPE_CODE>::value;
 
@@ -288,6 +316,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  int32_t collapsed_dim,
+                                 const VAL,
                                  const RHS& rhs)
   {
     return VAL(point[collapsed_dim], rhs);
@@ -296,6 +325,7 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
                                  const legate::Point<DIM>& shape,
+                                 const VAL,
                                  const RHS& rhs)
   {
     int64_t idx = 0;
@@ -304,7 +334,209 @@ struct UnaryRedOp<UnaryRedCode::ARGMIN, TYPE_CODE> {
   }
 };
 
-template <legate::LegateTypeCode TYPE_CODE>
+template <legate::Type::Code TYPE_CODE>
+using enabled_for_floating =
+  typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value>::type;
+
+template <legate::Type::Code TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::NANARGMAX, TYPE_CODE, enabled_for_floating<TYPE_CODE>> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = Argval<RHS>;
+  using OP  = ArgmaxReduction<RHS>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 int32_t collapsed_dim,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    return is_nan(rhs) ? identity : VAL(point[collapsed_dim], rhs);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 const legate::Point<DIM>& shape,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    int64_t idx = 0;
+
+    for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
+    return is_nan(rhs) ? identity : VAL(idx, rhs);
+  }
+};
+
+template <legate::Type::Code TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::NANARGMIN, TYPE_CODE, enabled_for_floating<TYPE_CODE>> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = Argval<RHS>;
+  using OP  = ArgminReduction<RHS>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 int32_t collapsed_dim,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    return is_nan(rhs) ? identity : VAL(point[collapsed_dim], rhs);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>& point,
+                                 const legate::Point<DIM>& shape,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    int64_t idx = 0;
+
+    for (int32_t dim = 0; dim < DIM; ++dim) idx = idx * shape[dim] + point[dim];
+    return is_nan(rhs) ? identity : VAL(idx, rhs);
+  }
+};
+
+template <legate::Type::Code TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::NANMIN, TYPE_CODE, enabled_for_floating<TYPE_CODE>> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
+  using OP  = legate::MinReduction<VAL>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&,
+                                 int32_t,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    return is_nan(rhs) ? identity : rhs;
+  }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL identity)
+  {
+    return is_nan(rhs) ? identity : rhs;
+  }
+};
+
+template <legate::Type::Code TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::NANMAX, TYPE_CODE, enabled_for_floating<TYPE_CODE>> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
+  using OP  = legate::MaxReduction<VAL>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&,
+                                 int32_t,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    return is_nan(rhs) ? identity : rhs;
+  }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL identity)
+  {
+    return is_nan(rhs) ? identity : rhs;
+  }
+};
+
+template <legate::Type::Code TYPE_CODE>
+using enabled_for_floating_or_complex64 =
+  typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value ||
+                          TYPE_CODE == legate::Type::Code::COMPLEX64>::type;
+
+template <legate::Type::Code TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::NANPROD, TYPE_CODE, enabled_for_floating_or_complex64<TYPE_CODE>> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
+  using OP  = legate::ProdReduction<VAL>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&,
+                                 int32_t,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    return is_nan(rhs) ? identity : rhs;
+  }
+
+  __CUDA_HD__ static VAL convert(const RHS rhs, const VAL identity)
+  {
+    return is_nan(rhs) ? identity : rhs;
+  }
+};
+
+template <legate::Type::Code TYPE_CODE>
+using enabled_for_floating_or_complex =
+  typename std::enable_if<legate::is_floating_point<TYPE_CODE>::value ||
+                          legate::is_complex<TYPE_CODE>::value>::type;
+
+template <legate::Type::Code TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::NANSUM, TYPE_CODE, enabled_for_floating_or_complex<TYPE_CODE>> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
+  using OP  = legate::SumReduction<VAL>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const legate::Point<DIM>&,
+                                 int32_t,
+                                 const VAL identity,
+                                 const RHS& rhs)
+  {
+    return is_nan(rhs) ? identity : rhs;
+  }
+
+  __CUDA_HD__ static VAL convert(const RHS rhs, const VAL identity)
+  {
+    return is_nan(rhs) ? identity : rhs;
+  }
+};
+
+template <legate::Type::Code TYPE_CODE>
 struct UnaryRedOp<UnaryRedCode::CONTAINS, TYPE_CODE> {
   // Set to false so that this only gets enabled when expliclty declared valid.
   static constexpr bool valid = false;
@@ -312,7 +544,7 @@ struct UnaryRedOp<UnaryRedCode::CONTAINS, TYPE_CODE> {
   // It does not provide fold/convert functions.
   using RHS     = legate::legate_type_of<TYPE_CODE>;
   using VAL     = bool;
-  using _RED_OP = UnaryRedOp<UnaryRedCode::SUM, legate::LegateTypeCode::BOOL_LT>;
+  using _RED_OP = UnaryRedOp<UnaryRedCode::SUM, legate::Type::Code::BOOL>;
   using OP      = _RED_OP::OP;
 };
 

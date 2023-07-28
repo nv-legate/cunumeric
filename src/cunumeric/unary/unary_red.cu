@@ -211,11 +211,12 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
 {
   const coord_t tid = threadIdx.x;
   const coord_t bid = blockIdx.x;
-  Point<DIM> point  = blocks.point(bid, tid, domain.lo);
+
+  Point<DIM> point = blocks.point(bid, tid, domain.lo);
   if (!domain.contains(point)) return point;
 
   while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
-    LHS value = OP::convert(point, collapsed_dim, in[point]);
+    LHS value = OP::convert(point, collapsed_dim, identity, in[point]);
     REDOP::template fold<true>(result, value);
     blocks.next_point(point);
   }
@@ -238,7 +239,7 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
     int32_t laneid;
     asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
     const uint32_t active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
-    if (active_mask) {
+    if ((active_mask & (1 << laneid)) != 0) {
       // Store our data into shared
       trampoline[tid] = result;
       // Make sure all the threads in the warp are done writing
@@ -293,7 +294,7 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (result != identity) out.reduce(point, result);
 }
 
-template <UnaryRedCode OP_CODE, LegateTypeCode CODE, int DIM>
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;

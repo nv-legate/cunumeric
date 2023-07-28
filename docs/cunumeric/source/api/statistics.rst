@@ -19,6 +19,7 @@ Histograms
    :toctree: generated/
 
    bincount
+   histogram
 
 
 Order statistics
@@ -28,5 +29,4 @@ Order statistics
    :toctree: generated/
 
    quantile
-
    percentile

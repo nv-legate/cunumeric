@@ -22,7 +22,7 @@
 namespace cunumeric {
 
 template <typename T>
-__CUDA_HD__ Argval<T>::Argval(T v) : arg(LLONG_MAX), arg_value(v)
+__CUDA_HD__ Argval<T>::Argval(T v) : arg(LLONG_MIN), arg_value(v)
 {
 }
 
@@ -112,6 +112,8 @@ __CUDA_HD__ inline void Argval<T>::apply(const Argval<T>& rhs)
   }
 }
 
+// Declare these here, to work around undefined-var-template warnings
+
 #define DECLARE_ARGMAX_IDENTITY(TYPE) \
   template <>                         \
   const Argval<TYPE> ArgmaxReduction<TYPE>::identity;
@@ -136,7 +138,6 @@ DECLARE_IDENTITIES(uint8_t)
 DECLARE_IDENTITIES(uint16_t)
 DECLARE_IDENTITIES(uint32_t)
 DECLARE_IDENTITIES(uint64_t)
-DECLARE_IDENTITIES(complex<float>)
 
 #undef DECLARE_IDENTITIES
 #undef DECLARE_ARGMIN_IDENTITY

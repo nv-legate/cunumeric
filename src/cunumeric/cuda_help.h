@@ -20,7 +20,6 @@
 #include "core/cuda/cuda_help.h"
 #include "core/cuda/stream_pool.h"
 #include "cunumeric/arg.h"
-#include "cunumeric/arg.inl"
 #include "cunumeric/device_scalar_reduction_buffer.h"
 #include <cublas_v2.h>
 #include <cusolverDn.h>
@@ -99,13 +98,39 @@ class cufftContext {
   cufftContext& operator=(cufftContext&&) = default;
 
  public:
-  cufftHandle handle();
+  cufftHandle& handle();
   size_t workareaSize();
   void setCallback(cufftXtCallbackType type, void* callback, void* data);
 
  private:
   cufftPlan* plan_{nullptr};
   std::vector<cufftXtCallbackType> callback_types_{};
+};
+
+struct cufftPlanParams {
+  int rank;
+  long long int n[LEGION_MAX_DIM]       = {0};
+  long long int inembed[LEGION_MAX_DIM] = {0};
+  long long int istride;
+  long long int idist;
+  long long int onembed[LEGION_MAX_DIM] = {0};
+  long long int ostride;
+  long long int odist;
+  long long int batch;
+
+  cufftPlanParams(const Legion::DomainPoint& size);
+  cufftPlanParams(int rank,
+                  long long int* n,
+                  long long int* inembed,
+                  long long int istride,
+                  long long int idist,
+                  long long int* onembed,
+                  long long int ostride,
+                  long long int odist,
+                  long long int batch);
+
+  bool operator==(const cufftPlanParams& other) const;
+  std::string to_string() const;
 };
 
 // Defined in cudalibs.cu
@@ -115,7 +140,7 @@ legate::cuda::StreamView get_cached_stream();
 cublasHandle_t get_cublas();
 cusolverDnHandle_t get_cusolver();
 cutensorHandle_t* get_cutensor();
-cufftContext get_cufft_plan(cufftType type, const legate::DomainPoint& size);
+cufftContext get_cufft_plan(cufftType type, const cufftPlanParams& params);
 
 __host__ inline void check_cublas(cublasStatus_t status, const char* file, int line)
 {

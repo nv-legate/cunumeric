@@ -21,7 +21,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <LegateTypeCode CODE, int32_t DIM, Bitorder BITORDER>
+template <Type::Code CODE, int32_t DIM, Bitorder BITORDER>
 struct PackbitsImplBody<VariantKind::CPU, CODE, DIM, BITORDER> {
   using VAL = legate_type_of<CODE>;
 

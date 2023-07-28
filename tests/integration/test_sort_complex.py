@@ -40,6 +40,7 @@ SIZES = [
     (1, 1, DIM),
     (DIM, DIM, DIM),
 ]
+DTYPES = [np.int8, np.int16, np.int32]
 
 
 class TestSortComplex(object):
@@ -59,9 +60,10 @@ class TestSortComplex(object):
         res_num = num.sort_complex(arr)
         assert np.array_equal(res_num, res_np)
 
+    @pytest.mark.parametrize("dtype", DTYPES)
     @pytest.mark.parametrize("size", SIZES)
-    def test_basic(self, size):
-        arr_np = np.random.randint(-100, 100, size)
+    def test_basic(self, size, dtype):
+        arr_np = np.random.randint(-100, 100, size, dtype=dtype)
         arr_num = num.array(arr_np)
 
         res_np = np.sort_complex(arr_np)

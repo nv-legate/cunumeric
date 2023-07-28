@@ -45,7 +45,7 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM) cho
   outptr[idx] = choices[indexptr[idx]][idx];
 }
 
-template <LegateTypeCode CODE, int DIM>
+template <Type::Code CODE, int DIM>
 struct ChooseImplBody<VariantKind::GPU, CODE, DIM> {
   using VAL = legate_type_of<CODE>;
 

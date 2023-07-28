@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING, Any, Union
 import numpy as np
 
 from cunumeric.array import ndarray
+from cunumeric.coverage import clone_class
 from cunumeric.random import generator
 from cunumeric.runtime import runtime
 
@@ -1045,7 +1046,7 @@ def randint(
     low: int,
     high: Union[int, None] = None,
     size: Union[NdShapeLike, None] = None,
-    dtype: Union[np.dtype[Any], type, None] = int,
+    dtype: Union[np.dtype[Any], type] = int,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     """
     randint(low, high=None, size=None, dtype=int)
@@ -1086,6 +1087,19 @@ def randint(
     --------
     Multiple GPUs, Multiple CPUs
     """
+
+    if not isinstance(low, int):
+        raise NotImplementedError("'low' must be an integer")
+    if high is not None and not isinstance(high, int):
+        raise NotImplementedError("'high' must be an integer or None")
+
+    if high is None:
+        low, high = 0, low
+        if high <= 0:
+            raise ValueError("high <= 0")
+    elif low >= high:
+        raise ValueError("low >= high")
+
     return generator.get_static_generator().integers(low, high, size, dtype)
 
 
@@ -1150,7 +1164,7 @@ def random_integers(
     low: int,
     high: Union[int, None] = None,
     size: Union[NdShapeLike, None] = None,
-    dtype: Union[np.dtype[Any], type, None] = int,
+    dtype: Union[np.dtype[Any], type] = int,
 ) -> Union[int, ndarray, npt.NDArray[Any]]:
     """
     random_integers(low, high=None, size=None)
@@ -1705,3 +1719,32 @@ def zipf(
     Multiple GPUs, Multiple CPUs
     """
     return generator.get_static_generator().zipf(a, size, dtype)
+
+
+def _random_state_fallback(obj: Any) -> Any:
+    # meant for the `self` argument; forward any unimplemented methods to the
+    # wrapped vanilla NumPy RandomState
+    if isinstance(obj, RandomState):
+        return obj._np_random_state
+    # eagerly convert any cuNumeric ndarrays to NumPy
+    if isinstance(obj, ndarray):
+        return obj.__array__()
+    return obj
+
+
+@clone_class(np.random.RandomState, fallback=_random_state_fallback)
+class RandomState:
+    """
+    Container for a pseudo-random number generator.
+
+    Exposes a number of methods for generating random numbers drawn from a
+    variety of probability distributions.
+
+    Parameters
+    ----------
+    seed : int, optional
+        Random seed used to initialize the pseudo-random number generator.
+    """
+
+    def __init__(self, seed: Union[int, None] = None):
+        self._np_random_state = np.random.RandomState(seed or 0)

@@ -28,7 +28,7 @@ namespace cunumeric {
 // for this matrix shape and GPU.
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -73,7 +73,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::FLOAT_LT> {
 };
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::FLOAT64> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -114,7 +114,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::DOUBLE_LT> {
 };
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::FLOAT16> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -158,7 +158,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::HALF_LT> {
 };
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::COMPLEX64> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,
@@ -206,7 +206,7 @@ struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX64_LT> {
 };
 
 template <>
-struct MatMulImplBody<VariantKind::GPU, LegateTypeCode::COMPLEX128_LT> {
+struct MatMulImplBody<VariantKind::GPU, Type::Code::COMPLEX128> {
   void operator()(size_t m,
                   size_t n,
                   size_t k,

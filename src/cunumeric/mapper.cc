@@ -14,6 +14,7 @@
  *
  */
 
+#include "env_defaults.h"
 #include "cunumeric/mapper.h"
 
 using namespace legate;
@@ -22,10 +23,11 @@ using namespace legate::mapping;
 namespace cunumeric {
 
 CuNumericMapper::CuNumericMapper()
-  : min_gpu_chunk(extract_env("CUNUMERIC_MIN_GPU_CHUNK", 1 << 20, 2)),
-    min_cpu_chunk(extract_env("CUNUMERIC_MIN_CPU_CHUNK", 1 << 14, 2)),
-    min_omp_chunk(extract_env("CUNUMERIC_MIN_OMP_CHUNK", 1 << 17, 2)),
-    eager_fraction(extract_env("CUNUMERIC_EAGER_FRACTION", 16, 1))
+  : min_gpu_chunk(
+      extract_env("CUNUMERIC_MIN_GPU_CHUNK", MIN_GPU_CHUNK_DEFAULT, MIN_GPU_CHUNK_TEST)),
+    min_cpu_chunk(
+      extract_env("CUNUMERIC_MIN_CPU_CHUNK", MIN_CPU_CHUNK_DEFAULT, MIN_CPU_CHUNK_TEST)),
+    min_omp_chunk(extract_env("CUNUMERIC_MIN_OMP_CHUNK", MIN_OMP_CHUNK_DEFAULT, MIN_OMP_CHUNK_TEST))
 {
 }
 
@@ -56,14 +58,12 @@ Scalar CuNumericMapper::tunable_value(TunableID tunable_id)
     case CUNUMERIC_TUNABLE_MAX_EAGER_VOLUME: {
       int32_t eager_volume = 0;
       // TODO: make these profile guided
-      if (eager_fraction > 0) {
-        if (!machine->gpus().empty())
-          eager_volume = min_gpu_chunk / eager_fraction;
-        else if (!machine->omps().empty())
-          eager_volume = min_omp_chunk / eager_fraction;
-        else
-          eager_volume = min_cpu_chunk / eager_fraction;
-      }
+      if (!machine->gpus().empty())
+        eager_volume = min_gpu_chunk;
+      else if (!machine->omps().empty())
+        eager_volume = min_omp_chunk;
+      else
+        eager_volume = min_cpu_chunk;
       return Scalar(eager_volume);
     }
     default: break;
@@ -92,6 +92,7 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       mappings.push_back(StoreMapping::default_mapping(inputs[0], options.front()));
       mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
       mappings.back().policy.exact = true;
+      mappings.back().policy.ordering.c_order();
       return std::move(mappings);
     }
     case CUNUMERIC_TRANSPOSE_COPY_2D: {
