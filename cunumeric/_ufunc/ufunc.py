@@ -561,8 +561,9 @@ class binary_ufunc(ufunc):
         scalar_types = []
         array_types = []
         for arr, orig_arg in zip(arrs, orig_args):
-            if arr.ndim == 0 and not isinstance(orig_arg, ndarray):
-                scalar_types.append(orig_arg)
+            if arr.ndim == 0:
+                # Make sure all scalar arguments are NumPy arrays
+                scalar_types.append(np.asarray(orig_arg))
             else:
                 array_types.append(arr.dtype)
 
