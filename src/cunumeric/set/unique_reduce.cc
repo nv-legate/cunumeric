@@ -19,33 +19,9 @@
 
 namespace cunumeric {
 
-using namespace legate;
-
-template <Type::Code CODE>
-struct UniqueReduceImplBody<VariantKind::CPU, CODE> {
-  using VAL = legate_type_of<CODE>;
-
-  void operator()(Array& output, const std::vector<std::pair<AccessorRO<VAL, 1>, Rect<1>>>& inputs)
-  {
-    std::set<VAL> dedup_set;
-
-    for (auto& pair : inputs) {
-      auto& input = pair.first;
-      auto& shape = pair.second;
-      for (coord_t idx = shape.lo[0]; idx <= shape.hi[0]; ++idx) dedup_set.insert(input[idx]);
-    }
-
-    size_t size = dedup_set.size();
-    size_t pos  = 0;
-    auto result = output.create_output_buffer<VAL, 1>(Point<1>(size), true);
-
-    for (auto e : dedup_set) result[pos++] = e;
-  }
-};
-
 /*static*/ void UniqueReduceTask::cpu_variant(TaskContext& context)
 {
-  unique_reduce_template<VariantKind::CPU>(context);
+  unique_reduce_template(context, thrust::host);
 }
 
 namespace  // unnamed
