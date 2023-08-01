@@ -1,3 +1,5 @@
+.. _building cunumeric from source:
+
 Building from source
 ====================
 
