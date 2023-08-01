@@ -142,9 +142,9 @@ void histogram_wrapper(exe_policy_t exe_pol,
 
   auto&& [global_result_size, global_result_ptr] = accessors::get_accessor_ptr(result, result_rect);
 
-#ifdef CUDA_STREAM_CHECKER
-  CHECK_CUDA_STREAM(stream);
-#endif
+  sync_policy_t<exe_policy_t> synchronizer;
+
+  synchronizer(stream);
 
   histogram_weights(exe_pol,
                     src_copy.ptr(0),
@@ -155,9 +155,7 @@ void histogram_wrapper(exe_policy_t exe_pol,
                     weights_copy.ptr(0),
                     stream);
 
-#ifdef CUDA_STREAM_CHECKER
-  CHECK_CUDA_STREAM(stream);
-#endif
+  synchronizer(stream);
 
   // fold into RD result:
   //
@@ -170,9 +168,7 @@ void histogram_wrapper(exe_policy_t exe_pol,
                     global_result_ptr,
                     reduction_op_t<weight_t>{});
 
-#ifdef CUDA_STREAM_CHECKER
-  CHECK_CUDA_STREAM(stream);
-#endif
+  synchronizer(stream);
 }
 
 }  // namespace detail
