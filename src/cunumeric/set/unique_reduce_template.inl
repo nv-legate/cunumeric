@@ -20,38 +20,54 @@
 #include "cunumeric/set/unique_reduce.h"
 #include "cunumeric/pitches.h"
 
+#include <thrust/copy.h>
+#include <thrust/sort.h>
+#include <thrust/unique.h>
+#include <thrust/execution_policy.h>
+
 namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, Type::Code CODE>
-struct UniqueReduceImplBody;
-
-template <VariantKind KIND>
+template <typename exe_pol_t>
 struct UniqueReduceImpl {
   template <Type::Code CODE>
-  void operator()(Array& output, std::vector<Array>& input_arrs)
+  void operator()(Array& output, std::vector<Array>& input_arrs, const exe_pol_t& exe_pol)
   {
     using VAL = legate_type_of<CODE>;
 
-    std::vector<std::pair<AccessorRO<VAL, 1>, Rect<1>>> inputs;
-
+    size_t res_size = 0;
     for (auto& input_arr : input_arrs) {
       auto shape = input_arr.shape<1>();
-      auto acc   = input_arr.read_accessor<VAL, 1>(shape);
-      inputs.push_back(std::make_pair(acc, shape));
+      res_size += shape.hi[0] - shape.lo[0] + 1;
     }
+    auto result  = output.create_output_buffer<VAL, 1>(Point<1>(res_size));
+    VAL* res_ptr = result.ptr(0);
 
-    UniqueReduceImplBody<KIND, CODE>()(output, inputs);
+    size_t offset = 0;
+    for (auto& input_arr : input_arrs) {
+      size_t strides[1];
+      Rect<1> shape     = input_arr.shape<1>();
+      size_t volume     = shape.volume();
+      const VAL* in_ptr = input_arr.read_accessor<VAL, 1>(shape).ptr(shape, strides);
+      assert(shape.volume() <= 1 || strides[0] == 1);
+      thrust::copy(exe_pol, in_ptr, in_ptr + volume, res_ptr + offset);
+      offset += volume;
+    }
+    assert(offset == res_size);
+
+    thrust::sort(exe_pol, res_ptr, res_ptr + res_size);
+    VAL* actual_end = thrust::unique(exe_pol, res_ptr, res_ptr + res_size);
+    output.bind_data(result, Point<1>(actual_end - res_ptr));
   }
 };
 
-template <VariantKind KIND>
-static void unique_reduce_template(TaskContext& context)
+template <typename exe_pol_t>
+static void unique_reduce_template(TaskContext& context, const exe_pol_t& exe_pol)
 {
   auto& inputs = context.inputs();
   auto& output = context.outputs()[0];
-  type_dispatch(output.code(), UniqueReduceImpl<KIND>{}, output, inputs);
+  type_dispatch(output.code(), UniqueReduceImpl<exe_pol_t>{}, output, inputs, exe_pol);
 }
 
 }  // namespace cunumeric
