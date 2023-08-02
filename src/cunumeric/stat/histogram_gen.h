@@ -23,6 +23,14 @@ namespace detail {
 template <typename exe_policy_t, typename weight_t, typename offset_t, typename = void>
 struct segmented_sum_t;
 
+template <typename exe_policy_t>
+inline constexpr bool is_host_policy_v =
+  std::is_same_v<exe_policy_t, std::remove_cv_t<decltype(thrust::host)>> ||
+  std::is_same_v<exe_policy_t, std::remove_cv_t<decltype(thrust::omp::par)>>;
+
+template <typename exe_policy_t, typename = void>
+struct sync_policy_t;
+
 namespace accessors {
 
 template <typename element_t>
