@@ -91,7 +91,6 @@ if __name__ == "__main__":
         help="number of elements in one dimension",
     )
     parser.add_argument(
-        "-p",
         "--precision",
         type=int,
         default=32,
