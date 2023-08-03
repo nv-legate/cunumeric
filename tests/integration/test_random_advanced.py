@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 import os
-import sys
 
 import numpy as np
 import pytest
@@ -22,7 +21,7 @@ from utils.random import ModuleGenerator, assert_distribution
 import cunumeric as num
 
 LEGATE_TEST = os.environ.get("LEGATE_TEST", None) == "1"
-if sys.platform == "darwin":
+if not num.runtime.has_curand:
     pytestmark = pytest.mark.skip()
     BITGENERATOR_ARGS = []
 else:
