@@ -14,21 +14,16 @@
  *
  */
 
-#pragma once
+#include "cunumeric/set/unique_reduce.h"
+#include "cunumeric/set/unique_reduce_template.inl"
 
-#include "cunumeric/cunumeric.h"
+#include <thrust/system/omp/execution_policy.h>
 
 namespace cunumeric {
 
-class UniqueReduceTask : public CuNumericTask<UniqueReduceTask> {
- public:
-  static const int TASK_ID = CUNUMERIC_UNIQUE_REDUCE;
-
- public:
-  static void cpu_variant(legate::TaskContext& context);
-#ifdef LEGATE_USE_OPENMP
-  static void omp_variant(legate::TaskContext& context);
-#endif
-};
+/*static*/ void UniqueReduceTask::omp_variant(TaskContext& context)
+{
+  unique_reduce_template(context, thrust::omp::par);
+}
 
 }  // namespace cunumeric

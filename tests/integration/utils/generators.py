@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import random
 from itertools import permutations, product
 
 import numpy as np
@@ -102,6 +101,6 @@ def generate_item(ndim):
     Generates item location for ndarray.item and ndarray.itemset
     """
     max_index = pow(4, ndim) - 1
-    random_index = random.randint(-1, max_index)
-    random_tuple = tuple(random.randint(0, 3) for i in range(0, ndim))
+    random_index = np.random.randint(-1, max_index)
+    random_tuple = tuple(np.random.randint(0, 3) for i in range(0, ndim))
     return [random_index, max_index, random_tuple]

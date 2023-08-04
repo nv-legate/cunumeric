@@ -76,7 +76,7 @@ jobs:
 
       - name: Create conda env
         shell: su coder {0}
-        run: cd ~/; exec entrypoint make-conda-env;
+        run: cd ~/; exec entrypoint get-yaml-and-make-conda-env;
 
       - name: Build legate.core C++ library
         shell: su coder {0}

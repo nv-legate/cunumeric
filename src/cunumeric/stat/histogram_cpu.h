@@ -41,12 +41,10 @@ namespace detail {
 // host specialization:
 //
 template <typename exe_policy_t, typename weight_t, typename offset_t>
-struct segmented_sum_t<
-  exe_policy_t,
-  weight_t,
-  offset_t,
-  std::enable_if_t<std::is_same_v<exe_policy_t, thrust::detail::host_t> ||
-                   std::is_same_v<exe_policy_t, thrust::system::omp::detail::par_t>>> {
+struct segmented_sum_t<exe_policy_t,
+                       weight_t,
+                       offset_t,
+                       std::enable_if_t<is_host_policy_v<exe_policy_t>>> {
   segmented_sum_t(exe_policy_t exe_pol,
                   weight_t const* p_weights,
                   size_t n_samples,
@@ -81,6 +79,16 @@ struct segmented_sum_t<
   weight_t* ptr_hist_{nullptr};
   size_t n_intervals_{0};
   offset_t* ptr_offsets_{nullptr};
+};
+
+template <typename exe_policy_t>
+struct sync_policy_t<exe_policy_t, std::enable_if_t<is_host_policy_v<exe_policy_t>>> {
+  sync_policy_t(void) {}
+
+  void operator()(cudaStream_t stream)
+  {
+    // purposely empty: there's nothing to sync on host
+  }
 };
 
 }  // namespace detail

@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import random
-
 import numpy as np
 import pytest
 from utils.comparisons import allclose
@@ -144,7 +142,7 @@ class TestProdNegative(object):
         size = (1, 0)
         arr_np = np.random.random(size) * 10
         arr_num = num.array(arr_np)
-        initial_value = random.uniform(-20.0, 20.0)
+        initial_value = np.random.uniform(-20.0, 20.0)
         out_num = num.prod(arr_num, initial=initial_value)
         out_np = np.prod(arr_np, initial=initial_value)
         assert allclose(out_np, out_num)
@@ -330,7 +328,7 @@ class TestProdPositive(object):
     def test_initial(self, size):
         arr_np = np.random.random(size) * 10
         arr_num = num.array(arr_np)
-        initial_value = random.uniform(-20.0, 20.0)
+        initial_value = np.random.uniform(-20.0, 20.0)
         out_num = num.prod(arr_num, initial=initial_value)
         out_np = np.prod(arr_np, initial=initial_value)
 
