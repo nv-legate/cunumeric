@@ -285,12 +285,12 @@ struct UnaryRedOp<UnaryRedCode::SUM_SQUARES, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs * rhs;
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs * rhs; }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs * rhs; }
 };
 
 template <legate::Type::Code TYPE_CODE>
@@ -308,12 +308,12 @@ struct UnaryRedOp<UnaryRedCode::VARIANCE, TYPE_CODE> {
   }
 
   template <int32_t DIM>
-  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const RHS& rhs)
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
     return rhs;
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs) { return rhs; }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs; }
 };
 
 template <legate::Type::Code TYPE_CODE>
