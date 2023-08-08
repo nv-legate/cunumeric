@@ -62,6 +62,14 @@ struct lower_bound_op_t {
   size_t n_intervs_;
 };
 
+template <typename weight_t>
+struct reduction_op_t {
+  __host__ __device__ weight_t operator()(weight_t local_value, weight_t global_value)
+  {
+    return local_value + global_value;
+  }
+};
+
 template <typename exe_policy_t,
           typename elem_t,
           typename bin_t,
@@ -104,6 +112,63 @@ void histogram_weights(exe_policy_t exe_pol,
     exe_pol, ptr_w, n_samples, ptr_hist, n_intervals, ptr_offsets, stream};
 
   segsum();
+}
+
+template <typename exe_policy_t, typename elem_t, typename bin_t, typename weight_t>
+void histogram_wrapper(exe_policy_t exe_pol,
+                       const AccessorRO<elem_t, 1>& src,
+                       const Rect<1>& src_rect,
+                       const AccessorRO<bin_t, 1>& bins,
+                       const Rect<1>& bins_rect,
+                       const AccessorRO<weight_t, 1>& weights,
+                       const Rect<1>& weights_rect,
+                       const AccessorRD<SumReduction<weight_t>, true, 1>& result,
+                       const Rect<1>& result_rect,
+                       cudaStream_t stream = nullptr)
+{
+  auto&& [src_size, src_copy, src_ptr] = accessors::make_accessor_copy(exe_pol, src, src_rect);
+
+  auto&& [weights_size, weights_copy, weights_ptr] =
+    accessors::make_accessor_copy(exe_pol, weights, weights_rect);
+
+  assert(weights_size == src_size);
+
+  auto&& [bins_size, bins_ptr] = accessors::get_accessor_ptr(bins, bins_rect);
+
+  auto num_intervals            = bins_size - 1;
+  Buffer<weight_t> local_result = create_buffer<weight_t>(num_intervals);
+
+  weight_t* local_result_ptr = local_result.ptr(0);
+
+  auto&& [global_result_size, global_result_ptr] = accessors::get_accessor_ptr(result, result_rect);
+
+  sync_policy_t<exe_policy_t> synchronizer;
+
+  synchronizer(stream);
+
+  histogram_weights(exe_pol,
+                    src_copy.ptr(0),
+                    src_size,
+                    bins_ptr,
+                    num_intervals,
+                    local_result_ptr,
+                    weights_copy.ptr(0),
+                    stream);
+
+  synchronizer(stream);
+
+  // fold into RD result:
+  //
+  assert(num_intervals == global_result_size);
+
+  thrust::transform(exe_pol,
+                    local_result_ptr,
+                    local_result_ptr + num_intervals,
+                    global_result_ptr,
+                    global_result_ptr,
+                    reduction_op_t<weight_t>{});
+
+  synchronizer(stream);
 }
 
 }  // namespace detail

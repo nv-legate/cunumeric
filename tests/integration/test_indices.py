@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-import random
-
 import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
@@ -79,7 +77,7 @@ class TestIndices:
 
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
     def test_indices_basic(self, ndim):
-        dimensions = tuple(random.randint(1, 5) for _ in range(ndim))
+        dimensions = tuple(np.random.randint(1, 5) for _ in range(ndim))
 
         np_res = np.indices(dimensions)
         num_res = num.indices(dimensions)
@@ -87,7 +85,7 @@ class TestIndices:
 
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
     def test_indices_dtype_none(self, ndim):
-        dimensions = tuple(random.randint(1, 5) for _ in range(ndim))
+        dimensions = tuple(np.random.randint(1, 5) for _ in range(ndim))
 
         np_res = np.indices(dimensions, dtype=None)
         num_res = num.indices(dimensions, dtype=None)
@@ -95,14 +93,14 @@ class TestIndices:
 
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
     def test_indices_dtype_float(self, ndim):
-        dimensions = tuple(random.randint(1, 5) for _ in range(ndim))
+        dimensions = tuple(np.random.randint(1, 5) for _ in range(ndim))
         np_res = np.indices(dimensions, dtype=float)
         num_res = num.indices(dimensions, dtype=float)
         assert np.array_equal(np_res, num_res)
 
     @pytest.mark.parametrize("ndim", range(0, LEGATE_MAX_DIM))
     def test_indices_sparse(self, ndim):
-        dimensions = tuple(random.randint(1, 5) for _ in range(ndim))
+        dimensions = tuple(np.random.randint(1, 5) for _ in range(ndim))
         np_res = np.indices(dimensions, sparse=True)
         num_res = num.indices(dimensions, sparse=True)
         for i in range(len(np_res)):

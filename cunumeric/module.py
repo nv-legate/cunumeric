@@ -6541,7 +6541,7 @@ def unique(
 @add_boilerplate("a")
 def argsort(
     a: ndarray,
-    axis: int = -1,
+    axis: Union[int, None] = -1,
     kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
@@ -6654,7 +6654,7 @@ def searchsorted(
 @add_boilerplate("a")
 def sort(
     a: ndarray,
-    axis: int = -1,
+    axis: Union[int, None] = -1,
     kind: SortType = "quicksort",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
@@ -6740,7 +6740,7 @@ def sort_complex(a: ndarray) -> ndarray:
 def argpartition(
     a: ndarray,
     kth: Union[int, Sequence[int]],
-    axis: int = -1,
+    axis: Union[int, None] = -1,
     kind: SelectKind = "introselect",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:
@@ -6796,7 +6796,7 @@ def argpartition(
 def partition(
     a: ndarray,
     kth: Union[int, Sequence[int]],
-    axis: int = -1,
+    axis: Union[int, None] = -1,
     kind: SelectKind = "introselect",
     order: Optional[Union[str, list[str]]] = None,
 ) -> ndarray:

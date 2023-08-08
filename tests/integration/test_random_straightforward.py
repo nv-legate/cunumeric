@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 import math
-import sys
 
 import numpy as np
 import pytest
@@ -21,7 +20,7 @@ from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
-if sys.platform == "darwin":
+if not num.runtime.has_curand:
     pytestmark = pytest.mark.skip()
     BITGENERATOR_ARGS = []
 else:

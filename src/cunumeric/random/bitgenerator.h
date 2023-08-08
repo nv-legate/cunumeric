@@ -84,6 +84,11 @@ class BitGeneratorTask : public CuNumericTask<BitGeneratorTask> {
 
  public:
   static void cpu_variant(legate::TaskContext& context);
+#ifdef LEGATE_USE_OPENMP
+  // TODO: Fully parallelized OpenMP implementation for BitGenerator
+  // Doing it this way is safe, but only one thread is being used out of the OpenMP pool.
+  static void omp_variant(legate::TaskContext& context) { BitGeneratorTask::cpu_variant(context); }
+#endif
 #ifdef LEGATE_USE_CUDA
   static void gpu_variant(legate::TaskContext& context);
 #endif

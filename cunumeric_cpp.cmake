@@ -212,10 +212,11 @@ if(Legion_USE_OpenMP)
     src/cunumeric/search/argwhere_omp.cc
     src/cunumeric/search/nonzero_omp.cc
     src/cunumeric/set/unique_omp.cc
+    src/cunumeric/set/unique_reduce_omp.cc
     src/cunumeric/stat/bincount_omp.cc
     src/cunumeric/convolution/convolve_omp.cc
     src/cunumeric/transform/flip_omp.cc
-    src/cunumeric/stat/histogram_omp.cc    
+    src/cunumeric/stat/histogram_omp.cc
   )
 endif()
 
