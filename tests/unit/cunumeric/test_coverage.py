@@ -16,7 +16,6 @@
 from types import ModuleType
 from typing import Any
 
-import numpy as np
 import pytest
 from mock import MagicMock, patch
 
@@ -497,5 +496,4 @@ def test_ufunc_methods_unary() -> None:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

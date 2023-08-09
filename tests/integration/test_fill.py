@@ -152,5 +152,4 @@ def test_fill_string_to_float() -> None:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

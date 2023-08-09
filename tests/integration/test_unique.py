@@ -71,5 +71,4 @@ def test_parameters(return_index, return_inverse, return_counts, axis):
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
