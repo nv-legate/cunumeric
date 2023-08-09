@@ -8,10 +8,9 @@ on:
         required: true
         type: string
 
-name: Build and test cunumeric (with ${{ inputs.build-target }} legate) on GH
-
 jobs:
   build:
+    name: "[Sub workflow] Build cunumeric (with ${{ inputs.build-target }} legate) on GH"
     uses:
       ./.github/workflows/gh-build.yml
     with:
