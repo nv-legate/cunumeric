@@ -35,9 +35,7 @@ jobs:
       - name: Checkout legate.core
         uses: actions/checkout@v3
         with:
-          # TODO: undo
-          # repository: nv-legate/legate.core
-          repository: sandeepd-nv/legate.core
+          repository: nv-legate/legate.core
           ref: 'make_ghci_parts_reusable_from_cunumeric'
           fetch-depth: 0
           path: legate
