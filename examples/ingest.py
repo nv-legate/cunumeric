@@ -35,8 +35,8 @@ parser.add_argument(
     nargs="+",
     default=[3, 2, 2, 1],
 )
-parser.add_argument("-p", "--custom-partitioning", action="store_true")
-parser.add_argument("-s", "--custom-sharding", action="store_true")
+parser.add_argument("--custom-partitioning", action="store_true")
+parser.add_argument("--custom-sharding", action="store_true")
 args = parser.parse_args()
 dtype = uint16
 tile_shape = (1, 301, 704, 360)
