@@ -43,8 +43,6 @@ def reseed_and_gen_random(
     func: str, seed: Any, *args: Any, **kwargs: Any
 ) -> Tuple[Any, Any]:
     """Reseeed singleton rng and generate random in NumPy and cuNumeric."""
-    np.random.seed(seed)
-    num.random.seed(seed)
     return gen_random_from_both(func, *args, **kwargs)
 
 
@@ -505,5 +503,4 @@ class TestRandomErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

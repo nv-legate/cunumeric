@@ -15,7 +15,6 @@
 
 from subprocess import run
 
-import numpy as np
 import pytest
 
 # TODO: (bev) This probably only works in bash. Skipping the tests until
@@ -41,5 +40,4 @@ def test_patch() -> None:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

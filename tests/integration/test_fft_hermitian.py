@@ -64,5 +64,4 @@ def test_1d_inverse():
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
