@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: "[Sub workflow] Build cunumeric (with ${{ inputs.build-target }} legate) on GH"
+    name: "Build cunumeric (with ${{ inputs.build-target }} legate) on GH"
     uses:
       ./.github/workflows/gh-build.yml
     with:
