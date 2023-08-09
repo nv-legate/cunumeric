@@ -1,7 +1,7 @@
-name: Build and test cunumeric (with CPU legate) on GH
+name: Build and test cunumeric (with GPU legate) on GH
 
 concurrency:
-  group: ci-cpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
+  group: ci-gpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
   cancel-in-progress: true
 
 on:
@@ -11,23 +11,23 @@ on:
       - "branch-*"
 
 jobs:
-  build-cpu:
+  build-gpu:
     uses:
       ./.github/workflows/gh-build.yml
     with:
-      build-target: cpu
+      build-target: gpu
       # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
       runs-on: ${{ github.repository_owner == 'nv-legate' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
       sha: ${{ github.sha }}
 
   cleanup:
     needs:
-      - build-cpu
+      - build-gpu
 
     # This ensures the cleanup job runs even if previous jobs fail or the workflow is cancelled.
     if: always()
     uses:
       ./.github/workflows/gh-cleanup.yml
     with:
-      build-target: cpu
+      build-target: gpu
       sha: ${{ github.sha }}
