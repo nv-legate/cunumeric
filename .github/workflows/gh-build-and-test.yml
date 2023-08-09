@@ -1,33 +1,33 @@
-name: Build and test cunumeric (with CPU legate) on GH
-
-concurrency:
-  group: ci-cpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
-  cancel-in-progress: true
+name: Build and test cunumeric (with ${{ inputs.build-target }} legate) on GH
 
 on:
-  push:
-    branches:
-      - "pull-request/[0-9]+"
-      - "branch-*"
+  workflow_call:
+    inputs:
+      build-target:
+        required: true
+        type: string
+      sha:
+        required: true
+        type: string
 
 jobs:
-  build-cpu:
+  build:
     uses:
       ./.github/workflows/gh-build.yml
     with:
-      build-target: cpu
+      build-target: ${{ inputs.build-target }}
       # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
       runs-on: ${{ github.repository_owner == 'nv-legate' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
-      sha: ${{ github.sha }}
+      sha: ${{ inputs.sha }}
 
   cleanup:
     needs:
-      - build-cpu
+      - build
 
     # This ensures the cleanup job runs even if previous jobs fail or the workflow is cancelled.
     if: always()
     uses:
       ./.github/workflows/gh-cleanup.yml
     with:
-      build-target: cpu
-      sha: ${{ github.sha }}
+      build-target: ${{ inputs.build-target }}
+      sha: ${{ inputs.sha }}
