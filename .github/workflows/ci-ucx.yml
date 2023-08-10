@@ -123,7 +123,7 @@ jobs:
         run: |
           cd legate-ci/github-ci/cunumeric
           [[ "${{ matrix.name }}" == "Eager"* ]] && export PYTHONFAULTHANDLER=1
-          INSTANCE=${{ matrix.instance }} ./test.sh ${{ matrix.options }} > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
+          INSTANCE=${{ matrix.instance }} DOCKERFILE_EXT=.separate.ucx ./test.sh ${{ matrix.options }} > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
       - name: Process output
         if: always()
         run: |
