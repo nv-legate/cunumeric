@@ -192,6 +192,13 @@ def unimplemented(
                 kwargs = deep_apply(kwargs, fallback)
             return func(*args, **kwargs)
 
+    wrapper.__doc__ = f"""
+    cuNumeric has not implemented this function, and will fall back to NumPy.
+
+    See Also
+    --------
+    {name}
+    """
     wrapper._cunumeric = CuWrapperMetadata(implemented=False)
 
     return wrapper
