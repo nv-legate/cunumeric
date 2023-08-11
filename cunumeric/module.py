@@ -7441,7 +7441,7 @@ def reshuffle_reshape(
         arr_shuffled = arr
 
     # shape_reshuffled = arr_shuffled.shape # debug
-    collapsed_shape = np.product(
+    collapsed_shape = np.prod(
         [arr_shuffled.shape[i] for i in reshuffled_axes]
     )
 
