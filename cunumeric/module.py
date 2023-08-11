@@ -7441,9 +7441,7 @@ def reshuffle_reshape(
         arr_shuffled = arr
 
     # shape_reshuffled = arr_shuffled.shape # debug
-    collapsed_shape = np.prod(
-        [arr_shuffled.shape[i] for i in reshuffled_axes]
-    )
+    collapsed_shape = np.prod([arr_shuffled.shape[i] for i in reshuffled_axes])
 
     redimed = tuple(range(0, min_dim_index + 1)) + tuple(
         range(min_dim_index + num_axes, ndim)
