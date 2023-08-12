@@ -210,7 +210,8 @@ class Test_unimplemented:
 
         assert wrapped.__name__ == _test_func.__name__
         assert wrapped.__qualname__ == _test_func.__qualname__
-        assert wrapped.__doc__ == _test_func.__doc__
+        assert wrapped.__doc__ != _test_func.__doc__
+        assert "not implemented" in wrapped.__doc__
         assert wrapped.__wrapped__ is _test_func
 
         assert wrapped(10, 20) == 30
@@ -234,7 +235,8 @@ class Test_unimplemented:
 
         assert wrapped.__name__ == _test_func.__name__
         assert wrapped.__qualname__ == _test_func.__qualname__
-        assert wrapped.__doc__ == _test_func.__doc__
+        assert wrapped.__doc__ != _test_func.__doc__
+        assert "not implemented" in wrapped.__doc__
         assert wrapped.__wrapped__ is _test_func
 
         with pytest.warns(RuntimeWarning) as record:
@@ -253,7 +255,8 @@ class Test_unimplemented:
     ) -> None:
         wrapped = m.unimplemented(_test_ufunc, "foo", "_test_ufunc")
 
-        assert wrapped.__doc__ == _test_ufunc.__doc__
+        assert wrapped.__doc__ != _test_ufunc.__doc__
+        assert "not implemented" in wrapped.__doc__
         assert wrapped.__wrapped__ is _test_ufunc
 
         assert wrapped(10, 20) == 30
@@ -275,7 +278,8 @@ class Test_unimplemented:
             _test_ufunc, "foo", "_test_ufunc", reporting=False
         )
 
-        assert wrapped.__doc__ == _test_ufunc.__doc__
+        assert wrapped.__doc__ != _test_ufunc.__doc__
+        assert "not implemented" in wrapped.__doc__
         assert wrapped.__wrapped__ is _test_ufunc
 
         with pytest.warns(RuntimeWarning) as record:
