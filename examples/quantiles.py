@@ -95,7 +95,7 @@ def run_quantiles(
             a,
             q,
             axis,
-            str_m,
+            str_method,
             q_out,
         )
     else:
