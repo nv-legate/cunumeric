@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import numpy as np
 import pytest
 from mock import patch
 
@@ -87,5 +86,4 @@ class TestPHILOX4_32_10:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

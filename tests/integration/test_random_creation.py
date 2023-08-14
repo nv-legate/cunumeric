@@ -43,8 +43,6 @@ def reseed_and_gen_random(
     func: str, seed: Any, *args: Any, **kwargs: Any
 ) -> Tuple[Any, Any]:
     """Reseeed singleton rng and generate random in NumPy and cuNumeric."""
-    np.random.seed(seed)
-    num.random.seed(seed)
     return gen_random_from_both(func, *args, **kwargs)
 
 
@@ -72,7 +70,16 @@ def gen_random_from_both(
             # cuNumeric: keeps generating different arrays.
             # seed is respected in Eager mode.
         ),
-        None,
+        pytest.param(
+            None,
+            marks=pytest.mark.xfail(
+                not num.runtime.has_curand,
+                reason="legacy RNG fallback treats seed(None) as seed(0)",
+            ),
+            # https://github.com/nv-legate/cunumeric/issues/1018
+            # NumPy: seed(None) is equivalent to seed(<get_system_random>())
+            # cuNumeric non-cuRAND fallback: seed(None) equivalent to seed(0)
+        ),
         pytest.param(
             (4, 6, 8),
             marks=pytest.mark.xfail(
@@ -124,6 +131,10 @@ def test_default_rng_seed(seed):
 @pytest.mark.xfail(
     EAGER_TEST,
     reason="cuNumeric does not respect seed in Eager mode",
+)
+@pytest.mark.xfail(
+    not num.runtime.has_curand,
+    reason="XORWOW not available without cuRAND",
 )
 def test_default_rng_bitgenerator():
     seed = 12345
@@ -492,5 +503,4 @@ class TestRandomErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

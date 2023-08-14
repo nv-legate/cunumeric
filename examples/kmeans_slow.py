@@ -165,7 +165,6 @@ if __name__ == "__main__":
         help="number of elements in the data set in thousands",
     )
     parser.add_argument(
-        "-p",
         "--precision",
         type=int,
         default=32,

@@ -147,5 +147,4 @@ def test_array_scalar(lhs_np, rhs_np, lhs_num, rhs_num):
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
