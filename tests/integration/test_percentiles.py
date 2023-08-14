@@ -16,8 +16,6 @@
 
 import numpy as np
 import pytest
-
-# from legate.core import LEGATE_MAX_DIM
 from utils.comparisons import allclose
 
 import cunumeric as num
@@ -157,7 +155,5 @@ def test_random_inlined(str_method, qin_arr, axes):
 
 if __name__ == "__main__":
     import sys
-
-    np.random.seed(12345)
 
     sys.exit(pytest.main(sys.argv))
