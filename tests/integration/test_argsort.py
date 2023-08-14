@@ -58,8 +58,9 @@ NO_EMPTY_SIZES = [
     (DIM, DIM, DIM),
 ]
 
-SORT_TYPES = ["quicksort", "mergesort", "stable"]
-UNSTABLE_SORT_TYPE = ["heapsort"]
+STABLE_SORT_TYPES = ["stable"]
+UNSTABLE_SORT_TYPES = ["heapsort", "quicksort", "mergesort"]
+SORT_TYPES = STABLE_SORT_TYPES + UNSTABLE_SORT_TYPES
 
 
 class TestArgSort(object):
@@ -137,7 +138,7 @@ class TestArgSort(object):
             assert np.array_equal(res_num, res_np)
 
     @pytest.mark.parametrize("size", SIZES)
-    @pytest.mark.parametrize("sort_type", SORT_TYPES)
+    @pytest.mark.parametrize("sort_type", STABLE_SORT_TYPES)
     def test_basic_axis_sort_type(self, size, sort_type):
         arr_np = np.random.randint(-100, 100, size)
         arr_num = num.array(arr_np)
@@ -146,13 +147,14 @@ class TestArgSort(object):
             res_num = num.argsort(arr_num, axis=axis, kind=sort_type)
             assert np.array_equal(res_num, res_np)
 
-    @pytest.mark.xfail
     @pytest.mark.parametrize("size", SIZES)
-    @pytest.mark.parametrize("sort_type", UNSTABLE_SORT_TYPE)
+    @pytest.mark.parametrize("sort_type", UNSTABLE_SORT_TYPES)
     def test_basic_axis_sort_type_unstable(self, size, sort_type):
-        # intermittent failed due to
-        # https://github.com/nv-legate/cunumeric/issues/782
-        arr_np = np.random.randint(-100, 100, size)
+        # have to guarantee unique values in input
+        # see https://github.com/nv-legate/cunumeric/issues/782
+        arr_np = np.arange(np.prod(size))
+        np.random.shuffle(arr_np)
+        arr_np = arr_np.reshape(size)
         arr_num = num.array(arr_np)
         for axis in range(-arr_np.ndim + 1, arr_np.ndim):
             res_np = np.argsort(arr_np, axis=axis, kind=sort_type)
@@ -171,7 +173,7 @@ class TestArgSort(object):
             assert np.array_equal(arr_np_copy, arr_num_copy)
 
     @pytest.mark.parametrize("size", SIZES)
-    @pytest.mark.parametrize("sort_type", SORT_TYPES)
+    @pytest.mark.parametrize("sort_type", STABLE_SORT_TYPES)
     def test_arr_basic_axis_sort(self, size, sort_type):
         arr_np = np.random.randint(-100, 100, size)
         arr_num = num.array(arr_np)
@@ -182,13 +184,14 @@ class TestArgSort(object):
             arr_num_copy.argsort(axis=axis, kind=sort_type)
             assert np.array_equal(arr_np_copy, arr_num_copy)
 
-    @pytest.mark.xfail
     @pytest.mark.parametrize("size", SIZES)
-    @pytest.mark.parametrize("sort_type", UNSTABLE_SORT_TYPE)
+    @pytest.mark.parametrize("sort_type", UNSTABLE_SORT_TYPES)
     def test_arr_basic_axis_sort_unstable(self, size, sort_type):
-        # intermittent failed due to
-        # https://github.com/nv-legate/cunumeric/issues/782
-        arr_np = np.random.randint(-100, 100, size)
+        # have to guarantee unique values in input
+        # see https://github.com/nv-legate/cunumeric/issues/782
+        arr_np = np.arange(np.prod(size))
+        np.random.shuffle(arr_np)
+        arr_np = arr_np.reshape(size)
         arr_num = num.array(arr_np)
         for axis in range(-arr_num.ndim + 1, arr_num.ndim):
             arr_np_copy = arr_np
