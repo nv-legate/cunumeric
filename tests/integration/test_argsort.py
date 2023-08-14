@@ -58,8 +58,8 @@ NO_EMPTY_SIZES = [
     (DIM, DIM, DIM),
 ]
 
-STABLE_SORT_TYPES = ["stable"]
-UNSTABLE_SORT_TYPES = ["heapsort", "quicksort", "mergesort"]
+STABLE_SORT_TYPES = ["stable", "mergesort"]
+UNSTABLE_SORT_TYPES = ["heapsort", "quicksort"]
 SORT_TYPES = STABLE_SORT_TYPES + UNSTABLE_SORT_TYPES
 
 
