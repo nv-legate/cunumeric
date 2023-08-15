@@ -41,3 +41,4 @@ cunumeric/install_info.py
 /_skbuild
 /_cmake_test_compile
 .ipynb_checkpoints
+.legate-test-last-failed
