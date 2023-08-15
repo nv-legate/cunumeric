@@ -145,6 +145,22 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       }
       return std::move(mappings);
     }
+    // CHANGE: If this code is changed, make sure all layouts are
+    // consistent with those assumed in batched_cholesky.cu, etc
+    case CUNUMERIC_BATCHED_CHOLESKY: {
+      std::vector<StoreMapping> mappings;
+      auto& inputs  = task.inputs();
+      auto& outputs = task.outputs();
+      for (auto& input : inputs) {
+        mappings.push_back(StoreMapping::default_mapping(input, options.front()));
+        mappings.back().policy.exact = true;
+      }
+      for (auto& output : outputs) {
+        mappings.push_back(StoreMapping::default_mapping(output, options.front()));
+        mappings.back().policy.exact = true;
+      }
+      return std::move(mappings);
+    }
     case CUNUMERIC_TRILU: {
       if (task.scalars().size() == 2) return {};
       // If we're here, this task was the post-processing for Cholesky.

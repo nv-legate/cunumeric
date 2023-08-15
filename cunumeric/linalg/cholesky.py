@@ -202,12 +202,37 @@ def tril(context: Context, p_output: StorePartition, n: int) -> None:
     task.execute()
 
 
+def batched_cholesky(output: DeferredArray, input: DeferredArray) -> None:
+    # the only feasible implementation for right now is that
+    # each cholesky submatrix fits on a single proc. We will have
+    # wildly varying memory available depending on the system.
+    # Just use a fixed cutoff to provide some sensible warning.
+    # TODO: find a better way to inform the user dims are too big
+    size = input.base.shape[-1]
+    if size > 32768:
+        raise NotImplementedError(
+            "batched cholesky is only valid"
+            " when the square submatrices fit"
+            f" on a single proc, n > {size} is too large"
+        )
+    context = output.context
+    task = context.create_auto_task(CuNumericOpCode.BATCHED_CHOLESKY)
+    task.add_input(input.base)
+    task.add_output(output.base)
+    task.add_broadcast(input.base, (-2, -1))
+    task.add_broadcast(output.base, (-2, -1))
+    task.add_alignment(input.base, output.base)
+    task.execute()
+
+
 def cholesky(
     output: DeferredArray, input: DeferredArray, no_tril: bool
 ) -> None:
+    if len(input.base.shape) > 2:
+        return batched_cholesky(output, input, no_tril)
+
     runtime = output.runtime
     context = output.context
-
     if runtime.num_procs == 1:
         transpose_copy_single(context, input.base, output.base)
         potrf_single(context, output.base)
