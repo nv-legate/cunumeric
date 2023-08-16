@@ -207,8 +207,6 @@ def matrix_power(a: ndarray, n: int) -> ndarray:
         a = empty_like(a)
         a[...] = eye(a.shape[-2], dtype=a.dtype)
         return a
-    elif n == 1:
-        return a.copy()
 
     # Invert if necessary
     if n < 0:
@@ -219,7 +217,7 @@ def matrix_power(a: ndarray, n: int) -> ndarray:
 
     # Fast paths
     if n == 1:
-        return a
+        return a.copy()
     elif n == 2:
         return matmul(a, a)
     elif n == 3:
