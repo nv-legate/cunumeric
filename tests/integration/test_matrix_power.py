@@ -106,7 +106,7 @@ class TestMatrixPowerErrors:
             num.linalg.matrix_power(a_num, n)
         with pytest.raises(expected_exc):
             np.linalg.matrix_power(a_np, n)
-    
+
     def test_n_negative_int(self):
         shape = (2, 2)
         n = -1
