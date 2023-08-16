@@ -73,9 +73,13 @@ class TestMatrixPowerErrors:
     def test_matrix_ndim_smaller_than_two(self, ndim):
         shape = (3,) * ndim
         a_num = mk_0to1_array(num, shape)
-        msg = "Expected at least 2d array"
-        with pytest.raises(num.linalg.LinAlgError, match=msg):
+        a_np = mk_0to1_array(np, shape)
+        expected_exc = num.linalg.LinAlgError
+        expected_exc_np = np.linalg.LinAlgError
+        with pytest.raises(expected_exc):
             num.linalg.matrix_power(a_num, 1)
+        with pytest.raises(expected_exc_np):
+            np.linalg.matrix_power(a_np, 1)
 
     @pytest.mark.parametrize(
         "shape", ((2, 1), (2, 2, 1)), ids=lambda shape: f"(shape={shape})"
