@@ -1,10 +1,9 @@
 name: Build UCX cunumeric
 on:
-  on:
-    push:
-      branches:
-        - "pull-request/[0-9]+"
-        - "branch-*"
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+      - "branch-*"
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-cunumeric-ci
