@@ -1,14 +1,10 @@
 name: Build UCX cunumeric
 on:
-  push:
-    branches-ignore:
-      - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
-  pull_request:
-    branches-ignore:
-      - gh-pages  # deployment target branch (this workflow should not exist on that branch anyway)
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    - cron:  '0 */6 * * *'
+  on:
+    push:
+      branches:
+        - "pull-request/[0-9]+"
+        - "branch-*"
 env:
   COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
   PROJECT: github-cunumeric-ci
