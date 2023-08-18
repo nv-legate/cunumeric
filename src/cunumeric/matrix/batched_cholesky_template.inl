@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2023 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,15 +64,15 @@ struct BatchedCholeskyImpl {
     auto shape = input_array.shape<DIM>();
     if (shape != output_array.shape<DIM>()) {
       throw legate::TaskException(
-        "Batched cholesky is not yet supported when input/output types differ");
+        "Batched cholesky is not supported when input/output shapes differ");
     }
-
-    if (shape.empty()) return;
 
     size_t strides[DIM];
 
     auto input  = input_array.read_accessor<VAL, DIM>(shape).ptr(shape, strides);
     auto output = output_array.write_accessor<VAL, DIM>(shape).ptr(shape, strides);
+
+    if (shape.empty()) return;
 
     // TODO: we need some sort of check here on the strides
     // This should be a dense thing.

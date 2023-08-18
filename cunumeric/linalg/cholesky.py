@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -208,13 +208,6 @@ def _batched_cholesky(output: DeferredArray, input: DeferredArray) -> None:
     # wildly varying memory available depending on the system.
     # Just use a fixed cutoff to provide some sensible warning.
     # TODO: find a better way to inform the user dims are too big
-    size = input.base.shape[-1]
-    if size > 32768:
-        raise NotImplementedError(
-            "batched cholesky is only valid"
-            " when the square submatrices fit"
-            f" on a single proc, n > {size} is too large"
-        )
     context = output.context
     task = context.create_auto_task(CuNumericOpCode.BATCHED_CHOLESKY)
     task.add_input(input.base)
@@ -229,16 +222,27 @@ def _batched_cholesky(output: DeferredArray, input: DeferredArray) -> None:
 def cholesky(
     output: DeferredArray, input: DeferredArray, no_tril: bool
 ) -> None:
+    runtime = output.runtime
+    context = output.context
     if len(input.base.shape) > 2:
         if no_tril:
             raise NotImplementedError(
                 "batched cholesky expects to only "
                 "produce the lower triangular matrix"
             )
+        size = input.base.shape[-1]
+        # Choose 32768 as dimension cutoff for warning
+        # so that for float64 anything larger than
+        # 8 GiB produces a warning
+        if size > 32768:
+            runtime.warn(
+                "batched cholesky is only valid"
+                " when the square submatrices fit"
+                f" on a single proc, n > {size} may be too large",
+                category=UserWarning,
+            )
         return _batched_cholesky(output, input)
 
-    runtime = output.runtime
-    context = output.context
     if runtime.num_procs == 1:
         transpose_copy_single(context, input.base, output.base)
         potrf_single(context, output.base)

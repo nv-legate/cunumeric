@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -95,6 +95,15 @@ def test_batched_3d(n):
         correct = np.linalg.cholesky(np_a * (i + 1))
         test = test_c[i, :]
         assert allclose(correct, test)
+
+
+def test_batched_empty():
+    batch = 4
+    a = _get_real_symm_posdef(8)
+    a_batched = num.einsum("i,jk->ijk", np.arange(batch) + 1, a)
+    a_sliced = a_batched[0:0, :, :]
+    empty = num.linalg.cholesky(a_sliced)
+    assert empty.shape == a_sliced.shape
 
 
 @pytest.mark.parametrize("n", SIZES)
