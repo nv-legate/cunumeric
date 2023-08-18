@@ -14,6 +14,7 @@
  *
  */
 
+#include "cunumeric/cunumeric.h"
 #include "cunumeric/matrix/batched_cholesky.h"
 #include "cunumeric/matrix/batched_cholesky_template.inl"
 
@@ -25,6 +26,12 @@ namespace cunumeric {
 
 using namespace legate;
 
+template <>
+void CopyBlockImpl<VariantKind::OMP>::operator()(void* dst, const void* src, size_t n)
+{
+  ::memcpy(dst, src, n);
+}
+
 template <Type::Code CODE>
 struct BatchedTransposeImplBody<VariantKind::OMP, CODE> {
   using VAL = legate_type_of<CODE>;
@@ -33,34 +40,35 @@ struct BatchedTransposeImplBody<VariantKind::OMP, CODE> {
 
   void operator()(VAL* out, int n) const
   {
-
     int nblocks = (n + tile_size - 1) / tile_size;
 
 #pragma omp parallel for
-    for (int rb=0; rb < nblocks; ++rb){
-      for (int cb=0; cb < nblocks; ++cb){
+    for (int rb = 0; rb < nblocks; ++rb) {
+      // only loop the upper diagonal
+      // transpose the elements that are there and
+      // zero out the elements after reading them
+      for (int cb = rb; cb < nblocks; ++cb) {
         VAL tile[tile_size][tile_size];
         int r_start = rb * tile_size;
-        int r_stop = std::min(r_start + tile_size, n);
+        int r_stop  = std::min(r_start + tile_size, n);
         int c_start = cb * tile_size;
-        int c_stop = std::min(c_start + tile_size, n);
+        int c_stop  = std::min(c_start + tile_size, n);
 
-        for (int r=r_start, tr=0; r < r_stop; ++r){
-          for (int c=c_start, tc=0; c < c_stop; ++c){
-            if (r <= c){
-              tile[tr][tc] = out[r*n + c];
+        for (int r = r_start, tr = 0; r < r_stop; ++r, ++tr) {
+          for (int c = c_start, tc = 0; c < c_stop; ++c, ++tc) {
+            if (r <= c) {
+              auto offset  = r * n + c;
+              tile[tr][tc] = out[offset];
+              out[offset]  = 0;
             } else {
               tile[tr][tc] = 0;
             }
           }
         }
 
-        for (int r=c_start, tr=0; r < c_stop; ++r){
-          for (int c=r_start, tc=0; c < r_stop; ++c){
-            out[r*n+c] = tile[tr][tc];
-          }
+        for (int r = c_start, tr = 0; r < c_stop; ++r, ++tr) {
+          for (int c = r_start, tc = 0; c < r_stop; ++c, ++tc) { out[r * n + c] = tile[tc][tr]; }
         }
-
       }
     }
   }

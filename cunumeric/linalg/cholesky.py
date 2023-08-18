@@ -202,7 +202,7 @@ def tril(context: Context, p_output: StorePartition, n: int) -> None:
     task.execute()
 
 
-def batched_cholesky(output: DeferredArray, input: DeferredArray) -> None:
+def _batched_cholesky(output: DeferredArray, input: DeferredArray) -> None:
     # the only feasible implementation for right now is that
     # each cholesky submatrix fits on a single proc. We will have
     # wildly varying memory available depending on the system.
@@ -219,8 +219,9 @@ def batched_cholesky(output: DeferredArray, input: DeferredArray) -> None:
     task = context.create_auto_task(CuNumericOpCode.BATCHED_CHOLESKY)
     task.add_input(input.base)
     task.add_output(output.base)
-    task.add_broadcast(input.base, (-2, -1))
-    task.add_broadcast(output.base, (-2, -1))
+    ndim = input.base.ndim
+    task.add_broadcast(input.base, (ndim - 2, ndim - 1))
+    task.add_broadcast(output.base, (ndim - 2, ndim - 1))
     task.add_alignment(input.base, output.base)
     task.execute()
 
@@ -229,7 +230,12 @@ def cholesky(
     output: DeferredArray, input: DeferredArray, no_tril: bool
 ) -> None:
     if len(input.base.shape) > 2:
-        return batched_cholesky(output, input, no_tril)
+        if no_tril:
+            raise NotImplementedError(
+                "batched cholesky expects to only "
+                "produce the lower triangular matrix"
+            )
+        return _batched_cholesky(output, input)
 
     runtime = output.runtime
     context = output.context

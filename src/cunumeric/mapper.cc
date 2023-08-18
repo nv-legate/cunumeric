@@ -154,10 +154,12 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       for (auto& input : inputs) {
         mappings.push_back(StoreMapping::default_mapping(input, options.front()));
         mappings.back().policy.exact = true;
+        mappings.back().policy.ordering.set_c_order();
       }
       for (auto& output : outputs) {
         mappings.push_back(StoreMapping::default_mapping(output, options.front()));
         mappings.back().policy.exact = true;
+        mappings.back().policy.ordering.set_c_order();
       }
       return std::move(mappings);
     }

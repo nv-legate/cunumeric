@@ -27,6 +27,12 @@ using namespace legate;
 #define TILE_DIM 32
 #define BLOCK_ROWS 8
 
+template <>
+void CopyBlockImpl<VariantKind::GPU>::operator()(void* dst, const void* src, size_t size)
+{
+  cudaMemcpyAsync(dst, src, size, cudaMemcpyDeviceToDevice, get_cached_stream());
+}
+
 template <typename VAL>
 __global__ static void __launch_bounds__((TILE_DIM * BLOCK_ROWS), MIN_CTAS_PER_SM)
   transpose_2d_lower(VAL* out, int n)
@@ -34,37 +40,46 @@ __global__ static void __launch_bounds__((TILE_DIM * BLOCK_ROWS), MIN_CTAS_PER_S
   __shared__ VAL tile[TILE_DIM][TILE_DIM + 1 /*avoid bank conflicts*/];
 
   // The y dim is fast-moving index for coalescing
-  auto r = blockIdx.x * TILE_DIM + threadIdx.x;
-  auto c = blockIdx.y * TILE_DIM + threadIdx.y;
-  auto stride = BLOCK_ROWS;
+  auto r_block = blockIdx.x * TILE_DIM;
+  auto c_block = blockIdx.y * TILE_DIM;
+  auto r       = blockIdx.x * TILE_DIM + threadIdx.x;
+  auto c       = blockIdx.y * TILE_DIM + threadIdx.y;
+  auto stride  = BLOCK_ROWS;
   // The tile coordinates
-  auto tr = threadIdx.x;
-  auto tc = threadIdx.y;
-  auto offset = r*n + c;
+  auto tr     = threadIdx.x;
+  auto tc     = threadIdx.y;
+  auto offset = r * n + c;
+
+  // only execute across the upper diagonal
+  // a single thread block will store the upper diagonal block into
+  // a temp shared memory then set the block to zeros
+  if (c_block >= r_block) {
 #pragma unroll
-  for (int i=0; i < TILE_DIM; i += BLOCK_ROWS, offset += stride){
-    if (r < n && (c+i) < n){
-      if (r <= (c+i)){
-        tile[tr][tc+i] = out[offset];
-      } else {
-        tile[tr][tc+i] = 0;
+    for (int i = 0; i < TILE_DIM; i += BLOCK_ROWS, offset += stride) {
+      if (r < n && (c + i) < n) {
+        if (r <= (c + i)) {
+          tile[tr][tc + i] = out[offset];
+          // clear the upper diagonal entry
+          out[offset] = 0;
+        } else {
+          tile[tr][tc + i] = 0;
+        }
       }
     }
-  }
 
-  // Make sure all the data is in shared memory
-  __syncthreads();
+    // Make sure all the data is in shared memory
+    __syncthreads();
 
-  // Transpose the global coordinates, keep y the fast-moving index
-  r = blockIdx.y * TILE_DIM + threadIdx.x;
-  c = blockIdx.x * TILE_DIM + threadIdx.y;
-  offset = r*n + c;
+    // Transpose the global coordinates, keep y the fast-moving index
+    r      = blockIdx.y * TILE_DIM + threadIdx.x;
+    c      = blockIdx.x * TILE_DIM + threadIdx.y;
+    offset = r * n + c;
 
 #pragma unroll
-  for (int i=0; i < TILE_DIM; i += BLOCK_ROWS, offset += stride){
-    // only store to the lower triangle
-    if (r < n && (c+i) < n){
-      out[offset] = tile[tc+i][tr];
+    for (int i = 0; i < TILE_DIM; i += BLOCK_ROWS, offset += stride) {
+      if (r < n && (c + i) < n) {
+        if (r >= (c + i)) { out[offset] = tile[tc + i][tr]; }
+      }
     }
   }
 }
@@ -82,13 +97,11 @@ struct BatchedTransposeImplBody<VariantKind::GPU, CODE> {
 
     // CUDA Potrf produces the full matrix, we only want
     // the lower diagonal
-    transpose_2d_lower<VAL>
-      <<<blocks, threads, 0, stream>>>(out, n);
+    transpose_2d_lower<VAL><<<blocks, threads, 0, stream>>>(out, n);
 
     CHECK_CUDA_STREAM(stream);
   }
 };
-
 
 /*static*/ void BatchedCholeskyTask::gpu_variant(TaskContext& context)
 {

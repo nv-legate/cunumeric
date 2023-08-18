@@ -36,6 +36,11 @@ struct BatchedCholeskyImplBody {
   }
 };
 
+template <VariantKind KIND>
+struct CopyBlockImpl {
+  void operator()(void* dst, const void* src, size_t n);
+};
+
 template <VariantKind KIND, Type::Code CODE>
 struct BatchedTransposeImplBody {
   using VAL = legate_type_of<CODE>;
@@ -45,7 +50,8 @@ struct BatchedTransposeImplBody {
 
 template <Type::Code CODE>
 struct _cholesky_supported {
-  static constexpr bool value = CODE == Type::Code::FLOAT64 || CODE == Type::Code::FLOAT32;
+  static constexpr bool value = CODE == Type::Code::FLOAT64 || CODE == Type::Code::FLOAT32 ||
+                                CODE == Type::Code::COMPLEX64 || CODE == Type::Code::COMPLEX128;
 };
 
 template <VariantKind KIND>
@@ -56,72 +62,69 @@ struct BatchedCholeskyImpl {
     using VAL = legate_type_of<CODE>;
 
     auto shape = input_array.shape<DIM>();
-    if (shape != output_array.shape<DIM>()){
-      throw legate::TaskException("Batched cholesky is not yet supported when input/output types differ");
+    if (shape != output_array.shape<DIM>()) {
+      throw legate::TaskException(
+        "Batched cholesky is not yet supported when input/output types differ");
     }
 
     if (shape.empty()) return;
 
     size_t strides[DIM];
 
-    auto input = input_array.read_accessor<VAL, DIM>(shape).ptr(shape, strides);
+    auto input  = input_array.read_accessor<VAL, DIM>(shape).ptr(shape, strides);
     auto output = output_array.write_accessor<VAL, DIM>(shape).ptr(shape, strides);
 
     // TODO: we need some sort of check here on the strides
     // This should be a dense thing.
 
     int num_blocks = 1;
-    for (int i=0; i < (DIM-2); ++i){
-      num_blocks *= (shape.hi[i] - shape.lo[i] + 1);
-    }
+    for (int i = 0; i < (DIM - 2); ++i) { num_blocks *= (shape.hi[i] - shape.lo[i] + 1); }
 
-    auto m   = static_cast<int32_t>(shape.hi[DIM-2] - shape.lo[DIM-2] + 1);
-    auto n   = static_cast<int32_t>(shape.hi[DIM-1] - shape.lo[DIM-1] + 1);
+    auto m = static_cast<int32_t>(shape.hi[DIM - 2] - shape.lo[DIM - 2] + 1);
+    auto n = static_cast<int32_t>(shape.hi[DIM - 1] - shape.lo[DIM - 1] + 1);
     assert(m > 0 && n > 0);
 
-    auto block_stride = m*n;
+    auto block_stride = m * n;
 
-    for (int i=0; i < num_blocks; ++i){
-      if constexpr (KIND == VariantKind::GPU){
-        cudaMemcpy(output, input, sizeof(VAL) * block_stride, cudaMemcpyDeviceToDevice);
-      }
-      if constexpr (KIND != VariantKind::GPU){
-        ::memcpy(output, input, sizeof(VAL) * block_stride);
-      }
-
-      if constexpr (_cholesky_supported<CODE>::value){
-        PotrfImplBody<KIND,CODE>()(output, m, n);
+    for (int i = 0; i < num_blocks; ++i) {
+      if constexpr (_cholesky_supported<CODE>::value) {
+        CopyBlockImpl<KIND>()(output, input, sizeof(VAL) * block_stride);
+        PotrfImplBody<KIND, CODE>()(output, m, n);
         // Implicit assumption here about the cholesky code created.
         // We assume the output has C layout, but each subblock
-        // will be generated in Fortran layout. Transpose the Fortan
+        // will be generated in Fortran layout. Transpose the Fortran
         // subblock into C layout.
         // CHANGE: If this code is changed, please make sure all changes
         // are consistent with those found in mapper.cc.
-        BatchedTransposeImplBody<KIND,CODE>()(output, n);
+        BatchedTransposeImplBody<KIND, CODE>()(output, n);
         input += block_stride;
         output += block_stride;
       }
-
     }
   }
-
 };
 
 template <VariantKind KIND>
 static void batched_cholesky_task_context_dispatch(TaskContext& context)
 {
-  auto& batched_input = context.inputs()[0];
+  auto& batched_input  = context.inputs()[0];
   auto& batched_output = context.outputs()[0];
-  if (batched_input.code() != batched_output.code()){
-    throw legate::TaskException("batched cholesky is not yet supported when input/output types differ");
+  if (batched_input.code() != batched_output.code()) {
+    throw legate::TaskException(
+      "batched cholesky is not yet supported when input/output types differ");
   }
-  if (batched_input.dim() != batched_output.dim()){
+  if (batched_input.dim() != batched_output.dim()) {
     throw legate::TaskException("input/output have different dims in batched cholesky");
   }
-  if (batched_input.dim() <= 2){
-    throw legate::TaskException("internal error: batched cholesky input does not have more than 2 dims");
+  if (batched_input.dim() <= 2) {
+    throw legate::TaskException(
+      "internal error: batched cholesky input does not have more than 2 dims");
   }
-  double_dispatch(batched_input.dim(), batched_input.code(), BatchedCholeskyImpl<KIND>{}, batched_input, batched_output);
+  double_dispatch(batched_input.dim(),
+                  batched_input.code(),
+                  BatchedCholeskyImpl<KIND>{},
+                  batched_input,
+                  batched_output);
 }
 
 }  // namespace cunumeric

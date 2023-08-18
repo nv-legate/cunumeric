@@ -97,7 +97,7 @@ def test_batched_3d(n):
         assert allclose(correct, test)
 
 
-@pytest.mark.parametrize("n", (2,))  # SIZES)
+@pytest.mark.parametrize("n", SIZES)
 def test_batched_4d(n):
     batch = 2
     a = _get_real_symm_posdef(n)
