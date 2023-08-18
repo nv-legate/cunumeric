@@ -52,7 +52,6 @@ template <>
 struct PotrfImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
   void operator()(float* array, int32_t m, int32_t n)
   {
-    std::cerr << "Running float 32" << std::endl;
     potrf_template(cusolverDnSpotrf_bufferSize, cusolverDnSpotrf, array, m, n);
   }
 };
@@ -62,7 +61,6 @@ void PotrfImplBody<VariantKind::GPU, Type::Code::FLOAT64>::operator()(double* ar
                                                                       int32_t m,
                                                                       int32_t n)
 {
-  std::cerr << "Running float 64" << std::endl;
   potrf_template(cusolverDnDpotrf_bufferSize, cusolverDnDpotrf, array, m, n);
 }
 
@@ -71,7 +69,6 @@ void PotrfImplBody<VariantKind::GPU, Type::Code::COMPLEX64>::operator()(complex<
                                                                         int32_t m,
                                                                         int32_t n)
 {
-  std::cerr << "Running complex 64" << std::endl;
   potrf_template(
     cusolverDnCpotrf_bufferSize, cusolverDnCpotrf, reinterpret_cast<cuComplex*>(array), m, n);
 }
@@ -81,7 +78,6 @@ void PotrfImplBody<VariantKind::GPU, Type::Code::COMPLEX128>::operator()(complex
                                                                          int32_t m,
                                                                          int32_t n)
 {
-  std::cerr << "Running complex 128" << std::endl;
   potrf_template(
     cusolverDnZpotrf_bufferSize, cusolverDnZpotrf, reinterpret_cast<cuDoubleComplex*>(array), m, n);
 }
