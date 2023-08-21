@@ -241,7 +241,7 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
     std::uint32_t const same_mask = cub::MatchAny<sizeof(bucket)>(bucket);
 #endif
 
-    int32_t laneid = cub::LaneId();
+    int32_t laneid             = cub::LaneId();
     const uint32_t active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
     if ((active_mask & (1 << laneid)) != 0) {
       // Store our data into shared
