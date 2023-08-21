@@ -25,15 +25,15 @@ namespace cunumeric {
 using namespace legate;
 
 template <>
-struct PotrfImplBody<VariantKind::CPU, Type::Code::FLOAT32> {
-  void operator()(float* array, int32_t m, int32_t n)
-  {
-    char uplo    = 'L';
-    int32_t info = 0;
-    LAPACK_spotrf(&uplo, &n, array, &m, &info);
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
+void PotrfImplBody<VariantKind::CPU, Type::Code::FLOAT32>::operator()(float* array,
+                                                                      int32_t m,
+                                                                      int32_t n)
+{
+  char uplo    = 'L';
+  int32_t info = 0;
+  LAPACK_spotrf(&uplo, &n, array, &m, &info);
+  if (info != 0) throw legate::TaskException("Matrix is not positive definite");
+}
 
 template <>
 void PotrfImplBody<VariantKind::CPU, Type::Code::FLOAT64>::operator()(double* array,

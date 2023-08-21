@@ -151,6 +151,7 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       std::vector<StoreMapping> mappings;
       auto& inputs  = task.inputs();
       auto& outputs = task.outputs();
+      mappings.reserve(inputs.size() + outputs.size());
       for (auto& input : inputs) {
         mappings.push_back(StoreMapping::default_mapping(input, options.front()));
         mappings.back().policy.exact = true;

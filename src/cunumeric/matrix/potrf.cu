@@ -49,12 +49,12 @@ static inline void potrf_template(
 }
 
 template <>
-struct PotrfImplBody<VariantKind::GPU, Type::Code::FLOAT32> {
-  void operator()(float* array, int32_t m, int32_t n)
-  {
-    potrf_template(cusolverDnSpotrf_bufferSize, cusolverDnSpotrf, array, m, n);
-  }
-};
+void PotrfImplBody<VariantKind::GPU, Type::Code::FLOAT32>::operator()(float* array,
+                                                                      int32_t m,
+                                                                      int32_t n)
+{
+  potrf_template(cusolverDnSpotrf_bufferSize, cusolverDnSpotrf, array, m, n);
+}
 
 template <>
 void PotrfImplBody<VariantKind::GPU, Type::Code::FLOAT64>::operator()(double* array,

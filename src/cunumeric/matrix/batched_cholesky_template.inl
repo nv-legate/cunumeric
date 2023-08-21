@@ -67,10 +67,24 @@ struct BatchedCholeskyImpl {
         "Batched cholesky is not supported when input/output shapes differ");
     }
 
-    size_t strides[DIM];
+    auto ncols = shape.hi[DIM - 1] - shape.lo[DIM - 1] + 1;
 
-    auto input  = input_array.read_accessor<VAL, DIM>(shape).ptr(shape, strides);
-    auto output = output_array.write_accessor<VAL, DIM>(shape).ptr(shape, strides);
+    size_t in_strides[DIM];
+    size_t out_strides[DIM];
+
+    auto input = input_array.read_accessor<VAL, DIM>(shape).ptr(shape, in_strides);
+    if (in_strides[DIM - 2] != ncols || in_strides[DIM - 1] != 1) {
+      throw legate::TaskException(
+        "Bad input accessor in batched cholesky, last two dimensions must be non-transformed and "
+        "dense with stride == 1");
+    }
+
+    auto output = output_array.write_accessor<VAL, DIM>(shape).ptr(shape, out_strides);
+    if (out_strides[DIM - 2] != ncols || out_strides[DIM - 1] != 1) {
+      throw legate::TaskException(
+        "Bad output accessor in batched cholesky, last two dimensions must be non-transformed and "
+        "dense with stride == 1");
+    }
 
     if (shape.empty()) return;
 
