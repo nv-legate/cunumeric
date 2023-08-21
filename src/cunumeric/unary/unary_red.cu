@@ -242,7 +242,6 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
 #endif
 
     int32_t laneid = cub::LaneId();
-    // asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
     const uint32_t active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
     if ((active_mask & (1 << laneid)) != 0) {
       // Store our data into shared
