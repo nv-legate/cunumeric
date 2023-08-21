@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2021-2023 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,7 @@
  * limitations under the License.
  *
  */
+#include <cub/util_ptx.cuh>
 
 #include "cunumeric/unary/unary_red.h"
 #include "cunumeric/unary/unary_red_template.inl"
@@ -221,7 +222,6 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
     blocks.next_point(point);
   }
 
-#if __CUDA_ARCH__ >= 700
   // If we're collapsing the innermost dimension, we perform some optimization
   // with shared memory to reduce memory traffic due to atomic updates
   if (collapsed_dim == DIM - 1) {
@@ -235,9 +235,14 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
     for (int32_t dim = DIM - 2; dim >= 0; --dim)
       bucket = bucket * (domain.hi[dim] - domain.lo[dim] + 1) + point[dim] - domain.lo[dim];
 
-    const uint32_t same_mask = __match_any_sync(0xffffffff, bucket);
-    int32_t laneid;
-    asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
+#if __CUDA_ARCH__ >= 700
+    std::uint32_t const same_mask = __match_any_sync(0xffffffff, bucket);
+#else
+    std::uint32_t const same_mask = cub::MatchAny<sizeof(bucket)>(bucket);
+#endif
+
+    int32_t laneid = cub::LaneId();
+    // asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
     const uint32_t active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
     if ((active_mask & (1 << laneid)) != 0) {
       // Store our data into shared
@@ -267,7 +272,6 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
         }
     }
   }
-#endif
 
 #ifdef LEGATE_BOUNDS_CHECKS
   // Note: this isn't necessary because we know that the affine transformation on the output
