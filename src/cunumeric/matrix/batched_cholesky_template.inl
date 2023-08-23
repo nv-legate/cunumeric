@@ -22,6 +22,7 @@
 #include "cunumeric/matrix/batched_cholesky.h"
 #include "cunumeric/matrix/potrf_template.inl"
 #include "cunumeric/matrix/transpose_template.inl"
+#include "cunumeric/pitches.h"
 
 namespace cunumeric {
 
@@ -66,6 +67,11 @@ struct BatchedCholeskyImpl {
       throw legate::TaskException(
         "Batched cholesky is not supported when input/output shapes differ");
     }
+
+    Pitches<DIM - 1> pitches;
+    size_t volume = pitches.flatten(shape);
+
+    if (volume == 0) return;
 
     auto ncols = shape.hi[DIM - 1] - shape.lo[DIM - 1] + 1;
 
