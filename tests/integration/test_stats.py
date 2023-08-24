@@ -114,7 +114,7 @@ dtypes = (
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("ddof", [0, 1])
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_var_default_shape(dtype, ddof, axis):        
+def test_var_default_shape(dtype, ddof, axis):
     np_in = get_op_input(astype=dtype)
 
     op_np = functools.partial(np.var, ddof=ddof, axis=axis)
@@ -127,7 +127,7 @@ def test_var_default_shape(dtype, ddof, axis):
 @pytest.mark.parametrize("ddof", [0, 1])
 @pytest.mark.parametrize("axis", [None, 0, 1, 2])
 @pytest.mark.parametrize("shape", [(10,), (4, 5), (2, 3, 4)])
-def test_var_w_shape(dtype, ddof, axis, shape):        
+def test_var_w_shape(dtype, ddof, axis, shape):
     np_in = get_op_input(astype=dtype, shape=shape)
 
     if axis is not None and axis >= len(shape):
