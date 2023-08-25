@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
-from functools import wraps
+from functools import WRAPPER_ASSIGNMENTS, wraps
 from types import (
     BuiltinFunctionType,
     FunctionType,
@@ -137,6 +137,11 @@ def implemented(
     return wrapper
 
 
+_UNIMPLEMENTED_COPIED_ATTRS = tuple(
+    attr for attr in WRAPPER_ASSIGNMENTS if attr != "__doc__"
+)
+
+
 def unimplemented(
     func: AnyCallable,
     prefix: str,
@@ -157,7 +162,7 @@ def unimplemented(
 
     if reporting:
 
-        @wraps(func)
+        @wraps(func, assigned=_UNIMPLEMENTED_COPIED_ATTRS)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             location = find_last_user_frames(
                 not settings.report_dump_callstack()
@@ -174,7 +179,7 @@ def unimplemented(
 
     else:
 
-        @wraps(func)
+        @wraps(func, assigned=_UNIMPLEMENTED_COPIED_ATTRS)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             stacklevel = find_last_user_stacklevel()
             warnings.warn(
@@ -187,6 +192,13 @@ def unimplemented(
                 kwargs = deep_apply(kwargs, fallback)
             return func(*args, **kwargs)
 
+    wrapper.__doc__ = f"""
+    cuNumeric has not implemented this function, and will fall back to NumPy.
+
+    See Also
+    --------
+    {name}
+    """
     wrapper._cunumeric = CuWrapperMetadata(implemented=False)
 
     return wrapper

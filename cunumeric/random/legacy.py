@@ -111,7 +111,6 @@ def randint(
     --------
     Multiple GPUs, Multiple CPUs
     """
-
     if not isinstance(low, int):
         raise NotImplementedError("'low' must be an integer")
     if high is not None and not isinstance(high, int):
@@ -126,7 +125,7 @@ def randint(
         dtype = np.dtype(np.int64)
     # TODO: randint must support unsigned integer dtypes as well
     if dtype.kind != "i":
-        raise TypeError(
+        raise NotImplementedError(
             "cunumeric.random.randint must be given an integer dtype"
         )
     if isinstance(size, int):

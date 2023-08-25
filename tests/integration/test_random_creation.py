@@ -43,8 +43,6 @@ def reseed_and_gen_random(
     func: str, seed: Any, *args: Any, **kwargs: Any
 ) -> Tuple[Any, Any]:
     """Reseeed singleton rng and generate random in NumPy and cuNumeric."""
-    np.random.seed(seed)
-    num.random.seed(seed)
     return gen_random_from_both(func, *args, **kwargs)
 
 
@@ -248,12 +246,15 @@ def test_randint_float_range(low, high):
 
 
 @pytest.mark.xfail(
-    not EAGER_TEST, reason="cuNumeric raises NotImplementedError"
+    not num.runtime.has_curand or not EAGER_TEST,
+    reason="cuNumeric raises NotImplementedError",
 )
 @pytest.mark.parametrize("size", ALL_RNG_SIZES, ids=str)
 @pytest.mark.parametrize("low, high", [(1000, 65535), (0, 1024)], ids=str)
 @pytest.mark.parametrize("dtype", UINT_DTYPES, ids=str)
 def test_randint_uint(low, high, dtype, size):
+    # NotImplementedError: cunumeric.random.randint must be given an integer
+    # dtype
     # NotImplementedError: type for random.integers has to be int64 or int32
     # or int16
     arr_np, arr_num = gen_random_from_both(
@@ -289,7 +290,8 @@ def test_randint_distribution(low, high, size, dtype):
 
 
 @pytest.mark.xfail(
-    not EAGER_TEST, reason="cuNumeric raises NotImplementedError"
+    not num.runtime.has_curand or not EAGER_TEST,
+    reason="cuNumeric raises NotImplementedError",
 )
 @pytest.mark.parametrize("size", (1024, 1025))
 def test_randint_bool(size):
@@ -299,6 +301,9 @@ def test_randint_bool(size):
         arr_num, np.mean(arr_np), np.std(arr_np), mean_tol=0.05
     )
     # NumPy pass
+    # cuNumeric not num.runtime.has_curand:
+    # NotImplementedError: cunumeric.random.randint must be given an integer
+    # dtype
     # cuNumeric LEGATE_TEST=1 or size > 1024:
     # NotImplementedError: type for random.integers has to be int64 or int32
     # or int16
@@ -505,5 +510,4 @@ class TestRandomErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

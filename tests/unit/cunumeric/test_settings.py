@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pytest
 from legate.util.fs import read_c_define
 from legate.util.settings import EnvOnlySetting, PrioritizedSetting
@@ -113,5 +112,4 @@ class TestDefaults:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

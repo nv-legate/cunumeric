@@ -20,3 +20,13 @@ Histograms
 
    bincount
    histogram
+
+
+Order statistics
+----------------
+
+.. autosummary::
+   :toctree: generated/
+
+   quantile
+   percentile

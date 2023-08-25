@@ -90,7 +90,6 @@ if __name__ == "__main__":
         help="number of options to price in thousands",
     )
     parser.add_argument(
-        "-p",
         "--precision",
         type=int,
         default=32,

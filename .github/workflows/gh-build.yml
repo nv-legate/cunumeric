@@ -1,0 +1,123 @@
+name: Build cunumeric on GH
+
+on:
+  workflow_call:
+    inputs:
+      build-target:
+        required: true
+        type: string
+      runs-on:
+        required: true
+        type: string
+      sha:
+        required: true
+        type: string
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  BASE_IMAGE: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
+  IMAGE_NAME_LEGATE: legate.core-${{ inputs.build-target }}
+  IMAGE_NAME_CUNUMERIC: cunumeric-${{ inputs.build-target }}
+  USE_CUDA: ${{ (inputs.build-target == 'cpu' && 'OFF') || 'ON' }}
+
+jobs:
+  build:
+    name: build-${{ inputs.build-target }}-sub-workflow
+
+    permissions:
+      id-token: write # This is required for configure-aws-credentials
+      contents: read  # This is required for actions/checkout
+      packages: write # This is required to push docker image to ghcr.io
+
+    runs-on: ${{ inputs.runs-on }}
+
+    steps:
+      - name: Checkout legate.core
+        uses: actions/checkout@v3
+        with:
+          repository: nv-legate/legate.core
+          fetch-depth: 0
+          path: legate
+
+      - name: Checkout cunumeric (= this repo)
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          path: cunumeric
+
+      - if: github.repository_owner == 'nv-legate'
+        name: Get AWS credentials for sccache bucket
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-2
+          role-duration-seconds: 28800 # 8 hours
+          role-to-assume: arn:aws:iam::279114543810:role/gha-oidc-nv-legate
+
+      - name: Docker system prune
+        run: |
+          docker version
+          docker system prune --all --force
+
+      - name: Build legate.core using docker build
+        run: |
+          echo BUILD_TARGET: ${{ inputs.build-target }}
+          echo USE_CUDA: ${{ env.USE_CUDA }}
+
+          export LEGATE_SHA=$(cat cunumeric/cmake/versions.json | jq -r '.packages.legate_core.git_tag')
+          echo "Checking out LEGATE_SHA: ${LEGATE_SHA}"
+          git -C legate checkout $LEGATE_SHA
+
+          IMAGE_TAG_LEGATE=${{ env.IMAGE_NAME_LEGATE }}:${{ inputs.sha }}
+
+          chmod +x legate/continuous_integration/build-docker-image
+          legate/continuous_integration/build-docker-image \
+            --base-image "$BASE_IMAGE" \
+            --image-tag "$IMAGE_TAG_LEGATE" \
+            --source-dir legate
+
+      - name: Build cunumeric using docker build
+        run: |
+          IMAGE_TAG_CUNUMERIC=${{ env.IMAGE_NAME_CUNUMERIC }}:${{ inputs.sha }}
+          IMAGE_TAG_LEGATE=${{ env.IMAGE_NAME_LEGATE }}:${{ inputs.sha }}
+
+          legate/continuous_integration/build-docker-image \
+            --base-image "$IMAGE_TAG_LEGATE" \
+            --image-tag "$IMAGE_TAG_CUNUMERIC" \
+            --source-dir cunumeric
+
+      - name: Dump docker history of image before upload
+        run: |
+          IMAGE_TAG=${{ env.IMAGE_NAME_CUNUMERIC }}:${{ inputs.sha }}
+          docker history $IMAGE_TAG
+
+      - name: Log in to container image registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+
+      - name: Push cunumeric image
+        run: |
+          IMAGE_TAG=${{ env.IMAGE_NAME_CUNUMERIC }}:${{ inputs.sha }}
+
+          IMAGE_ID=ghcr.io/${{ github.repository_owner }}
+
+          # Change all uppercase to lowercase
+          IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+          IMAGE_ID=$IMAGE_ID/$IMAGE_TAG
+
+          docker tag $IMAGE_TAG $IMAGE_ID
+          docker push $IMAGE_ID
+
+      - name: Copy artifacts back to the host
+        run: |
+          IMAGE_TAG=${{ env.IMAGE_NAME_CUNUMERIC }}:${{ inputs.sha }}
+          mkdir -p artifacts
+          docker run  -v "$(pwd)/artifacts:/home/coder/.artifacts" --rm -t $IMAGE_TAG copy-artifacts
+
+      - name: Display structure of workdir
+        run: ls -R
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: "cunumeric-${{ inputs.build-target }}-${{ inputs.sha }}"
+          path: artifacts
