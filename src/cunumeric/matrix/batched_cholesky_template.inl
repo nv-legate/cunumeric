@@ -94,9 +94,6 @@ struct BatchedCholeskyImpl {
 
     if (shape.empty()) return;
 
-    // TODO: we need some sort of check here on the strides
-    // This should be a dense thing.
-
     int num_blocks = 1;
     for (int i = 0; i < (DIM - 2); ++i) { num_blocks *= (shape.hi[i] - shape.lo[i] + 1); }
 
