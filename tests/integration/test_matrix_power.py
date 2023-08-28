@@ -75,10 +75,9 @@ class TestMatrixPowerErrors:
         a_num = mk_0to1_array(num, shape)
         a_np = mk_0to1_array(np, shape)
         expected_exc = num.linalg.LinAlgError
-        expected_exc_np = np.linalg.LinAlgError
         with pytest.raises(expected_exc):
             num.linalg.matrix_power(a_num, 1)
-        with pytest.raises(expected_exc_np):
+        with pytest.raises(expected_exc):
             np.linalg.matrix_power(a_np, 1)
 
     @pytest.mark.parametrize(
@@ -88,10 +87,9 @@ class TestMatrixPowerErrors:
         a_num = mk_0to1_array(num, shape)
         a_np = mk_0to1_array(np, shape)
         expected_exc = num.linalg.LinAlgError
-        expected_exc_np = np.linalg.LinAlgError
         with pytest.raises(expected_exc):
             num.linalg.matrix_power(a_num, 1)
-        with pytest.raises(expected_exc_np):
+        with pytest.raises(expected_exc):
             np.linalg.matrix_power(a_np, 1)
 
     @pytest.mark.parametrize(

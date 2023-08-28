@@ -14,5 +14,6 @@
 #
 
 
-class LinAlgError(Exception):
-    pass
+from numpy.linalg.linalg import LinAlgError
+#class LinAlgError(Exception):
+#    pass
