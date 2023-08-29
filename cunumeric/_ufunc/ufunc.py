@@ -688,7 +688,7 @@ class binary_ufunc(ufunc):
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[Any, None] = None,
-        where: bool = True,
+        where: Optional[ndarray] = None,
     ) -> ndarray:
         """
         reduce(array, axis=0, dtype=None, out=None, keepdims=False, initial=<no
@@ -747,10 +747,6 @@ class binary_ufunc(ufunc):
         if self._red_code is None:
             raise NotImplementedError(
                 f"reduction for {self} is not yet implemented"
-            )
-        if not isinstance(where, bool) or not where:
-            raise NotImplementedError(
-                "the 'where' keyword is not yet supported"
             )
 
         # NumPy seems to be using None as the default axis value for scalars

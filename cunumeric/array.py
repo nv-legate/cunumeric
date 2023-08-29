@@ -1761,7 +1761,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.all(axis=None, out=None, keepdims=False, initial=None, where=True)
 
@@ -1796,7 +1796,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.any(axis=None, out=None, keepdims=False, initial=None, where=True)
 
@@ -3051,7 +3051,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.max(axis=None, out=None, keepdims=False, initial=<no value>,
                  where=True)
@@ -3086,6 +3086,7 @@ class ndarray:
         dtype: Union[np.dtype[Any], None] = None,
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
+        where: Union[ndarray, None]=None,
     ) -> ndarray:
         """a.mean(axis=None, dtype=None, out=None, keepdims=False)
 
@@ -3120,12 +3121,14 @@ class ndarray:
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
+                where=where
             )
         else:
             sum_array = self.sum(
                 axis=axis,
                 dtype=dtype,
                 keepdims=keepdims,
+                where=where
             )
         if axis is None:
             divisor = reduce(lambda x, y: x * y, self.shape, 1)
@@ -3154,7 +3157,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.min(axis=None, out=None, keepdims=False, initial=<no value>,
                  where=True)
@@ -3252,7 +3255,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.prod(axis=None, dtype=None, out=None, keepdims=False, initial=1,
         where=True)
@@ -3622,10 +3625,10 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None ] = None,
     ) -> ndarray:
         """a.sum(axis=None, dtype=None, out=None, keepdims=False, initial=0,
-        where=True)
+        where=None)
 
         Return the sum of the array elements over the given axis.
 
@@ -4134,7 +4137,7 @@ class ndarray:
         keepdims: bool = False,
         args: Union[Any, None] = None,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
@@ -4156,7 +4159,12 @@ class ndarray:
 
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
-        if isinstance(where, ndarray):
+
+        #if not where:
+        #   where = ndarray(shape=(1,), dtype=bool)
+        #   where.fill(True)
+
+        if where and isinstance(where, ndarray):
             # The where array has to broadcast to the src.shape
             if np.broadcast_shapes(src.shape, where.shape) != src.shape:
                 raise ValueError(
@@ -4191,7 +4199,7 @@ class ndarray:
 
         if out is None:
             out = ndarray(
-                shape=out_shape, dtype=res_dtype, inputs=(src, where)
+                shape=out_shape, dtype=res_dtype, inputs=(src,where)
             )
         elif out.shape != out_shape:
             errmsg = (
@@ -4211,16 +4219,20 @@ class ndarray:
             )
 
         if where:
-            result._thunk.unary_reduction(
-                op,
-                src._thunk,
-                cls._get_where_thunk(where, result.shape),
-                axis,
-                axes,
-                keepdims,
-                args,
-                initial,
-            )
+            where_thunk = cls._get_where_thunk(where, result.shape)
+        else:
+            where_thunk=None
+       
+        result._thunk.unary_reduction(
+            op,
+            src._thunk,
+            where_thunk,
+            axis,
+            axes,
+            keepdims,
+            args,
+            initial,
+        )
 
         if result is not out:
             out._thunk.convert(result._thunk)

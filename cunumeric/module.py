@@ -4864,7 +4864,7 @@ def all(
     axis: Optional[Union[int, tuple[int, ...]]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Test whether all array elements along a given axis evaluate to True.
@@ -4922,7 +4922,7 @@ def any(
     axis: Optional[Union[int, tuple[int, ...]]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Test whether any array element along a given axis evaluates to True.
@@ -5182,7 +5182,7 @@ def prod(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -5263,7 +5263,7 @@ def sum(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -5723,7 +5723,7 @@ def nanmin(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Any = True,
+    where: Optional[ndarray]= None,
 ) -> ndarray:
     """
     Return minimum of an array or minimum along an axis, ignoring any
@@ -5816,7 +5816,7 @@ def nanmax(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Any = True,
+    where: Optional[dnarray]=None,
 ) -> ndarray:
     """
     Return the maximum of an array or maximum along an axis, ignoring any
@@ -5913,7 +5913,7 @@ def nanprod(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Any = True,
+    where: Optional[ndarray]=None,
 ) -> ndarray:
     """
     Return the product of array elements over a given axis treating
@@ -6009,7 +6009,7 @@ def nansum(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Any = True,
+    where: Optionla[ndarray]=None,
 ) -> ndarray:
     """
     Return the sum of array elements over a given axis treating
@@ -6173,7 +6173,7 @@ def amax(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: bool = True,
+    where:Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -6250,7 +6250,7 @@ def amin(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -7002,6 +7002,7 @@ def mean(
     dtype: Optional[np.dtype[Any]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
+    where: Optional[Uniton[ndarray, tuple[bool, ...]]] = None,
 ) -> ndarray:
     """
 
@@ -7043,6 +7044,9 @@ def mean(
         sub-class' method does not implement `keepdims` any
         exceptions will be raised.
 
+    where : array_like of bool, optional
+        Elements to include in the mean. 
+
     Returns
     -------
     m : ndarray
@@ -7058,7 +7062,7 @@ def mean(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+    return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
 
 
 # Histograms
