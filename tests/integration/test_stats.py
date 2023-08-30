@@ -110,6 +110,7 @@ dtypes = (
     "d",
 )
 
+
 # @pytest.mark.skip(reason="debugg ndim=1, axis=0")
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("ddof", [0, 1])
