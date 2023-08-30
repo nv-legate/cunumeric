@@ -3121,9 +3121,15 @@ class ndarray:
                 axis=axis, dtype=dtype, keepdims=keepdims, where=where
             )
         if axis is None:
-            divisor = reduce(lambda x, y: x * y, self.shape, 1)
+            if where:
+                divisor = np.sum(where)
+            else:
+                divisor = reduce(lambda x, y: x * y, self.shape, 1)
         else:
-            divisor = self.shape[axis]
+            if where:
+                divisor = np.sum(where, axis=axis)
+            else:
+                divisor = self.shape[axis]
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
         if dtype.kind == "f" or dtype.kind == "c":
