@@ -33,11 +33,10 @@ def check_result(in_np, out_np, out_num, **isclose_kwargs):
         # make sure we aren't trying to fp16 compare with less precision
         assert rtol >= f16_rtol
 
-    if 'negative_test' in isclose_kwargs:
-        is_negative_test = isclose_kwargs['negative_test']
+    if "negative_test" in isclose_kwargs:
+        is_negative_test = isclose_kwargs["negative_test"]
     else:
         is_negative_test = False
-    
 
     result = (
         allclose(out_np, out_num, **isclose_kwargs)
@@ -149,8 +148,18 @@ def test_var_w_shape(dtype, ddof, axis, shape):
 
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("ddof", [0, 1])
-@pytest.mark.parametrize("axis", [None, ])
-@pytest.mark.parametrize("shape", [(10, 1), ])
+@pytest.mark.parametrize(
+    "axis",
+    [
+        None,
+    ],
+)
+@pytest.mark.parametrize(
+    "shape",
+    [
+        (10, 1),
+    ],
+)
 def test_var_corners(dtype, ddof, axis, shape):
     np_in = get_op_input(astype=dtype, shape=shape)
 
@@ -166,8 +175,18 @@ def test_var_corners(dtype, ddof, axis, shape):
 @pytest.mark.xfail
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("ddof", [0, 1])
-@pytest.mark.parametrize("axis", [None, ])
-@pytest.mark.parametrize("shape", [(1,), ])
+@pytest.mark.parametrize(
+    "axis",
+    [
+        None,
+    ],
+)
+@pytest.mark.parametrize(
+    "shape",
+    [
+        (1,),
+    ],
+)
 def test_var_xfail(dtype, ddof, axis, shape):
     np_in = get_op_input(astype=dtype, shape=shape)
 
