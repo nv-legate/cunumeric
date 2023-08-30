@@ -3193,7 +3193,7 @@ class ndarray:
         # mean can be broadcast against the original array
         mu = self.mean(axis=axis, dtype=dtype, keepdims=True)
 
-        if axis is None or self.ndim == 1:
+        if axis is None or self.ndim == 1 or max(self.shape) == self.size:
             # this is a scalar reduction and we can optimize this as a single
             # pass through a scalar reduction
             result = self._perform_unary_reduction(
