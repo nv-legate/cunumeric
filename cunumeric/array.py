@@ -162,10 +162,6 @@ def convert_to_predicate_ndarray(obj: Any) -> bool:
     # Keep all boolean types as they are
     if obj is True or obj is False:
         return obj
-    # GH #135
-    raise NotImplementedError(
-        "the `where` parameter is currently not supported"
-    )
 
 
 def maybe_convert_to_np_ndarray(obj: Any) -> Any:
