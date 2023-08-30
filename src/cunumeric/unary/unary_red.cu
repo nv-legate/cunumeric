@@ -13,12 +13,11 @@
  * limitations under the License.
  *
  */
-#include <cub/util_ptx.cuh>
-
 #include "cunumeric/unary/unary_red.h"
 #include "cunumeric/unary/unary_red_template.inl"
-
 #include "cunumeric/cuda_help.h"
+
+#include <cub/util_ptx.cuh>
 
 namespace cunumeric {
 
