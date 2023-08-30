@@ -3193,13 +3193,13 @@ class ndarray:
         # mean can be broadcast against the original array
         mu = self.mean(axis=axis, dtype=dtype, keepdims=True)
 
-        if axis is None:
+        if axis is None or self.ndim == 1:
             # this is a scalar reduction and we can optimize this as a single
             # pass through a scalar reduction
             result = self._perform_unary_reduction(
                 UnaryRedCode.VARIANCE,
                 self,
-                axis=axis,
+                axis=None,
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
@@ -3216,6 +3216,7 @@ class ndarray:
             # compute delta = self-mu in a first pass and then compute
             # delta*delta in second pass
             delta = self - mu
+
             result = self._perform_unary_reduction(
                 UnaryRedCode.SUM_SQUARES,
                 delta,
@@ -3225,7 +3226,9 @@ class ndarray:
                 keepdims=keepdims,
                 where=where,
             )
+
         self._normalize_summation(result, axis=axis, dtype=dtype, ddof=ddof)
+
         return result
 
     @add_boilerplate()
