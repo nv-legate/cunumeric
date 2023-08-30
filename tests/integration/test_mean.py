@@ -60,12 +60,12 @@ def test_scalar(val):
     assert np.array_equal(res_np, res_num)
 
 
-
 @pytest.mark.parametrize("val", (0.0, 10.0, -5, 1 + 1j))
 def test_scalar_where(val):
     res_np = np.mean(val, where=True)
-    res_num = num.mean(val,where=True)
+    res_num = num.mean(val, where=True)
     assert np.array_equal(res_np, res_num)
+
 
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_basic(size):
@@ -80,7 +80,7 @@ def test_basic(size):
 def test_basic_where(size):
     arr_np = np.random.randint(-5, 5, size=size)
     arr_num = num.array(arr_np)
-    where_np = arr_np%2
+    where_np = arr_np % 2
     where_np = arr_np.astype(bool)
     where_num = num.array(where_np)
     res_np = np.mean(arr_np, where=where_np)

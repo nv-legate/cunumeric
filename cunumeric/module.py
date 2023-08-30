@@ -5723,7 +5723,7 @@ def nanmin(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Optional[ndarray]= None,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Return minimum of an array or minimum along an axis, ignoring any
@@ -5816,7 +5816,7 @@ def nanmax(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Optional[dnarray]=None,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Return the maximum of an array or maximum along an axis, ignoring any
@@ -5913,7 +5913,7 @@ def nanprod(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Optional[ndarray]=None,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Return the product of array elements over a given axis treating
@@ -6009,7 +6009,7 @@ def nansum(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Optionla[ndarray]=None,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Return the sum of array elements over a given axis treating
@@ -6173,7 +6173,7 @@ def amax(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where:Optional[ndarray] = None,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -7002,7 +7002,7 @@ def mean(
     dtype: Optional[np.dtype[Any]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
-    where: Optional[Uniton[ndarray, tuple[bool, ...]]] = None,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -7045,7 +7045,7 @@ def mean(
         exceptions will be raised.
 
     where : array_like of bool, optional
-        Elements to include in the mean. 
+        Elements to include in the mean.
 
     Returns
     -------
@@ -7062,7 +7062,9 @@ def mean(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+    return a.mean(
+        axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
+    )
 
 
 # Histograms

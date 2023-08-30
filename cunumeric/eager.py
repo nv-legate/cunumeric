@@ -1500,7 +1500,7 @@ class EagerArray(NumPyThunk):
             )
             return
         if not where:
-            where=True
+            where = True
         if op in _UNARY_RED_OPS_WITH_ARG:
             fn = _UNARY_RED_OPS_WITH_ARG[op]
             # arg based APIs don't have the following arguments: where, initial

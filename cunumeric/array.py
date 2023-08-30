@@ -158,10 +158,11 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
     return ndarray(shape=None, thunk=thunk, writeable=writeable)
 
 
-def convert_to_predicate_ndarray(obj: Any) -> bool:
+def convert_to_predicate_ndarray(obj: Any) -> Any:
     # Keep all boolean types as they are
     if obj is True or obj is False:
         return obj
+    return
 
 
 def maybe_convert_to_np_ndarray(obj: Any) -> Any:
@@ -3082,7 +3083,7 @@ class ndarray:
         dtype: Union[np.dtype[Any], None] = None,
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
-        where: Union[ndarray, None]=None,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.mean(axis=None, dtype=None, out=None, keepdims=False)
 
@@ -3113,18 +3114,11 @@ class ndarray:
         # Do the sum
         if out is not None and out.dtype == dtype:
             sum_array = self.sum(
-                axis=axis,
-                dtype=dtype,
-                out=out,
-                keepdims=keepdims,
-                where=where
+                axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
             )
         else:
             sum_array = self.sum(
-                axis=axis,
-                dtype=dtype,
-                keepdims=keepdims,
-                where=where
+                axis=axis, dtype=dtype, keepdims=keepdims, where=where
             )
         if axis is None:
             divisor = reduce(lambda x, y: x * y, self.shape, 1)
@@ -3621,7 +3615,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[ndarray, None ] = None,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.sum(axis=None, dtype=None, out=None, keepdims=False, initial=0,
         where=None)
@@ -4003,7 +3997,7 @@ class ndarray:
                 scalars.append(array.dtype.type(0))
             else:
                 array_types.append(array.dtype)
-        return np.result_type(*array_types, *scalars)
+        return np.find_common_type(array_types, scalar_types)
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
@@ -4156,7 +4150,7 @@ class ndarray:
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
 
-        #if not where:
+        # if not where:
         #   where = ndarray(shape=(1,), dtype=bool)
         #   where.fill(True)
 
@@ -4195,7 +4189,7 @@ class ndarray:
 
         if out is None:
             out = ndarray(
-                shape=out_shape, dtype=res_dtype, inputs=(src,where)
+                shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
         elif out.shape != out_shape:
             errmsg = (
@@ -4217,8 +4211,8 @@ class ndarray:
         if where:
             where_thunk = cls._get_where_thunk(where, result.shape)
         else:
-            where_thunk=None
-       
+            where_thunk = None
+
         result._thunk.unary_reduction(
             op,
             src._thunk,
