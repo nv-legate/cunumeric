@@ -3193,6 +3193,8 @@ class ndarray:
         # mean can be broadcast against the original array
         mu = self.mean(axis=axis, dtype=dtype, keepdims=True)
 
+        # 1D arrays (or equivalent) should benefit from this unary reduction:
+        #
         if axis is None or self.ndim == 1 or max(self.shape) == self.size:
             # this is a scalar reduction and we can optimize this as a single
             # pass through a scalar reduction
@@ -4093,7 +4095,7 @@ class ndarray:
                 scalar_types.append(array.dtype)
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)  # type: ignore
+        return np.find_common_type(array_types, scalar_types)
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
