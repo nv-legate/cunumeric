@@ -15,6 +15,3 @@
 
 
 from numpy.linalg.linalg import LinAlgError
-
-# class LinAlgError(Exception):
-#    pass
