@@ -116,7 +116,6 @@ dtypes = (
 )
 
 
-# @pytest.mark.skip(reason="debugg ndim=1, axis=0")
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("ddof", [0, 1])
 @pytest.mark.parametrize("axis", [None, 0, 1])
@@ -132,7 +131,6 @@ def test_var_default_shape(dtype, ddof, axis, keepdims):
     check_op(op_np, op_num, np_in, dtype)
 
 
-# @pytest.mark.skip(reason="debugg ndim=1, axis=0")
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("ddof", [0, 1])
 @pytest.mark.parametrize("axis", [None, 0, 1, 2])
