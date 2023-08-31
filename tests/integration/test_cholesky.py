@@ -41,6 +41,15 @@ def test_array_negative_3dim():
         num.linalg.cholesky(arr)
 
 
+def test_array_negative():
+    arr = num.random.randint(0, 9, size=(3, 2, 3))
+    expected_exc = ValueError
+    with pytest.raises(expected_exc):
+        num.linalg.cholesky(arr)
+    with pytest.raises(expected_exc):
+        np.linalg.cholesky(arr)
+
+
 def test_diagonal():
     a = num.eye(10) * 10.0
     b = num.linalg.cholesky(a)
