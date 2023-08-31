@@ -148,7 +148,7 @@ class TestNormErrors:
 
         with pytest.raises(expected_exc):
             np.linalg.norm(np_arrays[ndim], ord=1)
-        
+
         with pytest.raises(expected_exc):
             num.linalg.norm(num_arrays[ndim], ord=1)
 
