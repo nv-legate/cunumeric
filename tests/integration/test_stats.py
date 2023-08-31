@@ -120,11 +120,14 @@ dtypes = (
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("ddof", [0, 1])
 @pytest.mark.parametrize("axis", [None, 0, 1])
-def test_var_default_shape(dtype, ddof, axis):
+@pytest.mark.parametrize("keepdims", [False, True])
+def test_var_default_shape(dtype, ddof, axis, keepdims):
     np_in = get_op_input(astype=dtype)
 
-    op_np = functools.partial(np.var, ddof=ddof, axis=axis)
-    op_num = functools.partial(num.var, ddof=ddof, axis=axis)
+    op_np = functools.partial(np.var, ddof=ddof, axis=axis, keepdims=keepdims)
+    op_num = functools.partial(
+        num.var, ddof=ddof, axis=axis, keepdims=keepdims
+    )
 
     check_op(op_np, op_num, np_in, dtype)
 
