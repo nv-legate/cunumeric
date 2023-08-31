@@ -14,4 +14,4 @@
 #
 
 
-from numpy.linalg.linalg import LinAlgError
+from numpy.linalg.linalg import LinAlgError  # noqa: F401
