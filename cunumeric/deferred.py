@@ -3183,11 +3183,12 @@ class DeferredArray(NumPyThunk):
 
                 task.add_reduction(lhs, _UNARY_RED_TO_REDUCTION_OPS[op])
                 task.add_input(rhs_array.base)
-                if where:
-                    task.add_input(where.base)
-                    task.add_alignment(rhs_array.base, where.base)
                 task.add_scalar_arg(op, ty.int32)
                 task.add_scalar_arg(rhs_array.shape, (ty.int64,))
+                task.add_scalar_arg((where is not None), ty.bool_)
+                if where is not None:
+                    task.add_input(where.base)
+                    task.add_alignment(rhs_array.base, where.base)
 
                 self.add_arguments(task, args)
 
@@ -3225,11 +3226,12 @@ class DeferredArray(NumPyThunk):
 
                 task.add_input(rhs_array.base)
                 task.add_reduction(result, _UNARY_RED_TO_REDUCTION_OPS[op])
-                if where:
-                    task.add_input(where.base)
-                    task.add_alignment(rhs_array.base, where.base)
                 task.add_scalar_arg(axis, ty.int32)
                 task.add_scalar_arg(op, ty.int32)
+                task.add_scalar_arg((where is not None), ty.bool_)
+                if where is not None:
+                    task.add_input(where.base)
+                    task.add_alignment(rhs_array.base, where.base)
 
                 self.add_arguments(task, args)
 

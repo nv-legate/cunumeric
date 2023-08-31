@@ -6995,7 +6995,7 @@ def count_nonzero(
 # Averages and variances
 
 
-@add_boilerplate("a")
+@add_boilerplate("a", "where")
 def mean(
     a: ndarray,
     axis: Optional[Union[int, tuple[int, ...]]] = None,
@@ -7063,6 +7063,78 @@ def mean(
     Multiple GPUs, Multiple CPUs
     """
     return a.mean(
+        axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
+    )
+
+
+@add_boilerplate("a")
+def nanmean(
+    a: ndarray,
+    axis: Optional[Union[int, tuple[int, ...]]] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+    keepdims: bool = False,
+    where: Optional[ndarray] = None,
+) -> ndarray:
+    """
+
+    Compute the arithmetic mean along the specified axis, ignoring NaNs.
+
+    Returns the average of the array elements.  The average is taken over
+    the flattened array by default, otherwise over the specified axis.
+    `float64` intermediate and return values are used for integer inputs.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose mean is desired. If `a` is not an
+        array, a conversion is attempted.
+    axis : None or int or tuple[int], optional
+        Axis or axes along which the means are computed. The default is to
+        compute the mean of the flattened array.
+
+        If this is a tuple of ints, a mean is performed over multiple axes,
+        instead of a single axis or all the axes as before.
+    dtype : data-type, optional
+        Type to use in computing the mean.  For integer inputs, the default
+        is `float64`; for floating point inputs, it is the same as the
+        input dtype.
+    out : ndarray, optional
+        Alternate output array in which to place the result.  The default
+        is ``None``; if provided, it must have the same shape as the
+        expected output, but the type will be cast if necessary.
+        See `ufuncs-output-type` for more details.
+
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+
+        If the default value is passed, then `keepdims` will not be
+        passed through to the `mean` method of sub-classes of
+        `ndarray`, however any non-default value will be.  If the
+        sub-class' method does not implement `keepdims` any
+        exceptions will be raised.
+
+    where : array_like of bool, optional
+        Elements to include in the mean.
+
+    Returns
+    -------
+    m : ndarray
+        If `out=None`, returns a new array of the same dtype a above
+        containing the mean values, otherwise a reference to the output
+        array is returned.
+
+    See Also
+    --------
+    numpy.nanmean
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.nanmean(
         axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
     )
 

@@ -161,8 +161,12 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
 def convert_to_predicate_ndarray(obj: Any) -> Any:
     # Keep all boolean types as they are
     if obj is True or obj is False:
-        return obj
-    return
+        where = ndarray(shape=(), dtype=bool)
+        where.fill(obj)
+        return where
+    if obj is None:
+        return None
+    return convert_to_cunumeric_ndarray(obj)
 
 
 def maybe_convert_to_np_ndarray(obj: Any) -> Any:
@@ -3121,13 +3125,14 @@ class ndarray:
                 axis=axis, dtype=dtype, keepdims=keepdims, where=where
             )
         if axis is None:
-            if where:
-                divisor = np.sum(where)
+            if where is not None:
+                divisor = np.sum(where.astype(int))
+
             else:
                 divisor = reduce(lambda x, y: x * y, self.shape, 1)
         else:
-            if where:
-                divisor = np.sum(where, axis=axis)
+            if where is not None:
+                divisor = np.sum(where.astype(int), axis=axis)
             else:
                 divisor = self.shape[axis]
         # Divide by the number of things in the collapsed dimensions
@@ -3145,6 +3150,40 @@ class ndarray:
             return out
         else:
             return sum_array
+
+    @add_boilerplate()
+    def nanmean(
+        self,
+        axis: Any = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        where: Union[ndarray, None] = None,
+    ) -> ndarray:
+        """a.mean(axis=None, dtype=None, out=None, keepdims=False)
+
+        Returns the average of the array elements along given axis,
+        ignoring NaN entires
+
+        Refer to :func:`cunumeric.mean` for full documentation.
+
+        See Also
+        --------
+        cunumeric.nanmean : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        # nan_where = self != Nan
+        # if where is not None:
+        #    new_where = where and nan_where
+        # else:
+        #    new_where = nan_where
+        new_where = where
+
+        return self.mean(axis, dtype, out, keepdims, new_where)
 
     @add_boilerplate()
     def min(
@@ -4160,7 +4199,7 @@ class ndarray:
         #   where = ndarray(shape=(1,), dtype=bool)
         #   where.fill(True)
 
-        if where and isinstance(where, ndarray):
+        if where is not None and isinstance(where, ndarray):
             # The where array has to broadcast to the src.shape
             if np.broadcast_shapes(src.shape, where.shape) != src.shape:
                 raise ValueError(
@@ -4214,8 +4253,10 @@ class ndarray:
                 shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
 
-        if where:
-            where_thunk = cls._get_where_thunk(where, result.shape)
+        if where is not None:
+            where_thunk = (
+                where._thunk
+            )  # cls._get_where_thunk(where, result.shape)
         else:
             where_thunk = None
 

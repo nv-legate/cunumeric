@@ -258,19 +258,19 @@ static void scalar_unary_red_template(TaskContext& context)
   auto& inputs  = context.inputs();
   auto& scalars = context.scalars();
 
+  auto op_code     = scalars[0].value<UnaryRedCode>();
+  auto shape       = scalars[1].value<DomainPoint>();
+  bool has_where   = scalars[2].value<bool>();
+  size_t start_idx = has_where ? 2 : 1;
   std::vector<Store> extra_args;
-  for (size_t idx = 1; idx < inputs.size(); ++idx) extra_args.push_back(std::move(inputs[idx]));
-
-  auto op_code = scalars[0].value<UnaryRedCode>();
-  auto shape   = scalars[1].value<DomainPoint>();
+  for (size_t idx = start_idx; idx < inputs.size(); ++idx)
+    extra_args.push_back(std::move(inputs[idx]));
   // If the RHS was a scalar, use (1,) as the shape
   if (shape.dim == 0) {
     shape.dim = 1;
     shape[0]  = 1;
   }
 
-  bool has_where = false;
-  if (inputs.size() == 2) { has_where = true; }
   if (has_where == true) {
     ScalarUnaryRedArgs args{context.reductions()[0],
                             inputs[0],
