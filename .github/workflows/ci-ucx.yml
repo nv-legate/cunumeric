@@ -71,12 +71,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {name: 2 rank 1 CPU test, options: --ranks-per-node 2 --launcher mpirun --cpus 1 --unit --debug, log: cpu, instance: 1}
-          - {name: 2 rank 2 CPUs test, options: --ranks-per-node 2 --launcher mpirun --cpus 2 --debug, log: cpus, instance: 1}
-          - {name: 2 rank GPU test, options: --ranks-per-node 2 --launcher mpirun --use cuda --gpus 1 --debug, log: gpu, instance: 2}
-          - {name: 2 rank 2 GPUs test, options: --ranks-per-node 2 --launcher mpirun --use cuda --gpus 2 --debug, log: gpus, instance: 4}
-          - {name: 2 rank OpenMP test, options: --ranks-per-node 2 --launcher mpirun --use openmp --omps 1 --ompthreads 2 --debug, log: omp, instance: 1}
-          - {name: 2 rank 2 NUMA OpenMPs test, options: --ranks-per-node 2 --launcher mpirun --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug, log: omps, instance: 1}
+          - {name: 2 rank 1 CPU test, options: --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --cpus 1 --unit --debug, log: cpu, instance: 1}
+          - {name: 2 rank 2 CPUs test, options: --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --cpus 2 --debug, log: cpus, instance: 1}
+          - {name: 2 rank GPU test, options: --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --use cuda --gpus 1 --debug, log: gpu, instance: 2}
+          - {name: 2 rank 2 GPUs test, options: --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --use cuda --gpus 2 --debug, log: gpus, instance: 4}
+          - {name: 2 rank OpenMP test, options: --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --use openmp --omps 1 --ompthreads 2 --debug, log: omp, instance: 1}
+          - {name: 2 rank 2 NUMA OpenMPs test, options: --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug, log: omps, instance: 1}
           - {name: Eager execution test, options: --use eager --debug, log: eager, instance: 1}
     name: ${{ matrix.name }}
     steps:
