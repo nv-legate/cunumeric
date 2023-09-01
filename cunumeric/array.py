@@ -161,9 +161,10 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
 def convert_to_predicate_ndarray(obj: Any) -> Any:
     # Keep all boolean types as they are
     if obj is True or obj is False:
-        where = ndarray(shape=(), dtype=bool)
-        where.fill(obj)
-        return where
+        # where = ndarray(shape=(), dtype=bool)
+        # where.fill(obj)
+        # return where
+        return obj
     if obj is None:
         return None
     return convert_to_cunumeric_ndarray(obj)
@@ -3104,7 +3105,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if axis is not None and not isinstance(axis, int):
+        if axis is not None and type(axis) != int:
             raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
                 "'axis' currently"
@@ -3115,6 +3116,13 @@ class ndarray:
                 dtype = np.dtype(np.float64)
             else:
                 dtype = self.dtype
+
+        # if self.size == 1:
+        #    if where is True:
+        #        return self.copy()
+        #    if where is False:
+        #        return self.copy() / 0
+
         # Do the sum
         if out is not None and out.dtype == dtype:
             sum_array = self.sum(
@@ -3124,12 +3132,14 @@ class ndarray:
             sum_array = self.sum(
                 axis=axis, dtype=dtype, keepdims=keepdims, where=where
             )
+
         if axis is None:
             if where is not None:
                 divisor = np.sum(where.astype(int))
 
             else:
                 divisor = reduce(lambda x, y: x * y, self.shape, 1)
+
         else:
             if where is not None:
                 divisor = np.sum(where.astype(int), axis=axis)
@@ -4012,8 +4022,8 @@ class ndarray:
     ) -> Union[Literal[True], NumPyThunk]:
         if where is True:
             return True
-        if where is False:
-            raise RuntimeError("should have caught this earlier")
+        # if where is False:
+        #    raise RuntimeError("should have caught this earlier")
         if not isinstance(where, ndarray) or where.dtype != np.bool_:
             raise RuntimeError("should have converted this earlier")
         if where.shape != out_shape:
@@ -4254,9 +4264,7 @@ class ndarray:
             )
 
         if where is not None:
-            where_thunk = (
-                where._thunk
-            )  # cls._get_where_thunk(where, result.shape)
+            where_thunk = cls._get_where_thunk(where, src.shape)
         else:
             where_thunk = None
 
