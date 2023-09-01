@@ -30,7 +30,10 @@ using namespace legate;
 template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
 struct UnaryRedImplBody;
 
-template <VariantKind KIND, UnaryRedCode OP_CODE>
+template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
+struct UnaryRedImplBodyWhere;
+
+template <VariantKind KIND, UnaryRedCode OP_CODE, bool HAS_WHERE>
 struct UnaryRedImpl {
   template <Type::Code CODE,
             int DIM,
@@ -49,8 +52,15 @@ struct UnaryRedImpl {
     auto rhs = args.rhs.read_accessor<RHS, DIM>(rect);
 
     auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
-    UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
-      lhs, rhs, rect, pitches, args.collapsed_dim, volume);
+
+    if constexpr (HAS_WHERE) {
+      auto where = args.where.read_accessor<bool, DIM>(rect);
+      UnaryRedImplBodyWhere<KIND, OP_CODE, CODE, DIM>()(
+        lhs, rhs, where, rect, pitches, args.collapsed_dim, volume);
+    } else {
+      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
+        lhs, rhs, rect, pitches, args.collapsed_dim, volume);
+    }
   }
 
   template <Type::Code CODE,
@@ -62,13 +72,13 @@ struct UnaryRedImpl {
   }
 };
 
-template <VariantKind KIND>
+template <VariantKind KIND, bool HAS_WHERE>
 struct UnaryRedDispatch {
   template <UnaryRedCode OP_CODE>
   void operator()(UnaryRedArgs& args) const
   {
     auto dim = std::max(1, args.rhs.dim());
-    return double_dispatch(dim, args.rhs.code(), UnaryRedImpl<KIND, OP_CODE>{}, args);
+    return double_dispatch(dim, args.rhs.code(), UnaryRedImpl<KIND, OP_CODE, HAS_WHERE>{}, args);
   }
 };
 
@@ -78,10 +88,23 @@ static void unary_red_template(TaskContext& context)
   auto& inputs     = context.inputs();
   auto& reductions = context.reductions();
   auto& scalars    = context.scalars();
-
-  UnaryRedArgs args{
-    reductions[0], inputs[0], scalars[0].value<int32_t>(), scalars[1].value<UnaryRedCode>()};
-  op_dispatch(args.op_code, UnaryRedDispatch<KIND>{}, args);
+  bool has_where   = scalars[2].value<bool>();
+  if (has_where) {
+    UnaryRedArgs args{reductions[0],
+                      inputs[0],
+                      inputs[1],
+                      scalars[0].value<int32_t>(),
+                      scalars[1].value<UnaryRedCode>()};
+    op_dispatch(args.op_code, UnaryRedDispatch<KIND, true>{}, args);
+  } else {
+    Array where;
+    UnaryRedArgs args{reductions[0],
+                      inputs[0],
+                      where,
+                      scalars[0].value<int32_t>(),
+                      scalars[1].value<UnaryRedCode>()};
+    op_dispatch(args.op_code, UnaryRedDispatch<KIND, false>{}, args);
+  }
 }
 
 }  // namespace cunumeric

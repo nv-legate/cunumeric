@@ -42,6 +42,29 @@ struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
   }
 };
 
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
+struct UnaryRedImplBodyWhere<VariantKind::CPU, OP_CODE, CODE, DIM> {
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using RHS   = legate_type_of<CODE>;
+
+  void operator()(AccessorRD<LG_OP, true, DIM> lhs,
+                  AccessorRO<RHS, DIM> rhs,
+                  AccessorRO<bool, DIM> where,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  int collapsed_dim,
+                  size_t volume) const
+  {
+    for (size_t idx = 0; idx < volume; ++idx) {
+      auto point    = pitches.unflatten(idx, rect.lo);
+      auto identity = LG_OP::identity;
+      if (where[point] == true)
+        lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
+    }
+  }
+};
+
 /*static*/ void UnaryRedTask::cpu_variant(TaskContext& context)
 {
   unary_red_template<VariantKind::CPU>(context);

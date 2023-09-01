@@ -280,6 +280,86 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
 }
 
 template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
+static __device__ __forceinline__ Point<DIM> local_reduce_where(LHS& result,
+                                                                AccessorRO<RHS, DIM> in,
+                                                                AccessorRO<bool, DIM> where,
+                                                                LHS identity,
+                                                                const ThreadBlocks<DIM>& blocks,
+                                                                const Rect<DIM>& domain,
+                                                                int32_t collapsed_dim)
+{
+  const coord_t tid = threadIdx.x;
+  const coord_t bid = blockIdx.x;
+
+  Point<DIM> point = blocks.point(bid, tid, domain.lo);
+  if (!domain.contains(point)) return point;
+
+  while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
+    if (where[point] == true) {
+      LHS value = OP::convert(point, collapsed_dim, identity, in[point]);
+      REDOP::template fold<true>(result, value);
+    }
+    blocks.next_point(point);
+  }
+
+#if __CUDA_ARCH__ >= 700
+  // If we're collapsing the innermost dimension, we perform some optimization
+  // with shared memory to reduce memory traffic due to atomic updates
+  if (collapsed_dim == DIM - 1) {
+    __shared__ uint8_t shmem[THREADS_PER_BLOCK * sizeof(LHS)];
+    LHS* trampoline = reinterpret_cast<LHS*>(shmem);
+    // Check for the case where all the threads in the same warp have
+    // the same x value in which case they're all going to conflict
+    // so instead we do a warp-level reduction so just one thread ends
+    // up doing the full atomic
+    coord_t bucket = 0;
+    for (int32_t dim = DIM - 2; dim >= 0; --dim)
+      bucket = bucket * (domain.hi[dim] - domain.lo[dim] + 1) + point[dim] - domain.lo[dim];
+
+    const uint32_t same_mask = __match_any_sync(0xffffffff, bucket);
+    int32_t laneid;
+    asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
+    const uint32_t active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
+    if ((active_mask & (1 << laneid)) != 0) {
+      // Store our data into shared
+      trampoline[tid] = result;
+      // Make sure all the threads in the warp are done writing
+      __syncwarp(active_mask);
+      // Have the lowest thread in each mask pull in the values
+      int32_t lowest_index = -1;
+      for (int32_t i = 0; i < warpSize; i++)
+        if (same_mask & (1 << i)) {
+          if (lowest_index == -1) {
+            if (i != laneid) {
+              // We're not the lowest thread in the warp for
+              // this value so we're done, set the value back
+              // to identity to ensure that we don't try to
+              // perform the reduction out to memory
+              result = identity;
+              break;
+            } else  // Make sure we don't do this test again
+              lowest_index = i;
+            // It was already our value, so just keep going
+          } else {
+            // Pull in the value from shared memory
+            const int32_t index = tid + i - laneid;
+            REDOP::template fold<true>(result, trampoline[index]);
+          }
+        }
+    }
+  }
+#endif
+
+#ifdef LEGATE_BOUNDS_CHECKS
+  // Note: this isn't necessary because we know that the affine transformation on the output
+  // accessor will ignore coordinates of the collapsed dimension. However, Legion's bounds checks
+  // want the accessor to honor the sub-rectangle passed when it was created, so we need to
+  // put points back in the bounds to appease the checks.
+  point[collapsed_dim] = domain.lo[collapsed_dim];
+#endif
+  return point;
+}
+template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduce_with_rd_acc(AccessorRD<REDOP, false, DIM> out,
                      AccessorRO<RHS, DIM> in,
@@ -291,6 +371,22 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   auto result = identity;
   auto point =
     local_reduce<OP, REDOP, LHS, RHS, DIM>(result, in, identity, blocks, domain, collapsed_dim);
+  if (result != identity) out.reduce(point, result);
+}
+
+template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
+static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  reduce_with_rd_acc_where(AccessorRD<REDOP, false, DIM> out,
+                           AccessorRO<RHS, DIM> in,
+                           AccessorRO<bool, DIM> where,
+                           LHS identity,
+                           ThreadBlocks<DIM> blocks,
+                           Rect<DIM> domain,
+                           int32_t collapsed_dim)
+{
+  auto result = identity;
+  auto point  = local_reduce_where<OP, REDOP, LHS, RHS, DIM>(
+    result, in, where, identity, blocks, domain, collapsed_dim);
   if (result != identity) out.reduce(point, result);
 }
 
@@ -317,6 +413,34 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
       lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
+    CHECK_CUDA_STREAM(stream);
+  }
+};
+
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
+struct UnaryRedImplBodyWhere<VariantKind::GPU, OP_CODE, CODE, DIM> {
+  using OP    = UnaryRedOp<OP_CODE, CODE>;
+  using LG_OP = typename OP::OP;
+  using RHS   = legate_type_of<CODE>;
+  using LHS   = typename OP::VAL;
+
+  void operator()(AccessorRD<LG_OP, false, DIM> lhs,
+                  AccessorRO<RHS, DIM> rhs,
+                  AccessorRO<bool, DIM> where,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  int collapsed_dim,
+                  size_t volume) const
+  {
+    auto Kernel = reduce_with_rd_acc_where<OP, LG_OP, LHS, RHS, DIM>;
+    auto stream = get_cached_stream();
+
+    ThreadBlocks<DIM> blocks;
+    blocks.initialize(rect, collapsed_dim);
+
+    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
+    Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
+      lhs, rhs, where, LG_OP::identity, blocks, rect, collapsed_dim);
     CHECK_CUDA_STREAM(stream);
   }
 };

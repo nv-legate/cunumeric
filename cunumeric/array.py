@@ -3117,11 +3117,11 @@ class ndarray:
             else:
                 dtype = self.dtype
 
-        # if self.size == 1:
-        #    if where is True:
-        #        return self.copy()
-        #    if where is False:
-        #        return self.copy() / 0
+        if self.size == 1:
+            if where is True:
+                return self.copy()  # type: ignore
+            if where is False:
+                return self.copy() / 0  # type: ignore
 
         # Do the sum
         if out is not None and out.dtype == dtype:
