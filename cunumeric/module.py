@@ -6978,14 +6978,7 @@ def count_nonzero(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if a.size == 0:
-        return 0
-    return ndarray._perform_unary_reduction(
-        UnaryRedCode.COUNT_NONZERO,
-        a,
-        res_dtype=np.dtype(np.uint64),
-        axis=axis,
-    )
+    return a._count_nonzero(axis)
 
 
 ############

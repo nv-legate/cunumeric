@@ -3081,6 +3081,16 @@ class ndarray:
             where=where,
         )
 
+    def _count_nonzero(self, axis: Any = None) -> Union[int, ndarray]:
+        if self.size == 0:
+            return 0
+        return ndarray._perform_unary_reduction(
+            UnaryRedCode.COUNT_NONZERO,
+            self,
+            res_dtype=np.dtype(np.uint64),
+            axis=axis,
+        )
+
     @add_boilerplate()
     def mean(
         self,
@@ -3119,40 +3129,39 @@ class ndarray:
 
         if self.size == 1:
             if where is True:
-                return self.copy()  # type: ignore
+                return self.astype(dtype)  # type: ignore
             if where is False:
-                return self.copy() / 0  # type: ignore
+                return self.astype(dtype) / 0  # type: ignore
 
         # Do the sum
         if out is not None and out.dtype == dtype:
             sum_array = self.sum(
-                axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
+                axis=axis, out=out, keepdims=keepdims, where=where
             )
         else:
-            sum_array = self.sum(
-                axis=axis, dtype=dtype, keepdims=keepdims, where=where
-            )
+            sum_array = self.sum(axis=axis, keepdims=keepdims, where=where)
 
         if axis is None:
             if where is not None:
-                divisor = np.sum(where.astype(int))
+                divisor = where._count_nonzero()
 
             else:
                 divisor = reduce(lambda x, y: x * y, self.shape, 1)
 
         else:
             if where is not None:
-                divisor = np.sum(where.astype(int), axis=axis)
+                divisor = where._count_nonzero(axis=axis)
             else:
                 divisor = self.shape[axis]
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
+        sum_array = sum_array.astype(dtype)
         if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
-                np.array(divisor, dtype=sum_array.dtype),
+                np.array(divisor, dtype=dtype),
             )
         else:
-            sum_array.__ifloordiv__(np.array(divisor, dtype=sum_array.dtype))
+            sum_array.__ifloordiv__(np.array(divisor, dtype=dtype))
         # Convert to the output we didn't already put it there
         if out is not None and sum_array is not out:
             assert out.dtype != sum_array.dtype
