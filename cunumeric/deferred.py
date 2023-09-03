@@ -3159,8 +3159,6 @@ class DeferredArray(NumPyThunk):
             )
 
         is_where = bool(where is not None)
-        if is_where:
-            print("IRINA DEBUG inside cunumeric", where.shape, is_where)
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or lhs_array.ndim == rhs_array.ndim - (
@@ -3184,9 +3182,6 @@ class DeferredArray(NumPyThunk):
                     CuNumericOpCode.SCALAR_UNARY_RED
                 )
 
-                print(
-                    "IRINA DEBUG inside scalar unary_red", lhs.shape, lhs.size
-                )
                 task.add_reduction(lhs, _UNARY_RED_TO_REDUCTION_OPS[op])
                 task.add_input(rhs_array.base)
                 task.add_scalar_arg(op, ty.int32)
@@ -3229,7 +3224,6 @@ class DeferredArray(NumPyThunk):
 
             with Annotation({"OpCode": op.name, "ArgRed?": str(argred)}):
                 task = self.context.create_auto_task(CuNumericOpCode.UNARY_RED)
-                print("IRINA DEBUG inside unary_red", result.shape)
 
                 task.add_input(rhs_array.base)
                 task.add_reduction(result, _UNARY_RED_TO_REDUCTION_OPS[op])
