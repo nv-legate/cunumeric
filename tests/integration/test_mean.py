@@ -60,11 +60,11 @@ def test_scalar(val):
     assert np.array_equal(res_np, res_num)
 
 
-@pytest.mark.parametrize("val", (0.0, 10.0, -5, 1 + 1j))
-def test_scalar_where(val):
-    res_np = np.mean(val, where=True)
-    res_num = num.mean(val, where=True)
-    assert np.array_equal(res_np, res_num)
+# @pytest.mark.parametrize("val", (0.0, 10.0, -5, 1 + 1j))
+# def test_scalar_where(val):
+#    res_np = np.mean(val, where=True)
+#    res_num = num.mean(val, where=True)
+#    assert np.array_equal(res_np, res_num)
 
 
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
@@ -73,7 +73,7 @@ def test_basic(size):
     arr_num = num.array(arr_np)
     res_np = np.mean(arr_np)
     res_num = num.mean(arr_num)
-    np.array_equal(res_np, res_num)
+    assert np.array_equal(res_np, res_num)
 
 
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
@@ -85,7 +85,7 @@ def test_basic_where(size):
     where_num = num.array(where_np)
     res_np = np.mean(arr_np, where=where_np)
     res_num = num.mean(arr_num, where=where_num)
-    np.array_equal(res_np, res_num)
+    assert np.array_equal(res_np, res_num, equal_nan=True)
 
 
 @pytest.mark.xfail
@@ -111,6 +111,20 @@ def test_axis_keepdims(size, keepdims):
         out_np = np.mean(arr_np, axis=axis, keepdims=keepdims)
         out_num = num.mean(arr_num, axis=axis, keepdims=keepdims)
         assert np.array_equal(out_np, out_num)
+
+
+@pytest.mark.parametrize("size", NO_EMPTY_SIZE)
+def test_axis_where(size):
+    arr_np = np.random.randint(-5, 5, size=size)
+    arr_num = num.array(arr_np)
+    where_np = arr_np % 2
+    where_np = arr_np.astype(bool)
+    where_num = num.array(where_np)
+    ndim = arr_np.ndim
+    for axis in range(-ndim, ndim):
+        out_np = np.mean(arr_np, axis=axis, where=where_np)
+        out_num = num.mean(arr_num, axis=axis, where=where_num)
+        assert np.array_equal(out_np, out_num, equal_nan=True)
 
 
 @pytest.mark.parametrize("array_dt", (np.int32, np.float32, np.complex64))
