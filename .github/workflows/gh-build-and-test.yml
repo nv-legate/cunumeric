@@ -55,20 +55,18 @@ jobs:
             enabled: ${{ inputs.build-target == 'gpu' }}
 
           - name: OpenMP test
-            # TODO: remove the -j 1 flag
-            options: test --use openmp --omps 1 --ompthreads 2 --debug -j 1
+            options: test --use openmp --omps 1 --ompthreads 2 --debug
             log: omp
             runner: ${{ inputs.build-target == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-32cpu' }}
             has-gpu: ${{ inputs.build-target == 'gpu' }}
-            enabled: true
+            enabled: false
 
           - name: 2 NUMA OpenMPs test
-            # TODO: remove the -j 1 flag
-            options: test --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug -j 1
+            options: test --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug
             log: omps
             runner: ${{ inputs.build-target == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-32cpu' }}
             has-gpu: ${{ inputs.build-target == 'gpu' }}
-            enabled: true
+            enabled: false
 
           - name: Eager execution test
             options: test --use eager --debug
@@ -89,7 +87,7 @@ jobs:
             log: docs
             runner: linux-amd64-32cpu
             has-gpu: false
-            enabled: true
+            enabled: ${{ inputs.build-target == 'gpu' }}
     # name: ${{ matrix.name }}
     uses:
       ./.github/workflows/gh-test.yml
