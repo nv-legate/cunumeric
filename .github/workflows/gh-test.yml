@@ -6,6 +6,9 @@ on:
       name:
         required: true
         type: string
+      image:
+        type: string
+        required: true
       device:
         required: true
         type: string
@@ -39,7 +42,7 @@ jobs:
       options: -u root
       image: "${{ inputs.image }}"
       env:
-        CUDA_VERSION: "${{ inputs.CUDA }}"
+        # CUDA_VERSION: "${{ inputs.CUDA }}"
         NVIDIA_VISIBLE_DEVICES: ${{ env.NVIDIA_VISIBLE_DEVICES }}
 
     defaults:
