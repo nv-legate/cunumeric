@@ -16,7 +16,7 @@ build_cunumeric_all() {
 
     set -xeuo pipefail;
 
-    setup_env();
+    setup_env;
 
     cd ~/cunumeric;
 
