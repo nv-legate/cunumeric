@@ -77,7 +77,7 @@ jobs:
         with:
           device: "${{ inputs.device }}"
           git_sha: "${{ steps.legate_core_info.outputs.git_tag }}"
-          gh-pat: "${{ env.GH_TOKEN }}"
+          gh-pat: "${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}"
 
       - if: github.repository_owner == 'nv-legate'
         name: Get AWS credentials for sccache bucket
