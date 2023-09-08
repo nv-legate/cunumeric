@@ -1,20 +1,22 @@
 on:
   workflow_call:
     inputs:
-      build-target:
-        required: true
+      image:
         type: string
-      sha:
         required: true
+      device:
         type: string
+        required: true
+
 
 jobs:
   build:
-    name: "Build cunumeric (with ${{ inputs.build-target }} legate) on GH"
+    name: "Build cunumeric (with ${{ inputs.device }} legate) on GH"
     uses:
       ./.github/workflows/gh-build.yml
     with:
-      build-target: ${{ inputs.build-target }}
+      device: ${{ inputs.device }}
+      image: ${{ inputs.image }}
       # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
       runs-on: ${{ github.repository_owner == 'nv-legate' && 'linux-amd64-32cpu' || 'ubuntu-latest' }}
       sha: ${{ inputs.sha }}
@@ -29,14 +31,14 @@ jobs:
           - name: 1 CPU test
             options: test --cpus 1 --unit --debug
             log: cpu
-            runner: ${{ inputs.build-target == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-cpu4' }}
+            runner: ${{ inputs.device == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-cpu4' }}
             has-gpu: false
             enabled: true
 
           - name: 2 CPUs test
             options: test --cpus 2 --debug
             log: cpus
-            runner: ${{ inputs.build-target == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-cpu8' }}
+            runner: ${{ inputs.device == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-cpu8' }}
             has-gpu: false
             enabled: true
 
@@ -45,34 +47,34 @@ jobs:
             log: gpu
             runner: linux-amd64-gpu-v100-latest-1
             has-gpu: true
-            enabled: ${{ inputs.build-target == 'gpu' }}
+            enabled: ${{ inputs.device == 'gpu' }}
 
           - name: 2 GPUs test
             options: test --use cuda --gpus 2 --debug
             log: gpus
             runner: linux-amd64-2gpu
             has-gpu: true
-            enabled: ${{ inputs.build-target == 'gpu' }}
+            enabled: ${{ inputs.device == 'gpu' }}
 
           - name: OpenMP test
             options: test --use openmp --omps 1 --ompthreads 2 --debug
             log: omp
-            runner: ${{ inputs.build-target == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-32cpu' }}
-            has-gpu: ${{ inputs.build-target == 'gpu' }}
+            runner: ${{ inputs.device == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-32cpu' }}
+            has-gpu: ${{ inputs.device == 'gpu' }}
             enabled: false
 
           - name: 2 NUMA OpenMPs test
             options: test --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug
             log: omps
-            runner: ${{ inputs.build-target == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-32cpu' }}
-            has-gpu: ${{ inputs.build-target == 'gpu' }}
+            runner: ${{ inputs.device == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-32cpu' }}
+            has-gpu: ${{ inputs.device == 'gpu' }}
             enabled: false
 
           - name: Eager execution test
             options: test --use eager --debug
             log: eager
-            runner: ${{ inputs.build-target == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-cpu4' }}
-            has-gpu: ${{ inputs.build-target == 'gpu' }}
+            runner: ${{ inputs.device == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-cpu4' }}
+            has-gpu: ${{ inputs.device == 'gpu' }}
             enabled: true
 
           - name: mypy
@@ -87,28 +89,17 @@ jobs:
             log: docs
             runner: linux-amd64-32cpu
             has-gpu: false
-            enabled: ${{ inputs.build-target == 'gpu' }}
+            enabled: ${{ inputs.device == 'gpu' }}
     # name: ${{ matrix.name }}
     uses:
       ./.github/workflows/gh-test.yml
     with:
       name: ${{ matrix.name }}
-      build-target: ${{ inputs.build-target }}
+      device: ${{ inputs.device }}
+      image: ${{ inputs.image }}
       runs-on: ${{ matrix.runner }}
       has-gpu: ${{ matrix.has-gpu }}
       sha: ${{ inputs.sha }}
       test-options: ${{ matrix.options }}
       log-name: ${{ matrix.log }}
       enabled: ${{ matrix.enabled }}
-
-
-  cleanup:
-    if: inputs.skip-cleanup == false
-    needs:
-      - build
-      - test
-    uses:
-      ./.github/workflows/gh-cleanup.yml
-    with:
-      build-target: ${{ inputs.build-target }}
-      sha: ${{ inputs.sha }}

@@ -6,7 +6,7 @@ on:
       name:
         required: true
         type: string
-      build-target:
+      device:
         required: true
         type: string
       runs-on:
@@ -36,7 +36,7 @@ jobs:
     runs-on: ${{ inputs.runs-on }}
     container:
       options: -u root
-      image: ghcr.io/nv-legate/cunumeric-${{ inputs.build-target }}:${{ inputs.sha }}
+      image: ghcr.io/nv-legate/cunumeric-${{ inputs.device }}:${{ inputs.sha }}
       volumes:
         - ${{ github.workspace }}/test_logs:/home/coder/.test_logs
       env:
@@ -61,5 +61,5 @@ jobs:
       - name: Upload logs
         uses: actions/upload-artifact@v3
         with:
-          name: "cunumeric-${{ inputs.build-target }}-${{ inputs.sha }}-test-${{ inputs.log-name }}-log"
+          name: "cunumeric-${{ inputs.device }}-${{ inputs.sha }}-test-${{ inputs.log-name }}-log"
           path: test_logs/cunumeric-${{ inputs.sha }}-test-${{ inputs.log-name }}.log
