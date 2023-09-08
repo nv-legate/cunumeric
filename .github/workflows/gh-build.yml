@@ -87,10 +87,10 @@ jobs:
           role-duration-seconds: 28800 # 8 hours
           role-to-assume: arn:aws:iam::279114543810:role/gha-oidc-nv-legate
 
-      - name: Initialize devcontainer
-        run: |
-          . devcontainer-utils-post-attach-command;
-          . devcontainer-utils-init-github-cli;
+      # - name: Initialize devcontainer
+      #   run: |
+      #     . devcontainer-utils-post-attach-command;
+      #     . devcontainer-utils-init-github-cli;
 
       - name: Build cunumeric
         run: |
