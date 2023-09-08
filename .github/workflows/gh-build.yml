@@ -73,7 +73,7 @@ jobs:
           echo "git_tag=$git_tag" | tee -a "${GITHUB_OUTPUT}";
 
       - name: Download dependencies (artifacts)
-        uses: ./legate.io/.github/actions/download-artifacts
+        uses: ./cunumeric/.github/actions/download-artifacts
         with:
           device: "${{ inputs.device }}"
           git_sha: "${{ steps.legate_core_info.outputs.git_tag }}"
@@ -92,7 +92,7 @@ jobs:
           . devcontainer-utils-post-attach-command;
           . devcontainer-utils-init-github-cli;
 
-      - name: Build legate.io
+      - name: Build cunumeric
         run: |
           export PATH="/home/coder/cunumeric/continuous_integration:$PATH"
           build-cunumeric-all
