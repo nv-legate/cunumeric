@@ -18,7 +18,7 @@ jobs:
     name: build-${{ inputs.device }}-sub-workflow
 
     permissions:
-      # id-token: write # This is required for configure-aws-credentials
+      id-token: write # This is required for configure-aws-credentials
       contents: read  # This is required for actions/checkout
       # packages: write # This is required to push docker image to ghcr.io
 
