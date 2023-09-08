@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 
-. cunumeric-conda-utils
+setup_env() {
+    yaml_file=$(find ~/.artifacts -name "environment*.yaml" | head -n 1)
+    mamba env create -n legate -f "$yaml_file"
+    mamba uninstall -yn legate numpy
+    mamba install -yn legate -c ~/.artifacts/legate_core -c ~/.artifacts/cunumeric -c conda-forge -c nvidia legate-core cunumeric
+
+    set +u
+    mamba activate legate;
+    conda info;
+    set -u
+}
 
 test-cunumeric() {
     set -x
-    cd ~/
 
-    make_empty_conda_env;
+    setup_env();
 
-    install_cunumeric;
-
-    activate_conda_env;
-
-    conda info;
+    cd ~/cunumeric;
 
     set -xeuo pipefail
 
@@ -20,22 +25,18 @@ test-cunumeric() {
         "test")
             echo "Executing tests..."
             shift;
-            update_conda_env_using_section tests
-            cd cunumeric
             ./test.py --verbose "$@"
             ;;
         "mypy")
             echo "Executing mypy..."
             shift;
-            update_conda_env_using_section tests docs
-            cd cunumeric
             mypy cunumeric
             ;;
         "docs")
             echo "Building docs..."
             shift;
             update_conda_env_using_section docs
-            cd cunumeric/docs/cunumeric
+            cd docs/cunumeric
             make clean html
             ;;
         *)

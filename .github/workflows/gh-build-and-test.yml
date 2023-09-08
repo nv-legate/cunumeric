@@ -99,7 +99,6 @@ jobs:
       image: ${{ inputs.image }}
       runs-on: ${{ matrix.runner }}
       has-gpu: ${{ matrix.has-gpu }}
-      sha: ${{ inputs.sha }}
       test-options: ${{ matrix.options }}
       log-name: ${{ matrix.log }}
       enabled: ${{ matrix.enabled }}

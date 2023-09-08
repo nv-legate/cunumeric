@@ -9,6 +9,8 @@ build_cunumeric_conda_package() {
         python_version="$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f3 --complement)";
     fi
 
+    cp -r ~/.artifacts/legate_core /tmp/conda-build/
+
     local conda_build_args=();
     conda_build_args+=(--override-channels);
     conda_build_args+=(-c conda-forge);
