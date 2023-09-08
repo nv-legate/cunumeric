@@ -12,19 +12,19 @@ setup_env() {
 }
 
 build_cunumeric_all() {
-    conda info;
-
     set -xeuo pipefail;
 
     setup_env;
 
     cd ~/cunumeric;
 
-    echo "\n\n\n\n********* BUILDING CUNUMERIC CPP *********"
+    conda info;
+
+    printf "\n\n\n\n********* BUILDING CUNUMERIC CPP *********"
     build-cunumeric-cpp;
-    echo "\n\n\n\n********* BUILDING CUNUMERIC WHEEL *********"
+    printf "\n\n\n\n********* BUILDING CUNUMERIC WHEEL *********"
     build-cunumeric-wheel;
-    echo "\n\n\n\n********* BUILDING CUNUMERIC CONDA *********"
+    printf "\n\n\n\n********* BUILDING CUNUMERIC CONDA *********"
     build-cunumeric-conda;
 }
 
