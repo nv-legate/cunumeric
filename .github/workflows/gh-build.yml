@@ -28,11 +28,7 @@ jobs:
       options: -u root
       image: "${{ inputs.image }}"
       env:
-        CC: "gcc"
-        CXX: "g++"
-        CUDAHOSTCXX: "g++"
         CUDA_VERSION: "${{ inputs.CUDA }}"
-        DEFAULT_CONDA_ENV: "legate"
         SCCACHE_REGION: "us-east-2"
         SCCACHE_BUCKET: "rapids-sccache-devs"
         SCCACHE_S3_KEY_PREFIX: "legate-cunumeric-dev"
