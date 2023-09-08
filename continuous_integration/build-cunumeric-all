@@ -2,13 +2,14 @@
 
 setup_env() {
     yaml_file=$(find ~/.artifacts -name "environment*.yaml" | head -n 1)
+
     mamba env create -n legate -f "$yaml_file"
+
     mamba uninstall -yn legate numpy
+
     mamba install -yn legate -c ~/.artifacts/legate_core -c conda-forge -c nvidia legate-core
 
-    set +u
     mamba activate legate
-    set -u
 }
 
 build_cunumeric_all() {
