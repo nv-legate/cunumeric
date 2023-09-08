@@ -65,6 +65,9 @@ jobs:
           chown -R coder:coder cunumeric;
           ls -R
 
+      - name: Copy .gitconfig
+        run: cp ~/cunumeric/continuous_integration/dot-gitconfig ~/.gitconfig
+
       - id: legate_core_info
         name: Read legate.core SHA
         shell: bash --noprofile --norc -xeo pipefail {0}
