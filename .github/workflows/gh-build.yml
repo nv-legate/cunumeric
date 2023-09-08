@@ -37,7 +37,8 @@ jobs:
         SCCACHE_BUCKET: "rapids-sccache-devs"
         SCCACHE_S3_KEY_PREFIX: "legate-cunumeric-dev"
         USE_CUDA: "${{ inputs.device == 'gpu' && 'ON' || 'OFF' }}"
-        GH_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}"
+        GH_TOKEN: "${{ env.GH_TOKEN }}"
+        GITHUB_TOKEN: "${{ env.GITHUB_TOKEN }}"
         VAULT_HOST: "${{ github.repository_owner != 'nv-legate' && 'https://vault.ops.k8s.rapids.ai' || '' }}"
     defaults:
       run:
@@ -77,7 +78,6 @@ jobs:
         with:
           device: "${{ inputs.device }}"
           git_sha: "${{ steps.legate_core_info.outputs.git_tag }}"
-          gh-pat: "${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}"
 
       - if: github.repository_owner == 'nv-legate'
         name: Get AWS credentials for sccache bucket

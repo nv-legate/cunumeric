@@ -4,7 +4,6 @@ description: Download dependencies (artifacts)
 
 inputs:
   device: {type: string, required: true}
-  gh-pat: {type: string, required: true}
   git_sha: {type: string, required: true}
 
 runs:
@@ -25,7 +24,6 @@ runs:
         path: .artifacts-dl
         repo: nv-legate/legate.core
         commit: ${{ inputs.git_sha }}
-        github_token: "${{ inputs.gh-pat }}"
         workflow_conclusion: success
         workflow: "ci-gh-${{ inputs.device }}-build-and-test.yml"
         name: "legate.core-${{ inputs.device }}-[0-9a-z]{40}"
