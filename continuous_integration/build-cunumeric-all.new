@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+setup_env() {
+    yaml_file=$(find ~/.artifacts -name "environment*.yaml" | head -n 1)
+    mamba env create -n legate -f "$yaml_file"
+    mamba uninstall -yn legate numpy
+    mamba install -yn legate -c ~/.artifacts/legate_core -c conda-forge -c nvidia legate-core
+
+    set +u
+    mamba activate legate
+    set -u
+}
+
+build_cunumeric_all() {
+    conda info;
+
+    set -xeuo pipefail;
+
+    setup_env();
+
+    cd ~/cunumeric;
+
+    echo "\n\n\n\n********* BUILDING CUNUMERIC CPP *********"
+    build-cunumeric-cpp;
+    echo "\n\n\n\n********* BUILDING CUNUMERIC WHEEL *********"
+    build-cunumeric-wheel;
+    echo "\n\n\n\n********* BUILDING CUNUMERIC CONDA *********"
+    build-cunumeric-conda;
+}
+
+(build_cunumeric_all "$@");
