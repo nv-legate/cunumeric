@@ -19,7 +19,6 @@ jobs:
       image: ${{ inputs.image }}
       # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
       runs-on: ${{ github.repository_owner == 'nv-legate' && 'linux-amd64-32cpu' || 'ubuntu-latest' }}
-      sha: ${{ inputs.sha }}
 
   test:
     needs:
