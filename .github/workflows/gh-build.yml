@@ -60,8 +60,8 @@ jobs:
         run: |
           set -x
           pwd
-          # cp -r $GITHUB_WORKSPACE/cunumeric .
-          # chown -R coder:coder cunumeric;
+          cp -r $GITHUB_WORKSPACE/cunumeric .
+          chown -R coder:coder cunumeric;
           ls -R
 
       - id: legate_core_info

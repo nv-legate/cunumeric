@@ -68,6 +68,14 @@ jobs:
           path: cunumeric
           persist-credentials: false
 
+      - name: Copy source folder
+        run: |
+          set -x
+          pwd
+          cp -r $GITHUB_WORKSPACE/cunumeric .
+          chown -R coder:coder cunumeric;
+          ls -R
+
       - name: Download build artifacts
         uses: actions/download-artifact@v3
         with:
