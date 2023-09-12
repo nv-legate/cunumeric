@@ -7910,7 +7910,7 @@ def histogram(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    result_type = np.dtype(np.int64)
+    result_type: np.dtype[Any] = np.dtype(np.int64)
 
     if np.ndim(bins) > 1:
         raise ValueError("`bins` must be 1d, when an array")
@@ -7996,6 +7996,7 @@ def histogram(
     # handle (density = True):
     #
     if density:
+        result_type = np.dtype(np.float64)
         hist /= sum(hist)
         hist /= bins_array[1:] - bins_array[:-1]
 
