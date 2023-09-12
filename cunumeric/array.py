@@ -3179,6 +3179,21 @@ class ndarray:
         *,
         where: Union[bool, ndarray] = True,
     ) -> ndarray:
+        """a.var(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False)
+
+        Returns the variance of the array elements along given axis.
+
+        Refer to :func:`cunumeric.var` for full documentation.
+
+        See Also
+        --------
+        cunumeric.mean : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
         # this could be computed as a single pass through the array
         # by computing both <x^2> and <x> and then computing <x^2> - <x>^2.
         # this would takee the difference of two large numbers and is unstable
