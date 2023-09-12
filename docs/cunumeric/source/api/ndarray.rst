@@ -158,7 +158,7 @@ Calculation
    ndarray.sum
    ndarray.cumsum
    ndarray.mean
-   .. ndarray.var
+   ndarray.var
    .. ndarray.std
    ndarray.prod
    ndarray.cumprod
