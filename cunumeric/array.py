@@ -3988,33 +3988,28 @@ class ndarray:
         return where._thunk
 
     @staticmethod
-    def find_common_type(*args: Any) -> np.dtype[Any]:
-        """Determine common type following standard coercion rules.
+    def find_common_type(*args: ndarray) -> np.dtype[Any]:
+        """Determine common type following NumPy's coercion rules.
 
         Parameters
         ----------
-        \\*args :
-            A list of dtypes or dtype convertible objects representing arrays
-            or scalars.
-
+        *args : ndarray
+            A list of ndarrays
 
         Returns
         -------
         datatype : data-type
-            The common data type, which is the maximum of the array types,
-            ignoring any scalar types , unless the maximum scalar type is of a
-            different kind (`dtype.kind`). If the kind is not understood, then
-            None is returned.
-
+            The type that results from applying the NumPy type promotion rules
+            to the arguments.
         """
         array_types = list()
-        scalar_types = list()
+        scalars = list()
         for array in args:
-            if array.size == 1:
-                scalar_types.append(array.dtype)
+            if array.ndim == 0:
+                scalars.append(array.dtype.type(0))
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)  # type: ignore
+        return np.result_type(*array_types, *scalars)
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
