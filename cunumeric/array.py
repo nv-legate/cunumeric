@@ -4095,7 +4095,7 @@ class ndarray:
                 scalar_types.append(array.dtype)
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)
+        return np.find_common_type(array_types, scalar_types)  # type: ignore
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
