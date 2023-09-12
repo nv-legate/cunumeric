@@ -18,7 +18,7 @@ import traceback
 from functools import reduce
 from string import ascii_lowercase, ascii_uppercase
 from types import FrameType
-from typing import Any, Callable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, List, Sequence, Tuple, Union
 
 import legate.core.types as ty
 import numpy as np
@@ -43,8 +43,15 @@ SUPPORTED_DTYPES = {
 }
 
 
-def to_core_dtype(dtype: Union[str, np.dtype[Any]]) -> Optional[ty.Dtype]:
-    return SUPPORTED_DTYPES.get(np.dtype(dtype))
+def is_supported_type(dtype: Union[str, np.dtype[Any]]) -> bool:
+    return np.dtype(dtype) in SUPPORTED_DTYPES
+
+
+def to_core_dtype(dtype: Union[str, np.dtype[Any]]) -> ty.Dtype:
+    core_dtype = SUPPORTED_DTYPES.get(np.dtype(dtype))
+    if core_dtype is None:
+        raise TypeError(f"cuNumeric does not support dtype={dtype}")
+    return core_dtype
 
 
 def is_advanced_indexing(key: Any) -> bool:

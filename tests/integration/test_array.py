@@ -36,6 +36,13 @@ ARRAYS = (
     ),
 )
 
+UNSUPPORTED_OBJECTS = (
+    None,
+    "somestr",
+    ["one", "two"],
+    [("name", "S10"), ("height", float), ("age", int)],
+)
+
 
 def strict_type_equal(a, b):
     return np.array_equal(a, b) and a.dtype == b.dtype
@@ -43,13 +50,19 @@ def strict_type_equal(a, b):
 
 @pytest.mark.parametrize(
     "obj",
-    (None,) + SCALARS + ARRAYS,
+    SCALARS + ARRAYS,
     ids=lambda obj: f"(object={obj})",
 )
 def test_array_basic(obj):
     res_np = np.array(obj)
     res_num = num.array(obj)
     assert strict_type_equal(res_np, res_num)
+
+
+@pytest.mark.parametrize("obj", UNSUPPORTED_OBJECTS)
+def test_array_unsupported(obj):
+    with pytest.raises(TypeError, match="cuNumeric does not support dtype"):
+        num.array(obj)
 
 
 def test_array_ndarray():
@@ -129,13 +142,19 @@ class TestArrayErrors:
 
 @pytest.mark.parametrize(
     "obj",
-    (None,) + SCALARS + ARRAYS,
+    SCALARS + ARRAYS,
     ids=lambda obj: f"(object={obj})",
 )
 def test_asarray_basic(obj):
     res_np = np.asarray(obj)
     res_num = num.asarray(obj)
     assert strict_type_equal(res_np, res_num)
+
+
+@pytest.mark.parametrize("obj", UNSUPPORTED_OBJECTS)
+def test_asarray_unsupported(obj):
+    with pytest.raises(TypeError, match="cuNumeric does not support dtype"):
+        num.array(obj)
 
 
 def test_asarray_ndarray():
