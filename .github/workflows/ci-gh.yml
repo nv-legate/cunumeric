@@ -17,10 +17,10 @@ jobs:
       matrix:
         include:
           - device: "gpu"
-            image: "rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04"
+            image: "rapidsai/devcontainers:23.06-cpp-mambaforge-ubuntu22.04"
 
           - device: "cpu"
-            image: "rapidsai/devcontainers:23.10-cpp-cuda11.8-mambaforge-ubuntu22.04"
+            image: "rapidsai/devcontainers:23.06-cpp-mambaforge-ubuntu22.04"
     uses:
       ./.github/workflows/gh-build-and-test.yml
     with:
