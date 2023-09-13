@@ -17,7 +17,7 @@ jobs:
       matrix:
         include:
           - device: "gpu"
-            image: "rapidsai/devcontainers:23.06-cpp-cuda12.1-mambaforge-ubuntu22.04"
+            image: "rapidsai/devcontainers:23.06-cpp-mambaforge-ubuntu22.04"
 
           - device: "cpu"
             image: "rapidsai/devcontainers:23.06-cpp-mambaforge-ubuntu22.04"
