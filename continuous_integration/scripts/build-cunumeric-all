@@ -3,6 +3,8 @@
 setup_env() {
     yaml_file=$(find ~/.artifacts -name "environment*.yaml" | head -n 1)
 
+    [ "${USE_CUDA:-}" = "ON" ] && echo "  - libcublas" >> "${yaml_file}";
+
     mamba env create -n legate -f "$yaml_file"
 
     mamba uninstall -yn legate numpy
