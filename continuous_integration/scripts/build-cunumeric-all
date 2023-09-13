@@ -18,11 +18,11 @@ build_cunumeric_all() {
     conda info;
 
     set -xeuo pipefail;
-    printf "\n\n\n\n********* BUILDING CUNUMERIC CPP *********"
+    printf "\n\n\n\n********* BUILDING CUNUMERIC CPP *********\n"
     build-cunumeric-cpp;
-    printf "\n\n\n\n********* BUILDING CUNUMERIC WHEEL *********"
+    printf "\n\n\n\n********* BUILDING CUNUMERIC WHEEL *********\n"
     build-cunumeric-wheel;
-    printf "\n\n\n\n********* BUILDING CUNUMERIC CONDA *********"
+    printf "\n\n\n\n********* BUILDING CUNUMERIC CONDA *********\n"
     build-cunumeric-conda;
 }
 

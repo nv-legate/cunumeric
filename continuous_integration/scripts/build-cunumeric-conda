@@ -9,6 +9,7 @@ build_cunumeric_conda_package() {
         python_version="$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f3 --complement)";
     fi
 
+    mkdir -p /tmp/conda-build /tmp/out
     cp -r ~/.artifacts/legate_core /tmp/conda-build/
 
     local conda_build_args=();
