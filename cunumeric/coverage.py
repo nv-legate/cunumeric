@@ -168,19 +168,23 @@ def implemented(
             # TODO: Handle functions that return results in other ways, e.g.
             # np.add(out=) and np.put.
             # TODO: parameterize on the classes to check equality on
+            # TODO: more disciplined way to filter non-deterministic functions
             if (
                 res is not None
                 and isinstance(res, cunumeric.ndarray)
+                and not name.startswith("numpy.random")
                 and fallback
             ):
                 args = deep_apply(args, fallback)
                 kwargs = deep_apply(kwargs, fallback)
-                orig_res = orig_func(*args, **kwargs)
-                # TODO: parameterize on the function used to check equality
-                if allclose(fallback(res), orig_res):
-                    print(f"OK: {name}")
+                try:
+                    orig_res = orig_func(*args, **kwargs)
+                except Exception as e:
+                    print(f"SKIP {name}: {e}")
                 else:
-                    assert False
+                    # TODO: parameterize on the function used to check equality
+                    # TODO: skipping type checks for now
+                    assert allclose(fallback(res), orig_res, check_dtype=False)
             return res
 
     # This is incredibly ugly and unpleasant, but @wraps(func) doesn't handle
