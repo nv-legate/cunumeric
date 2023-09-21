@@ -5,6 +5,9 @@ setup_env() {
 
     [ "${USE_CUDA:-}" = "ON" ] && echo "  - libcublas-dev" >> "${yaml_file}";
 
+    echo "YAML file..."
+    cat "${yaml_file}"
+
     mamba env create -n legate -f "$yaml_file"
 
     mamba uninstall -yn legate numpy
