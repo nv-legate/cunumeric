@@ -57,9 +57,13 @@ EOF
     git -C ~/cunumeric add .;
     git -C ~/cunumeric commit --allow-empty --allow-empty-message -n -m "";
 
+    # Show rendered files
+    CUDA=${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR} \
+    conda render ~/cunumeric/conda/conda-build --variants "{gpu_enabled:${GPU_ENABLED},python:${python_version}}"
+
     # Build cuNumeric conda package
     CUDA=${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR} \
-    conda mambabuild --debug ${conda_build_args[@]} ~/cunumeric/conda/conda-build;
+    conda mambabuild ~/cunumeric/conda/conda-build --debug ${conda_build_args[@]};
 
     git -C ~/cunumeric reset --hard HEAD~1;
 
