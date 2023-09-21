@@ -59,7 +59,7 @@ EOF
 
     # Build cuNumeric conda package
     CUDA=${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR} \
-    conda mambabuild ${conda_build_args[@]} ~/cunumeric/conda/conda-build;
+    conda mambabuild --debug -vvv ${conda_build_args[@]} ~/cunumeric/conda/conda-build;
 
     git -C ~/cunumeric reset --hard HEAD~1;
 
