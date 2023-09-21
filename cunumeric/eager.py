@@ -42,7 +42,7 @@ from .config import (
 )
 from .deferred import DeferredArray
 from .thunk import NumPyThunk
-from .utils import is_advanced_indexing
+from .utils import is_advanced_indexing, is_supported_type
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -305,7 +305,7 @@ class EagerArray(NumPyThunk):
         # or whether we need to go up the tree to have it made
         if self.deferred is None:
             if self.parent is None:
-                assert self.runtime.is_supported_type(self.array.dtype)
+                assert is_supported_type(self.array.dtype)
                 # We are at the root of the tree so we need to
                 # actually make a DeferredArray to use
                 if self.array.size == 1:
