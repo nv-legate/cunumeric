@@ -5,6 +5,7 @@ setup_env() {
 
     [ "${USE_CUDA:-}" = "ON" ] &&
         echo "  - libcublas-dev" >> "${yaml_file}" &&
+        echo "  - libcufft-dev" >> "${yaml_file}" &&
         echo "  - libcusolver-dev" >> "${yaml_file}";
 
     echo "YAML file..."
