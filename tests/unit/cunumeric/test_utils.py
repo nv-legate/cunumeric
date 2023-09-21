@@ -126,12 +126,13 @@ class Test_is_supported_dtype:
 
     @pytest.mark.parametrize("value", EXPECTED_SUPPORTED_DTYPES)
     def test_supported(self, value) -> None:
-        assert m.to_core_dtype(value) is not None
+        m.to_core_dtype(value)
 
     # This is just a representative sample, not exhasutive
     @pytest.mark.parametrize("value", [np.float128, np.datetime64, [], {}])
     def test_unsupported(self, value) -> None:
-        assert m.to_core_dtype(value) is None
+        with pytest.raises(TypeError):
+            m.to_core_dtype(value)
 
 
 @pytest.mark.parametrize(
