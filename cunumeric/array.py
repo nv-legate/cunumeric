@@ -310,14 +310,9 @@ class ndarray:
                         if isinstance(inp, ndarray)
                     ]
                 core_dtype = to_core_dtype(dtype)
-                if core_dtype is not None:
-                    self._thunk = runtime.create_empty_thunk(
-                        sanitized_shape, core_dtype, inputs
-                    )
-                else:
-                    self._thunk = runtime.create_eager_thunk(
-                        sanitized_shape, dtype
-                    )
+                self._thunk = runtime.create_empty_thunk(
+                    sanitized_shape, core_dtype, inputs
+                )
         else:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
@@ -1665,7 +1660,7 @@ class ndarray:
 
     # __setattr__
     @add_boilerplate("value")
-    def __setitem__(self, key: Any, value: Any) -> None:
+    def __setitem__(self, key: Any, value: ndarray) -> None:
         """__setitem__(key, value, /)
 
         Set ``self[key]=value``.
@@ -2680,7 +2675,7 @@ class ndarray:
         return res
 
     @add_boilerplate("rhs")
-    def dot(self, rhs: Any, out: Union[ndarray, None] = None) -> ndarray:
+    def dot(self, rhs: ndarray, out: Union[ndarray, None] = None) -> ndarray:
         """a.dot(rhs, out=None)
 
         Return the dot product of this array with ``rhs``.
@@ -4236,8 +4231,8 @@ class ndarray:
     def _perform_binary_reduction(
         cls,
         op: BinaryOpCode,
-        one: Any,
-        two: Any,
+        one: ndarray,
+        two: ndarray,
         dtype: np.dtype[Any],
         extra_args: Union[tuple[Any, ...], None] = None,
     ) -> ndarray:
@@ -4253,14 +4248,14 @@ class ndarray:
             broadcast = None
 
         common_type = cls.find_common_type(one, two)
-        one = one._maybe_convert(common_type, args)._thunk
-        two = two._maybe_convert(common_type, args)._thunk
+        one_thunk = one._maybe_convert(common_type, args)._thunk
+        two_thunk = two._maybe_convert(common_type, args)._thunk
 
         dst = ndarray(shape=(), dtype=dtype, inputs=args)
         dst._thunk.binary_reduction(
             op,
-            one,
-            two,
+            one_thunk,
+            two_thunk,
             broadcast,
             extra_args,
         )

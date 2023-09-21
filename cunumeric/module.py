@@ -7136,7 +7136,9 @@ def bincount(
         # Handle the special case of 0-D array
         if weights is None:
             out = zeros((minlength,), dtype=np.dtype(np.int64))
-            out[x[0]] = 1
+            # TODO: Remove this "type: ignore" once @add_boilerplate can
+            # propagate "ndarray -> ndarray | npt.ArrayLike" in wrapped sigs
+            out[x[0]] = 1  # type: ignore [assignment]
         else:
             out = zeros((minlength,), dtype=weights.dtype)
             index = x[0]
