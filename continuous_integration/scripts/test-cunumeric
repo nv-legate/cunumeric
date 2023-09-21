@@ -4,7 +4,7 @@ setup_env() {
     yaml_file=$(find ~/.artifacts -name "environment*.yaml" | head -n 1)
     mamba env create -n legate -f "$yaml_file"
     mamba uninstall -yn legate numpy
-    mamba install -yn legate -c ~/.artifacts/legate_core -c ~/.artifacts/cunumeric -c conda-forge -c nvidia legate-core cunumeric
+    mamba install -yn legate -c ~/.artifacts/conda-build/legate_core -c ~/.artifacts/conda-build/cunumeric -c conda-forge -c nvidia legate-core cunumeric
 
     set +u
     mamba activate legate;
@@ -28,8 +28,9 @@ test-cunumeric() {
             ./test.py --verbose "$@"
             ;;
         "mypy")
-            echo "Executing mypy..."
+            echo "Installing and executing mypy..."
             shift;
+            mamba install -yn legate mypy
             mypy cunumeric
             ;;
         "docs")

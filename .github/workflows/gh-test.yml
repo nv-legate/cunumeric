@@ -80,7 +80,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{ env.build_artifact_name }}
-          path: /tmp
+          path: ~/.artifacts
 
       - name: Run cunumeric test / analysis
         shell: su coder {0}
