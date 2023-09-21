@@ -43,7 +43,7 @@ below. Find more details on this here:
 
 
 In the example below, the function ``transform`` is defined to operate on
-calars. But it can also be used on an array to linearly transform its elements,
+scalars. But it can also be used on an array to linearly transform its elements,
 thus performing an array-based operation.
 
 .. code-block:: python
@@ -128,8 +128,8 @@ additional communication that might be undesirable for performance.
 
 When the array needs to be updated from another array based on a condition
 that they both satisfy, use ``putmask`` for better performance. Unlike the
-previous example, here x is set to twice the value of y when the condition
-is met.
+previous example, here ``x`` is set to twice the value of ``y`` when the
+condition is met.
 
 .. code-block:: python
 
@@ -163,7 +163,7 @@ Here is an example:
     x[np.logical_and(first_cond, second_cond)] = const
 
 
-Refer to the documentation for other logical operations.
+Refer to the `documentation for other logical operations <https://numpy.org/doc/stable/reference/routines.logic.html#logical-operations>`_.
 
 Mathematical Functions
 ~~~~~~~~~~~~~~~~~~~~~~
