@@ -89,7 +89,7 @@ jobs:
           mkdir -p ~/.test_logs
           sudo chown -R coder:coder ~/.test_logs
 
-          export PATH="/home/coder/cunumeric/continuous_integration:$PATH"
+          export PATH="/home/coder/cunumeric/continuous_integration/scripts:$PATH"
 
           set -eo pipefail
           test-cunumeric ${{ inputs.test-options }} 2>&1 | tee ~/.test_logs/cunumeric-${{ github.sha }}-test-${{ inputs.log-name }}.log
