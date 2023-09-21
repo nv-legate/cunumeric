@@ -37,7 +37,21 @@ build_cunumeric_conda_package() {
 
     # Synthesize new cunumeric conda-build build.sh script
 
-    cat <<EOF >> ~/cunumeric/conda/conda-build/conda_build_config.yaml
+    cat <<EOF > ~/cunumeric/conda/conda-build/conda_build_config.yaml
+gpu_enabled:
+  - "${GPU_ENABLED}"
+
+python:
+  - "${python_version}"
+
+numpy_version:
+  - ">=1.22"
+
+cmake_version:
+  - ">=3.20.1,!=3.23.0"
+
+use_local_path:
+  - "true"
 
 numpy:
   - 1.22
@@ -57,13 +71,9 @@ EOF
     git -C ~/cunumeric add .;
     git -C ~/cunumeric commit --allow-empty --allow-empty-message -n -m "";
 
-    # Show rendered files
-    CUDA=${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR} \
-    conda render ~/cunumeric/conda/conda-build --variants "{gpu_enabled:${GPU_ENABLED},python:${python_version}}"
-
     # Build cuNumeric conda package
     CUDA=${CUDA_VERSION_MAJOR}.${CUDA_VERSION_MINOR} \
-    conda mambabuild ~/cunumeric/conda/conda-build --debug ${conda_build_args[@]};
+    conda mambabuild ${conda_build_args[@]} ~/cunumeric/conda/conda-build;
 
     git -C ~/cunumeric reset --hard HEAD~1;
 
