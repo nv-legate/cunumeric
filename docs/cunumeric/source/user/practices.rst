@@ -6,7 +6,8 @@ Best practices
 General Recommendations
 -----------------------
 
-Following the basics of numpy as documented here is highly recommended. Here,
+Following the basics of numpy as documented
+`here <https://numpy.org/doc/stable/user/basics.html>`_ is highly recommended. Here
 we highlight some of the best practices for cuNumeric to avoid commonly
 encountered problems related to performance. In general, array-based
 computations are recommended.
@@ -66,7 +67,7 @@ Use array-based implementations as much as possible, and while doing so, ensure
 that some of the best practices given below are followed.
 
 If a component of the array needs to be set/updated, use an array-based
-implementation instead of an explicit loop based implementation.
+implementation instead of an explicit loop-based implementation.
 
 .. code-block:: python
 
@@ -158,7 +159,7 @@ Here is an example:
             if (first_cond and second_cond):
                 x[j, i] = const
 
-    # Recommended: Use logical operations. See here
+    # Recommended: Use logical operations.
     x[np.logical_and(first_cond, second_cond)] = const
 
 
@@ -226,7 +227,7 @@ Guidelines on designing cuNumeric applications
 Use Output argument
 ~~~~~~~~~~~~~~~~~~~
 
-Whenever possible, use the out parameter in the APIs, to avoid allocating an
+Whenever possible, use the ``out`` parameter in the APIs, to avoid allocating an
 intermediate array in our implementation.
 
 .. code-block:: python
@@ -312,12 +313,12 @@ hundred microseconds or less. Here is an example:
 Avoid blocking operations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-While this might require more invasive application level changes, it is often
+While this might require more invasive application-level changes, it is often
 recommended that any blocking operation in an iterative loop is delayed as much
 as possible. Blocking can occur when there is data-dependency between execution
 of tasks. In the example below, the runtime will be blocked until the result
 from ``norm < tolerance`` is available since ``norm`` needs to be fetched from
-the Processor it is running on to evaluate the conditional.
+the processor it is running on to evaluate the conditional.
 
 The current recommended best practice is to design applications such that these
 blocking operations are done as sparingly as possible, as permitted by the
