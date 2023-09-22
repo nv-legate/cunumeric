@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 
 setup_env() {
-    mamba create -n legate
-    mamba uninstall -yn legate numpy
-    mamba install -yn legate -c ~/.artifacts/conda-build/legate_core -c ~/.artifacts/conda-build/cunumeric -c conda-forge -c nvidia legate-core cunumeric
+    mamba create -yn legate -c ~/.artifacts/conda-build/legate_core -c ~/.artifacts/conda-build/cunumeric -c conda-forge -c nvidia legate-core cunumeric
 }
 
 setup_test_env() {
@@ -18,23 +16,20 @@ setup_docs_env() {
 
 }
 
-setup_mypy_env() {
-    mamba install -y "mypy>=0.961"
-}
+# setup_mypy_env() {
+#     mamba install -y "mypy>=0.961"
+# }
 
 test-cunumeric() {
-    set -x
+    set -xeo pipefail
 
     setup_env;
 
     set +u
     mamba activate legate;
     conda info;
-    # set -u
 
     cd ~/cunumeric;
-
-    set -xeuo pipefail
 
     case "$1" in
         "test")
@@ -46,7 +41,7 @@ test-cunumeric() {
         "mypy")
             echo "Installing and executing mypy..."
             shift;
-            setup_mypy_env;
+            setup_test_env;
             mypy cunumeric
             ;;
         "docs")
