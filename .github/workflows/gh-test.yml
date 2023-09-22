@@ -80,12 +80,13 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: ${{ env.build_artifact_name }}
-          path: ~/.artifacts
+          path: /home/coder/.artifacts
 
       - name: Run cunumeric test / analysis
         shell: su coder {0}
         run: |
           set -x
+          ls -R /home/coder/.artifacts
           mkdir -p ~/.test_logs
           sudo chown -R coder:coder ~/.test_logs
 
