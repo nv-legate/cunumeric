@@ -5,7 +5,7 @@ setup_env() {
 }
 
 setup_test_env() {
-    mamba install -y "clang-tools>=8" "clang>=8" colorama coverage mock "mypy>=0.961" pre-commit pytest-cov pytest-lazy-fixture pytest-mock pytest types-docutils pynvml
+    mamba install -y "clang-tools>=8" "clang>=8" colorama coverage mock pre-commit pytest-cov pytest-lazy-fixture pytest-mock pytest types-docutils pynvml
 
     pip install tifffile
 }
@@ -16,9 +16,9 @@ setup_docs_env() {
 
 }
 
-# setup_mypy_env() {
-#     mamba install -y "mypy>=0.961"
-# }
+setup_mypy_env() {
+    mamba install -y "mypy>=0.961" jinja2 nbsphinx sphinx-copybutton  "sphinx>=4.4.0"
+}
 
 test-cunumeric() {
     set -xeo pipefail
@@ -41,7 +41,7 @@ test-cunumeric() {
         "mypy")
             echo "Installing and executing mypy..."
             shift;
-            setup_test_env;
+            setup_mypy_env;
             mypy cunumeric
             ;;
         "docs")
