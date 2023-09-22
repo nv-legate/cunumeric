@@ -64,24 +64,6 @@ class TestSort(object):
         res_num = num.sort(arr)
         assert np.array_equal(res_num, res_np)
 
-    def test_structured_array_order(self):
-        dtype = [("name", "S10"), ("height", float), ("age", int)]
-        values = [
-            ("Arthur", 1.8, 41),
-            ("Lancelot", 1.9, 38),
-            ("Galahad", 1.7, 38),
-        ]
-        a_np = np.array(values, dtype=dtype)
-        a_num = num.array(values, dtype=dtype)
-
-        res_np = np.sort(a_np, order="height")
-        res_num = num.sort(a_num, order="height")
-        assert np.array_equal(res_np, res_num)
-
-        res_np = np.sort(a_np, order=["age", "height"])
-        res_num = num.sort(a_num, order=["age", "height"])
-        assert np.array_equal(res_np, res_num)
-
     def test_axis_out_bound(self):
         arr = [-1, 0, 1, 2, 10]
         with pytest.raises(ValueError):

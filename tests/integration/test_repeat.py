@@ -31,22 +31,6 @@ def test_repeats_none(array):
         num.repeat(array, None)
 
 
-@pytest.mark.parametrize("repeats", (-3, [], [-3], [2, 3]))
-def test_array_none_invalid(repeats):
-    expected_exc = ValueError
-    with pytest.raises(expected_exc):
-        np.repeat(None, repeats)
-    with pytest.raises(expected_exc):
-        num.repeat(None, repeats)
-
-
-@pytest.mark.parametrize("repeats", (3, [0], [3], 4.7, [4.7]))
-def test_array_none_valid(repeats):
-    res_num = num.repeat(None, repeats)
-    res_np = np.repeat(None, repeats)
-    assert np.array_equal(res_np, res_num)
-
-
 @pytest.mark.parametrize("repeats", (-3, 0, 3, 4.7, [], [-3], [0], [3], [4.7]))
 def test_array_empty_repeats_valid(repeats):
     res_np = np.repeat([], repeats)

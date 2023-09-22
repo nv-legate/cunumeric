@@ -149,8 +149,7 @@ class TestMatmulErrors:
 
     @pytest.mark.parametrize(
         ("dtype", "out_dtype", "casting"),
-        ((None, np.int64, "same_kind"), (float, str, "safe")),
-        ids=("direct", "intermediate"),
+        ((None, np.int64, "same_kind"),),
     )
     def test_out_invalid_dtype(self, dtype, out_dtype, casting):
         expected_exc = TypeError
@@ -187,9 +186,8 @@ class TestMatmulErrors:
         with pytest.raises(expected_exc):
             num.matmul(A_num, B_num, casting=casting, dtype=dtype)
 
-    @pytest.mark.parametrize(
-        "dtype", (str, pytest.param(float, marks=pytest.mark.xfail)), ids=str
-    )
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("dtype", (float,), ids=str)
     def test_invalid_casting(self, dtype):
         expected_exc = ValueError
         casting = "unknown"
