@@ -17,7 +17,7 @@ setup_docs_env() {
 }
 
 setup_mypy_env() {
-    mamba install -y "mypy>=0.961" jinja2 nbsphinx sphinx-copybutton  "sphinx>=4.4.0"
+    mamba install -y "mypy>=0.961" jinja2 nbsphinx sphinx-copybutton  "sphinx>=4.4.0" types-docutils
 }
 
 test-cunumeric() {
