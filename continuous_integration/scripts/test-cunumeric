@@ -1,21 +1,36 @@
 #!/usr/bin/env bash
 
 setup_env() {
-    yaml_file=$(find ~/.artifacts -name "environment*.yaml" | head -n 1)
-    mamba env create -n legate -f "$yaml_file"
+    mamba create -n legate
     mamba uninstall -yn legate numpy
     mamba install -yn legate -c ~/.artifacts/conda-build/legate_core -c ~/.artifacts/conda-build/cunumeric -c conda-forge -c nvidia legate-core cunumeric
+}
 
-    set +u
-    mamba activate legate;
-    conda info;
-    set -u
+setup_test_env() {
+    mamba install -y "clang-tools>=8" "clang>=8" colorama coverage mock "mypy>=0.961" pre-commit pytest-cov pytest-lazy-fixture pytest-mock pytest types-docutils pynvml
+
+    pip install tifffile
+}
+
+setup_docs_env() {
+    mamba install -y pandoc doxygen
+    pip install ipython jinja2 "markdown<3.4.0" "pydata-sphinx-theme>=0.13"  myst-parser  nbsphinx  sphinx-copybutton  "sphinx>=4.4.0"
+
+}
+
+setup_mypy_env() {
+    mamba install -y "mypy>=0.961"
 }
 
 test-cunumeric() {
     set -x
 
     setup_env;
+
+    set +u
+    mamba activate legate;
+    conda info;
+    # set -u
 
     cd ~/cunumeric;
 
@@ -25,18 +40,19 @@ test-cunumeric() {
         "test")
             echo "Executing tests..."
             shift;
+            setup_test_env;
             ./test.py --verbose "$@"
             ;;
         "mypy")
             echo "Installing and executing mypy..."
             shift;
-            mamba install -yn legate mypy
+            setup_mypy_env;
             mypy cunumeric
             ;;
         "docs")
             echo "Building docs..."
             shift;
-            update_conda_env_using_section docs
+            setup_docs_env;
             cd docs/cunumeric
             make clean html
             ;;

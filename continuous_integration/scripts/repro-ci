@@ -18,12 +18,16 @@ sudo chown coder:coder ~/.artifacts
 sudo chown -R coder:coder cunumeric/
 cd .artifacts
 rm -rf legate_core *.zip out/
-# download_artifact https://github.com/nv-legate/legate.core/suites/15561835364/artifacts/888074715
-download_artifact https://github.com/nv-legate/legate.core/suites/16118272502/artifacts/920217985
+# download_artifact https://github.com/nv-legate/legate.core/suites/16118272502/artifacts/920217985
+download_artifact https://github.com/nv-legate/cunumeric/suites/16453466414/artifacts/940278627
 unzip *.zip
-mv conda-build/legate_core .
+# mv conda-build/legate_core .
 cd ..
 
-env
+# env
 
-entrypoint build-cunumeric-all
+sudo chown -R coder:coder ~/.artifacts
+
+
+
+# entrypoint build-cunumeric-all
