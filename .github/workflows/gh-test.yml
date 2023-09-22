@@ -86,9 +86,10 @@ jobs:
         shell: su coder {0}
         run: |
           set -x
-          ls -R /home/coder/.artifacts
+          # ls -R /home/coder/.artifacts
           mkdir -p ~/.test_logs
           sudo chown -R coder:coder ~/.test_logs
+          sudo chown -R coder:coder ~/.artifacts
 
           export PATH="/home/coder/cunumeric/continuous_integration/scripts:$PATH"
 
