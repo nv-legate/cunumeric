@@ -12,6 +12,10 @@ setup_env() {
     echo "YAML file..."
     cat "${yaml_file}"
 
+    mkdir -p /tmp/out;
+
+    cp "${yaml_file}" /tmp/out
+
     mamba env create -n legate -f "$yaml_file"
 
     mamba uninstall -yn legate numpy
@@ -22,6 +26,8 @@ setup_env() {
 }
 
 build_cunumeric_all() {
+    set -xeo pipefail
+
     setup_env;
     cd ~/cunumeric;
     conda info;
