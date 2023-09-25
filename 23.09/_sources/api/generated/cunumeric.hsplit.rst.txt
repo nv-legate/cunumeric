@@ -1,0 +1,6 @@
+﻿cunumeric.hsplit
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: hsplit

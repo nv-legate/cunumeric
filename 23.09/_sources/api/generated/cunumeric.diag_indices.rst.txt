@@ -1,0 +1,6 @@
+﻿cunumeric.diag\_indices
+=======================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: diag_indices

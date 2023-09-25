@@ -1,0 +1,6 @@
+﻿cunumeric.bincount
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: bincount

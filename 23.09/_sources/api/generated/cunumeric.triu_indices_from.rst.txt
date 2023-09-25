@@ -1,0 +1,6 @@
+﻿cunumeric.triu\_indices\_from
+=============================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: triu_indices_from

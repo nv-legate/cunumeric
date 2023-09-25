@@ -1,0 +1,6 @@
+﻿cunumeric.reciprocal
+====================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: reciprocal

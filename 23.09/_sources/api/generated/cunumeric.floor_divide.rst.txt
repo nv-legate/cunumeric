@@ -1,0 +1,6 @@
+﻿cunumeric.floor\_divide
+=======================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: floor_divide

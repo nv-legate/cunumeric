@@ -1,0 +1,6 @@
+﻿cunumeric.arctanh
+=================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: arctanh

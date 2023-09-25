@@ -1,0 +1,6 @@
+﻿cunumeric.log
+=============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: log

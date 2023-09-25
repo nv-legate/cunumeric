@@ -1,0 +1,6 @@
+﻿cunumeric.column\_stack
+=======================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: column_stack

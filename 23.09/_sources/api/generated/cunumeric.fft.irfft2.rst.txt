@@ -1,0 +1,6 @@
+﻿cunumeric.fft.irfft2
+====================
+
+.. currentmodule:: cunumeric.fft
+
+.. autofunction:: irfft2

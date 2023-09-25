@@ -1,0 +1,6 @@
+﻿cunumeric.ravel
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: ravel

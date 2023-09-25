@@ -1,0 +1,6 @@
+﻿cunumeric.random.normal
+=======================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: normal

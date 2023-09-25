@@ -1,0 +1,6 @@
+﻿cunumeric.sinh
+==============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: sinh

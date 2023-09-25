@@ -1,0 +1,6 @@
+﻿cunumeric.random.sample
+=======================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: sample

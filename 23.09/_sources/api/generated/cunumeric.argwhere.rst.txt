@@ -1,0 +1,6 @@
+﻿cunumeric.argwhere
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: argwhere

@@ -1,0 +1,6 @@
+﻿cunumeric.random.standard\_exponential
+======================================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: standard_exponential

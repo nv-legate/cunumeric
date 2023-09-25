@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.setflags
+==========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.setflags

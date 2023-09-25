@@ -1,0 +1,6 @@
+﻿cunumeric.array
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: array

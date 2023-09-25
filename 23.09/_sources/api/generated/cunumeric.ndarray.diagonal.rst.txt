@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.diagonal
+==========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.diagonal

@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.itemset
+=========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.itemset

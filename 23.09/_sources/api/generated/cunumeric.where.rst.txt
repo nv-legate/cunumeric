@@ -1,0 +1,6 @@
+﻿cunumeric.where
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: where

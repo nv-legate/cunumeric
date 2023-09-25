@@ -1,0 +1,6 @@
+﻿cunumeric.random.triangular
+===========================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: triangular

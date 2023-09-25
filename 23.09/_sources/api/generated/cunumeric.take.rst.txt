@@ -1,0 +1,6 @@
+﻿cunumeric.take
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: take

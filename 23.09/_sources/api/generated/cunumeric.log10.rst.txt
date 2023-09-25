@@ -1,0 +1,6 @@
+﻿cunumeric.log10
+===============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: log10

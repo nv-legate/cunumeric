@@ -1,0 +1,6 @@
+﻿cunumeric.place
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: place

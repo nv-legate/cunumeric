@@ -1,0 +1,6 @@
+﻿cunumeric.any
+=============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: any

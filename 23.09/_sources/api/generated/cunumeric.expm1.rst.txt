@@ -1,0 +1,6 @@
+﻿cunumeric.expm1
+===============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: expm1
