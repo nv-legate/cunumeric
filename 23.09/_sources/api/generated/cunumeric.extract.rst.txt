@@ -1,0 +1,6 @@
+﻿cunumeric.extract
+=================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: extract

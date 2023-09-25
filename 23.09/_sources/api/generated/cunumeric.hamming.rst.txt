@@ -1,0 +1,6 @@
+﻿cunumeric.hamming
+=================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: hamming

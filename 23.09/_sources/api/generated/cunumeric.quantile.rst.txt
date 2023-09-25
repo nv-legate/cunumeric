@@ -1,0 +1,6 @@
+﻿cunumeric.quantile
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: quantile

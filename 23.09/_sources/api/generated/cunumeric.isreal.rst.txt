@@ -1,0 +1,6 @@
+﻿cunumeric.isreal
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: isreal

@@ -1,0 +1,6 @@
+﻿cunumeric.random.noncentral\_f
+==============================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: noncentral_f

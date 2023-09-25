@@ -1,0 +1,6 @@
+﻿cunumeric.choose
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: choose

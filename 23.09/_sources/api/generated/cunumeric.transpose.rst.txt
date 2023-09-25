@@ -1,0 +1,6 @@
+﻿cunumeric.transpose
+===================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: transpose

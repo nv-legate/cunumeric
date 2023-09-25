@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_int\_\_
+=============================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__int__

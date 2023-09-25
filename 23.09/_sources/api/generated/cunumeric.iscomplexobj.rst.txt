@@ -1,0 +1,6 @@
+﻿cunumeric.iscomplexobj
+======================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: iscomplexobj

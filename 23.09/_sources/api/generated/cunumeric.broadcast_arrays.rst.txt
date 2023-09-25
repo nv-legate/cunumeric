@@ -1,0 +1,6 @@
+﻿cunumeric.broadcast\_arrays
+===========================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: broadcast_arrays

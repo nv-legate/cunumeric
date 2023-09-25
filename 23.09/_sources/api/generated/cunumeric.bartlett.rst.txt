@@ -1,0 +1,6 @@
+﻿cunumeric.bartlett
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: bartlett

@@ -1,0 +1,6 @@
+﻿cunumeric.fmod
+==============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: fmod

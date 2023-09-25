@@ -1,0 +1,6 @@
+﻿cunumeric.atleast\_2d
+=====================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: atleast_2d

@@ -1,0 +1,6 @@
+﻿cunumeric.greater
+=================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: greater

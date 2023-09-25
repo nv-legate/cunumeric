@@ -1,0 +1,6 @@
+﻿cunumeric.ndim
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: ndim

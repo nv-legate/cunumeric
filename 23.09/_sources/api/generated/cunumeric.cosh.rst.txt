@@ -1,0 +1,6 @@
+﻿cunumeric.cosh
+==============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: cosh

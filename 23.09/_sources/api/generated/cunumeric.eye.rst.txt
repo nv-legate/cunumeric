@@ -1,0 +1,6 @@
+﻿cunumeric.eye
+=============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: eye

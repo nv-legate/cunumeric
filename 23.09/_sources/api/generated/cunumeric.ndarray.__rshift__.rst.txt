@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.\_\_rshift\_\_
+================================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.__rshift__

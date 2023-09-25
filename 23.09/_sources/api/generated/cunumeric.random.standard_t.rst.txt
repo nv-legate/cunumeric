@@ -1,0 +1,6 @@
+﻿cunumeric.random.standard\_t
+============================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: standard_t
