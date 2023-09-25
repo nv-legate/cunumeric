@@ -22,9 +22,6 @@ on:
       test-options:
         required: true
         type: string
-      log-name:
-        required: true
-        type: string
       enabled:
         required: true
         type: boolean
@@ -86,18 +83,9 @@ jobs:
         shell: su coder {0}
         run: |
           set -x
-          # ls -R /home/coder/.artifacts
-          mkdir -p ~/.test_logs
-          sudo chown -R coder:coder ~/.test_logs
-          sudo chown -R coder:coder ~/.artifacts
+          sudo chown -R coder:coder /home/coder/.artifacts
 
           export PATH="/home/coder/cunumeric/continuous_integration/scripts:$PATH"
 
           set -eo pipefail
-          test-cunumeric ${{ inputs.test-options }} 2>&1 | tee ~/.test_logs/cunumeric-${{ github.sha }}-test-${{ inputs.log-name }}.log
-
-      - name: Upload logs
-        uses: actions/upload-artifact@v3
-        with:
-          name: "cunumeric-${{ inputs.device }}-${{ github.sha }}-test-${{ inputs.log-name }}-log"
-          path: test_logs/cunumeric-${{ github.sha }}-test-${{ inputs.log-name }}.log
+          test-cunumeric ${{ inputs.test-options }}

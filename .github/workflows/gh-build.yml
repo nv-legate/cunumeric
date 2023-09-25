@@ -20,8 +20,7 @@ jobs:
     permissions:
       id-token: write # This is required for configure-aws-credentials
       contents: read  # This is required for actions/checkout
-      # packages: write # This is required to push docker image to ghcr.io
-
+      
     runs-on: ${{ inputs.runs-on }}
 
     container:
