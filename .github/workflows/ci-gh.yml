@@ -16,10 +16,13 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - {build-target: cpu}
-          - {build-target: gpu}
+          - device: "gpu"
+            image: "rapidsai/devcontainers:23.06-cpp-mambaforge-ubuntu22.04"
+
+          - device: "cpu"
+            image: "rapidsai/devcontainers:23.06-cpp-mambaforge-ubuntu22.04"
     uses:
       ./.github/workflows/gh-build-and-test.yml
     with:
-      build-target: ${{ matrix.build-target }}
-      sha: ${{ github.sha }}
+      device: ${{ matrix.device }}
+      image: ${{ matrix.image }}
