@@ -54,13 +54,13 @@ jobs:
             options: test --use openmp --omps 1 --ompthreads 2 --debug
             runner: ${{ inputs.device == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-32cpu' }}
             has-gpu: ${{ inputs.device == 'gpu' }}
-            enabled: false
+            enabled: true
 
           - name: 2 NUMA OpenMPs test
             options: test --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug
             runner: ${{ inputs.device == 'gpu' && 'linux-amd64-gpu-v100-latest-1' || 'linux-amd64-32cpu' }}
             has-gpu: ${{ inputs.device == 'gpu' }}
-            enabled: false
+            enabled: true
 
           - name: Eager execution test
             options: test --use eager --debug
