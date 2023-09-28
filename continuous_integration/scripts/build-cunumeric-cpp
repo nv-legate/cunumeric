@@ -9,7 +9,6 @@ build_cunumeric_cpp() {
     cmake_args+=(-DBUILD_MARCH=${BUILD_MARCH:-haswell});
     cmake_args+=(-DCMAKE_BUILD_TYPE=Release);
     cmake_args+=(-DCMAKE_CUDA_ARCHITECTURES=RAPIDS);
-    cmake_args+=(-Dlegate_core_ROOT=$HOME/legate/build);
     cmake_args+=(-DCMAKE_BUILD_PARALLEL_LEVEL=${JOBS:-$(nproc --ignore=1)});
     cmake_args+=(${@});
 

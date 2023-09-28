@@ -7,4 +7,5 @@ User guide
   installation
   usage
   configuration
+  practices
   notebooks

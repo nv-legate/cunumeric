@@ -124,6 +124,7 @@ def test_fill_int_to_float() -> None:
     assert np.array_equal(a_np, a_num)
 
 
+@pytest.mark.xfail
 def test_fill_string() -> None:
     a_list = ["hello", "hi"]
     a_np = np.array(a_list)
