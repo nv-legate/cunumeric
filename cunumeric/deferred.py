@@ -39,6 +39,7 @@ from legate.core import Annotation, Future, ReductionOp, Store
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
+from ordered_set import OrderedSet
 from typing_extensions import ParamSpec
 
 from .config import (
@@ -96,7 +97,7 @@ def auto_convert(
     """
     Converts all named parameters to DeferredArrays.
     """
-    keys = set(thunk_params)
+    keys = OrderedSet(thunk_params)
     assert len(keys) == len(thunk_params)
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
@@ -107,7 +108,7 @@ def auto_convert(
         # For each parameter specified by name, also consider the case where
         # it's passed as a positional parameter.
         params = signature(func).parameters
-        extra = keys - set(params)
+        extra = keys - OrderedSet(params)
         assert len(extra) == 0, f"unknown parameter(s): {extra}"
         indices = {idx for (idx, param) in enumerate(params) if param in keys}
 
@@ -1429,7 +1430,7 @@ class DeferredArray(NumPyThunk):
             task.add_scalar_arg(kind.type_id, ty.int32)
             task.add_scalar_arg(direction.value, ty.int32)
             task.add_scalar_arg(
-                len(set(axes)) != len(axes)
+                len(OrderedSet(axes)) != len(axes)
                 or len(axes) != input.ndim
                 or tuple(axes) != tuple(sorted(axes)),
                 ty.bool_,
@@ -1437,8 +1438,8 @@ class DeferredArray(NumPyThunk):
             for ax in axes:
                 task.add_scalar_arg(ax, ty.int64)
 
-            if input.ndim > len(set(axes)):
-                task.add_broadcast(input, axes=set(axes))
+            if input.ndim > len(OrderedSet(axes)):
+                task.add_broadcast(input, axes=OrderedSet(axes))
             else:
                 task.add_broadcast(input)
             task.add_constraint(p_output == p_input)
@@ -1502,9 +1503,9 @@ class DeferredArray(NumPyThunk):
 
         # Sanity checks
         # no duplicate modes within an array
-        assert len(lhs_modes) == len(set(lhs_modes))
-        assert len(rhs1_modes) == len(set(rhs1_modes))
-        assert len(rhs2_modes) == len(set(rhs2_modes))
+        assert len(lhs_modes) == len(OrderedSet(lhs_modes))
+        assert len(rhs1_modes) == len(OrderedSet(rhs1_modes))
+        assert len(rhs2_modes) == len(OrderedSet(rhs2_modes))
         # no singleton modes
         mode_counts: Counter[str] = Counter()
         mode_counts.update(lhs_modes)

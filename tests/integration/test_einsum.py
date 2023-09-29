@@ -19,6 +19,7 @@ from typing import List, Optional, Set, Tuple
 
 import numpy as np
 import pytest
+from ordered_set import OrderedSet
 from utils.comparisons import allclose
 from utils.generators import mk_0to1_array, permutes_to
 
@@ -54,8 +55,8 @@ def gen_operand(
         return
     # If we've hit the limit on distinct modes, only use modes
     # appearing on the same operand
-    if len(op) == dim_lim - 1 and len(set(op)) >= mode_lim:
-        for m in sorted(set(op)):
+    if len(op) == dim_lim - 1 and len(OrderedSet(op)) >= mode_lim:
+        for m in sorted(OrderedSet(op)):
             op.append(m)
             yield from gen_operand(used_modes, dim_lim, mode_lim, op)
             op.pop()
@@ -82,7 +83,7 @@ def gen_expr(
     if opers is None:
         opers = []
     if cache is None:
-        cache = set()
+        cache = OrderedSet()
     # The goal here is to avoid producing duplicate expressions, up to
     # reordering of operands and alpha-renaming, e.g. the following
     # are considered equivalent (for the purposes of testing):
@@ -108,7 +109,9 @@ def gen_expr(
     dim_lim = len(opers[-1]) if len(opers) > 0 else MAX_OPERAND_DIM
     # Between operands of the same length, put those with the most distinct
     # modes first.
-    mode_lim = len(set(opers[-1])) if len(opers) > 0 else MAX_OPERAND_DIM
+    mode_lim = (
+        len(OrderedSet(opers[-1])) if len(opers) > 0 else MAX_OPERAND_DIM
+    )
     for op in gen_operand(used_modes, dim_lim, mode_lim):
         opers.append(op)
         yield from gen_expr(opers, cache)
@@ -187,7 +190,7 @@ def mk_input_that_broadcasts_to(lib, tgt_shape):
     # just one of them to 1. Consider the operation 'aab->ab': (10,10,11),
     # (10,10,1), (1,1,11), (1,1,1) are all acceptable input shapes, but
     # (1,10,11) is not.
-    tgt_sizes = list(sorted(set(tgt_shape)))
+    tgt_sizes = list(sorted(OrderedSet(tgt_shape)))
     res = []
     for mask in product([True, False], repeat=len(tgt_sizes)):
         tgt2src_size = {

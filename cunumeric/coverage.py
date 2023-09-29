@@ -36,6 +36,7 @@ from typing import (
 )
 
 from legate.core import track_provenance
+from ordered_set import OrderedSet
 from typing_extensions import Protocol
 
 from .runtime import runtime
@@ -62,7 +63,7 @@ def filter_namespace(
     omit_names: Optional[Container[str]] = None,
     omit_types: tuple[type, ...] = (),
 ) -> dict[str, Any]:
-    omit_names = omit_names or set()
+    omit_names = omit_names or OrderedSet()
     return {
         attr: value
         for attr, value in ns.items()
@@ -244,7 +245,7 @@ def clone_module(
 
     missing = filter_namespace(
         origin_module.__dict__,
-        omit_names=set(new_globals).union(MOD_INTERNAL),
+        omit_names=OrderedSet(new_globals).union(MOD_INTERNAL),
         omit_types=(ModuleType,),
     )
 
@@ -330,7 +331,7 @@ def clone_class(
     """
 
     class_name = f"{origin_class.__module__}.{origin_class.__name__}"
-    clean_omit_names = set() if omit_names is None else omit_names
+    clean_omit_names = OrderedSet() if omit_names is None else omit_names
 
     def _clone_class(cls: type) -> type:
         missing = filter_namespace(
