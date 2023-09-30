@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import numpy as np
 import pytest
 
 import cunumeric as num
@@ -30,5 +29,4 @@ def test_2d():
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

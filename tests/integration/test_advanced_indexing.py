@@ -13,8 +13,6 @@
 # limitations under the License.
 #
 
-import random
-
 import numpy as np
 import pytest
 from legate.core import LEGATE_MAX_DIM
@@ -920,7 +918,7 @@ def test():
     # we do less than LEGATE_MAX_DIM becasue the dimension will be increased by
     # 1 when passig 2d index array
     for ndim in range(2, LEGATE_MAX_DIM):
-        a_shape = tuple(random.randint(2, 5) for i in range(ndim))
+        a_shape = tuple(np.random.randint(2, 5) for i in range(ndim))
         np_array = mk_seq_array(np, a_shape)
         num_array = mk_seq_array(num, a_shape)
         # check when N of index arrays == N of dims
@@ -971,5 +969,4 @@ def test():
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

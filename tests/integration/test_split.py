@@ -87,18 +87,6 @@ class TestSplitErrors:
     this class is to test negative cases
     """
 
-    @pytest.mark.xfail
-    def test_array_none(self):
-        expected_exc = AttributeError
-        with pytest.raises(expected_exc):
-            np.split(None, 1)
-            # Numpy raises
-            # AttributeError: 'NoneType' object has no attribute 'shape'
-        with pytest.raises(expected_exc):
-            num.split(None, 1)
-            # cuNumeric raises
-            # ValueError: array(()) has less dimensions than axis(0)
-
     @pytest.mark.parametrize("indices", (-2, 0, "hi", 1.0, None))
     def test_indices_negative(self, indices):
         ary = num.arange(10)
@@ -134,16 +122,6 @@ class TestSplitErrors:
             num.split(ary, 5, axis=axis)
         with pytest.raises(expected_exc):
             np.split(ary, 5, axis=axis)
-
-    @pytest.mark.parametrize("func_name", ARG_FUNCS)
-    def test_array_none_different_split(self, func_name):
-        expected_exc = ValueError
-        func_num = getattr(num, func_name)
-        func_np = getattr(np, func_name)
-        with pytest.raises(expected_exc):
-            func_np(None, 1)
-        with pytest.raises(expected_exc):
-            func_num(None, 1)
 
     @pytest.mark.parametrize("indices", (-2, 0, "hi", 1.0, None))
     @pytest.mark.parametrize("func_name", ARG_FUNCS)
@@ -305,5 +283,4 @@ def test_dsplit(size):
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

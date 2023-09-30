@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import random
 from itertools import permutations
 
 import numpy as np
@@ -279,7 +278,7 @@ def test_diagonal():
 
     # test diagonal
     for ndim in range(2, LEGATE_MAX_DIM + 1):
-        a_shape = tuple(random.randint(1, 9) for i in range(ndim))
+        a_shape = tuple(np.random.randint(1, 9) for i in range(ndim))
         np_array = mk_seq_array(np, a_shape)
         num_array = mk_seq_array(num, a_shape)
 
@@ -294,7 +293,7 @@ def test_diagonal():
 
     # test for diagonal_helper
     for ndim in range(3, LEGATE_MAX_DIM + 1):
-        a_shape = tuple(random.randint(1, 9) for i in range(ndim))
+        a_shape = tuple(np.random.randint(1, 9) for i in range(ndim))
         np_array = mk_seq_array(np, a_shape)
         num_array = mk_seq_array(num, a_shape)
         for num_axes in range(3, ndim + 1):
@@ -558,5 +557,4 @@ class TestDiagErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

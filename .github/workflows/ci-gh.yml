@@ -1,7 +1,7 @@
-name: Build cunumeric on GH
+name: Build and test cunumeric on GH
 
 concurrency:
-  group: ci-gpu-on-${{ github.event_name }}-from-${{ github.ref_name }}
+  group: ci-build-and-test-on-${{ github.event_name }}-from-${{ github.ref_name }}
   cancel-in-progress: true
 
 on:
@@ -11,99 +11,15 @@ on:
       - "branch-*"
 
 jobs:
-  build:
-    permissions:
-      id-token: write # This is required for configure-aws-credentials
-      contents: read  # This is required for actions/checkout
-
-    # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
-    runs-on: ${{ github.repository == 'nv-legate/cunumeric' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
-    container:
-      options: -u root
-      image: rapidsai/devcontainers:23.06-cpp-cuda11.8-mambaforge-ubuntu22.04
-      volumes:
-        - ${{ github.workspace }}/out:/tmp/out
-      env:
-        DEFAULT_CONDA_ENV: legate
-        PYTHONDONTWRITEBYTECODE: 1
-        SCCACHE_REGION: us-east-2
-        SCCACHE_BUCKET: rapids-sccache-east
-        SCCACHE_S3_KEY_PREFIX: legate-cunumeric-dev
-        GH_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-        GITHUB_TOKEN: "${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}"
-        VAULT_HOST: "${{ secrets.PERSONAL_ACCESS_TOKEN && 'https://vault.ops.k8s.rapids.ai' || '' }}"
-        VAULT_S3_TTL: "28800s" # 8 hours
-
-    steps:
-      - name: Checkout legate.core
-        uses: actions/checkout@v3
-        with:
-          repository: nv-legate/legate.core
-          fetch-depth: 0
-          path: legate
-
-      - name: Checkout cunumeric (= this repo)
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          path: cunumeric
-        
-      - name: Setup
-        shell: bash -eo pipefail {0}
-        run: |
-          export LEGATE_SHA=$(cat cunumeric/cmake/versions.json | jq -r '.packages.legate_core.git_tag')
-          echo "Checking out LEGATE_SHA: ${LEGATE_SHA}"
-          git -C legate checkout $LEGATE_SHA
-          
-          cp -ar legate/continuous_integration/home/coder/.gitconfig /home/coder/;
-          cp -ar legate/continuous_integration/home/coder/.local /home/coder/;
-          mv legate /home/coder/legate
-
-          cp -ar cunumeric/continuous_integration/home/coder/.local/bin/* /home/coder/.local/bin/;
-          mv cunumeric /home/coder/cunumeric;
-
-          chmod a+x /home/coder/.local/bin/*;
-          chown -R coder:coder /home/coder/;
-          chown -R coder:coder /tmp/out;
-
-      - if: github.repository == 'nv-legate/cunumeric'
-        name: Get AWS credentials for sccache bucket
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-region: us-east-2
-          role-duration-seconds: 28800 # 8 hours
-          role-to-assume: arn:aws:iam::279114543810:role/gha-oidc-nv-legate
-
-      - name: Create conda env
-        shell: su coder {0}
-        run: cd ~/; exec entrypoint make-conda-env;
-
-      - name: Build legate.core C++ library
-        shell: su coder {0}
-        run: cd ~/; exec entrypoint build-legate-cpp;
-
-      - name: Build legate.core Python Wheel
-        shell: su coder {0}
-        run: cd ~/; exec entrypoint build-legate-wheel;
-
-      - name: Build legate.core Conda Package
-        shell: su coder {0}
-        run: cd ~/; exec entrypoint build-legate-conda;
-
-      - name: Build cunumeric C++ library
-        shell: su coder {0}
-        run: cd ~/; exec entrypoint build-cunumeric-cpp;
-
-      - name: Build cunumeric Python Wheel
-        shell: su coder {0}
-        run: cd ~/; exec entrypoint build-cunumeric-wheel;
-
-      - name: Build cunumeric Conda Package
-        shell: su coder {0}
-        run: cd ~/; exec entrypoint build-cunumeric-conda;
-
-      - name: Upload build output
-        uses: actions/upload-artifact@v3
-        with:
-          name: "cunumeric-${{ github.sha }}"
-          path: ./out/*
+  build-and-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {build-target: cpu}
+          - {build-target: gpu}
+    uses:
+      ./.github/workflows/gh-build-and-test.yml
+    with:
+      build-target: ${{ matrix.build-target }}
+      sha: ${{ github.sha }}

@@ -97,7 +97,7 @@ class TestFillDiagonalErrors:
         with pytest.raises(expected_exc):
             num.fill_diagonal(arr, 5)
 
-    @pytest.mark.parametrize("arr", (None, -3, [0], (5)))
+    @pytest.mark.parametrize("arr", (-3, [0], (5)))
     def test_arr_invalid(self, arr):
         arr_np = np.array(arr)
         arr_num = num.array(arr)
@@ -128,5 +128,4 @@ class TestFillDiagonalErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

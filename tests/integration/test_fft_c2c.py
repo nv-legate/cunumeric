@@ -18,6 +18,7 @@ import warnings
 import numpy as np
 import pytest
 from utils.comparisons import allclose as _allclose
+from utils.generators import mk_0to1_array
 
 import cunumeric as num
 
@@ -239,8 +240,32 @@ def test_4d():
     check_4d_c2c(N=(9, 10, 11, 12), dtype=np.float32)
 
 
+@pytest.mark.parametrize(
+    "dtype",
+    (
+        np.complex64,
+        np.float32,
+        np.float64,
+        pytest.param(np.int32, marks=pytest.mark.xfail),
+        pytest.param(np.uint64, marks=pytest.mark.xfail),
+        pytest.param(np.float16, marks=pytest.mark.xfail),
+        # NumPy accepts the dtypes
+        # cuNumeric raises
+        # TypeError: FFT input not supported (missing a conversion?)
+    ),
+    ids=str,
+)
+@pytest.mark.parametrize("func", ("fftn", "ifftn"), ids=str)
+def test_fftn_dtype(dtype, func):
+    shape = (3, 2, 4)
+    arr_np = mk_0to1_array(np, shape, dtype=dtype)
+    arr_num = mk_0to1_array(num, shape, dtype=dtype)
+    out_np = getattr(np.fft, func)(arr_np)
+    out_num = getattr(num.fft, func)(arr_num)
+    assert allclose(out_np, out_num)
+
+
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

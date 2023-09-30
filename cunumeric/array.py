@@ -310,14 +310,9 @@ class ndarray:
                         if isinstance(inp, ndarray)
                     ]
                 core_dtype = to_core_dtype(dtype)
-                if core_dtype is not None:
-                    self._thunk = runtime.create_empty_thunk(
-                        sanitized_shape, core_dtype, inputs
-                    )
-                else:
-                    self._thunk = runtime.create_eager_thunk(
-                        sanitized_shape, dtype
-                    )
+                self._thunk = runtime.create_empty_thunk(
+                    sanitized_shape, core_dtype, inputs
+                )
         else:
             self._thunk = thunk
         self._legate_data: Union[dict[str, Any], None] = None
@@ -1665,7 +1660,7 @@ class ndarray:
 
     # __setattr__
     @add_boilerplate("value")
-    def __setitem__(self, key: Any, value: Any) -> None:
+    def __setitem__(self, key: Any, value: ndarray) -> None:
         """__setitem__(key, value, /)
 
         Set ``self[key]=value``.
@@ -2680,7 +2675,7 @@ class ndarray:
         return res
 
     @add_boilerplate("rhs")
-    def dot(self, rhs: Any, out: Union[ndarray, None] = None) -> ndarray:
+    def dot(self, rhs: ndarray, out: Union[ndarray, None] = None) -> ndarray:
         """a.dot(rhs, out=None)
 
         Return the dot product of this array with ``rhs``.
@@ -3988,33 +3983,28 @@ class ndarray:
         return where._thunk
 
     @staticmethod
-    def find_common_type(*args: Any) -> np.dtype[Any]:
-        """Determine common type following standard coercion rules.
+    def find_common_type(*args: ndarray) -> np.dtype[Any]:
+        """Determine common type following NumPy's coercion rules.
 
         Parameters
         ----------
-        \\*args :
-            A list of dtypes or dtype convertible objects representing arrays
-            or scalars.
-
+        *args : ndarray
+            A list of ndarrays
 
         Returns
         -------
         datatype : data-type
-            The common data type, which is the maximum of the array types,
-            ignoring any scalar types , unless the maximum scalar type is of a
-            different kind (`dtype.kind`). If the kind is not understood, then
-            None is returned.
-
+            The type that results from applying the NumPy type promotion rules
+            to the arguments.
         """
         array_types = list()
-        scalar_types = list()
+        scalars = list()
         for array in args:
-            if array.size == 1:
-                scalar_types.append(array.dtype)
+            if array.ndim == 0:
+                scalars.append(array.dtype.type(0))
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)  # type: ignore
+        return np.result_type(*array_types, *scalars)
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:
@@ -4241,8 +4231,8 @@ class ndarray:
     def _perform_binary_reduction(
         cls,
         op: BinaryOpCode,
-        one: Any,
-        two: Any,
+        one: ndarray,
+        two: ndarray,
         dtype: np.dtype[Any],
         extra_args: Union[tuple[Any, ...], None] = None,
     ) -> ndarray:
@@ -4258,14 +4248,14 @@ class ndarray:
             broadcast = None
 
         common_type = cls.find_common_type(one, two)
-        one = one._maybe_convert(common_type, args)._thunk
-        two = two._maybe_convert(common_type, args)._thunk
+        one_thunk = one._maybe_convert(common_type, args)._thunk
+        two_thunk = two._maybe_convert(common_type, args)._thunk
 
         dst = ndarray(shape=(), dtype=dtype, inputs=args)
         dst._thunk.binary_reduction(
             op,
-            one,
-            two,
+            one_thunk,
+            two_thunk,
             broadcast,
             extra_args,
         )

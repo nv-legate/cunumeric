@@ -23,7 +23,11 @@ build_cunumeric_conda_package() {
     conda_build_args+=("--build-id-pat=''");
     conda_build_args+=(--no-include-recipe);
     conda_build_args+=(--no-anaconda-upload);
-    conda_build_args+=(--variants "{gpu_enabled:true,python:${python_version}}");
+
+    GPU_ENABLED=true
+    [ "${USE_CUDA:-}" = "OFF" ] && GPU_ENABLED=false
+
+    conda_build_args+=(--variants "{gpu_enabled:${GPU_ENABLED},python:${python_version}}");
 
     rm -rf /tmp/conda-build/cunumeric;
     mkdir -p /tmp/conda-build/cunumeric;

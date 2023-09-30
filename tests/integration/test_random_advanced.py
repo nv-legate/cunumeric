@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
+import os
 
 import numpy as np
 import pytest
@@ -20,7 +20,8 @@ from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
-if sys.platform == "darwin":
+LEGATE_TEST = os.environ.get("LEGATE_TEST", None) == "1"
+if not num.runtime.has_curand:
     pytestmark = pytest.mark.skip()
     BITGENERATOR_ARGS = []
 else:
@@ -81,7 +82,12 @@ def test_vonmises_float64(t):
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_hypergeometric(t):
+@pytest.mark.parametrize(
+    "ngood, nbad, nsample",
+    ((60, 440, 200), (20.0, 77, 1), ((3, 5, 7), 6, 22)),
+    ids=str,
+)
+def test_hypergeometric(t, ngood, nbad, nsample):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
     N = 500
@@ -110,12 +116,24 @@ def test_geometric(t):
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
-def test_zipf(t):
+@pytest.mark.parametrize(
+    "s",
+    (
+        7.5,
+        pytest.param(
+            (1.2, 3.1415),
+            marks=pytest.mark.xfail,
+            # NumPy returns 1-dim array
+            # cuNumeric raises TypeError: float() argument must be a string
+            # or a real number, not 'tuple'
+        ),
+    ),
+    ids=str,
+)
+def test_zipf(t, s):
     bitgen = t(seed=42)
     gen = num.random.Generator(bitgen)
-    s = 7.5
     a = gen.zipf(a=s, size=(1024 * 1024,), dtype=np.uint32)
-    a = np.random.zipf(s, 1024 * 1024)
     ref_a = np.random.zipf(s, 1024 * 1024)
     theo_mean = np.average(ref_a)
     theo_std = np.std(ref_a)
@@ -173,8 +191,82 @@ def test_negative_binomial(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+FUNC_ARGS = (
+    ("binomial", (15, 0.666)),
+    ("negative_binomial", (15, 0.666)),
+    ("geometric", (0.707,)),
+    ("hypergeometric", (60, 440, 200)),
+    ("standard_t", (3.1415,)),
+    ("vonmises", (1.414, 3.1415)),
+    ("wald", (1.414, 3.1415)),
+    ("zipf", (7.5,)),
+)
+
+
+@pytest.mark.parametrize("func, args", FUNC_ARGS, ids=str)
+@pytest.mark.parametrize("size", ((2048 * 2048), (4096,), 25535), ids=str)
+def test_random_sizes(func, args, size):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    a_np = getattr(gen_np, func)(*args, size=size)
+    a_num = getattr(gen_num, func)(*args, size=size)
+    assert a_np.shape == a_num.shape
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("func, args", FUNC_ARGS, ids=str)
+def test_random_size_none(func, args):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    a_np = getattr(gen_np, func)(*args, size=None)
+    a_num = getattr(gen_num, func)(*args, size=None)
+    # cuNumeric returns singleton array
+    # NumPy returns scalar
+    assert np.ndim(a_np) == np.ndim(a_num)
+
+
+class TestRandomErrors:
+    # cuNumeric zipf hangs on the invalid args when LEGATE_TEST=1
+    @pytest.mark.skipif(LEGATE_TEST, reason="Test hang when LEGATE_TEST=1")
+    @pytest.mark.parametrize(
+        "dist, expected_exc",
+        (
+            (0.77, ValueError),
+            (-5, ValueError),
+            (None, TypeError),
+            ((1, 5, 3), ValueError),
+        ),
+        ids=str,
+    )
+    def test_zipf_invalid_dist(self, dist, expected_exc):
+        seed = 42
+        gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+        gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+        with pytest.raises(expected_exc):
+            gen_np.zipf(dist)
+        with pytest.raises(expected_exc):
+            gen_num.zipf(dist)
+
+    @pytest.mark.skipif(LEGATE_TEST, reason="Test hang when LEGATE_TEST=1")
+    @pytest.mark.parametrize(
+        "ngood, nbad, nsample",
+        ((200, 60, 500), ((1, 5, 7), 6, 22)),
+        ids=str,
+    )
+    def test_hypergeometric_invalid_args(self, ngood, nbad, nsample):
+        expected_exc = ValueError
+        seed = 42
+        gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+        gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+        with pytest.raises(expected_exc):
+            gen_np.hypergeometric(ngood, nbad, nsample)
+        with pytest.raises(expected_exc):
+            gen_num.hypergeometric(ngood, nbad, nsample)
+
+
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

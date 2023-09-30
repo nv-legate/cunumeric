@@ -141,6 +141,17 @@ class TestNormErrors:
         with pytest.raises(expected_exc):
             num.linalg.norm(num_arrays[ndim], axis=axis)
 
+    def test_axis_out_of_bounds(self):
+        # raise ValueError("Improper number of dimensions to norm")
+        expected_exc = ValueError
+        ndim = 3
+
+        with pytest.raises(expected_exc):
+            np.linalg.norm(np_arrays[ndim], ord=1)
+
+        with pytest.raises(expected_exc):
+            num.linalg.norm(num_arrays[ndim], ord=1)
+
     @pytest.mark.parametrize(
         "ndim_axis",
         ((1, None), (2, 0)),
@@ -173,5 +184,4 @@ class TestNormErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

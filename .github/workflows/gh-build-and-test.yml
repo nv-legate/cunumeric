@@ -1,0 +1,32 @@
+on:
+  workflow_call:
+    inputs:
+      build-target:
+        required: true
+        type: string
+      sha:
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: "Build cunumeric (with ${{ inputs.build-target }} legate) on GH"
+    uses:
+      ./.github/workflows/gh-build.yml
+    with:
+      build-target: ${{ inputs.build-target }}
+      # Ref: https://docs.rapids.ai/resources/github-actions/#cpu-labels for `linux-amd64-cpu4`
+      runs-on: ${{ github.repository_owner == 'nv-legate' && 'linux-amd64-cpu4' || 'ubuntu-latest' }}
+      sha: ${{ inputs.sha }}
+
+  cleanup:
+    needs:
+      - build
+
+    # This ensures the cleanup job runs even if previous jobs fail or the workflow is cancelled.
+    if: always()
+    uses:
+      ./.github/workflows/gh-cleanup.yml
+    with:
+      build-target: ${{ inputs.build-target }}
+      sha: ${{ inputs.sha }}

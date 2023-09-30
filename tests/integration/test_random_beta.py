@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
 
 import numpy as np
 import pytest
@@ -20,7 +19,7 @@ from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
-if sys.platform == "darwin":
+if not num.runtime.has_curand:
     pytestmark = pytest.mark.skip()
     BITGENERATOR_ARGS = []
 else:
@@ -133,8 +132,39 @@ def test_noncentral_f_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+FUNC_ARGS = (
+    ("beta", (2.0, 5.0)),
+    ("f", (1.0, 48.0)),
+    ("logseries", (0.66,)),
+    ("noncentral_f", (1.0, 48.0, 1.414)),
+)
+
+
+@pytest.mark.parametrize("func, args", FUNC_ARGS, ids=str)
+@pytest.mark.parametrize("size", ((2048 * 2048), (4096,), 25535), ids=str)
+def test_beta_sizes(func, args, size):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    a_np = getattr(gen_np, func)(*args, size=size)
+    a_num = getattr(gen_num, func)(*args, size=size)
+    assert a_np.shape == a_num.shape
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("func, args", FUNC_ARGS, ids=str)
+def test_beta_size_none(func, args):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    a_np = getattr(gen_np, func)(*args, size=None)
+    a_num = getattr(gen_num, func)(*args, size=None)
+    # cuNumeric returns singleton array
+    # NumPy returns scalar
+    assert np.ndim(a_np) == np.ndim(a_num)
+
+
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

@@ -48,12 +48,10 @@ namespace detail {
 // device specialization:
 //
 template <typename exe_policy_t, typename weight_t, typename offset_t>
-struct segmented_sum_t<
-  exe_policy_t,
-  weight_t,
-  offset_t,
-  std::enable_if_t<!std::is_same_v<exe_policy_t, thrust::detail::host_t> &&
-                   !std::is_same_v<exe_policy_t, thrust::system::omp::detail::par_t>>> {
+struct segmented_sum_t<exe_policy_t,
+                       weight_t,
+                       offset_t,
+                       std::enable_if_t<!is_host_policy_v<exe_policy_t>>> {
   segmented_sum_t(exe_policy_t exe_pol,
                   weight_t const* p_weights,
                   size_t n_samples,
@@ -104,6 +102,13 @@ struct segmented_sum_t<
   void* p_temp_storage_{nullptr};
   size_t temp_storage_bytes_{0};
   allocator_t<unsigned char, exe_policy_t> alloc_scratch_{};
+};
+
+template <typename exe_policy_t>
+struct sync_policy_t<exe_policy_t, std::enable_if_t<!is_host_policy_v<exe_policy_t>>> {
+  sync_policy_t() {}
+
+  void operator()(cudaStream_t stream) { CHECK_CUDA_STREAM(stream); }
 };
 
 }  // namespace detail

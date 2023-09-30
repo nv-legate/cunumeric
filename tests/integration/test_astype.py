@@ -46,14 +46,6 @@ def to_dtype(s):
     return str(np.dtype(s))
 
 
-def test_none():
-    arr = None
-    in_np = num.array(arr)
-    msg = r"NoneType"
-    with pytest.raises(TypeError, match=msg):
-        in_np.astype("b")
-
-
 @pytest.mark.parametrize("src_dtype", ALL_TYPES, ids=to_dtype)
 def test_empty(src_dtype):
     arr = []
@@ -135,5 +127,4 @@ def test_complex_negative(src_dtype):
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

@@ -13,7 +13,6 @@
 # limitations under the License.
 #
 
-import random
 from itertools import permutations
 
 import numpy as np
@@ -72,7 +71,7 @@ def test_4d():
 
 @pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
 def test_ndim(ndim):
-    a_shape = tuple(random.randint(1, 9) for i in range(ndim))
+    a_shape = tuple(np.random.randint(1, 9) for i in range(ndim))
     np_array = mk_seq_array(np, a_shape)
     num_array = mk_seq_array(num, a_shape)
 
@@ -211,5 +210,4 @@ class TestTraceErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

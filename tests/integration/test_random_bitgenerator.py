@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
 
 import numpy as np
 import pytest
@@ -20,7 +19,7 @@ from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
-if sys.platform == "darwin":
+if not num.runtime.has_curand:
     pytestmark = pytest.mark.skip()
     BITGENERATOR_ARGS = []
 else:
@@ -46,6 +45,28 @@ def test_bitgenerator_type(t):
     print(f"1M sum = {r.sum()}")
     bitgen = None
     print(f"DONE for type = {t}")
+
+
+@pytest.mark.parametrize("size", ((2048 * 2048), (4096,), 25535), ids=str)
+def test_bitgenerator_size(size):
+    seed = 42
+    gen_np = np.random.PCG64(seed=seed)
+    gen_num = num.random.XORWOW(seed=seed)
+    a_np = gen_np.random_raw(size=size)
+    a_num = gen_num.random_raw(shape=size)
+    assert a_np.shape == a_num.shape
+
+
+@pytest.mark.xfail
+def test_bitgenerator_size_none():
+    seed = 42
+    gen_np = np.random.PCG64(seed=seed)
+    gen_num = num.random.XORWOW(seed=seed)
+    a_np = gen_np.random_raw(size=None)
+    a_num = gen_num.random_raw(shape=None)
+    # cuNumeric returns singleton array
+    # NumPy returns scalar
+    assert np.ndim(a_np) == np.ndim(a_num)
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
@@ -84,6 +105,15 @@ def test_integers_int16(t):
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
+def test_integers_endpoint(t):
+    high = 10
+    bitgen = t(seed=42)
+    gen = num.random.Generator(bitgen)
+    a = gen.integers(high, size=100, dtype=np.int16, endpoint=True)
+    assert np.max(a) == high
+
+
+@pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
 def test_random_float32(t):
     # top-level random function has a different signature
     if t is ModuleGenerator:
@@ -103,6 +133,20 @@ def test_random_float64(t):
     gen = num.random.Generator(bitgen)
     a = gen.random(size=(1024 * 1024,), dtype=np.float64)
     assert_distribution(a, 0.5, num.sqrt(1.0 / 12.0))
+
+
+def test_random_out_stats():
+    seed = 42
+    dtype = np.float32
+    out_shape = (2, 3, 1)
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    out_np = np.empty(out_shape, dtype=dtype)
+    out_num = num.empty(out_shape, dtype=dtype)
+    gen_np.random(out=out_np, dtype=dtype)
+    gen_num.random(out=out_num, dtype=dtype)
+    assert out_np.shape == out_num.shape
+    assert out_np.dtype == out_np.dtype
 
 
 @pytest.mark.parametrize("t", BITGENERATOR_ARGS, ids=str)
@@ -192,8 +236,87 @@ def test_poisson(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+FUNCS = ("poisson", "normal", "lognormal", "uniform")
+
+
+@pytest.mark.parametrize("func", FUNCS, ids=str)
+@pytest.mark.parametrize("size", ((2048 * 2048), (4096,), 25535), ids=str)
+def test_random_sizes(func, size):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    a_np = getattr(gen_np, func)(size=size)
+    a_num = getattr(gen_num, func)(size=size)
+    assert a_np.shape == a_num.shape
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("func", FUNCS, ids=str)
+def test_random_size_none(func):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    a_np = getattr(gen_np, func)(size=None)
+    a_num = getattr(gen_num, func)(size=None)
+    # cuNumeric returns singleton array
+    # NumPy returns scalar
+    assert np.ndim(a_np) == np.ndim(a_num)
+
+
+class TestBitGeneratorErrors:
+    def test_init_bitgenerator(self):
+        expected_exc = NotImplementedError
+        with pytest.raises(expected_exc):
+            np.random.BitGenerator()
+        with pytest.raises(expected_exc):
+            num.random.BitGenerator()
+
+    @pytest.mark.xfail
+    @pytest.mark.parametrize("dtype", (np.int32, np.float128, str))
+    def test_random_invalid_dtype(self, dtype):
+        expected_exc = TypeError
+        seed = 42
+        gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+        gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+        with pytest.raises(expected_exc):
+            gen_np.random(size=(1024 * 1024,), dtype=dtype)
+            # TypeError: Unsupported dtype dtype('int32') for random
+        with pytest.raises(expected_exc):
+            gen_num.random(size=(1024 * 1024,), dtype=dtype)
+            # NotImplementedError: type for random.uniform has to be float64
+            # or float32
+
+    def test_random_out_dtype_mismatch(self):
+        expected_exc = TypeError
+        seed = 42
+        dtype = np.float32
+        out_shape = (3, 2, 3)
+        out_dtype = np.float64
+        gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+        gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+        out_np = np.empty(out_shape, dtype=out_dtype)
+        out_num = num.empty(out_shape, dtype=out_dtype)
+        with pytest.raises(expected_exc):
+            gen_np.random(out=out_np, dtype=dtype)
+        with pytest.raises(expected_exc):
+            gen_num.random(out=out_num, dtype=dtype)
+
+    def test_random_out_shape_mismatch(self):
+        expected_exc = ValueError
+        seed = 42
+        size = (1024 * 1024,)
+        out_shape = (3, 2, 3)
+        gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+        gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+        out_np = np.empty(out_shape)
+        out_num = num.empty(out_shape)
+        with pytest.raises(expected_exc):
+            gen_np.random(size=size, out=out_np)
+        with pytest.raises(expected_exc):
+            gen_num.random(size=size, out=out_num)
+
+
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

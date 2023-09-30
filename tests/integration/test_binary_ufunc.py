@@ -235,5 +235,4 @@ if __name__ == "__main__":
         in_np = parse_inputs(args.inputs, args.dtypes)
         check_ops([args.op], in_np)
     else:
-        np.random.seed(12345)
         sys.exit(pytest.main(sys.argv))

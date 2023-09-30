@@ -558,7 +558,7 @@ struct BinaryOp<BinaryOpCode::LEFT_SHIFT, CODE> {
 
   BinaryOp(const std::vector<legate::Store>& args) {}
 
-  constexpr decltype(auto) operator()(const T& a, const T& b) const
+  constexpr T operator()(const T& a, const T& b) const
   {
 #if defined(__NVCC__) || defined(__CUDACC__)
     return a << b;
@@ -867,7 +867,7 @@ struct BinaryOp<BinaryOpCode::RIGHT_SHIFT, CODE> {
 
   BinaryOp(const std::vector<legate::Store>& args) {}
 
-  constexpr decltype(auto) operator()(const T& a, const T& b) const { return a >> b; }
+  constexpr T operator()(const T& a, const T& b) const { return a >> b; }
 };
 
 template <legate::Type::Code CODE>

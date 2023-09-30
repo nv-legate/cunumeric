@@ -177,7 +177,6 @@ class Runtime(object):
         future = self.create_scalar(array, shape)
         assert all(extent == 1 for extent in shape)
         core_dtype = to_core_dtype(dtype)
-        assert core_dtype is not None
         store = self.legate_context.create_store(
             core_dtype,
             shape=shape,
@@ -259,9 +258,6 @@ class Runtime(object):
         result = self.current_random_epoch
         self.current_random_epoch += 1
         return result
-
-    def is_supported_type(self, dtype: Union[str, np.dtype[Any]]) -> bool:
-        return to_core_dtype(dtype) is not None
 
     def get_numpy_thunk(
         self,
@@ -416,7 +412,7 @@ class Runtime(object):
         # Check to see if it is a type that we support for doing deferred
         # execution and big enough to be worth off-loading onto Legion
         dtype = to_core_dtype(array.dtype)
-        if dtype is not None and (
+        if (
             defer
             or not self.is_eager_shape(array.shape)
             or self.has_external_attachment(array)
@@ -446,7 +442,6 @@ class Runtime(object):
                 numpy_array=array if share else None,
             )
 
-        assert not defer
         # Make this into an eager evaluated thunk
         return EagerArray(self, array)
 

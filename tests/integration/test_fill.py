@@ -124,6 +124,7 @@ def test_fill_int_to_float() -> None:
     assert np.array_equal(a_np, a_num)
 
 
+@pytest.mark.xfail
 def test_fill_string() -> None:
     a_list = ["hello", "hi"]
     a_np = np.array(a_list)
@@ -152,5 +153,4 @@ def test_fill_string_to_float() -> None:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

@@ -236,7 +236,6 @@ if __name__ == "__main__":
         help="iterations between convergence tests",
     )
     parser.add_argument(
-        "-p",
         "--pre",
         dest="precondition",
         action="store_true",

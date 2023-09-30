@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import sys
 
 import numpy as np
 import pytest
@@ -20,7 +19,7 @@ from utils.random import ModuleGenerator, assert_distribution
 
 import cunumeric as num
 
-if sys.platform == "darwin":
+if not num.runtime.has_curand:
     pytestmark = pytest.mark.skip()
     BITGENERATOR_ARGS = []
 else:
@@ -126,8 +125,31 @@ def test_noncentral_chisquare_float64(t):
     assert_distribution(a, theo_mean, theo_std)
 
 
+@pytest.mark.parametrize("func", ("gamma", "noncentral_chisquare"), ids=str)
+@pytest.mark.parametrize("size", ((2048 * 2048), (4096,), 25535), ids=str)
+def test_gamma_sizes(func, size):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    a_np = getattr(gen_np, func)(3.1415, 1.414, size=size)
+    a_num = getattr(gen_num, func)(3.1415, 1.414, size=size)
+    assert a_np.shape == a_num.shape
+
+
+@pytest.mark.xfail
+@pytest.mark.parametrize("func", ("gamma", "noncentral_chisquare"), ids=str)
+def test_gamma_size_none(func):
+    seed = 42
+    gen_np = np.random.Generator(np.random.PCG64(seed=seed))
+    gen_num = num.random.Generator(num.random.XORWOW(seed=seed))
+    a_np = getattr(gen_np, func)(3.1415, 1.414, size=None)
+    a_num = getattr(gen_num, func)(3.1415, 1.414, size=None)
+    # cuNumeric returns singleton array
+    # NumPy returns scalar
+    assert np.ndim(a_np) == np.ndim(a_num)
+
+
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

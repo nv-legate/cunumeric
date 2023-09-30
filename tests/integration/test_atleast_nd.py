@@ -43,11 +43,6 @@ def test_atleast_1d_scalar():
     assert np.array_equal(np.atleast_1d(a), num.atleast_1d(a))
 
 
-def test_atleast_1d_none():
-    a = None
-    assert np.array_equal(np.atleast_1d(a), num.atleast_1d(a))
-
-
 @pytest.mark.parametrize("size", SIZE_CASES, ids=str)
 def test_atleast_2d(size):
     a = [np.arange(np.prod(size)).reshape(size)]
@@ -60,11 +55,6 @@ def test_atleast_2d_scalar():
     assert np.array_equal(np.atleast_2d(a), num.atleast_2d(a))
 
 
-def test_atleast_2d_none():
-    a = None
-    assert np.array_equal(np.atleast_2d(a), num.atleast_2d(a))
-
-
 @pytest.mark.parametrize("size", SIZE_CASES, ids=str)
 def test_atleast_3d(size):
     a = [np.arange(np.prod(size)).reshape(size)]
@@ -74,11 +64,6 @@ def test_atleast_3d(size):
 
 def test_atleast_3d_scalar():
     a = 1.0
-    assert np.array_equal(np.atleast_2d(a), num.atleast_2d(a))
-
-
-def test_atleast_3d_none():
-    a = None
     assert np.array_equal(np.atleast_2d(a), num.atleast_2d(a))
 
 
@@ -95,5 +80,4 @@ def test_atleast_nd(dim):
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

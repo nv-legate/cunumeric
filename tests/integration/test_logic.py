@@ -67,7 +67,7 @@ class TestInfErrors:
             func_num(x, out=res_num)
 
 
-SCALARS = (pytest.param("a string", marks=pytest.mark.xfail), None, False)
+SCALARS = (pytest.param("a string", marks=pytest.mark.xfail), False)
 ARRAYS = (
     [1.0, 2.0, 3.0],
     [1.0 + 0j, 2.0 + 0j, 3.0 + 0j],
@@ -275,5 +275,4 @@ class TestIsCloseErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))

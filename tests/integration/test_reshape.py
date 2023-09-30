@@ -185,7 +185,7 @@ def test_reshape_empty_array(shape):
 
 def test_reshape_same_shape():
     shape = (1, 2, 3)
-    arr = np.empty(shape)
+    arr = np.random.rand(*shape)
     assert np.array_equal(np.reshape(arr, shape), num.reshape(arr, shape))
 
 
@@ -253,5 +253,4 @@ class TestRavelErrors:
 if __name__ == "__main__":
     import sys
 
-    np.random.seed(12345)
     sys.exit(pytest.main(sys.argv))
