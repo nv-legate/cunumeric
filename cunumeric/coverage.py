@@ -36,7 +36,7 @@ from typing import (
 )
 
 from legate.core import track_provenance
-from ordered_set import OrderedSet
+from legate.core.utils import OrderedSet
 from typing_extensions import Protocol
 
 from .runtime import runtime
@@ -245,7 +245,7 @@ def clone_module(
 
     missing = filter_namespace(
         origin_module.__dict__,
-        omit_names=OrderedSet(new_globals).union(MOD_INTERNAL),
+        omit_names=set(new_globals).union(MOD_INTERNAL),
         omit_types=(ModuleType,),
     )
 

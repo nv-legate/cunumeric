@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, Sequence, Union
 
 import numpy as np
-from ordered_set import OrderedSet
+from legate.core.utils import OrderedSet
 
 from ..array import check_writeable, convert_to_cunumeric_ndarray, ndarray
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode

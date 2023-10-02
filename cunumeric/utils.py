@@ -22,7 +22,7 @@ from typing import Any, Callable, List, Sequence, Tuple, Union
 
 import legate.core.types as ty
 import numpy as np
-from ordered_set import OrderedSet
+from legate.core.utils import OrderedSet
 
 from .types import NdShape
 

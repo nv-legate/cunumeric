@@ -36,10 +36,10 @@ from typing import (
 import legate.core.types as ty
 import numpy as np
 from legate.core import Annotation, Future, ReductionOp, Store
+from legate.core.utils import OrderedSet
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
 )
-from ordered_set import OrderedSet
 from typing_extensions import ParamSpec
 
 from .config import (
