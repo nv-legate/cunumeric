@@ -125,7 +125,7 @@ def test_array_basic(size):
 
 
 @pytest.mark.parametrize(
-    "size", (s for s in SIZES if type(s) == tuple if 1 in s), ids=str
+    "size", (s for s in SIZES if isinstance(s, tuple) if 1 in s), ids=str
 )
 def test_num_axis(size):
     a = np.random.randint(low=-10, high=10, size=size)
@@ -139,7 +139,7 @@ def test_num_axis(size):
 
 
 @pytest.mark.parametrize(
-    "size", (s for s in SIZES if type(s) == tuple if 1 in s), ids=str
+    "size", (s for s in SIZES if isinstance(s, tuple) if 1 in s), ids=str
 )
 def test_array_axis(size):
     a = np.random.randint(low=-10, high=10, size=size)

@@ -2554,7 +2554,7 @@ class ndarray:
                 raise ValueError("extract can be true only for Ndim >=2")
             axes = None
         else:
-            if type(axis1) == int and type(axis2) == int:
+            if isinstance(axis1, int) and isinstance(axis2, int):
                 if axes is not None:
                     raise ValueError(
                         "Either axis1/axis2 or axes must be supplied"
@@ -3102,7 +3102,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if axis is not None and type(axis) != int:
+        if axis is not None and not isinstance(axis, int):
             raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
                 "'axis' currently"

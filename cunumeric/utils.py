@@ -227,11 +227,11 @@ def deep_apply(obj: Any, func: Callable[[Any], Any]) -> Any:
     primarily meant to be used for arguments of NumPy API calls, which
     shouldn't nest their arrays very deep.
     """
-    if type(obj) == list:
+    if isinstance(obj, list):
         return [deep_apply(x, func) for x in obj]
-    elif type(obj) == tuple:
+    elif isinstance(obj, tuple):
         return tuple(deep_apply(x, func) for x in obj)
-    elif type(obj) == dict:
+    elif isinstance(obj, dict):
         return {k: deep_apply(v, func) for k, v in obj.items()}
     else:
         return func(obj)
