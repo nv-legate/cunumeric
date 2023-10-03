@@ -19,7 +19,7 @@ from typing import List, Optional, Set, Tuple
 
 import numpy as np
 import pytest
-from ordered_set import OrderedSet
+from legate.core.utils import OrderedSet
 from utils.comparisons import allclose
 from utils.generators import mk_0to1_array, permutes_to
 
