@@ -22,6 +22,7 @@ from typing import Any, Callable, List, Sequence, Tuple, Union
 
 import legate.core.types as ty
 import numpy as np
+from legate.core.utils import OrderedSet
 
 from .types import NdShape
 
@@ -194,8 +195,8 @@ def tensordot_modes(a_ndim: int, b_ndim: int, axes: AxesPairLike) -> Modes:
             len(a_axes) != len(b_axes)
             or len(a_axes) > a_ndim
             or len(b_axes) > b_ndim
-            or len(a_axes) != len(set(a_axes))
-            or len(b_axes) != len(set(b_axes))
+            or len(a_axes) != len(OrderedSet(a_axes))
+            or len(b_axes) != len(OrderedSet(b_axes))
             or any(ax < 0 for ax in a_axes)
             or any(ax < 0 for ax in b_axes)
             or any(ax >= a_ndim for ax in a_axes)
@@ -211,8 +212,14 @@ def tensordot_modes(a_ndim: int, b_ndim: int, axes: AxesPairLike) -> Modes:
     b_modes = list(ascii_uppercase[:b_ndim])
     for a_i, b_i in zip(a_axes, b_axes):
         b_modes[b_i] = a_modes[a_i]
-    a_out = [a_modes[a_i] for a_i in sorted(set(range(a_ndim)) - set(a_axes))]
-    b_out = [b_modes[b_i] for b_i in sorted(set(range(b_ndim)) - set(b_axes))]
+    a_out = [
+        a_modes[a_i]
+        for a_i in sorted(OrderedSet(range(a_ndim)) - OrderedSet(a_axes))
+    ]
+    b_out = [
+        b_modes[b_i]
+        for b_i in sorted(OrderedSet(range(b_ndim)) - OrderedSet(b_axes))
+    ]
 
     return (a_modes, b_modes, a_out + b_out)
 

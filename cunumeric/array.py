@@ -25,7 +25,6 @@ from typing import (
     Literal,
     Optional,
     Sequence,
-    Set,
     TypeVar,
     Union,
     cast,
@@ -33,6 +32,7 @@ from typing import (
 
 import numpy as np
 from legate.core import Array, Field
+from legate.core.utils import OrderedSet
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
     normalize_axis_index,
 )
@@ -90,7 +90,7 @@ def add_boilerplate(
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
     """
-    keys = set(array_params)
+    keys = OrderedSet(array_params)
     assert len(keys) == len(array_params)
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
@@ -100,11 +100,11 @@ def add_boilerplate(
 
         # For each parameter specified by name, also consider the case where
         # it's passed as a positional parameter.
-        indices: Set[int] = set()
+        indices: OrderedSet[int] = OrderedSet()
         where_idx: Optional[int] = None
         out_idx: Optional[int] = None
         params = signature(func).parameters
-        extra = keys - set(params)
+        extra = keys - OrderedSet(params)
         assert len(extra) == 0, f"unknown parameter(s): {extra}"
         for idx, param in enumerate(params):
             if param == "where":
@@ -2435,7 +2435,7 @@ class ndarray:
         else:
             assert axes is not None
             N = len(axes)
-            if len(axes) != len(set(axes)):
+            if len(axes) != len(OrderedSet(axes)):
                 raise ValueError(
                     "axes passed to _diag_helper should be all different"
                 )
