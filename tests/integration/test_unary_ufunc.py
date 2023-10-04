@@ -61,39 +61,46 @@ def check_result(op, in_np, out_np, out_num, **isclose_kwargs):
 
 
 def check_op(op, in_np, out_dtype="d", **check_kwargs):
-    op_np = getattr(np, op)
-    op_num = getattr(num, op)
-
-    assert op_np.nout == 1
-
     in_num = num.array(in_np)
 
-    out_np = op_np(in_np)
-    out_num = op_num(in_num)
+    if op.isidentifier():
+        op_np = getattr(np, op)
+        op_num = getattr(num, op)
 
-    assert check_result(op, in_np, out_np, out_num, **check_kwargs)
+        assert op_np.nout == 1
 
-    out_np = np.empty(out_np.shape, dtype=out_dtype)
-    out_num = num.empty(out_num.shape, dtype=out_dtype)
+        out_np = op_np(in_np)
+        out_num = op_num(in_num)
 
-    op_np(in_np, out=out_np)
-    op_num(in_num, out=out_num)
+        assert check_result(op, in_np, out_np, out_num, **check_kwargs)
 
-    assert check_result(op, in_np, out_np, out_num, **check_kwargs)
+        out_np = np.empty(out_np.shape, dtype=out_dtype)
+        out_num = num.empty(out_num.shape, dtype=out_dtype)
 
-    out_np = np.empty(out_np.shape, dtype=out_dtype)
-    out_num = num.empty(out_num.shape, dtype=out_dtype)
+        op_np(in_np, out=out_np)
+        op_num(in_num, out=out_num)
 
-    op_np(in_np, out_np)
-    op_num(in_num, out_num)
+        assert check_result(op, in_np, out_np, out_num, **check_kwargs)
 
-    assert check_result(op, in_np, out_np, out_num, **check_kwargs)
+        out_np = np.empty(out_np.shape, dtype=out_dtype)
+        out_num = num.empty(out_num.shape, dtype=out_dtype)
 
-    # Ask cuNumeric to produce outputs to NumPy ndarrays
-    out_num = np.ones(out_np.shape, dtype=out_dtype)
-    op_num(in_num, out_num)
+        op_np(in_np, out_np)
+        op_num(in_num, out_num)
 
-    assert check_result(op, in_np, out_np, out_num, **check_kwargs)
+        assert check_result(op, in_np, out_np, out_num, **check_kwargs)
+
+        # Ask cuNumeric to produce outputs to NumPy ndarrays
+        out_num = np.ones(out_np.shape, dtype=out_dtype)
+        op_num(in_num, out_num)
+
+        assert check_result(op, in_np, out_np, out_num, **check_kwargs)
+
+    else:
+        out_np = eval(f"{op} in_np")
+        out_num = eval(f"{op} in_num")
+
+        assert check_result(op, in_np, out_np, out_num, **check_kwargs)
 
 
 def check_ops(ops, in_np, out_dtype="d"):
@@ -155,6 +162,8 @@ def check_math_ops(op, **kwargs):
 
 # Math operations
 math_ops = (
+    "+",
+    "-",
     "absolute",
     "conjugate",
     "exp",
@@ -283,7 +292,7 @@ def test_arc_hyp_trig_ops(op):
     check_op(op, np.array(np.random.uniform(low=1, high=5)))
 
 
-bit_ops = ("invert",)
+bit_ops = ("invert", "~")
 
 
 @pytest.mark.parametrize("op", bit_ops)

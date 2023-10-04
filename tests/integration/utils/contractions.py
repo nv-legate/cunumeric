@@ -15,6 +15,7 @@
 
 import numpy as np
 from legate.core import LEGATE_MAX_DIM
+from legate.core.utils import OrderedSet
 
 import cunumeric as num
 
@@ -38,7 +39,7 @@ def gen_output_default(lib, modes, a, b):
 
 def gen_shapes(a_modes, b_modes):
     yield ((5,) * len(a_modes), (5,) * len(b_modes))
-    for mode_to_squeeze in set(a_modes + b_modes):
+    for mode_to_squeeze in OrderedSet(a_modes + b_modes):
         a_shape = tuple((1 if m == mode_to_squeeze else 5) for m in a_modes)
         b_shape = tuple((1 if m == mode_to_squeeze else 5) for m in b_modes)
         yield (a_shape, b_shape)
@@ -104,7 +105,10 @@ def gen_output_of_various_types(lib, modes, a, b):
 
 def _test(name, modes, operation, gen_inputs, gen_output=None, **kwargs):
     (a_modes, b_modes, out_modes) = modes
-    if len(set(a_modes) | set(b_modes) | set(out_modes)) > LEGATE_MAX_DIM:
+    if (
+        len(OrderedSet(a_modes) | OrderedSet(b_modes) | OrderedSet(out_modes))
+        > LEGATE_MAX_DIM
+    ):
         # Total number of distinct modes can't exceed maximum Legion dimension,
         # because we may need to promote arrays so that one includes all modes.
         return
