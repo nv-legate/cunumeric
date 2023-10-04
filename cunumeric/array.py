@@ -817,9 +817,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_and
+        from ._ufunc import bitwise_and
 
-        return logical_and(self, rhs)
+        return bitwise_and(self, rhs)
 
     def __array__(
         self, dtype: Union[np.dtype[Any], None] = None
@@ -1073,9 +1073,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_and
+        from ._ufunc import bitwise_and
 
-        return logical_and(self, rhs, out=self)
+        return bitwise_and(self, rhs, out=self)
 
     def __idiv__(self, rhs: Any) -> ndarray:
         """a.__idiv__(value, /)
@@ -1186,9 +1186,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_or
+        from ._ufunc import bitwise_or
 
-        return logical_or(self, rhs, out=self)
+        return bitwise_or(self, rhs, out=self)
 
     def __ipow__(self, rhs: float) -> ndarray:
         """a.__ipow__(/)
@@ -1260,9 +1260,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_xor
+        from ._ufunc import bitwise_xor
 
-        return logical_xor(self, rhs, out=self)
+        return bitwise_xor(self, rhs, out=self)
 
     def __le__(self, rhs: Any) -> ndarray:
         """a.__le__(value, /)
@@ -1416,9 +1416,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_or
+        from ._ufunc import bitwise_or
 
-        return logical_or(self, rhs)
+        return bitwise_or(self, rhs)
 
     def __pos__(self) -> ndarray:
         """a.__pos__(value, /)
@@ -1473,9 +1473,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_and
+        from ._ufunc import bitwise_and
 
-        return logical_and(lhs, self)
+        return bitwise_and(lhs, self)
 
     def __rdiv__(self, lhs: Any) -> ndarray:
         """a.__rdiv__(value, /)
@@ -1584,9 +1584,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_or
+        from ._ufunc import bitwise_or
 
-        return logical_or(lhs, self)
+        return bitwise_or(lhs, self)
 
     def __rpow__(self, lhs: Any) -> ndarray:
         """__rpow__(value, /)

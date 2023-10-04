@@ -41,32 +41,53 @@ def check_result(op, in_np, out_np, out_num):
 
 
 def check_ops(ops, in_np, out_dtype="D"):
+    in_num = tuple(num.array(arr) for arr in in_np)
+
     for op in ops:
-        op_np = getattr(np, op)
-        op_num = getattr(num, op)
+        if op.isidentifier():
+            op_np = getattr(np, op)
+            op_num = getattr(num, op)
+            assert op_np.nout == 1
 
-        assert op_np.nout == 1
+            out_np = op_np(*in_np)
+            out_num = op_num(*in_num)
 
-        in_num = tuple(num.array(arr) for arr in in_np)
+            check_result(op, in_np, out_np, out_num)
 
-        out_np = op_np(*in_np)
-        out_num = op_num(*in_num)
+            out_np = np.empty(out_np.shape, dtype=out_dtype)
+            out_num = num.empty(out_num.shape, dtype=out_dtype)
+            op_np(*in_np, out=out_np)
+            op_num(*in_num, out=out_num)
 
-        check_result(op, in_np, out_np, out_num)
+            check_result(op, in_np, out_np, out_num)
 
-        out_np = np.empty(out_np.shape, dtype=out_dtype)
-        out_num = num.empty(out_num.shape, dtype=out_dtype)
+            # Ask cuNumeric to produce outputs to NumPy ndarrays
+            out_num = np.empty(out_np.shape, dtype=out_dtype)
+            op_num(*in_num, out=out_num)
 
-        op_np(*in_np, out=out_np)
-        op_num(*in_num, out=out_num)
+            check_result(op, in_np, out_np, out_num)
 
-        check_result(op, in_np, out_np, out_num)
+        else:
+            # Doing it this way instead of invoking the dunders directly, to
+            # avoid having to select the right version, __add__ vs __radd__,
+            # when one isn't supported, e.g. for scalar.__add__(array)
 
-        # Ask cuNumeric to produce outputs to NumPy ndarrays
-        out_num = np.ones(out_np.shape, dtype=out_dtype)
-        op_num(*in_num, out_num)
+            out_np = eval(f"in_np[0] {op} in_np[1]")
+            out_num = eval(f"in_num[0] {op} in_num[1]")
 
-        check_result(op, in_np, out_np, out_num)
+            check_result(op, in_np, out_np, out_num)
+
+            out_np = np.ones_like(out_np)
+            out_num = num.ones_like(out_num)
+            exec(f"out_np {op}= in_np[0]")
+            exec(f"out_num {op}= in_num[0]")
+
+            check_result(op, in_np, out_np, out_num)
+
+            out_num = np.ones_like(out_np)
+            exec(f"out_num {op}= in_num[0]")
+
+            check_result(op, in_np, out_np, out_num)
 
 
 def test_all():
@@ -74,8 +95,14 @@ def test_all():
     # for some boring inputs. For some of these, we will want to
     # test corner cases in the future.
 
+    # TODO: matmul, @
+
     # Math operations
     ops = [
+        "*",
+        "+",
+        "-",
+        "/",
         "add",
         # "divmod",
         "equal",
@@ -121,6 +148,7 @@ def test_all():
         check_ops(ops, (scalar1, scalar2))
 
     ops = [
+        "//",
         "arctan2",
         "copysign",
         "floor_divide",
@@ -142,6 +170,7 @@ def test_all():
         check_ops(ops, (scalar1, scalar2))
 
     ops = [
+        "**",
         "power",
         "float_power",
     ]
@@ -159,6 +188,7 @@ def test_all():
     check_ops(ops, (scalars[3], scalars[0]))
 
     ops = [
+        "%",
         "remainder",
     ]
 
@@ -173,12 +203,17 @@ def test_all():
         check_ops(ops, (scalar1, scalar2))
 
     ops = [
+        "&",
+        "<<",
+        ">>",
+        "^",
+        "|",
         "bitwise_and",
         "bitwise_or",
         "bitwise_xor",
         "gcd",
-        "left_shift",
         "lcm",
+        "left_shift",
         "right_shift",
     ]
 
