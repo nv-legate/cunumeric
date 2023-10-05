@@ -388,8 +388,8 @@ class _Orig_ndarray:
         return "I am now ready"
 
     def foo(self, other):
-        assert type(self) == _Orig_ndarray
-        assert type(other) == _Orig_ndarray
+        assert type(self) == _Orig_ndarray  # noqa
+        assert type(other) == _Orig_ndarray  # noqa
         return "original foo"
 
     def bar(self, other):

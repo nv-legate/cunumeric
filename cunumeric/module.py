@@ -4760,7 +4760,7 @@ def einsum_path(
     """
     computed_operands = [convert_to_cunumeric_ndarray(op) for op in operands]
     memory_limit = _builtin_max(op.size for op in computed_operands)
-    if type(optimize) == tuple:
+    if isinstance(optimize, tuple):
         if len(optimize) != 2:
             raise ValueError("einsum_path expects optimize tuples of size 2")
         optimize, memory_limit = optimize
@@ -4771,7 +4771,7 @@ def einsum_path(
     elif optimize in ["greedy", "optimal"]:
         pass
     elif (
-        type(optimize) == list
+        isinstance(optimize, list)
         and len(optimize) > 1
         and optimize[0] == "einsum_path"
     ):

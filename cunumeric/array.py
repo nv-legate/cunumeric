@@ -25,7 +25,6 @@ from typing import (
     Literal,
     Optional,
     Sequence,
-    Set,
     TypeVar,
     Union,
     cast,
@@ -33,6 +32,7 @@ from typing import (
 
 import numpy as np
 from legate.core import Array, Field
+from legate.core.utils import OrderedSet
 from numpy.core.multiarray import (  # type: ignore [attr-defined]
     normalize_axis_index,
 )
@@ -90,7 +90,7 @@ def add_boilerplate(
       parameter (if present), to cuNumeric ndarrays.
     * Convert the special "where" parameter (if present) to a valid predicate.
     """
-    keys = set(array_params)
+    keys = OrderedSet(array_params)
     assert len(keys) == len(array_params)
 
     def decorator(func: Callable[P, R]) -> Callable[P, R]:
@@ -100,11 +100,11 @@ def add_boilerplate(
 
         # For each parameter specified by name, also consider the case where
         # it's passed as a positional parameter.
-        indices: Set[int] = set()
+        indices: OrderedSet[int] = OrderedSet()
         where_idx: Optional[int] = None
         out_idx: Optional[int] = None
         params = signature(func).parameters
-        extra = keys - set(params)
+        extra = keys - OrderedSet(params)
         assert len(extra) == 0, f"unknown parameter(s): {extra}"
         for idx, param in enumerate(params):
             if param == "where":
@@ -817,9 +817,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_and
+        from ._ufunc import bitwise_and
 
-        return logical_and(self, rhs)
+        return bitwise_and(self, rhs)
 
     def __array__(
         self, dtype: Union[np.dtype[Any], None] = None
@@ -1073,9 +1073,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_and
+        from ._ufunc import bitwise_and
 
-        return logical_and(self, rhs, out=self)
+        return bitwise_and(self, rhs, out=self)
 
     def __idiv__(self, rhs: Any) -> ndarray:
         """a.__idiv__(value, /)
@@ -1186,9 +1186,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_or
+        from ._ufunc import bitwise_or
 
-        return logical_or(self, rhs, out=self)
+        return bitwise_or(self, rhs, out=self)
 
     def __ipow__(self, rhs: float) -> ndarray:
         """a.__ipow__(/)
@@ -1260,9 +1260,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_xor
+        from ._ufunc import bitwise_xor
 
-        return logical_xor(self, rhs, out=self)
+        return bitwise_xor(self, rhs, out=self)
 
     def __le__(self, rhs: Any) -> ndarray:
         """a.__le__(value, /)
@@ -1416,9 +1416,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_or
+        from ._ufunc import bitwise_or
 
-        return logical_or(self, rhs)
+        return bitwise_or(self, rhs)
 
     def __pos__(self) -> ndarray:
         """a.__pos__(value, /)
@@ -1473,9 +1473,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_and
+        from ._ufunc import bitwise_and
 
-        return logical_and(lhs, self)
+        return bitwise_and(lhs, self)
 
     def __rdiv__(self, lhs: Any) -> ndarray:
         """a.__rdiv__(value, /)
@@ -1584,9 +1584,9 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        from ._ufunc import logical_or
+        from ._ufunc import bitwise_or
 
-        return logical_or(lhs, self)
+        return bitwise_or(lhs, self)
 
     def __rpow__(self, lhs: Any) -> ndarray:
         """__rpow__(value, /)
@@ -2435,7 +2435,7 @@ class ndarray:
         else:
             assert axes is not None
             N = len(axes)
-            if len(axes) != len(set(axes)):
+            if len(axes) != len(OrderedSet(axes)):
                 raise ValueError(
                     "axes passed to _diag_helper should be all different"
                 )
@@ -2554,7 +2554,7 @@ class ndarray:
                 raise ValueError("extract can be true only for Ndim >=2")
             axes = None
         else:
-            if type(axis1) == int and type(axis2) == int:
+            if isinstance(axis1, int) and isinstance(axis2, int):
                 if axes is not None:
                     raise ValueError(
                         "Either axis1/axis2 or axes must be supplied"
@@ -3130,7 +3130,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if axis is not None and type(axis) != int:
+        if axis is not None and not isinstance(axis, int):
             raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
                 "'axis' currently"
