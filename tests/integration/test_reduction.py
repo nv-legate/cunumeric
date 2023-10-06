@@ -219,7 +219,7 @@ class TestSumPositive(object):
         ndim = arr_np.ndim
         for axis in range(-ndim + 1, ndim, 1):
             out_shape = ()
-            if type(size) == tuple:
+            if isinstance(size, tuple):
                 out_shape_list = list(size)
                 del out_shape_list[axis]
                 out_shape = tuple(out_shape_list)
@@ -239,7 +239,7 @@ class TestSumPositive(object):
         ndim = arr_np.ndim
         for axis in range(-ndim + 1, ndim, 1):
             out_shape = ()
-            if type(size) == tuple:
+            if isinstance(size, tuple):
                 out_shape_list = list(size)
                 del out_shape_list[axis]
                 out_shape = tuple(out_shape_list)

@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Dict, Sequence, Union
 
 import numpy as np
+from legate.core.utils import OrderedSet
 
 from ..array import check_writeable, convert_to_cunumeric_ndarray, ndarray
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
@@ -552,7 +553,7 @@ class binary_ufunc(ufunc):
         arrs: Sequence[ndarray], orig_args: Sequence[Any]
     ) -> np.dtype[Any]:
         all_ndarray = all(isinstance(arg, ndarray) for arg in orig_args)
-        unique_dtypes = set(arr.dtype for arr in arrs)
+        unique_dtypes = OrderedSet(arr.dtype for arr in arrs)
         # If all operands are ndarrays and they all have the same dtype,
         # we already know the common dtype
         if len(unique_dtypes) == 1 and all_ndarray:
