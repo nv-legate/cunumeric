@@ -54,7 +54,13 @@ from .config import (
 from .coverage import FALLBACK_WARNING, clone_class, is_implemented
 from .runtime import runtime
 from .types import NdShape
-from .utils import deep_apply, dot_modes, to_core_dtype
+from .utils import (
+    calculate_volume,
+    deep_apply,
+    dot_modes,
+    to_core_dtype,
+    tuple_pop,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -3205,13 +3211,13 @@ class ndarray:
 
         # 1D arrays (or equivalent) should benefit from this unary reduction:
         #
-        if axis is None or self.ndim == 1 or max(self.shape) == self.size:
+        if axis is None or calculate_volume(tuple_pop(self.shape, axis)) == 1:
             # this is a scalar reduction and we can optimize this as a single
             # pass through a scalar reduction
             result = self._perform_unary_reduction(
                 UnaryRedCode.VARIANCE,
                 self,
-                axis=None,
+                axis=axis,
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
