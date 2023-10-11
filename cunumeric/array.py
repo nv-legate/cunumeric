@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2021-2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -191,6 +191,19 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
     if any(not arr.flags.writeable for arr in check_list):
         raise ValueError("array is not writeable")
 
+def broadcast_where(where:Union[ndarray, None], shape:NdShape )-> ndarray:
+    if where is not None:
+        where_array = convert_to_cunumeric_ndarray(where)
+    else:
+         where_array = None
+
+    if where_array is not None and np.ndim(where_array)!=0 and where_array.shape != shape:
+        where_array = ndarray(
+            shape=shape,
+            thunk=where_array._thunk.broadcast_to(shape),
+            writeable=False,
+        )
+    return where_array
 
 class flagsobj:
     """
@@ -857,7 +870,7 @@ class ndarray:
     def __complex__(self) -> complex:
         """a.__complex__(/)"""
         return complex(self.__array__())
-
+    
     def __contains__(self, item: Any) -> ndarray:
         """a.__contains__(key, /)
 
@@ -3126,31 +3139,26 @@ class ndarray:
                 dtype = np.dtype(np.float64)
             else:
                 dtype = self.dtype
-
-        if self.size == 1:
-            if where is True:
-                return self.astype(dtype)  # type: ignore
-            if where is False:
-                return self.astype(dtype) / 0  # type: ignore
-
+        
+        where_array = broadcast_where(where, self.shape)
         # Do the sum
         if out is not None and out.dtype == dtype:
             sum_array = self.sum(
-                axis=axis, out=out, keepdims=keepdims, where=where
+                axis=axis, out=out, keepdims=keepdims, where=where_array
             )
         else:
-            sum_array = self.sum(axis=axis, keepdims=keepdims, where=where)
+            sum_array = self.sum(axis=axis, keepdims=keepdims, where=where_array)
 
         if axis is None:
-            if where is not None:
-                divisor = where._count_nonzero()
+            if where_array is not None:
+                divisor = where_array._count_nonzero()
 
             else:
                 divisor = reduce(lambda x, y: x * y, self.shape, 1)
 
         else:
-            if where is not None:
-                divisor = where._count_nonzero(axis=axis)
+            if where_array is not None:
+                divisor = where_array._count_nonzero(axis=axis)
             else:
                 divisor = self.shape[axis]
         # Divide by the number of things in the collapsed dimensions
@@ -3195,14 +3203,30 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        # nan_where = self != Nan
-        # if where is not None:
-        #    new_where = where and nan_where
-        # else:
-        #    new_where = nan_where
-        new_where = where
+        if dtype is None:
+            dtype = a.dtype
 
-        return self.mean(axis, dtype, out, keepdims, new_where)
+        if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_): 
+            return a.mean(axis, dtype, out, keepdims, where=where)
+
+        nan_mask = _ufunc.bit_twiddling.bitwise_not(_ufunc.floating.isnan(a))
+        normalizer = nan_mask.sum( axis=axis, dtype=np.int32, keepdims=keepdims, where=where)
+        #normalizer = normalizer.astype(dtype)
+        sum_array = a.nansum(axis, dtype=dtype, keepdims=keepdims, where=where)
+        if dtype.kind == "f" or dtype.kind == "c":
+            sum_array.__itruediv__(
+                np.array(normalizer, dtype=dtype),
+            )
+        else:
+            sum_array.__ifloordiv__(np.array(normalizer, dtype=dtype))
+
+        if out is not None and sum_array is not out:
+            assert out.dtype != sum_array.dtype
+            out._thunk.convert(sum_array._thunk)
+            return out
+        else:
+            return sum_array
+
 
     @add_boilerplate()
     def min(
@@ -4213,11 +4237,6 @@ class ndarray:
 
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
-
-        # if not where:
-        #   where = ndarray(shape=(1,), dtype=bool)
-        #   where.fill(True)
-
         if where is not None and isinstance(where, ndarray):
             # The where array has to broadcast to the src.shape
             if np.broadcast_shapes(src.shape, where.shape) != src.shape:

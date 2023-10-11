@@ -60,11 +60,11 @@ def test_scalar(val):
     assert np.array_equal(res_np, res_num)
 
 
-# @pytest.mark.parametrize("val", (0.0, 10.0, -5, 1 + 1j))
-# def test_scalar_where(val):
-#    res_np = np.mean(val, where=True)
-#    res_num = num.mean(val, where=True)
-#    assert np.array_equal(res_np, res_num)
+@pytest.mark.parametrize("val", (0.0, 10.0, -5, 1 + 1j))
+def test_scalar_where(val):
+    res_np = np.mean(val, where=True)
+    res_num = num.mean(val, where=True)
+    assert np.array_equal(res_np, res_num)
 
 
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
@@ -86,6 +86,17 @@ def test_basic_where(size):
     res_np = np.mean(arr_np, where=where_np)
     res_num = num.mean(arr_num, where=where_num)
     assert np.array_equal(res_np, res_num, equal_nan=True)
+
+@pytest.mark.parametrize("size", NO_EMPTY_SIZE)
+def test_where_broadcast(size):
+    arr_np = np.random.randint(-5, 5, size=size)
+    arr_num = num.array(arr_np)
+    where_np = np.zeros((1,), bool)
+    where_num = num.array(where_np)
+    res_np = np.mean(arr_np, where=where_np)
+    res_num = num.mean(arr_num, where=where_num)
+    assert np.array_equal(res_np, res_num, equal_nan=True)
+
 
 
 @pytest.mark.xfail
