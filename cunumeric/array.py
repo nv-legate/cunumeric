@@ -3136,7 +3136,7 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if axis is not None and type(axis) != int:
+        if axis is not None and not isinstance(axis, int):
             raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
                 "'axis' currently"
@@ -4147,7 +4147,7 @@ class ndarray:
                 scalars.append(array.dtype.type(0))
             else:
                 array_types.append(array.dtype)
-        return np.find_common_type(array_types, scalar_types)
+        return np.result_type(*array_types, *scalars)
 
     def _maybe_convert(self, dtype: np.dtype[Any], hints: Any) -> ndarray:
         if self.dtype == dtype:

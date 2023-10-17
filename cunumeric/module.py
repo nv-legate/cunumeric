@@ -6076,7 +6076,14 @@ def nansum(
     Multiple GPUs, Multiple CPUs
     """
 
-    return a.nansum(axis, dtype, out, keepdims, initial, where)
+    return a.nansum(
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        keepdims=keepdims,
+        initial=initial,
+        where=where,
+    )
 
 
 # Exponents and logarithms
