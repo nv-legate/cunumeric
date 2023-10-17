@@ -6076,25 +6076,7 @@ def nansum(
     Multiple GPUs, Multiple CPUs
     """
 
-    # Note that np.nansum and np.sum allow complex datatypes
-    # so there are no "disallowed types" for this API
-
-    if a.dtype.kind in ("f", "c"):
-        unary_red_code = UnaryRedCode.NANSUM
-    else:
-        unary_red_code = UnaryRedCode.SUM
-
-    return a._perform_unary_reduction(
-        unary_red_code,
-        a,
-        axis=axis,
-        dtype=dtype,
-        out=out,
-        keepdims=keepdims,
-        initial=initial,
-        where=where,
-    )
-
+    return a.nansum(axis, dtype, out, keepdims, initial, where)
 
 # Exponents and logarithms
 

@@ -3203,16 +3203,18 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
-        if dtype is None:
-            dtype = a.dtype
+        from . import _ufunc
 
         if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_): 
-            return a.mean(axis, dtype, out, keepdims, where=where)
+            return self.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
 
-        nan_mask = _ufunc.bit_twiddling.bitwise_not(_ufunc.floating.isnan(a))
+        if dtype is None:
+            dtype = self.dtype
+ 
+        nan_mask = _ufunc.bit_twiddling.bitwise_not(_ufunc.floating.isnan(self))
         normalizer = nan_mask.sum( axis=axis, dtype=np.int32, keepdims=keepdims, where=where)
         #normalizer = normalizer.astype(dtype)
-        sum_array = a.nansum(axis, dtype=dtype, keepdims=keepdims, where=where)
+        sum_array = self.nansum(axis, dtype=dtype, keepdims=keepdims, where=where)
         if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
                 np.array(normalizer, dtype=dtype),
@@ -3221,8 +3223,10 @@ class ndarray:
             sum_array.__ifloordiv__(np.array(normalizer, dtype=dtype))
 
         if out is not None and sum_array is not out:
-            assert out.dtype != sum_array.dtype
-            out._thunk.convert(sum_array._thunk)
+            if out.dtype != sum_array.dtype:
+                out._thunk.convert(sum_array._thunk)
+            else:
+                out.copy(sum_array)
             return out
         else:
             return sum_array
@@ -3734,6 +3738,51 @@ class ndarray:
         return self._perform_unary_reduction(
             UnaryRedCode.SUM,
             self_array,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            keepdims=keepdims,
+            initial=initial,
+            where=where,
+        )
+
+    @add_boilerplate()
+    def nansum(
+        self,
+        axis: Any = None,
+        dtype: Any = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Optional[Union[int, float]] = None,
+        where: Optional[ndarray] = None,
+    ) -> ndarray:
+        """a.nansum(axis=None, dtype=None, out=None, keepdims=False, initial=0,
+        where=None)
+
+        Return the sum of the array elements over the given axis ignoring nan.
+
+        Refer to :func:`cunumeric.nansum` for full documentation.
+
+        See Also
+        --------
+        cunumeric.nansum : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        # Note that np.nansum and np.sum allow complex datatypes
+        # so there are no "disallowed types" for this API
+
+        if self.dtype.kind in ("f", "c"):
+            unary_red_code = UnaryRedCode.NANSUM
+        else:
+            unary_red_code = UnaryRedCode.SUM
+
+        return self._perform_unary_reduction(
+            unary_red_code,
+            self,
             axis=axis,
             dtype=dtype,
             out=out,
