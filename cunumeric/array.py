@@ -191,19 +191,27 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
     if any(not arr.flags.writeable for arr in check_list):
         raise ValueError("array is not writeable")
 
-def broadcast_where(where:Union[ndarray, None], shape:NdShape )-> ndarray:
+
+def broadcast_where(
+    where: Union[ndarray, None], shape: NdShape
+) -> Union[ndarray, None]:
     if where is not None:
         where_array = convert_to_cunumeric_ndarray(where)
     else:
-         where_array = None
+        where_array = None
 
-    if where_array is not None and np.ndim(where_array)!=0 and where_array.shape != shape:
+    if (
+        where_array is not None
+        and np.ndim(where_array) != 0
+        and where_array.shape != shape
+    ):
         where_array = ndarray(
             shape=shape,
             thunk=where_array._thunk.broadcast_to(shape),
             writeable=False,
         )
     return where_array
+
 
 class flagsobj:
     """
@@ -870,7 +878,7 @@ class ndarray:
     def __complex__(self) -> complex:
         """a.__complex__(/)"""
         return complex(self.__array__())
-    
+
     def __contains__(self, item: Any) -> ndarray:
         """a.__contains__(key, /)
 
@@ -3139,7 +3147,7 @@ class ndarray:
                 dtype = np.dtype(np.float64)
             else:
                 dtype = self.dtype
-        
+
         where_array = broadcast_where(where, self.shape)
         # Do the sum
         if out is not None and out.dtype == dtype:
@@ -3147,12 +3155,13 @@ class ndarray:
                 axis=axis, out=out, keepdims=keepdims, where=where_array
             )
         else:
-            sum_array = self.sum(axis=axis, keepdims=keepdims, where=where_array)
+            sum_array = self.sum(
+                axis=axis, keepdims=keepdims, where=where_array
+            )
 
         if axis is None:
             if where_array is not None:
                 divisor = where_array._count_nonzero()
-
             else:
                 divisor = reduce(lambda x, y: x * y, self.shape, 1)
 
@@ -3205,16 +3214,21 @@ class ndarray:
         """
         from . import _ufunc
 
-        if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_): 
-            return self.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where)
+        if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_):
+            return self.mean(
+                axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
+            )
 
         if dtype is None:
             dtype = self.dtype
- 
-        nan_mask = _ufunc.bit_twiddling.bitwise_not(_ufunc.floating.isnan(self))
-        normalizer = nan_mask.sum( axis=axis, dtype=np.int32, keepdims=keepdims, where=where)
-        #normalizer = normalizer.astype(dtype)
-        sum_array = self.nansum(axis, dtype=dtype, keepdims=keepdims, where=where)
+
+        nan_mask = _ufunc.bit_twiddling.bitwise_not(
+            _ufunc.floating.isnan(self)
+        )
+        normalizer = nan_mask.sum(axis=axis, keepdims=keepdims, where=where)
+        # normalizer = normalizer.astype(dtype)
+        sum_array = self.nansum(axis, keepdims=keepdims, where=where)
+        sum_array = sum_array.astype(dtype)
         if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
                 np.array(normalizer, dtype=dtype),
@@ -3226,11 +3240,10 @@ class ndarray:
             if out.dtype != sum_array.dtype:
                 out._thunk.convert(sum_array._thunk)
             else:
-                out.copy(sum_array)
+                out = sum_array
             return out
         else:
             return sum_array
-
 
     @add_boilerplate()
     def min(

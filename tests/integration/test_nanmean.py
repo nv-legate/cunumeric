@@ -70,7 +70,7 @@ def test_scalar_where(val):
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_basic(size):
     arr_np = np.random.randint(-5, 5, size=size).astype(float)
-    arr_np[arr_np%2==0] = np.nan
+    arr_np[arr_np % 2 == 0] = np.nan
     arr_num = num.array(arr_np)
     res_np = np.nanmean(arr_np)
     res_num = num.nanmean(arr_num)
@@ -80,7 +80,7 @@ def test_basic(size):
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_basic_where(size):
     arr_np = np.random.randint(-5, 5, size=size).astype(float)
-    arr_np[arr_np%2==0] = np.nan
+    arr_np[arr_np % 2 == 0] = np.nan
     arr_num = num.array(arr_np)
     where_np = arr_np % 2
     where_np = arr_np.astype(bool)
@@ -97,7 +97,7 @@ def test_axis_tuple(axis):
     # In cuNumeric, it raises NotImplementedError
     size = (3, 4, 7)
     arr_np = np.random.randint(-5, 5, size=size).astype(float)
-    arr_np[arr_np%2==1] = np.nan
+    arr_np[arr_np % 2 == 1] = np.nan
     arr_num = num.array(arr_np)
     out_np = np.nanmean(arr_np, axis=axis)
     out_num = num.nanmean(arr_num, axis=axis)
@@ -108,7 +108,7 @@ def test_axis_tuple(axis):
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_axis_keepdims(size, keepdims):
     arr_np = np.random.randint(-5, 5, size=size).astype(float)
-    arr_np[arr_np%2==1] = np.nan
+    arr_np[arr_np % 2 == 1] = np.nan
     arr_num = num.array(arr_np)
     ndim = arr_np.ndim
     for axis in range(-ndim, ndim):
@@ -120,9 +120,9 @@ def test_axis_keepdims(size, keepdims):
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_axis_where(size):
     arr_np = np.random.randint(-5, 5, size=size).astype(float)
-    arr_np[arr_np%2==0] = np.nan
+    arr_np[arr_np % 2 == 0] = np.nan
     arr_num = num.array(arr_np)
-    where_np = arr_np[arr_np%2==1] % 2
+    where_np = arr_np[arr_np % 2 == 1] % 2
     where_np = arr_np.astype(bool)
     where_num = num.array(where_np)
     ndim = arr_np.ndim
@@ -136,7 +136,7 @@ def test_axis_where(size):
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_out(size, out_dt):
     arr_np = np.random.randint(-5, 5, size=size).astype(float)
-    arr_np[arr_np%2==0] = np.nan
+    arr_np[arr_np % 2 == 0] = np.nan
     arr_num = num.array(arr_np)
     ndim = arr_np.ndim
     for axis in (-1, ndim - 1, None):

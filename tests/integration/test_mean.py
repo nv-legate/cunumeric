@@ -87,6 +87,7 @@ def test_basic_where(size):
     res_num = num.mean(arr_num, where=where_num)
     assert np.array_equal(res_np, res_num, equal_nan=True)
 
+
 @pytest.mark.parametrize("size", NO_EMPTY_SIZE)
 def test_where_broadcast(size):
     arr_np = np.random.randint(-5, 5, size=size)
@@ -96,7 +97,6 @@ def test_where_broadcast(size):
     res_np = np.mean(arr_np, where=where_np)
     res_num = num.mean(arr_num, where=where_num)
     assert np.array_equal(res_np, res_num, equal_nan=True)
-
 
 
 @pytest.mark.xfail
