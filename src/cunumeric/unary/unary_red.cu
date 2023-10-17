@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2021-2023 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -201,26 +201,14 @@ std::ostream& operator<<(std::ostream& os, const ThreadBlocks<DIM>& blocks)
   return os;
 }
 
-template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
-static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
-                                                          AccessorRO<RHS, DIM> in,
-                                                          LHS identity,
-                                                          const ThreadBlocks<DIM>& blocks,
-                                                          const Rect<DIM>& domain,
-                                                          int32_t collapsed_dim)
+template <typename REDOP, typename LHS, int32_t DIM>
+static void __device__ collapse_dims(LHS& result,
+                                     Point<DIM>& point,
+                                     const Rect<DIM>& domain,
+                                     int32_t collapsed_dim,
+                                     LHS identity,
+                                     coord_t tid)
 {
-  const coord_t tid = threadIdx.x;
-  const coord_t bid = blockIdx.x;
-
-  Point<DIM> point = blocks.point(bid, tid, domain.lo);
-  if (!domain.contains(point)) return point;
-
-  while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
-    LHS value = OP::convert(point, collapsed_dim, identity, in[point]);
-    REDOP::template fold<true>(result, value);
-    blocks.next_point(point);
-  }
-
 #if __CUDA_ARCH__ >= 700
   // If we're collapsing the innermost dimension, we perform some optimization
   // with shared memory to reduce memory traffic due to atomic updates
@@ -276,6 +264,29 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
   // put points back in the bounds to appease the checks.
   point[collapsed_dim] = domain.lo[collapsed_dim];
 #endif
+}
+
+template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
+static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
+                                                          AccessorRO<RHS, DIM> in,
+                                                          LHS identity,
+                                                          const ThreadBlocks<DIM>& blocks,
+                                                          const Rect<DIM>& domain,
+                                                          int32_t collapsed_dim)
+{
+  const coord_t tid = threadIdx.x;
+  const coord_t bid = blockIdx.x;
+
+  Point<DIM> point = blocks.point(bid, tid, domain.lo);
+  if (!domain.contains(point)) return point;
+
+  while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
+    LHS value = OP::convert(point, collapsed_dim, identity, in[point]);
+    REDOP::template fold<true>(result, value);
+    blocks.next_point(point);
+  }
+
+  collapse_dims<REDOP, LHS>(result, point, domain, collapsed_dim, identity, tid);
   return point;
 }
 
@@ -302,61 +313,7 @@ static __device__ __forceinline__ Point<DIM> local_reduce_where(LHS& result,
     blocks.next_point(point);
   }
 
-#if __CUDA_ARCH__ >= 700
-  // If we're collapsing the innermost dimension, we perform some optimization
-  // with shared memory to reduce memory traffic due to atomic updates
-  if (collapsed_dim == DIM - 1) {
-    __shared__ uint8_t shmem[THREADS_PER_BLOCK * sizeof(LHS)];
-    LHS* trampoline = reinterpret_cast<LHS*>(shmem);
-    // Check for the case where all the threads in the same warp have
-    // the same x value in which case they're all going to conflict
-    // so instead we do a warp-level reduction so just one thread ends
-    // up doing the full atomic
-    coord_t bucket = 0;
-    for (int32_t dim = DIM - 2; dim >= 0; --dim)
-      bucket = bucket * (domain.hi[dim] - domain.lo[dim] + 1) + point[dim] - domain.lo[dim];
-
-    const uint32_t same_mask = __match_any_sync(0xffffffff, bucket);
-    int32_t laneid;
-    asm volatile("mov.s32 %0, %laneid;" : "=r"(laneid));
-    const uint32_t active_mask = __ballot_sync(0xffffffff, same_mask - (1 << laneid));
-    if ((active_mask & (1 << laneid)) != 0) {
-      // Store our data into shared
-      trampoline[tid] = result;
-      // Make sure all the threads in the warp are done writing
-      __syncwarp(active_mask);
-      // Have the lowest thread in each mask pull in the values
-      int32_t lowest_index = -1;
-      for (int32_t i = 0; i < warpSize; i++)
-        if (same_mask & (1 << i)) {
-          if (lowest_index == -1) {
-            if (i != laneid) {
-              // We're not the lowest thread in the warp for
-              // this value so we're done, set the value back
-              // to identity to ensure that we don't try to
-              // perform the reduction out to memory
-              result = identity;
-              break;
-            } else  // Make sure we don't do this test again
-              lowest_index = i;
-            // It was already our value, so just keep going
-          } else {
-            // Pull in the value from shared memory
-            const int32_t index = tid + i - laneid;
-            REDOP::template fold<true>(result, trampoline[index]);
-          }
-        }
-    }
-  }
-#endif
-
-#ifdef LEGATE_BOUNDS_CHECKS
-  // Note: this isn't necessary because we know that the affine transformation on the output
-  // accessor will ignore coordinates of the collapsed dimension. However, Legion's bounds checks
-  // want the accessor to honor the sub-rectangle passed when it was created, so we need to
-  // put points back in the bounds to appease the checks.
-  point[collapsed_dim] = domain.lo[collapsed_dim];
-#endif
+  collapse_dims<REDOP, LHS>(result, point, domain, collapsed_dim, identity, tid);
   return point;
 }
 template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>

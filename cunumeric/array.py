@@ -159,14 +159,9 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
 
 
 def convert_to_predicate_ndarray(obj: Any) -> Any:
-    # Keep all boolean types as they are
-    if obj is True or obj is False:
-        # where = ndarray(shape=(), dtype=bool)
-        # where.fill(obj)
-        # return where
+    # Keep all boolean types and None as they are
+    if obj is True or obj is False or obj is None:
         return obj
-    if obj is None:
-        return None
     return convert_to_cunumeric_ndarray(obj)
 
 
@@ -3225,9 +3220,11 @@ class ndarray:
         nan_mask = _ufunc.bit_twiddling.bitwise_not(
             _ufunc.floating.isnan(self)
         )
-        normalizer = nan_mask.sum(axis=axis, keepdims=keepdims, where=where)
-        # normalizer = normalizer.astype(dtype)
-        sum_array = self.nansum(axis, keepdims=keepdims, where=where)
+        where_array = broadcast_where(where, nan_mask.shape)
+        normalizer = nan_mask.sum(
+            axis=axis, keepdims=keepdims, where=where_array
+        )
+        sum_array = self.nansum(axis, keepdims=keepdims, where=where_array)
         sum_array = sum_array.astype(dtype)
         if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
@@ -4113,12 +4110,10 @@ class ndarray:
 
     @classmethod
     def _get_where_thunk(
-        cls, where: Union[bool, ndarray], out_shape: NdShape
-    ) -> Union[Literal[True], NumPyThunk]:
-        if where is True:
-            return True
-        # if where is False:
-        #    raise RuntimeError("should have caught this earlier")
+        cls, where: Union[Literal[True], None, ndarray], out_shape: NdShape
+    ) -> Union[Literal[True], None, NumPyThunk]:
+        if where is True or where is None:
+            return where
         if not isinstance(where, ndarray) or where.dtype != np.bool_:
             raise RuntimeError("should have converted this earlier")
         if where.shape != out_shape:
@@ -4353,15 +4348,10 @@ class ndarray:
                 shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
 
-        if where is not None:
-            where_thunk = cls._get_where_thunk(where, src.shape)
-        else:
-            where_thunk = None
-
         result._thunk.unary_reduction(
             op,
             src._thunk,
-            where_thunk,
+            cls._get_where_thunk(where, src.shape),
             axis,
             axes,
             keepdims,
