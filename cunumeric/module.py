@@ -7119,7 +7119,7 @@ def var(
     Returns
     -------
     m : ndarray, see dtype parameter above
-        If `out=None`, returns a new array of the same dtype a above
+        If `out=None`, returns a new array of the same dtype as above
         containing the variance values, otherwise a reference to the output
         array is returned.
 

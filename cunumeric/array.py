@@ -3188,7 +3188,7 @@ class ndarray:
 
         See Also
         --------
-        cunumeric.mean : equivalent function
+        cunumeric.var : equivalent function
 
         Availability
         --------
