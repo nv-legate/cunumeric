@@ -3172,7 +3172,7 @@ class ndarray:
     @add_boilerplate()
     def var(
         self,
-        axis: Any = None,
+        axis: Optional[Union[int, tuple[int, ...]]] = None,
         dtype: Optional[np.dtype[Any]] = None,
         out: Optional[ndarray] = None,
         ddof: int = 0,
