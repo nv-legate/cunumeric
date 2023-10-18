@@ -1526,7 +1526,13 @@ class EagerArray(NumPyThunk):
             )
         elif op == UnaryRedCode.SUM_SQUARES:
             squared = np.square(rhs.array)
-            np.sum(squared, out=self.array, axis=orig_axis, keepdims=keepdims)
+            np.sum(
+                squared,
+                out=self.array,
+                axis=orig_axis,
+                where=where,
+                keepdims=keepdims,
+            )
         elif op == UnaryRedCode.VARIANCE:
             (mu,) = args
             centered = np.subtract(rhs.array, mu)
