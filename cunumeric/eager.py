@@ -1525,12 +1525,12 @@ class EagerArray(NumPyThunk):
                 **kws,
             )
         elif op == UnaryRedCode.SUM_SQUARES:
-            squared = np.multiply(rhs.array, rhs.array)
+            squared = np.square(rhs.array)
             np.sum(squared, out=self.array, axis=orig_axis, keepdims=keepdims)
         elif op == UnaryRedCode.VARIANCE:
             (mu,) = args
             centered = np.subtract(rhs.array, mu)
-            squares = np.multiply(centered, centered)
+            squares = np.square(centered)
             np.sum(
                 squares,
                 axis=orig_axis,
