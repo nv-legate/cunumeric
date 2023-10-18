@@ -188,18 +188,14 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
 
 
 def broadcast_where(
-    where: Union[ndarray, None], shape: NdShape
+    where: Union[bool, ndarray, None], shape: NdShape
 ) -> Union[ndarray, None]:
     if where is not None:
         where_array = convert_to_cunumeric_ndarray(where)
     else:
         where_array = None
 
-    if (
-        where_array is not None
-        and np.ndim(where_array) != 0
-        and where_array.shape != shape
-    ):
+    if where_array is not None and where_array.shape != shape:
         where_array = ndarray(
             shape=shape,
             thunk=where_array._thunk.broadcast_to(shape),
@@ -3220,11 +3216,8 @@ class ndarray:
         nan_mask = _ufunc.bit_twiddling.bitwise_not(
             _ufunc.floating.isnan(self)
         )
-        where_array = broadcast_where(where, nan_mask.shape)
-        normalizer = nan_mask.sum(
-            axis=axis, keepdims=keepdims, where=where_array
-        )
-        sum_array = self.nansum(axis, keepdims=keepdims, where=where_array)
+        normalizer = nan_mask.sum(axis=axis, keepdims=keepdims, where=where)
+        sum_array = self._nansum(axis, keepdims=keepdims, where=where)
         sum_array = sum_array.astype(dtype)
         if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
@@ -3757,7 +3750,7 @@ class ndarray:
         )
 
     @add_boilerplate()
-    def nansum(
+    def _nansum(
         self,
         axis: Any = None,
         dtype: Any = None,
@@ -3766,22 +3759,6 @@ class ndarray:
         initial: Optional[Union[int, float]] = None,
         where: Optional[ndarray] = None,
     ) -> ndarray:
-        """a.nansum(axis=None, dtype=None, out=None, keepdims=False, initial=0,
-        where=None)
-
-        Return the sum of the array elements over the given axis ignoring nan.
-
-        Refer to :func:`cunumeric.nansum` for full documentation.
-
-        See Also
-        --------
-        cunumeric.nansum : equivalent function
-
-        Availability
-        --------
-        Multiple GPUs, Multiple CPUs
-
-        """
         # Note that np.nansum and np.sum allow complex datatypes
         # so there are no "disallowed types" for this API
 
@@ -4170,7 +4147,7 @@ class ndarray:
         out: Union[Any, None] = None,
         extra_args: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[bool, None, ndarray] = True,
         out_dtype: Union[np.dtype[Any], None] = None,
     ) -> ndarray:
         if out is not None:
@@ -4212,7 +4189,7 @@ class ndarray:
         # Quick exit
         if where is False:
             return out
-
+        where_array = broadcast_where(where, out.shape)
         if out_dtype is None:
             if out.dtype != src.dtype and not (
                 op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
@@ -4220,12 +4197,12 @@ class ndarray:
                 temp = ndarray(
                     out.shape,
                     dtype=src.dtype,
-                    inputs=(src, where),
+                    inputs=(src, where_array),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, out.shape),
+                    cls._get_where_thunk(where_array, out.shape),
                     extra_args,
                 )
                 out._thunk.convert(temp._thunk)
@@ -4233,7 +4210,7 @@ class ndarray:
                 out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, out.shape),
+                    cls._get_where_thunk(where_array, out.shape),
                     extra_args,
                 )
         else:
@@ -4241,12 +4218,12 @@ class ndarray:
                 temp = ndarray(
                     out.shape,
                     dtype=out_dtype,
-                    inputs=(src, where),
+                    inputs=(src, where_array),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, out.shape),
+                    cls._get_where_thunk(where_array, out.shape),
                     extra_args,
                 )
                 out._thunk.convert(temp._thunk)
@@ -4254,7 +4231,7 @@ class ndarray:
                 out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, out.shape),
+                    cls._get_where_thunk(where_array, out.shape),
                     extra_args,
                 )
         return out
@@ -4348,10 +4325,11 @@ class ndarray:
                 shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
 
+        where_array = broadcast_where(where, src.shape)
         result._thunk.unary_reduction(
             op,
             src._thunk,
-            cls._get_where_thunk(where, src.shape),
+            cls._get_where_thunk(where_array, src.shape),
             axis,
             axes,
             keepdims,
