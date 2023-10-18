@@ -3179,7 +3179,7 @@ class ndarray:
             return sum_array
 
     @add_boilerplate()
-    def nanmean(
+    def _nanmean(
         self,
         axis: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
@@ -3187,22 +3187,6 @@ class ndarray:
         keepdims: bool = False,
         where: Union[ndarray, None] = None,
     ) -> ndarray:
-        """a.mean(axis=None, dtype=None, out=None, keepdims=False)
-
-        Returns the average of the array elements along given axis,
-        ignoring NaN entires
-
-        Refer to :func:`cunumeric.mean` for full documentation.
-
-        See Also
-        --------
-        cunumeric.nanmean : equivalent function
-
-        Availability
-        --------
-        Multiple GPUs, Multiple CPUs
-
-        """
         from . import _ufunc
 
         if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_):

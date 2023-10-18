@@ -7117,7 +7117,7 @@ def nanmean(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.nanmean(
+    return a._nanmean(
         axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
     )
 
