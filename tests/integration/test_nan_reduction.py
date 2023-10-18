@@ -302,12 +302,12 @@ class TestNanReductions:
         assert np.allclose(out_np, out_num)
 
         # where is a boolean
-        out_np = np.nanmax(arr, where=True)
-        out_num = num.nanmax(arr, where=True)
+        out_np = np.nanmax(arr, where=True, initial=-1)
+        out_num = num.nanmax(arr, where=True, initial=-1)
         assert np.allclose(out_np, out_num)
 
-        out_np = np.nanmin(arr, where=True)
-        out_num = num.nanmin(arr, where=True)
+        out_np = np.nanmin(arr, where=True, initial=10)
+        out_num = num.nanmin(arr, where=True, initial=10)
         assert np.allclose(out_np, out_num)
 
 
