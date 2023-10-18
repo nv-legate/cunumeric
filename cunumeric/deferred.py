@@ -3159,6 +3159,8 @@ class DeferredArray(NumPyThunk):
             )
 
         is_where = bool(where is not None)
+        if is_where:
+            where = self.runtime.to_deferred_array(where)
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or lhs_array.ndim == rhs_array.ndim - (

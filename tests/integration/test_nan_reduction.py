@@ -291,6 +291,25 @@ class TestNanReductions:
 
         assert out_num == 0.0
 
+    def test_where(self):
+        arr = [[1, np.nan, 3], [2, np.nan, 4]]
+        out_np = np.nansum(arr, where=[False, True, True])
+        out_num = num.nansum(arr, where=[False, True, True])
+        assert np.allclose(out_np, out_num)
+
+        out_np = np.nanprod(arr, where=[False, True, True])
+        out_num = num.nanprod(arr, where=[False, True, True])
+        assert np.allclose(out_np, out_num)
+
+        # where is a boolean
+        out_np = np.nanmax(arr, where=True)
+        out_num = num.nanmax(arr, where=True)
+        assert np.allclose(out_np, out_num)
+
+        out_np = np.nanmin(arr, where=True)
+        out_num = num.nanmin(arr, where=True)
+        assert np.allclose(out_np, out_num)
+
 
 class TestCornerCases:
     """
