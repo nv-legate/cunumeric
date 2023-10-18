@@ -281,7 +281,7 @@ struct UnaryRedOp<UnaryRedCode::SUM_SQUARES, TYPE_CODE> {
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(a, b * b);
+    OP::template fold<EXCLUSIVE>(a, b);
   }
 
   template <int32_t DIM>
@@ -304,16 +304,16 @@ struct UnaryRedOp<UnaryRedCode::VARIANCE, TYPE_CODE> {
   template <bool EXCLUSIVE>
   __CUDA_HD__ static void fold(VAL& a, VAL b)
   {
-    OP::template fold<EXCLUSIVE>(a, b * b);
+    OP::template fold<EXCLUSIVE>(a, b);
   }
 
   template <int32_t DIM>
   __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
   {
-    return rhs;
+    return rhs * rhs;
   }
 
-  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs; }
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs * rhs; }
 };
 
 template <legate::Type::Code TYPE_CODE>

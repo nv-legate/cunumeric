@@ -97,7 +97,7 @@ struct ScalarUnaryRed {
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
     } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
-      OP::template fold<true>(lhs, in[p] - mu);
+      OP::template fold<true>(lhs, OP::convert(in[p] - mu, identity));
     } else {
       OP::template fold<true>(lhs, OP::convert(in[p], identity));
     }

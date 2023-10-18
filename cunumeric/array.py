@@ -3139,7 +3139,7 @@ class ndarray:
         if axis is not None and not isinstance(axis, int):
             raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
-                "'axis' currently"
+                "`axis` currently"
             )
 
         dtype = self._summation_dtype(dtype)
@@ -3195,6 +3195,11 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        if axis is not None and not isinstance(axis, int):
+            raise NotImplementedError(
+                "cunumeric.var only supports int types for `axis` currently"
+            )
+
         # this could be computed as a single pass through the array
         # by computing both <x^2> and <x> and then computing <x^2> - <x>^2.
         # this would takee the difference of two large numbers and is unstable
