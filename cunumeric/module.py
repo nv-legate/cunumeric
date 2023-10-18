@@ -7097,7 +7097,6 @@ def var(
     out : ndarray, optional
         Alternate output array in which to place the result. It must have the
         same shape as the expected output, but the type is cast if necessary.
-        See `ufuncs-output-type` for more details.
     ddof : int, optional
         “Delta Degrees of Freedom”: the divisor used in the calculation is
         N - ddof, where N represents the number of elements. By default
@@ -7106,12 +7105,6 @@ def var(
         If this is set to True, the axes which are reduced are left
         in the result as dimensions with size one. With this option,
         the result will broadcast correctly against the input array.
-
-        If the default value is passed, then `keepdims` will not be
-        passed through to the `variance` method of sub-classes of
-        `ndarray`, however any non-default value will be.  If the
-        sub-class' method does not implement `keepdims` any
-        exceptions will be raised.
     where : array_like of bool, optional
         A boolean array which is broadcasted to match the dimensions of array,
         and selects elements to include in the reduction.
