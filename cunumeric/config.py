@@ -187,6 +187,8 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_NANSUM: int
     CUNUMERIC_RED_PROD: int
     CUNUMERIC_RED_SUM: int
+    CUNUMERIC_RED_SUM_SQUARES: int
+    CUNUMERIC_RED_VARIANCE: int
     CUNUMERIC_REPEAT: int
     CUNUMERIC_SCALAR_UNARY_RED: int
     CUNUMERIC_SCAN_GLOBAL: int
@@ -452,6 +454,8 @@ class UnaryRedCode(IntEnum):
     NANSUM = _cunumeric.CUNUMERIC_RED_NANSUM
     PROD = _cunumeric.CUNUMERIC_RED_PROD
     SUM = _cunumeric.CUNUMERIC_RED_SUM
+    SUM_SQUARES = _cunumeric.CUNUMERIC_RED_SUM_SQUARES
+    VARIANCE = _cunumeric.CUNUMERIC_RED_VARIANCE
 
 
 # Match these to CuNumericBinaryOpCode in cunumeric_c.h
