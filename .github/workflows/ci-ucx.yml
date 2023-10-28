@@ -1,0 +1,133 @@
+name: Build UCX cunumeric
+on:
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+      - "branch-*"
+env:
+  COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+  PROJECT: github-cunumeric-ci
+  REF: ${{ github.event.pull_request.head.ref || github.ref }}
+  BASE_REF: ${{ github.event.pull_request.base.ref || github.ref }}
+  EVENT_NAME: ${{ github.event_name }}
+  LABEL: ${{ github.event.pull_request.head.label }}
+  # Prevent output buffering
+  PYTHONUNBUFFERED: 1
+jobs:
+  build:
+    permissions:
+      id-token: write # This is required for configure-aws-credentials
+      contents: read  # This is required for actions/checkout
+
+    if: ${{ github.repository == 'nv-legate/cunumeric' }}
+    runs-on: self-hosted
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - name: Dump job context
+        env:
+          JOB_CONTEXT: ${{ toJSON(job) }}
+        run: echo "$JOB_CONTEXT"
+      - name: Dump steps context
+        env:
+          STEPS_CONTEXT: ${{ toJSON(steps) }}
+        run: echo "$STEPS_CONTEXT"
+      - name: Dump runner context
+        env:
+          RUNNER_CONTEXT: ${{ toJSON(runner) }}
+        run: echo "$RUNNER_CONTEXT"
+      - name: Dump strategy context
+        env:
+          STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
+        run: echo "$STRATEGY_CONTEXT"
+      - name: Dump matrix context
+        env:
+          MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX_CONTEXT"
+      - name: Run CI build
+        run: |
+          /data/github-runner/legate-bin/setup.sh
+          cd legate-ci/github-ci/cunumeric
+          rm -rf ngc-artifacts || true
+          DOCKERFILE_EXT=.separate.ucx ./build.sh > ${COMMIT}-build.log 2>&1
+      - name: Process Output
+        run: |
+          cd legate-ci/github-ci/cunumeric
+          cat *artifacts/*/*
+        if: always()
+      - name: Upload Build Log
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-log
+          path: ./**/${{ env.COMMIT }}-build.log.gpg
+  test:
+    if: ${{ github.repository == 'nv-legate/cunumeric' }}
+    runs-on: self-hosted
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: 2 rank 1 CPU test, options: -j 8 --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --cpus 1 --unit --debug, log: cpu, instance: 1}
+          - {name: 2 rank 2 CPUs test, options: -j 8 --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --cpus 2 --debug, log: cpus, instance: 1}
+          - {name: 2 rank GPU test, options: -j 4 --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --use cuda --gpus 1 --debug, log: gpu, instance: 2}
+          - {name: 2 rank 2 GPUs test, options: -j 4 --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --use cuda --gpus 2 --debug, log: gpus, instance: 4}
+          - {name: 2 rank OpenMP test, options: -j 8 --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --use openmp --omps 1 --ompthreads 2 --debug, log: omp, instance: 1}
+          - {name: 2 rank 2 NUMA OpenMPs test, options: -j 4 --ranks-per-node 2 --launcher mpirun --launcher-extra=--oversubscribe --use openmp --omps 2 --ompthreads 2 --numamem 2048 --debug, log: omps, instance: 1}
+          - {name: Eager execution test, options: --use eager --debug, log: eager, instance: 1}
+    name: ${{ matrix.name }}
+    steps:
+      - name: Dump GitHub context
+        env:
+          GITHUB_CONTEXT: ${{ toJSON(github) }}
+        run: echo "$GITHUB_CONTEXT"
+      - name: Dump job context
+        env:
+          JOB_CONTEXT: ${{ toJSON(job) }}
+        run: echo "$JOB_CONTEXT"
+      - name: Dump steps context
+        env:
+          STEPS_CONTEXT: ${{ toJSON(steps) }}
+        run: echo "$STEPS_CONTEXT"
+      - name: Dump runner context
+        env:
+          RUNNER_CONTEXT: ${{ toJSON(runner) }}
+        run: echo "$RUNNER_CONTEXT"
+      - name: Dump strategy context
+        env:
+          STRATEGY_CONTEXT: ${{ toJSON(strategy) }}
+        run: echo "$STRATEGY_CONTEXT"
+      - name: Dump matrix context
+        env:
+          MATRIX_CONTEXT: ${{ toJSON(matrix) }}
+        run: echo "$MATRIX_CONTEXT"
+      - name: Prepare
+        run: |
+          /data/github-runner/legate-bin/setup.sh
+          cd legate-ci/github-ci/cunumeric
+          if [[ ! -d ngc-artifacts ]]
+          then
+            mkdir ngc-artifacts
+          else
+            rm -rf ngc-artifacts/*
+          fi
+      - name: Test
+        run: |
+          cd legate-ci/github-ci/cunumeric
+          [[ "${{ matrix.name }}" == "Eager"* ]] && export PYTHONFAULTHANDLER=1
+          INSTANCE=${{ matrix.instance }} DOCKERFILE_EXT=.separate.ucx ./test.sh ${{ matrix.options }} > ${COMMIT}-test-${{ matrix.log }}.log 2>&1
+      - name: Process output
+        if: always()
+        run: |
+          cd legate-ci/github-ci/cunumeric
+          /data/github-runner/legate-bin/encrypt.sh ${COMMIT}-test-${{ matrix.log }}.log
+          cat *artifacts/*/*
+      - name: Upload Log
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-${{ matrix.log }}-log
+          path: ./**/${{ env.COMMIT }}-test-${{ matrix.log }}.log.gpg
