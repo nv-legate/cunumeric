@@ -31,17 +31,21 @@ if TYPE_CHECKING:
     from ..deferred import DeferredArray
     from ..runtime import Runtime
 
+
 def get_gpu_lower_triangular(point):
-    assert(len(point) == 2)
+    assert len(point) == 2
     from legate.core import get_machine
     from legate.core.machine import ProcessorKind
+
     machine = get_machine()
     num_gpus = machine.count(ProcessorKind.GPU)
     gpus = machine.only(ProcessorKind.GPU)
+
     # The linearized block-cyclic lower-triangular-blocked decomposition
     # mapping of 2-d points to blocks is:
     def mapping(i, j):
         return (j + (i * (i + 1)) // 2) % num_gpus
+
     return gpus[mapping(point[0], point[1])]
 
 
@@ -111,7 +115,8 @@ def trsm(
 
     for point in Rect(lo=(lo, i), hi=(hi, i + 1)):
         task = context.create_manual_task(
-            CuNumericOpCode.TRSM, launch_domain=Rect(lo=point, hi=point, exclusive=False)
+            CuNumericOpCode.TRSM,
+            launch_domain=Rect(lo=point, hi=point, exclusive=False),
         )
         task.add_output(lhs)
         task.add_input(rhs)
@@ -152,7 +157,8 @@ def gemm(
 
     for point in Rect(lo=(lo, k), hi=(hi, k + 1)):
         task = context.create_manual_task(
-            CuNumericOpCode.GEMM, launch_domain=Rect(lo=point, hi=point, exclusive=False)
+            CuNumericOpCode.GEMM,
+            launch_domain=Rect(lo=point, hi=point, exclusive=False),
         )
         task.add_output(lhs)
         task.add_input(rhs1, proj=lambda p: (p[0], i))
