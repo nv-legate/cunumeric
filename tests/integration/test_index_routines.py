@@ -268,6 +268,9 @@ class TestChooseErrors:
             num.choose(self.a, self.choices, out=aout)
 
 
+# TODO: test select
+
+
 def test_diagonal():
     ad = np.arange(24).reshape(4, 3, 2)
     num_ad = num.array(ad)

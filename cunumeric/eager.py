@@ -19,6 +19,7 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     Optional,
     Sequence,
     Union,
@@ -628,6 +629,26 @@ class EagerArray(NumPyThunk):
         else:
             choices = tuple(c.array for c in args)
             self.array[:] = np.choose(rhs.array, choices, mode="raise")
+
+    def select(
+        self,
+        condlist: Iterable[Any],
+        choicelist: Iterable[Any],
+        default: npt.NDArray[Any],
+    ) -> None:
+        self.check_eager_args(*condlist, *choicelist)
+        if self.deferred is not None:
+            self.deferred.select(
+                condlist,
+                choicelist,
+                default,
+            )
+        else:
+            self.array[:] = np.select(
+                tuple(c.array for c in condlist),
+                tuple(c.array for c in choicelist),
+                default,
+            )
 
     def _diag_helper(
         self, rhs: Any, offset: int, naxes: int, extract: bool, trace: bool

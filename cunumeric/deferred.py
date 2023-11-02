@@ -20,7 +20,7 @@ from collections.abc import Iterable
 from enum import IntEnum, unique
 from functools import reduce, wraps
 from inspect import signature
-from itertools import product
+from itertools import chain, product
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -57,7 +57,7 @@ from .linalg.cholesky import cholesky
 from .linalg.solve import solve
 from .sort import sort
 from .thunk import NumPyThunk
-from .utils import is_advanced_indexing
+from .utils import is_advanced_indexing, to_core_dtype
 
 if TYPE_CHECKING:
     import numpy.typing as npt
@@ -261,7 +261,7 @@ class DeferredArray(NumPyThunk):
         super().__init__(runtime, base.type.to_numpy_dtype())
         assert base is not None
         assert isinstance(base, Store)
-        self.base: Any = base  # a Legate Store
+        self.base = base  # a Legate Store
         self.numpy_array = (
             None if numpy_array is None else weakref.ref(numpy_array)
         )
@@ -1750,6 +1750,27 @@ class DeferredArray(NumPyThunk):
         task.add_alignment(index, out_arr)
         for c in ch_tuple:
             task.add_alignment(index, c)
+        task.execute()
+
+    def select(
+        self,
+        condlist: Iterable[Any],
+        choicelist: Iterable[Any],
+        default: npt.NDArray[Any],
+    ) -> None:
+        condlist_ = tuple(self.runtime.to_deferred_array(c) for c in condlist)
+        choicelist_ = tuple(
+            self.runtime.to_deferred_array(c) for c in choicelist
+        )
+
+        task = self.context.create_auto_task(CuNumericOpCode.SELECT)
+        out_arr = self.base
+        task.add_output(out_arr)
+        for c in chain(condlist_, choicelist_):
+            c_arr = c._broadcast(self.shape)
+            task.add_input(c_arr)
+            task.add_alignment(c_arr, out_arr)
+        task.add_scalar_arg(default, to_core_dtype(default.dtype))
         task.execute()
 
     # Create or extract a diagonal from a matrix
