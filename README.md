@@ -119,7 +119,7 @@ with cuNumeric going forward:
   new features to cuNumeric.
 * We plan to add support for sharded file I/O for loading and
   storing large data sets that could never be loaded on a single node.
-  Initially this will begin with native support for [h5py](https://www.h5py.org/)
+  Initially this will begin with native support for hdf5 and zarr,
   but will grow to accommodate other formats needed by our lighthouse
   applications.
 * Strong scaling: while cuNumeric is currently implemented in a way that
