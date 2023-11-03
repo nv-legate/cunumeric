@@ -1615,7 +1615,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.where(rhs1, rhs2, rhs3)
         else:
-            self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
+            self.array[...] = np.where(rhs1.array, rhs2.array, rhs3.array)
 
     def argwhere(self) -> NumPyThunk:
         if self.deferred is not None:
