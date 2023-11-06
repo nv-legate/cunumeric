@@ -178,7 +178,9 @@ def maybe_convert_to_np_ndarray(obj: Any) -> Any:
     """
     Converts cuNumeric arrays into NumPy arrays, otherwise has no effect.
     """
-    if isinstance(obj, ndarray):
+    from .ma import MaskedArray
+
+    if isinstance(obj, (ndarray, MaskedArray)):
         return obj.__array__()
     return obj
 
