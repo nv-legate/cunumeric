@@ -40,15 +40,15 @@ If you have questions, please contact us at legate(at)nvidia.com.
 cuNumeric is available [on conda](https://anaconda.org/legate/cunumeric):
 
 ```
-conda install -c nvidia -c conda-forge -c legate cunumeric
+mamba install -c nvidia -c conda-forge -c legate cunumeric
 ```
 
 Only linux-64 packages are available at the moment.
 
 The default package contains GPU support, and is compatible with CUDA >= 11.8
 (CUDA driver version >= r520), and Volta or later GPU architectures. There are
-also CPU-only packages available, and will be automatically selected by `conda`
-when installing on a machine without GPUs.
+also CPU-only packages available, and will be automatically selected when
+installing on a machine without GPUs.
 
 See the build instructions at https://nv-legate.github.io/cunumeric for details
 about building cuNumeric from source.
