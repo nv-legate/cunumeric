@@ -7061,6 +7061,79 @@ def mean(
     return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
 
 
+@add_boilerplate("a")
+def var(
+    a: ndarray,
+    axis: Optional[Union[int, tuple[int, ...]]] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+    ddof: int = 0,
+    keepdims: bool = False,
+    *,
+    where: Union[bool, ndarray] = True,
+) -> ndarray:
+    """
+    Compute the variance along the specified axis.
+
+    Returns the variance of the array elements, a measure of the spread of
+    a distribution. The variance is computed for the flattened array
+    by default, otherwise over the specified axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose variance is desired. If `a` is not an
+        array, a conversion is attempted.
+    axis : None or int or tuple[int], optional
+        Axis or axes along which the variance is computed. The default is to
+        compute the variance of the flattened array.
+
+        If this is a tuple of ints, a variance is performed over multiple axes,
+        instead of a single axis or all the axes as before.
+    dtype : data-type, optional
+        Type to use in computing the variance. For arrays of integer type
+        the default is float64; for arrays of float types
+        it is the same as the array type.
+    out : ndarray, optional
+        Alternate output array in which to place the result. It must have the
+        same shape as the expected output, but the type is cast if necessary.
+    ddof : int, optional
+        “Delta Degrees of Freedom”: the divisor used in the calculation is
+        N - ddof, where N represents the number of elements. By default
+        ddof is zero.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+    where : array_like of bool, optional
+        A boolean array which is broadcasted to match the dimensions of array,
+        and selects elements to include in the reduction.
+
+    Returns
+    -------
+    m : ndarray, see dtype parameter above
+        If `out=None`, returns a new array of the same dtype as above
+        containing the variance values, otherwise a reference to the output
+        array is returned.
+
+    See Also
+    --------
+    numpy.var
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.var(
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        ddof=ddof,
+        keepdims=keepdims,
+        where=where,
+    )
+
+
 # Histograms
 
 
