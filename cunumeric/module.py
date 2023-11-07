@@ -4587,7 +4587,7 @@ def einsum(
     out: Optional[ndarray] = None,
     dtype: Optional[np.dtype[Any]] = None,
     casting: CastingKind = "safe",
-    optimize: Union[bool, Literal["greedy", "optimal"]] = False,
+    optimize: Union[bool, Literal["greedy", "optimal"]] = True,
 ) -> ndarray:
     """
     Evaluates the Einstein summation convention on the operands.
@@ -4628,9 +4628,10 @@ def einsum(
 
         Default is 'safe'.
     optimize : ``{False, True, 'greedy', 'optimal'}``, optional
-        Controls if intermediate optimization should occur. No optimization
-        will occur if False, and True will default to the 'greedy' algorithm.
-        Defaults to False.
+        Controls if intermediate optimization should occur. If False then
+        arrays will be contracted in input order, one at a time. True (the
+        default) will use the 'greedy' algorithm. See ``cunumeric.einsum_path``
+        for more information on the available optimization algorithms.
 
     Returns
     -------
