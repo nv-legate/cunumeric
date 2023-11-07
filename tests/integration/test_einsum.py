@@ -272,7 +272,7 @@ def test_cast(expr, dtype):
         False,
         "optimal",
         "greedy",
-        pytest.param(True, marks=pytest.mark.xfail),
+        True,
     ],
 )
 def test_optimize(optimize):
@@ -282,8 +282,6 @@ def test_optimize(optimize):
     np_res = np.einsum("ik,kj->ij", a, b, optimize=optimize)
     num_res = num.einsum("ik,kj->ij", a, b, optimize=optimize)
     assert allclose(np_res, num_res)
-    # when optimize=True, cunumeric raises
-    # TypeError: 'bool' object is not iterable
 
 
 def test_expr_opposite():
