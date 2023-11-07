@@ -235,7 +235,7 @@ class EagerArray(NumPyThunk):
         self.escaped = False
 
     @property
-    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
+    def storage(self) -> Union[Future, tuple[Region, Union[int, FieldID]]]:
         if self.deferred is None:
             self.to_deferred_array()
 

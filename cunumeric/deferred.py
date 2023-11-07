@@ -36,6 +36,7 @@ from typing import (
 import legate.core.types as ty
 import numpy as np
 from legate.core import Annotation, Future, ReductionOp, Store
+from legate.core.store import RegionField
 from legate.core.utils import OrderedSet
 from numpy.core.numeric import (  # type: ignore [attr-defined]
     normalize_axis_tuple,
@@ -270,11 +271,13 @@ class DeferredArray(NumPyThunk):
         return f"DeferredArray(base: {self.base})"
 
     @property
-    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
+    def storage(self) -> Union[Future, tuple[Region, Union[int, FieldID]]]:
         storage = self.base.storage
         if self.base.kind == Future:
+            assert isinstance(storage, Future)
             return storage
         else:
+            assert isinstance(storage, RegionField)
             return (storage.region, storage.field.field_id)
 
     @property
@@ -402,6 +405,7 @@ class DeferredArray(NumPyThunk):
 
     def get_scalar_array(self) -> npt.NDArray[Any]:
         assert self.scalar
+        assert isinstance(self.base.storage, Future)
         buf = self.base.storage.get_buffer(self.dtype.itemsize)
         result = np.frombuffer(buf, dtype=self.dtype, count=1)
         return result.reshape(())
@@ -770,10 +774,11 @@ class DeferredArray(NumPyThunk):
 
         store = self.base
         rhs = self
+        computed_key: tuple[Any, ...]
         if isinstance(key, NumPyThunk):
-            key = (key,)
+            computed_key = (key,)
         assert isinstance(key, tuple)
-        key = self._unpack_ellipsis(key, self.ndim)
+        computed_key = self._unpack_ellipsis(key, self.ndim)
 
         # the index where the first index_array is passed to the [] operator
         start_index = -1
@@ -788,7 +793,7 @@ class DeferredArray(NumPyThunk):
         tuple_of_arrays: tuple[Any, ...] = ()
 
         # First, we need to check if transpose is needed
-        for dim, k in enumerate(key):
+        for dim, k in enumerate(computed_key):
             if np.isscalar(k) or isinstance(k, NumPyThunk):
                 if start_index == -1:
                     start_index = dim
@@ -813,17 +818,19 @@ class DeferredArray(NumPyThunk):
             )
             transpose_indices += post_indices
             post_indices = tuple(
-                i for i in range(len(key)) if i not in key_transpose_indices
+                i
+                for i in range(len(computed_key))
+                if i not in key_transpose_indices
             )
             key_transpose_indices += post_indices
             store = store.transpose(transpose_indices)
-            key = tuple(key[i] for i in key_transpose_indices)
+            key = tuple(computed_key[i] for i in key_transpose_indices)
 
         shift = 0
-        for dim, k in enumerate(key):
+        for dim, k in enumerate(computed_key):
             if np.isscalar(k):
                 if k < 0:  # type: ignore [operator]
-                    k += store.shape[dim + shift]
+                    k += store.shape[dim + shift]  # type: ignore [operator]
                 store = store.project(dim + shift, k)
                 shift -= 1
             elif k is np.newaxis:
@@ -831,7 +838,7 @@ class DeferredArray(NumPyThunk):
             elif isinstance(k, slice):
                 k, store = self._slice_store(k, store, dim + shift)
             elif isinstance(k, NumPyThunk):
-                if not isinstance(key, DeferredArray):
+                if not isinstance(computed_key, DeferredArray):
                     k = self.runtime.to_deferred_array(k)
                 if k.dtype == bool:
                     for i in range(k.ndim):
@@ -900,7 +907,7 @@ class DeferredArray(NumPyThunk):
                 k, store = self._slice_store(k, store, dim + shift)
             elif np.isscalar(k):
                 if k < 0:  # type: ignore [operator]
-                    k += store.shape[dim + shift]
+                    k += store.shape[dim + shift]  # type: ignore [operator]
                 store = store.project(dim + shift, k)
                 shift -= 1
             else:
@@ -1329,10 +1336,9 @@ class DeferredArray(NumPyThunk):
         dims = list(range(self.ndim))
         dims[axis1], dims[axis2] = dims[axis2], dims[axis1]
 
-        result = self.base.transpose(dims)
-        result = DeferredArray(self.runtime, result)
+        result = self.base.transpose(tuple(dims))
 
-        return result
+        return DeferredArray(self.runtime, result)
 
     # Convert the source array to the destination array
     @auto_convert("rhs")
@@ -1738,8 +1744,8 @@ class DeferredArray(NumPyThunk):
 
         out_arr = self.base
         # broadcast input array and all choices arrays to the same shape
-        index = index_arr._broadcast(out_arr.shape)
-        ch_tuple = tuple(c._broadcast(out_arr.shape) for c in ch_def)
+        index = index_arr._broadcast(out_arr.shape.extents)
+        ch_tuple = tuple(c._broadcast(out_arr.shape.extents) for c in ch_def)
 
         task = self.context.create_auto_task(CuNumericOpCode.CHOOSE)
         task.add_output(out_arr)
@@ -1985,9 +1991,9 @@ class DeferredArray(NumPyThunk):
     def transpose(
         self, axes: Union[None, tuple[int, ...], list[int]]
     ) -> DeferredArray:
-        result = self.base.transpose(axes)
-        result = DeferredArray(self.runtime, result)
-        return result
+        computed_axes = tuple(axes) if axes is not None else ()
+        result = self.base.transpose(computed_axes)
+        return DeferredArray(self.runtime, result)
 
     @auto_convert("rhs")
     def trilu(self, rhs: Any, k: int, lower: bool) -> None:

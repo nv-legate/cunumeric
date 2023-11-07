@@ -364,7 +364,7 @@ class CuNumericOpCode(IntEnum):
     SCAN_GLOBAL = _cunumeric.CUNUMERIC_SCAN_GLOBAL
     SCAN_LOCAL = _cunumeric.CUNUMERIC_SCAN_LOCAL
     SEARCHSORTED = _cunumeric.CUNUMERIC_SEARCHSORTED
-    SELECT = _cunumeric.SELECT
+    SELECT = _cunumeric.CUNUMERIC_SELECT
     SOLVE = _cunumeric.CUNUMERIC_SOLVE
     SORT = _cunumeric.CUNUMERIC_SORT
     SYRK = _cunumeric.CUNUMERIC_SYRK

@@ -74,7 +74,7 @@ class NumPyThunk(ABC):
     # Abstract methods
 
     @abstractproperty
-    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
+    def storage(self) -> Union[Future, tuple[Region, Union[int, FieldID]]]:
         """Return the Legion storage primitive for this NumPy thunk"""
         ...
 
