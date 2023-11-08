@@ -16,3 +16,64 @@
 
 #include "cunumeric/index/select.h"
 #include "cunumeric/index/select_template.inl"
+
+namespace cunumeric {
+
+using namespace legate;
+
+template <Type::Code CODE, int DIM>
+struct SelectImplBody<VariantKind::OMP, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(const AccessorWO<VAL, DIM>& out,
+                  const std::vector<AccessorRO<bool, DIM>>& condlist,
+                  const std::vector<AccessorRO<VAL, DIM>>& choicelist,
+                  VAL default_val,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense) const
+  {
+    const size_t volume = rect.volume();
+    uint32_t narrays    = condlist.size();
+#ifdef DEBUG_CUNUMERIC
+    assert(narrays == choicelist.size());
+#endif
+
+    if (dense && DIM <= 1) {
+      auto outptr = out.ptr(rect);
+#pragma omp parallel for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = default_val;
+      for (int32_t c = (narrays - 1); c >= 0; c--) {
+        auto condptr   = condlist[c].ptr(rect);
+        auto choiseptr = choicelist[c].ptr(rect);
+#pragma omp parallel for schedule(static)
+        for (int32_t idx = (volume - 1); idx >= 0; idx--) {
+          if (condptr[idx]) outptr[idx] = choiseptr[idx];
+        }
+      }
+    } else {
+#pragma omp parallel for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = default_val;
+      }
+      const size_t out_size = rect.hi[0] - rect.lo[0] + 1;
+      for (int32_t c = (narrays - 1); c >= 0; c--) {
+#pragma omp parallel for schedule(static)
+        for (int32_t out_idx = 0; out_idx <= out_size; out_idx++) {
+          for (int32_t idx = (volume - out_size + out_idx); idx >= 0; idx -= out_size) {
+            auto p = pitches.unflatten(idx, rect.lo);
+            if (condlist[c][p]) out[p] = choicelist[c][p];
+          }
+        }
+      }
+    }
+  }
+};
+
+/*static*/ void SelectTask::omp_variant(TaskContext& context)
+{
+  select_template<VariantKind::OMP>(context);
+}
+
+}  // namespace cunumeric

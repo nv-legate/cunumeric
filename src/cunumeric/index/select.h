@@ -17,3 +17,27 @@
 #pragma once
 
 #include "cunumeric/cunumeric.h"
+
+namespace cunumeric {
+
+struct SelectArgs {
+  const Array& out;
+  const std::vector<Array>& inputs;
+  const legate::Scalar& default_value;
+};
+
+class SelectTask : public CuNumericTask<SelectTask> {
+ public:
+  static const int TASK_ID = CUNUMERIC_SELECT;
+
+ public:
+  static void cpu_variant(legate::TaskContext& context);
+#ifdef LEGATE_USE_OPENMP
+  static void omp_variant(legate::TaskContext& context);
+#endif
+#ifdef LEGATE_USE_CUDA
+  static void gpu_variant(legate::TaskContext& context);
+#endif
+};
+
+}  // namespace cunumeric

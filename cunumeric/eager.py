@@ -644,7 +644,7 @@ class EagerArray(NumPyThunk):
                 default,
             )
         else:
-            self.array[:] = np.select(
+            self.array[...] = np.select(
                 tuple(c.array for c in condlist),
                 tuple(c.array for c in choicelist),
                 default,

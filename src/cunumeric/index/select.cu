@@ -31,13 +31,91 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 {
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
-  for (uint32_t c = 0; c < narrays; ++c) {
-    if (condlist[c][idx]) {
-      outptr[idx] = choicelist[c][idx];
-      return;
+  outptr[idx] = default_val;
+  for (int32_t c = (narrays - 1); c >= 0; c--) {
+    if (condlist[c][idx]) { outptr[idx] = choicelist[c][idx]; }
+  }
+}
+
+template <typename VAL, int DIM>
+__global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
+  select_kernel(const AccessorWO<VAL, DIM> out,
+                uint32_t narrays,
+                const legate::Buffer<AccessorRO<bool, DIM>> condlist,
+                const legate::Buffer<AccessorRO<VAL, DIM>> choicelist,
+                VAL default_val,
+                const Rect<DIM> rect,
+                const Pitches<DIM - 1> pitches,
+                int out_size,
+                int volume)
+{
+  const size_t tid = global_tid_1d();
+  if (tid >= out_size) return;
+  for (int32_t idx = (volume - out_size + tid); idx >= 0; idx -= out_size) {
+    auto p = pitches.unflatten(idx, rect.lo);
+    out[p] = default_val;
+  }
+  __syncthreads();
+  for (int32_t c = (narrays - 1); c >= 0; c--) {
+    for (int32_t idx = (volume - out_size + tid); idx >= 0; idx -= out_size) {
+      auto p = pitches.unflatten(idx, rect.lo);
+      if (condlist[c][p]) { out[p] = choicelist[c][p]; }
     }
   }
-  outptr[idx] = default_val;
+}
+
+using namespace legate;
+
+template <Type::Code CODE, int DIM>
+struct SelectImplBody<VariantKind::GPU, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(const AccessorWO<VAL, DIM>& out,
+                  const std::vector<AccessorRO<bool, DIM>>& condlist,
+                  const std::vector<AccessorRO<VAL, DIM>>& choicelist,
+                  VAL default_val,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense) const
+  {
+    const size_t out_size = rect.hi[0] - rect.lo[0] + 1;
+    uint32_t narrays      = condlist.size();
+#ifdef DEBUG_CUNUMERIC
+    assert(narrays == choicelist.size());
+#endif
+    const size_t blocks = (out_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+
+    auto stream = get_cached_stream();
+    if (dense && (DIM <= 1 || rect.volume() == 0)) {
+      auto cond_arr = create_buffer<const bool*>(condlist.size(), legate::Memory::Kind::Z_COPY_MEM);
+      for (uint32_t idx = 0; idx < condlist.size(); ++idx) cond_arr[idx] = condlist[idx].ptr(rect);
+      auto choice_arr =
+        create_buffer<const VAL*>(choicelist.size(), legate::Memory::Kind::Z_COPY_MEM);
+      for (uint32_t idx = 0; idx < choicelist.size(); ++idx)
+        choice_arr[idx] = choicelist[idx].ptr(rect);
+      VAL* outptr = out.ptr(rect);
+      select_kernel_dense<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        outptr, narrays, cond_arr, choice_arr, default_val, out_size);
+    } else {
+      auto cond_arr =
+        create_buffer<AccessorRO<bool, DIM>>(condlist.size(), legate::Memory::Kind::Z_COPY_MEM);
+      for (uint32_t idx = 0; idx < condlist.size(); ++idx) cond_arr[idx] = condlist[idx];
+
+      auto choice_arr =
+        create_buffer<AccessorRO<VAL, DIM>>(choicelist.size(), legate::Memory::Kind::Z_COPY_MEM);
+      for (uint32_t idx = 0; idx < choicelist.size(); ++idx) choice_arr[idx] = choicelist[idx];
+      if (out_size == 0) return;
+      select_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
+        out, narrays, cond_arr, choice_arr, default_val, rect, pitches, out_size, rect.volume());
+    }
+
+    CHECK_CUDA_STREAM(stream);
+  }
+};
+
+/*static*/ void SelectTask::gpu_variant(TaskContext& context)
+{
+  select_template<VariantKind::GPU>(context);
 }
 
 }  // namespace cunumeric

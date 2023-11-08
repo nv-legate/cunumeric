@@ -16,3 +16,62 @@
 
 #include "cunumeric/index/select.h"
 #include "cunumeric/index/select_template.inl"
+
+namespace cunumeric {
+
+using namespace legate;
+
+template <Type::Code CODE, int DIM>
+struct SelectImplBody<VariantKind::CPU, CODE, DIM> {
+  using VAL = legate_type_of<CODE>;
+
+  void operator()(const AccessorWO<VAL, DIM>& out,
+                  const std::vector<AccessorRO<bool, DIM>>& condlist,
+                  const std::vector<AccessorRO<VAL, DIM>>& choicelist,
+                  VAL default_val,
+                  const Rect<DIM>& rect,
+                  const Pitches<DIM - 1>& pitches,
+                  bool dense) const
+  {
+    const size_t volume = rect.volume();
+    uint32_t narrays    = condlist.size();
+#ifdef DEBUG_CUNUMERIC
+    assert(narrays == choicelist.size());
+#endif
+
+    if (dense) {
+      auto outptr = out.ptr(rect);
+      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = default_val;
+      for (int32_t c = (narrays - 1); c >= 0; c--) {
+        auto condptr   = condlist[c].ptr(rect);
+        auto choiseptr = choicelist[c].ptr(rect);
+        for (int32_t idx = (volume - 1); idx >= 0; idx--) {
+          if (condptr[idx]) outptr[idx] = choiseptr[idx];
+        }
+      }
+    } else {
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = default_val;
+      }
+      for (int32_t c = (narrays - 1); c >= 0; c--) {
+        for (int32_t idx = (volume - 1); idx >= 0; idx--) {
+          auto p = pitches.unflatten(idx, rect.lo);
+          if (condlist[c][p]) out[p] = choicelist[c][p];
+        }
+      }
+    }
+  }
+};
+
+/*static*/ void SelectTask::cpu_variant(TaskContext& context)
+{
+  select_template<VariantKind::CPU>(context);
+}
+
+namespace  // unnamed
+{
+static void __attribute__((constructor)) register_tasks(void) { SelectTask::register_variants(); }
+}  // namespace
+
+}  // namespace cunumeric
