@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,10 +56,14 @@ def test_diagonal():
     assert allclose(b**2.0, a)
 
 
+def _get_real_symm_posdef(n):
+    a = num.random.rand(n, n)
+    return a + a.T + num.eye(n) * n
+
+
 @pytest.mark.parametrize("n", SIZES)
 def test_real(n):
-    a = num.random.rand(n, n)
-    b = a + a.T + num.eye(n) * n
+    b = _get_real_symm_posdef(n)
     c = num.linalg.cholesky(b)
     c_np = np.linalg.cholesky(b.__array__())
     assert allclose(c, c_np)
@@ -78,6 +82,45 @@ def test_complex(n):
     c = num.linalg.cholesky(d[1])
     c_np = np.linalg.cholesky(d[1].__array__())
     assert allclose(c, c_np)
+
+
+@pytest.mark.parametrize("n", SIZES)
+def test_batched_3d(n):
+    batch = 4
+    a = _get_real_symm_posdef(n)
+    np_a = a.__array__()
+    a_batched = num.einsum("i,jk->ijk", np.arange(batch) + 1, a)
+    test_c = num.linalg.cholesky(a_batched)
+    for i in range(batch):
+        correct = np.linalg.cholesky(np_a * (i + 1))
+        test = test_c[i, :]
+        assert allclose(correct, test)
+
+
+def test_batched_empty():
+    batch = 4
+    a = _get_real_symm_posdef(8)
+    a_batched = num.einsum("i,jk->ijk", np.arange(batch) + 1, a)
+    a_sliced = a_batched[0:0, :, :]
+    empty = num.linalg.cholesky(a_sliced)
+    assert empty.shape == a_sliced.shape
+
+
+@pytest.mark.parametrize("n", SIZES)
+def test_batched_4d(n):
+    batch = 2
+    a = _get_real_symm_posdef(n)
+    np_a = a.__array__()
+
+    outer = np.einsum("i,j->ij", np.arange(batch) + 1, np.arange(batch) + 1)
+
+    a_batched = num.einsum("ij,kl->ijkl", outer, a)
+    test_c = num.linalg.cholesky(a_batched)
+    for i in range(batch):
+        for j in range(batch):
+            correct = np.linalg.cholesky(np_a * (i + 1) * (j + 1))
+            test = test_c[i, j, :]
+            assert allclose(correct, test)
 
 
 if __name__ == "__main__":

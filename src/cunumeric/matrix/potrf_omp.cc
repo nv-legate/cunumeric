@@ -26,48 +26,48 @@ namespace cunumeric {
 using namespace legate;
 
 template <>
-struct PotrfImplBody<VariantKind::OMP, Type::Code::FLOAT32> {
-  void operator()(float* array, int32_t m, int32_t n)
-  {
-    char uplo    = 'L';
-    int32_t info = 0;
-    LAPACK_spotrf(&uplo, &n, array, &m, &info);
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
+void PotrfImplBody<VariantKind::OMP, Type::Code::FLOAT32>::operator()(float* array,
+                                                                      int32_t m,
+                                                                      int32_t n)
+{
+  char uplo    = 'L';
+  int32_t info = 0;
+  LAPACK_spotrf(&uplo, &n, array, &m, &info);
+  if (info != 0) throw legate::TaskException("Matrix is not positive definite");
+}
 
 template <>
-struct PotrfImplBody<VariantKind::OMP, Type::Code::FLOAT64> {
-  void operator()(double* array, int32_t m, int32_t n)
-  {
-    char uplo    = 'L';
-    int32_t info = 0;
-    LAPACK_dpotrf(&uplo, &n, array, &m, &info);
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
+void PotrfImplBody<VariantKind::OMP, Type::Code::FLOAT64>::operator()(double* array,
+                                                                      int32_t m,
+                                                                      int32_t n)
+{
+  char uplo    = 'L';
+  int32_t info = 0;
+  LAPACK_dpotrf(&uplo, &n, array, &m, &info);
+  if (info != 0) throw legate::TaskException("Matrix is not positive definite");
+}
 
 template <>
-struct PotrfImplBody<VariantKind::OMP, Type::Code::COMPLEX64> {
-  void operator()(complex<float>* array, int32_t m, int32_t n)
-  {
-    char uplo    = 'L';
-    int32_t info = 0;
-    LAPACK_cpotrf(&uplo, &n, reinterpret_cast<__complex__ float*>(array), &m, &info);
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
+void PotrfImplBody<VariantKind::OMP, Type::Code::COMPLEX64>::operator()(complex<float>* array,
+                                                                        int32_t m,
+                                                                        int32_t n)
+{
+  char uplo    = 'L';
+  int32_t info = 0;
+  LAPACK_cpotrf(&uplo, &n, reinterpret_cast<__complex__ float*>(array), &m, &info);
+  if (info != 0) throw legate::TaskException("Matrix is not positive definite");
+}
 
 template <>
-struct PotrfImplBody<VariantKind::OMP, Type::Code::COMPLEX128> {
-  void operator()(complex<double>* array, int32_t m, int32_t n)
-  {
-    char uplo    = 'L';
-    int32_t info = 0;
-    LAPACK_zpotrf(&uplo, &n, reinterpret_cast<__complex__ double*>(array), &m, &info);
-    if (info != 0) throw legate::TaskException("Matrix is not positive definite");
-  }
-};
+void PotrfImplBody<VariantKind::OMP, Type::Code::COMPLEX128>::operator()(complex<double>* array,
+                                                                         int32_t m,
+                                                                         int32_t n)
+{
+  char uplo    = 'L';
+  int32_t info = 0;
+  LAPACK_zpotrf(&uplo, &n, reinterpret_cast<__complex__ double*>(array), &m, &info);
+  if (info != 0) throw legate::TaskException("Matrix is not positive definite");
+}
 
 /*static*/ void PotrfTask::omp_variant(TaskContext& context)
 {
