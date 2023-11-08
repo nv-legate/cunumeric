@@ -1,0 +1,6 @@
+﻿cunumeric.prod
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: prod

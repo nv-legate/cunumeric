@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.astype
+========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.astype

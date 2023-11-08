@@ -1,0 +1,6 @@
+﻿cunumeric.linalg.multi\_dot
+===========================
+
+.. currentmodule:: cunumeric.linalg
+
+.. autofunction:: multi_dot

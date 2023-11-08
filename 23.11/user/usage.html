@@ -1,0 +1,650 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-theme="light">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Usage &#8212; cuNumeric  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../_static/styles/theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+<link href="../_static/styles/bootstrap.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+<link href="../_static/styles/pydata-sphinx-theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+
+  
+  <link href="../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../_static/params.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6" />
+<link rel="preload" as="script" href="../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6" />
+  <script src="../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=365ca57ee442770a23c6"></script>
+
+    <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../_static/doctools.js?v=888ff710"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../_static/copybutton.js?v=4ea706d9"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'user/usage';</script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Configuration" href="configuration.html" />
+    <link rel="prev" title="Installation" href="installation.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="light">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+   
+
+<a class="navbar-brand logo" href="https://nv-legate.github.io/cunumeric">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">cuNumeric</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="index.html">
+                        User guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../comparison/index.html">
+                        Project comparisons
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../api/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../developer/index.html">
+                        Developer guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../versions.html">
+                        Versions
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/nv-legate/cunumeric" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary" tabindex="0">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="index.html">
+                        User guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../comparison/index.html">
+                        Project comparisons
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../api/index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../developer/index.html">
+                        Developer guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../versions.html">
+                        Versions
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/nv-legate/cunumeric" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item"><nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="practices.html">Best practices</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="notebooks.html">Example notebooks</a><input checked class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/cholesky.html">Cholesky decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/black_scholes.html">Black-Scholes options pricing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="notebooks/stencil.html">Jacobi stencil</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item"><nav class="sidebar-indices-items">
+  <p class="sidebar-indices-items__title" role="heading" aria-level="1">Indices</p>
+  <ul class="indices-link">
+        <li class="toctree-l1">
+          <a class="reference internal"
+             href="../genindex.html"
+             accesskey="I">General Index</a>
+        </li>
+        <li class="toctree-l1">
+          <a class="reference internal" href="../py-modindex.html">Python Module Index</a>
+        </li>
+  </ul>
+</nav></div>
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="index.html" class="nav-link">User guide</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">Usage</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Link to this heading">#</a></h1>
+<section id="drop-in-replacement">
+<h2>Drop-in replacement<a class="headerlink" href="#drop-in-replacement" title="Link to this heading">#</a></h2>
+<p>Using cuNumeric as a replacement for NumPy is easy. Users only need
+to replace:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+</pre></div>
+</div>
+<p>with</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">cunumeric</span> <span class="k">as</span> <span class="nn">np</span>
+</pre></div>
+</div>
+</section>
+<section id="running-cunumeric-programs">
+<h2>Running cuNumeric programs<a class="headerlink" href="#running-cunumeric-programs" title="Link to this heading">#</a></h2>
+<section id="using-legate">
+<h3>Using <code class="docutils literal notranslate"><span class="pre">legate</span></code><a class="headerlink" href="#using-legate" title="Link to this heading">#</a></h3>
+<p>The preferred way to run cuNumeric programs is with the <code class="docutils literal notranslate"><span class="pre">legate</span></code> driver:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>legate<span class="w"> </span>--cpus<span class="w"> </span><span class="m">2</span><span class="w"> </span>--gpus<span class="w"> </span><span class="m">2</span><span class="w"> </span>script.py<span class="w"> </span>&lt;script<span class="w"> </span>options&gt;
+</pre></div>
+</div>
+<p>All <code class="docutils literal notranslate"><span class="pre">legate</span></code> command line configuration options must come <em>before</em> the script
+that is be executed. Any options after the script are passed on to the script.</p>
+<p>It is also possible to pass the <code class="docutils literal notranslate"><span class="pre">legate</span></code> command line configuration options
+using the <code class="docutils literal notranslate"><span class="pre">LEGATE_CONFIG</span></code> environment variable:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">LEGATE_CONFIG</span><span class="o">=</span><span class="s2">&quot;--cpus 2 --gpus 2&quot;</span><span class="w"> </span>legate<span class="w"> </span>script.py<span class="w"> </span>&lt;script<span class="w"> </span>options&gt;
+</pre></div>
+</div>
+<p>See the <a class="reference internal" href="configuration.html#config"><span class="std std-ref">Configuration</span></a> section <a class="reference internal" href="configuration.html#config-legate"><span class="std std-ref">Legate driver</span></a> for more information.</p>
+<p>Additionally, any Legion and Realm arguments may also be passed via the
+<code class="docutils literal notranslate"><span class="pre">LEGION_DEFAULT_ARGS</span></code> environment variable:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">LEGION_DEFAULT_ARGS</span><span class="o">=</span><span class="s2">&quot;-lg:sched 100 -ll:show_rsrv&quot;</span><span class="w"> </span>legate<span class="w"> </span>script.py<span class="w"> </span>&lt;script<span class="w"> </span>options&gt;
+</pre></div>
+</div>
+</section>
+<section id="using-standard-python">
+<h3>Using standard Python<a class="headerlink" href="#using-standard-python" title="Link to this heading">#</a></h3>
+<p>It is also possible to run cuNumeric programs using the standard Python
+interpreter, with some limitations:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">LEGATE_CONFIG</span><span class="o">=</span><span class="s2">&quot;--cpus 2 --gpus 2&quot;</span><span class="w"> </span>python<span class="w"> </span>script.py<span class="w"> </span>&lt;script<span class="w"> </span>options&gt;
+</pre></div>
+</div>
+<p>When running programs with this method, Legate configuration options may only
+be passed via the <code class="docutils literal notranslate"><span class="pre">LEGATE_CONFIG</span></code> environment variable as shown above.</p>
+<p>Additionally, any Legion and Realm arguments must also be passed via the
+<code class="docutils literal notranslate"><span class="pre">LEGION_DEFAULT_ARGS</span></code> environment variable:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">LEGION_DEFAULT_ARGS</span><span class="o">=</span><span class="s2">&quot;-lg:sched 100 -ll:show_rsrv&quot;</span><span class="w"> </span>python<span class="w"> </span>script.py<span class="w"> </span>&lt;script<span class="w"> </span>options&gt;
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Usage of standard Python is intended as a quick on-ramp for users to try
+out cuNumeric more easily. Several <code class="docutils literal notranslate"><span class="pre">legate</span></code> command line configuration
+options, especially for  multi-node execution, are not available when
+running programs with standard Python. See the output of <code class="docutils literal notranslate"><span class="pre">legate</span> <span class="pre">--help</span></code>
+for more details.</p>
+</div>
+</section>
+</section>
+<section id="multi-node-execution">
+<h2>Multi-node execution<a class="headerlink" href="#multi-node-execution" title="Link to this heading">#</a></h2>
+<section id="id1">
+<h3>Using <code class="docutils literal notranslate"><span class="pre">legate</span></code><a class="headerlink" href="#id1" title="Link to this heading">#</a></h3>
+<p>Cunumeric programs can be run in parallel by using the <code class="docutils literal notranslate"><span class="pre">--nodes</span></code> option to
+the <code class="docutils literal notranslate"><span class="pre">legate</span></code> driver, followed by the number of nodes to be used.
+When running on 2+ nodes, a task launcher must be specified.</p>
+<p>Legate currently supports using <code class="docutils literal notranslate"><span class="pre">mpirun</span></code>, <code class="docutils literal notranslate"><span class="pre">srun</span></code>, and <code class="docutils literal notranslate"><span class="pre">jsrun</span></code> as task
+launchers for multi-node execution via the <code class="docutils literal notranslate"><span class="pre">--launcher</span></code> command like
+arguments:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">legate</span> <span class="o">--</span><span class="n">launcher</span> <span class="n">srun</span> <span class="o">--</span><span class="n">nodes</span> <span class="mi">2</span> <span class="n">script</span><span class="o">.</span><span class="n">py</span> <span class="o">&lt;</span><span class="n">script</span> <span class="n">options</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>See the <a class="reference internal" href="configuration.html#config"><span class="std std-ref">Configuration</span></a> section <a class="reference internal" href="configuration.html#config-multi-node"><span class="std std-ref">Multi-node execution</span></a> for more
+configuration options.</p>
+</section>
+<section id="using-a-manual-task-manager">
+<h3>Using a manual task manager<a class="headerlink" href="#using-a-manual-task-manager" title="Link to this heading">#</a></h3>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>mpirun<span class="w"> </span>-np<span class="w"> </span>N<span class="w"> </span>legate<span class="w"> </span>script.py<span class="w"> </span>&lt;script<span class="w"> </span>options&gt;
+</pre></div>
+</div>
+<p>It is also possible to use “standard python” in place of the <code class="docutils literal notranslate"><span class="pre">legate</span></code> driver.</p>
+</section>
+</section>
+<section id="running-numpy-programs-without-changes">
+<h2>Running Numpy programs without changes<a class="headerlink" href="#running-numpy-programs-without-changes" title="Link to this heading">#</a></h2>
+<p>The <code class="docutils literal notranslate"><span class="pre">lgpatch</span></code> script (in the same location as the <code class="docutils literal notranslate"><span class="pre">legate</span></code> executable) can
+help facilitate quick demonstrations of <code class="docutils literal notranslate"><span class="pre">cunumeric</span></code> on existing codebases
+that make use of <code class="docutils literal notranslate"><span class="pre">numpy</span></code>.</p>
+<p>To use this tool, invoke it as shown below, with the name of the program to
+patch:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>lgpatch<span class="w"> </span>&lt;program&gt;<span class="w"> </span>-patch<span class="w"> </span>numpy
+</pre></div>
+</div>
+<p>For example, here is a small <code class="docutils literal notranslate"><span class="pre">test.py</span></code> program that imports and uses various
+<code class="docutils literal notranslate"><span class="pre">numpy</span></code> funtions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># test.py</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="nb">input</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+<span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">cholesky</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>You can invoke <code class="docutils literal notranslate"><span class="pre">lgpatch</span></code> to run <code class="docutils literal notranslate"><span class="pre">test.py</span></code> using <code class="docutils literal notranslate"><span class="pre">cunumeric</span></code> functions
+instead, without any changes to the original source code. Any standard
+<code class="docutils literal notranslate"><span class="pre">cunumeric</span></code> runtime options (e.g. for <a class="reference internal" href="../comparison/index.html#measuring-api-coverage"><span class="std std-ref">Measuring API coverage</span></a>) may
+also be used:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nv">CUNUMERIC_REPORT_COVERAGE</span><span class="o">=</span><span class="m">1</span><span class="w"> </span><span class="nv">LEGATE_CONFIG</span><span class="o">=</span><span class="s2">&quot;--cpus 4&quot;</span><span class="w">  </span>lgpatch<span class="w"> </span>test.py<span class="w"> </span>-patch<span class="w"> </span>numpy
+cuNumeric<span class="w"> </span>API<span class="w"> </span>coverage:<span class="w"> </span><span class="m">4</span>/4<span class="w"> </span><span class="o">(</span><span class="m">100</span>.0%<span class="o">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  <!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="installation.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Installation</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="configuration.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Configuration</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#drop-in-replacement">Drop-in replacement</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-cunumeric-programs">Running cuNumeric programs</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#using-legate">Using <code class="docutils literal notranslate"><span class="pre">legate</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#using-standard-python">Using standard Python</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#multi-node-execution">Multi-node execution</a><ul class="visible nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#id1">Using <code class="docutils literal notranslate"><span class="pre">legate</span></code></a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#using-a-manual-task-manager">Using a manual task manager</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#running-numpy-programs-without-changes">Running Numpy programs without changes</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6"></script>
+<script src="../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2021-2023, NVIDIA.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

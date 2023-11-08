@@ -1,0 +1,6 @@
+﻿cunumeric.put\_along\_axis
+==========================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: put_along_axis

@@ -1,0 +1,6 @@
+﻿cunumeric.cos
+=============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: cos

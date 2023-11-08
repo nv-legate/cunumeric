@@ -1,0 +1,6 @@
+﻿cunumeric.cbrt
+==============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: cbrt

@@ -1,0 +1,6 @@
+﻿cunumeric.kaiser
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: kaiser

@@ -1,0 +1,6 @@
+﻿cunumeric.concatenate
+=====================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: concatenate

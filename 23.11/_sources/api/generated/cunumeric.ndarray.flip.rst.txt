@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.flip
+======================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.flip

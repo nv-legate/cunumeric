@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.nonzero
+=========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.nonzero

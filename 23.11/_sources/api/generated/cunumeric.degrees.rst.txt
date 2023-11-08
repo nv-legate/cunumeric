@@ -1,0 +1,6 @@
+﻿cunumeric.degrees
+=================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: degrees

@@ -1,0 +1,6 @@
+﻿cunumeric.hypot
+===============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: hypot
