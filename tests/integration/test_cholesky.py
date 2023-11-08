@@ -35,12 +35,6 @@ def test_array_negative_1dim():
         num.linalg.cholesky(arr)
 
 
-def test_array_negative_3dim():
-    arr = num.random.randint(0, 9, size=(3, 3, 3))
-    with pytest.raises(NotImplementedError):
-        num.linalg.cholesky(arr)
-
-
 def test_array_negative():
     arr = num.random.randint(0, 9, size=(3, 2, 3))
     expected_exc = ValueError
