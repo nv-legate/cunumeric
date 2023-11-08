@@ -1,0 +1,6 @@
+﻿cunumeric.linalg.solve
+======================
+
+.. currentmodule:: cunumeric.linalg
+
+.. autofunction:: solve

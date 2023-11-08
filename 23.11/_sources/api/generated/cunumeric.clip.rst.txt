@@ -1,0 +1,6 @@
+﻿cunumeric.clip
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: clip

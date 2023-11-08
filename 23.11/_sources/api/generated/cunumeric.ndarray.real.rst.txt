@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.real
+======================
+
+.. currentmodule:: cunumeric
+
+.. autoproperty:: ndarray.real

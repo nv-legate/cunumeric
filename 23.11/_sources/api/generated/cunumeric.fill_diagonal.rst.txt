@@ -1,0 +1,6 @@
+﻿cunumeric.fill\_diagonal
+========================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: fill_diagonal

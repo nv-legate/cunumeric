@@ -1,0 +1,6 @@
+﻿cunumeric.convolve
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: convolve

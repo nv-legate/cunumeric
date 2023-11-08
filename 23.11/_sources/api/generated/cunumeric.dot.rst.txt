@@ -1,0 +1,6 @@
+﻿cunumeric.dot
+=============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: dot

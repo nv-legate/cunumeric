@@ -1,0 +1,6 @@
+﻿cunumeric.sum
+=============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: sum

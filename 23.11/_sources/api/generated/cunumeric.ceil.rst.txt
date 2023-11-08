@@ -1,0 +1,6 @@
+﻿cunumeric.ceil
+==============
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: ceil

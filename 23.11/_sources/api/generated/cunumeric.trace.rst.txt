@@ -1,0 +1,6 @@
+﻿cunumeric.trace
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: trace

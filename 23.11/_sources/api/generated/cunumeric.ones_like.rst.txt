@@ -1,0 +1,6 @@
+﻿cunumeric.ones\_like
+====================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: ones_like

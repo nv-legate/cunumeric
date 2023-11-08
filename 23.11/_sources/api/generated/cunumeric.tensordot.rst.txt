@@ -1,0 +1,6 @@
+﻿cunumeric.tensordot
+===================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: tensordot

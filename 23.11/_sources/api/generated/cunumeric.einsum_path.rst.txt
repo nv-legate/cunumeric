@@ -1,0 +1,6 @@
+﻿cunumeric.einsum\_path
+======================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: einsum_path

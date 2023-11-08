@@ -1,0 +1,6 @@
+﻿cunumeric.argmin
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: argmin

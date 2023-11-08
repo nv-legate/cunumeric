@@ -1,0 +1,6 @@
+﻿cunumeric.diagonal
+==================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: diagonal

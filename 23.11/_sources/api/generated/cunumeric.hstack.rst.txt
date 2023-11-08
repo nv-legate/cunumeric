@@ -1,0 +1,6 @@
+﻿cunumeric.hstack
+================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: hstack

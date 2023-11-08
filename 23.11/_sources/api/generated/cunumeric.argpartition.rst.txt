@@ -1,0 +1,6 @@
+﻿cunumeric.argpartition
+======================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: argpartition

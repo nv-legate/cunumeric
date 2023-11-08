@@ -1,0 +1,6 @@
+﻿cunumeric.copy
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: copy

@@ -1,0 +1,6 @@
+﻿cunumeric.full\_like
+====================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: full_like

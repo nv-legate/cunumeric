@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.put
+=====================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.put

@@ -1,0 +1,6 @@
+﻿cunumeric.outer
+===============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: outer

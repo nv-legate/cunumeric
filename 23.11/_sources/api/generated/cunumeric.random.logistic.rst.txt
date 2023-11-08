@@ -1,0 +1,6 @@
+﻿cunumeric.random.logistic
+=========================
+
+.. currentmodule:: cunumeric.random
+
+.. autofunction:: logistic

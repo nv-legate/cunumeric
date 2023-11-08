@@ -1,0 +1,1001 @@
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-theme="light">
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>cunumeric.ndarray.nbytes &#8212; cuNumeric  documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="../../_static/styles/theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+<link href="../../_static/styles/bootstrap.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+<link href="../../_static/styles/pydata-sphinx-theme.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+
+  
+  <link href="../../_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=365ca57ee442770a23c6" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="../../_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
+    <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+    <link rel="stylesheet" type="text/css" href="../../_static/params.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="../../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6" />
+<link rel="preload" as="script" href="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6" />
+  <script src="../../_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=365ca57ee442770a23c6"></script>
+
+    <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../_static/doctools.js?v=888ff710"></script>
+    <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+    <script src="../../_static/copybutton.js?v=4ea706d9"></script>
+    <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'api/generated/cunumeric.ndarray.nbytes';</script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="cunumeric.ndarray.base" href="cunumeric.ndarray.base.html" />
+    <link rel="prev" title="cunumeric.ndarray.itemsize" href="cunumeric.ndarray.itemsize.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="light">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="../../search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search the docs ..."
+         aria-label="Search the docs ..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+<div class="bd-header__inner bd-page-width">
+  <label class="sidebar-toggle primary-toggle" for="__primary">
+    <span class="fa-solid fa-bars"></span>
+  </label>
+  
+  
+  <div class=" navbar-header-items__start">
+    
+      <div class="navbar-item">
+   
+
+<a class="navbar-brand logo" href="https://nv-legate.github.io/cunumeric">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">cuNumeric</p>
+  
+</a></div>
+    
+  </div>
+  
+  <div class=" navbar-header-items">
+    
+    <div class="me-auto navbar-header-items__center">
+      
+        <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../user/index.html">
+                        User guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../comparison/index.html">
+                        Project comparisons
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../developer/index.html">
+                        Developer guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../versions.html">
+                        Versions
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+      
+    </div>
+    
+    
+    <div class="navbar-header-items__end">
+      
+        <div class="navbar-item navbar-persistent--container">
+          
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+        </div>
+      
+      
+        <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/nv-legate/cunumeric" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+      
+        <div class="navbar-item">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+      
+    </div>
+    
+  </div>
+  
+  
+    <div class="navbar-persistent--mobile">
+ <script>
+ document.write(`
+   <button class="btn navbar-btn search-button-field search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <span class="search-button__default-text">Search</span>
+    <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+   </button>
+ `);
+ </script>
+    </div>
+  
+
+  
+    <label class="sidebar-toggle secondary-toggle" for="__secondary" tabindex="0">
+      <span class="fa-solid fa-outdent"></span>
+    </label>
+  
+</div>
+
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+      <div class="sidebar-header-items__center">
+        
+          <div class="navbar-item"><nav class="navbar-nav">
+  <p class="sidebar-header-items__title"
+     role="heading"
+     aria-level="1"
+     aria-label="Site Navigation">
+    Site Navigation
+  </p>
+  <ul class="bd-navbar-elements navbar-nav">
+    
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../user/index.html">
+                        User guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../comparison/index.html">
+                        Project comparisons
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item current active">
+                      <a class="nav-link nav-internal" href="../index.html">
+                        API Reference
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../developer/index.html">
+                        Developer guide
+                      </a>
+                    </li>
+                
+
+                    <li class="nav-item">
+                      <a class="nav-link nav-internal" href="../../versions.html">
+                        Versions
+                      </a>
+                    </li>
+                
+  </ul>
+</nav></div>
+        
+      </div>
+    
+    
+    
+      <div class="sidebar-header-items__end">
+        
+          <div class="navbar-item"><ul class="navbar-icon-links navbar-nav"
+    aria-label="Icon Links">
+        <li class="nav-item">
+          
+          
+          
+          
+          
+          
+          
+          
+          <a href="https://github.com/nv-legate/cunumeric" title="GitHub" class="nav-link" rel="noopener" target="_blank" data-bs-toggle="tooltip" data-bs-placement="bottom"><span><i class="fa-brands fa-square-github fa-lg" aria-hidden="true"></i></span>
+            <span class="sr-only">GitHub</span></a>
+        </li>
+</ul></div>
+        
+          <div class="navbar-item">
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script></div>
+        
+      </div>
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item"><nav class="bd-docs-nav bd-links"
+     aria-label="Section Navigation">
+  <p class="bd-links__title" role="heading" aria-level="1">Section Navigation</p>
+  <div class="bd-toc-item navbar-nav"><ul class="current nav bd-sidenav">
+<li class="toctree-l1 current active has-children"><a class="reference internal" href="../classes.html">Classes</a><input checked class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../broadcast.html">cunumeric.broadcast</a></li>
+<li class="toctree-l2 current active has-children"><a class="reference internal" href="../ndarray.html">The N-Dimensional array (<code class="xref py py-class docutils literal notranslate"><span class="pre">cunumeric.ndarray</span></code>)</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../_ndarray.html">cunumeric.ndarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.all.html">cunumeric.ndarray.all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.any.html">cunumeric.ndarray.any</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.flags.html">cunumeric.ndarray.flags</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.shape.html">cunumeric.ndarray.shape</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.strides.html">cunumeric.ndarray.strides</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.ndim.html">cunumeric.ndarray.ndim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.data.html">cunumeric.ndarray.data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.size.html">cunumeric.ndarray.size</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.itemsize.html">cunumeric.ndarray.itemsize</a></li>
+<li class="toctree-l3 current active"><a class="current reference internal" href="#">cunumeric.ndarray.nbytes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.base.html">cunumeric.ndarray.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.ctypes.html">cunumeric.ndarray.ctypes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.dtype.html">cunumeric.ndarray.dtype</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.find_common_type.html">cunumeric.ndarray.find_common_type</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.T.html">cunumeric.ndarray.T</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.real.html">cunumeric.ndarray.real</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.imag.html">cunumeric.ndarray.imag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.flat.html">cunumeric.ndarray.flat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.item.html">cunumeric.ndarray.item</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.tolist.html">cunumeric.ndarray.tolist</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.itemset.html">cunumeric.ndarray.itemset</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.tostring.html">cunumeric.ndarray.tostring</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.tobytes.html">cunumeric.ndarray.tobytes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.tofile.html">cunumeric.ndarray.tofile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.dump.html">cunumeric.ndarray.dump</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.dumps.html">cunumeric.ndarray.dumps</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.astype.html">cunumeric.ndarray.astype</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.copy.html">cunumeric.ndarray.copy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.view.html">cunumeric.ndarray.view</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.getfield.html">cunumeric.ndarray.getfield</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.setfield.html">cunumeric.ndarray.setfield</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.setflags.html">cunumeric.ndarray.setflags</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.fill.html">cunumeric.ndarray.fill</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.reshape.html">cunumeric.ndarray.reshape</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.transpose.html">cunumeric.ndarray.transpose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.swapaxes.html">cunumeric.ndarray.swapaxes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.flatten.html">cunumeric.ndarray.flatten</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.ravel.html">cunumeric.ndarray.ravel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.squeeze.html">cunumeric.ndarray.squeeze</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.take.html">cunumeric.ndarray.take</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.put.html">cunumeric.ndarray.put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.choose.html">cunumeric.ndarray.choose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.sort.html">cunumeric.ndarray.sort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.argsort.html">cunumeric.ndarray.argsort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.partition.html">cunumeric.ndarray.partition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.argpartition.html">cunumeric.ndarray.argpartition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.searchsorted.html">cunumeric.ndarray.searchsorted</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.nonzero.html">cunumeric.ndarray.nonzero</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.compress.html">cunumeric.ndarray.compress</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.diagonal.html">cunumeric.ndarray.diagonal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.trace.html">cunumeric.ndarray.trace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.max.html">cunumeric.ndarray.max</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.argmax.html">cunumeric.ndarray.argmax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.min.html">cunumeric.ndarray.min</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.argmin.html">cunumeric.ndarray.argmin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.clip.html">cunumeric.ndarray.clip</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.conj.html">cunumeric.ndarray.conj</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.conjugate.html">cunumeric.ndarray.conjugate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.dot.html">cunumeric.ndarray.dot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.flip.html">cunumeric.ndarray.flip</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.sum.html">cunumeric.ndarray.sum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.cumsum.html">cunumeric.ndarray.cumsum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.mean.html">cunumeric.ndarray.mean</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.var.html">cunumeric.ndarray.var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.prod.html">cunumeric.ndarray.prod</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.cumprod.html">cunumeric.ndarray.cumprod</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.all.html">cunumeric.ndarray.all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.any.html">cunumeric.ndarray.any</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.unique.html">cunumeric.ndarray.unique</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__lt__.html">cunumeric.ndarray.__lt__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__le__.html">cunumeric.ndarray.__le__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__gt__.html">cunumeric.ndarray.__gt__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__ge__.html">cunumeric.ndarray.__ge__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__eq__.html">cunumeric.ndarray.__eq__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__ne__.html">cunumeric.ndarray.__ne__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__bool__.html">cunumeric.ndarray.__bool__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__neg__.html">cunumeric.ndarray.__neg__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__pos__.html">cunumeric.ndarray.__pos__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__abs__.html">cunumeric.ndarray.__abs__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__invert__.html">cunumeric.ndarray.__invert__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__add__.html">cunumeric.ndarray.__add__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__sub__.html">cunumeric.ndarray.__sub__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__mul__.html">cunumeric.ndarray.__mul__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__truediv__.html">cunumeric.ndarray.__truediv__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__floordiv__.html">cunumeric.ndarray.__floordiv__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__mod__.html">cunumeric.ndarray.__mod__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__divmod__.html">cunumeric.ndarray.__divmod__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__pow__.html">cunumeric.ndarray.__pow__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__lshift__.html">cunumeric.ndarray.__lshift__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__rshift__.html">cunumeric.ndarray.__rshift__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__and__.html">cunumeric.ndarray.__and__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__or__.html">cunumeric.ndarray.__or__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__xor__.html">cunumeric.ndarray.__xor__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__iadd__.html">cunumeric.ndarray.__iadd__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__isub__.html">cunumeric.ndarray.__isub__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__imul__.html">cunumeric.ndarray.__imul__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__itruediv__.html">cunumeric.ndarray.__itruediv__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__ifloordiv__.html">cunumeric.ndarray.__ifloordiv__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__imod__.html">cunumeric.ndarray.__imod__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__ipow__.html">cunumeric.ndarray.__ipow__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__ilshift__.html">cunumeric.ndarray.__ilshift__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__irshift__.html">cunumeric.ndarray.__irshift__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__iand__.html">cunumeric.ndarray.__iand__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__ior__.html">cunumeric.ndarray.__ior__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__ixor__.html">cunumeric.ndarray.__ixor__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__matmul__.html">cunumeric.ndarray.__matmul__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__copy__.html">cunumeric.ndarray.__copy__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__deepcopy__.html">cunumeric.ndarray.__deepcopy__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__index__.html">cunumeric.ndarray.__index__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__reduce__.html">cunumeric.ndarray.__reduce__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__setstate__.html">cunumeric.ndarray.__setstate__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__new__.html">cunumeric.ndarray.__new__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__array__.html">cunumeric.ndarray.__array__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__len__.html">cunumeric.ndarray.__len__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__getitem__.html">cunumeric.ndarray.__getitem__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__setitem__.html">cunumeric.ndarray.__setitem__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__contains__.html">cunumeric.ndarray.__contains__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__int__.html">cunumeric.ndarray.__int__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__float__.html">cunumeric.ndarray.__float__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__complex__.html">cunumeric.ndarray.__complex__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__str__.html">cunumeric.ndarray.__str__</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndarray.__repr__.html">cunumeric.ndarray.__repr__</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="../routines.html">Routines</a><input checked class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../creation.html">Array creation routines</a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-4"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.empty.html">cunumeric.empty</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.empty_like.html">cunumeric.empty_like</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.eye.html">cunumeric.eye</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.identity.html">cunumeric.identity</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ones.html">cunumeric.ones</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ones_like.html">cunumeric.ones_like</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.zeros.html">cunumeric.zeros</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.zeros_like.html">cunumeric.zeros_like</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.full.html">cunumeric.full</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.full_like.html">cunumeric.full_like</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.array.html">cunumeric.array</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.asarray.html">cunumeric.asarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.copy.html">cunumeric.copy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.repeat.html">cunumeric.repeat</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.arange.html">cunumeric.arange</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.linspace.html">cunumeric.linspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.diag.html">cunumeric.diag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.tri.html">cunumeric.tri</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.tril.html">cunumeric.tril</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.triu.html">cunumeric.triu</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../manipulation.html">Array manipulation routines</a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ndim.html">cunumeric.ndim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.shape.html">cunumeric.shape</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.reshape.html">cunumeric.reshape</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ravel.html">cunumeric.ravel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.moveaxis.html">cunumeric.moveaxis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.swapaxes.html">cunumeric.swapaxes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.transpose.html">cunumeric.transpose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.atleast_1d.html">cunumeric.atleast_1d</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.atleast_2d.html">cunumeric.atleast_2d</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.atleast_3d.html">cunumeric.atleast_3d</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.broadcast_arrays.html">cunumeric.broadcast_arrays</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.broadcast_shapes.html">cunumeric.broadcast_shapes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.broadcast_to.html">cunumeric.broadcast_to</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.squeeze.html">cunumeric.squeeze</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.asarray.html">cunumeric.asarray</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.append.html">cunumeric.append</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.concatenate.html">cunumeric.concatenate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.stack.html">cunumeric.stack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.block.html">cunumeric.block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.vstack.html">cunumeric.vstack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.hstack.html">cunumeric.hstack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.dstack.html">cunumeric.dstack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.column_stack.html">cunumeric.column_stack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.row_stack.html">cunumeric.row_stack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.split.html">cunumeric.split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.array_split.html">cunumeric.array_split</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.dsplit.html">cunumeric.dsplit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.hsplit.html">cunumeric.hsplit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.vsplit.html">cunumeric.vsplit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.tile.html">cunumeric.tile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.flip.html">cunumeric.flip</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../binary.html">Binary operations</a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-6"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.bitwise_and.html">cunumeric.bitwise_and</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.bitwise_or.html">cunumeric.bitwise_or</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.bitwise_xor.html">cunumeric.bitwise_xor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.invert.html">cunumeric.invert</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.left_shift.html">cunumeric.left_shift</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.right_shift.html">cunumeric.right_shift</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.packbits.html">cunumeric.packbits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.unpackbits.html">cunumeric.unpackbits</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../indexing.html">Indexing routines</a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-7"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.diag_indices.html">cunumeric.diag_indices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.diag_indices_from.html">cunumeric.diag_indices_from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.mask_indices.html">cunumeric.mask_indices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.tril_indices.html">cunumeric.tril_indices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.tril_indices_from.html">cunumeric.tril_indices_from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.triu_indices.html">cunumeric.triu_indices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.triu_indices_from.html">cunumeric.triu_indices_from</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.indices.html">cunumeric.indices</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nonzero.html">cunumeric.nonzero</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.flatnonzero.html">cunumeric.flatnonzero</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.where.html">cunumeric.where</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.choose.html">cunumeric.choose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.compress.html">cunumeric.compress</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.diag.html">cunumeric.diag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.diagonal.html">cunumeric.diagonal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.take.html">cunumeric.take</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.take_along_axis.html">cunumeric.take_along_axis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fill_diagonal.html">cunumeric.fill_diagonal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.put.html">cunumeric.put</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.putmask.html">cunumeric.putmask</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.put_along_axis.html">cunumeric.put_along_axis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.place.html">cunumeric.place</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../linalg.html">Linear algebra (<code class="xref py py-mod docutils literal notranslate"><span class="pre">cunumeric.linalg</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-8"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.dot.html">cunumeric.dot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.vdot.html">cunumeric.vdot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.inner.html">cunumeric.inner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.outer.html">cunumeric.outer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.matmul.html">cunumeric.matmul</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.tensordot.html">cunumeric.tensordot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.einsum.html">cunumeric.einsum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.einsum_path.html">cunumeric.einsum_path</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.linalg.matrix_power.html">cunumeric.linalg.matrix_power</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.linalg.multi_dot.html">cunumeric.linalg.multi_dot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.linalg.cholesky.html">cunumeric.linalg.cholesky</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.linalg.norm.html">cunumeric.linalg.norm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.trace.html">cunumeric.trace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.linalg.solve.html">cunumeric.linalg.solve</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../logic.html">Logic functions</a><input class="toctree-checkbox" id="toctree-checkbox-9" name="toctree-checkbox-9" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-9"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.all.html">cunumeric.all</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.any.html">cunumeric.any</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isfinite.html">cunumeric.isfinite</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isinf.html">cunumeric.isinf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isnan.html">cunumeric.isnan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isneginf.html">cunumeric.isneginf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isposinf.html">cunumeric.isposinf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.iscomplex.html">cunumeric.iscomplex</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.iscomplexobj.html">cunumeric.iscomplexobj</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isreal.html">cunumeric.isreal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isrealobj.html">cunumeric.isrealobj</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isscalar.html">cunumeric.isscalar</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.logical_and.html">cunumeric.logical_and</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.logical_or.html">cunumeric.logical_or</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.logical_not.html">cunumeric.logical_not</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.logical_xor.html">cunumeric.logical_xor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.allclose.html">cunumeric.allclose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.isclose.html">cunumeric.isclose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.array_equal.html">cunumeric.array_equal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.greater.html">cunumeric.greater</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.greater_equal.html">cunumeric.greater_equal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.less.html">cunumeric.less</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.less_equal.html">cunumeric.less_equal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.equal.html">cunumeric.equal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.not_equal.html">cunumeric.not_equal</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../math.html">Mathematical functions</a><input class="toctree-checkbox" id="toctree-checkbox-10" name="toctree-checkbox-10" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-10"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.sin.html">cunumeric.sin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.cos.html">cunumeric.cos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.tan.html">cunumeric.tan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.arcsin.html">cunumeric.arcsin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.arccos.html">cunumeric.arccos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.arctan.html">cunumeric.arctan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.hypot.html">cunumeric.hypot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.arctan2.html">cunumeric.arctan2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.degrees.html">cunumeric.degrees</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.radians.html">cunumeric.radians</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.deg2rad.html">cunumeric.deg2rad</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.rad2deg.html">cunumeric.rad2deg</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.sinh.html">cunumeric.sinh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.cosh.html">cunumeric.cosh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.tanh.html">cunumeric.tanh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.arcsinh.html">cunumeric.arcsinh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.arccosh.html">cunumeric.arccosh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.arctanh.html">cunumeric.arctanh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.rint.html">cunumeric.rint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.floor.html">cunumeric.floor</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ceil.html">cunumeric.ceil</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.trunc.html">cunumeric.trunc</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.prod.html">cunumeric.prod</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.sum.html">cunumeric.sum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.cumprod.html">cunumeric.cumprod</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.cumsum.html">cunumeric.cumsum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nancumprod.html">cunumeric.nancumprod</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nancumsum.html">cunumeric.nancumsum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nanprod.html">cunumeric.nanprod</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nansum.html">cunumeric.nansum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.exp.html">cunumeric.exp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.expm1.html">cunumeric.expm1</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.exp2.html">cunumeric.exp2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.log.html">cunumeric.log</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.log10.html">cunumeric.log10</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.log2.html">cunumeric.log2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.log1p.html">cunumeric.log1p</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.logaddexp.html">cunumeric.logaddexp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.logaddexp2.html">cunumeric.logaddexp2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.signbit.html">cunumeric.signbit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.copysign.html">cunumeric.copysign</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.frexp.html">cunumeric.frexp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.ldexp.html">cunumeric.ldexp</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nextafter.html">cunumeric.nextafter</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.lcm.html">cunumeric.lcm</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.gcd.html">cunumeric.gcd</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.add.html">cunumeric.add</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.reciprocal.html">cunumeric.reciprocal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.positive.html">cunumeric.positive</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.negative.html">cunumeric.negative</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.multiply.html">cunumeric.multiply</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.divide.html">cunumeric.divide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.power.html">cunumeric.power</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.subtract.html">cunumeric.subtract</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.true_divide.html">cunumeric.true_divide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.floor_divide.html">cunumeric.floor_divide</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.float_power.html">cunumeric.float_power</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fmod.html">cunumeric.fmod</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.mod.html">cunumeric.mod</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.modf.html">cunumeric.modf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.remainder.html">cunumeric.remainder</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.real.html">cunumeric.real</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.imag.html">cunumeric.imag</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.conj.html">cunumeric.conj</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.conjugate.html">cunumeric.conjugate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.maximum.html">cunumeric.maximum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fmax.html">cunumeric.fmax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.amax.html">cunumeric.amax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.minimum.html">cunumeric.minimum</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fmin.html">cunumeric.fmin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.amin.html">cunumeric.amin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nanmin.html">cunumeric.nanmin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nanmax.html">cunumeric.nanmax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.convolve.html">cunumeric.convolve</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.clip.html">cunumeric.clip</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.sqrt.html">cunumeric.sqrt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.cbrt.html">cunumeric.cbrt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.square.html">cunumeric.square</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.absolute.html">cunumeric.absolute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fabs.html">cunumeric.fabs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.sign.html">cunumeric.sign</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.inner.html">cunumeric.inner</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.outer.html">cunumeric.outer</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.vdot.html">cunumeric.vdot</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../fft.html">Discrete Fourier Transform (<code class="xref py py-mod docutils literal notranslate"><span class="pre">cunumeric.fft</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-11" name="toctree-checkbox-11" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-11"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.fft.html">cunumeric.fft.fft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.ifft.html">cunumeric.fft.ifft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.fft2.html">cunumeric.fft.fft2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.ifft2.html">cunumeric.fft.ifft2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.fftn.html">cunumeric.fft.fftn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.ifftn.html">cunumeric.fft.ifftn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.rfft.html">cunumeric.fft.rfft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.irfft.html">cunumeric.fft.irfft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.rfft2.html">cunumeric.fft.rfft2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.irfft2.html">cunumeric.fft.irfft2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.rfftn.html">cunumeric.fft.rfftn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.irfftn.html">cunumeric.fft.irfftn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.hfft.html">cunumeric.fft.hfft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.fft.ihfft.html">cunumeric.fft.ihfft</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../random.html">Random sampling (<code class="xref py py-mod docutils literal notranslate"><span class="pre">cunumeric.random</span></code>)</a><input class="toctree-checkbox" id="toctree-checkbox-12" name="toctree-checkbox-12" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-12"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.default_rng.html">cunumeric.random.default_rng</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../_generator.html">cunumeric.random.Generator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../_bitgenerator.html">cunumeric.random.BitGenerator</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.seed.html">cunumeric.random.seed</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.default_rng.html">cunumeric.random.default_rng</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.rand.html">cunumeric.random.rand</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.randn.html">cunumeric.random.randn</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.randint.html">cunumeric.random.randint</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.random.html">cunumeric.random.random</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.random_integers.html">cunumeric.random.random_integers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.random_sample.html">cunumeric.random.random_sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.bytes.html">cunumeric.random.bytes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.beta.html">cunumeric.random.beta</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.binomial.html">cunumeric.random.binomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.chisquare.html">cunumeric.random.chisquare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.exponential.html">cunumeric.random.exponential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.f.html">cunumeric.random.f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.gamma.html">cunumeric.random.gamma</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.geometric.html">cunumeric.random.geometric</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.gumbel.html">cunumeric.random.gumbel</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.hypergeometric.html">cunumeric.random.hypergeometric</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.laplace.html">cunumeric.random.laplace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.logistic.html">cunumeric.random.logistic</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.lognormal.html">cunumeric.random.lognormal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.logseries.html">cunumeric.random.logseries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.negative_binomial.html">cunumeric.random.negative_binomial</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.noncentral_chisquare.html">cunumeric.random.noncentral_chisquare</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.noncentral_f.html">cunumeric.random.noncentral_f</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.normal.html">cunumeric.random.normal</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.pareto.html">cunumeric.random.pareto</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.poisson.html">cunumeric.random.poisson</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.power.html">cunumeric.random.power</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.ranf.html">cunumeric.random.ranf</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.rayleigh.html">cunumeric.random.rayleigh</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.sample.html">cunumeric.random.sample</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.standard_cauchy.html">cunumeric.random.standard_cauchy</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.standard_exponential.html">cunumeric.random.standard_exponential</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.standard_gamma.html">cunumeric.random.standard_gamma</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.standard_t.html">cunumeric.random.standard_t</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.triangular.html">cunumeric.random.triangular</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.uniform.html">cunumeric.random.uniform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.vonmises.html">cunumeric.random.vonmises</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.wald.html">cunumeric.random.wald</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.weibull.html">cunumeric.random.weibull</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.random.zipf.html">cunumeric.random.zipf</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../set.html">Set routines</a><input class="toctree-checkbox" id="toctree-checkbox-13" name="toctree-checkbox-13" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-13"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.unique.html">cunumeric.unique</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../sorting.html">Sorting, searching, and counting</a><input class="toctree-checkbox" id="toctree-checkbox-14" name="toctree-checkbox-14" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-14"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.argpartition.html">cunumeric.argpartition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.argsort.html">cunumeric.argsort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.msort.html">cunumeric.msort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.partition.html">cunumeric.partition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.sort.html">cunumeric.sort</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.sort_complex.html">cunumeric.sort_complex</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.argmax.html">cunumeric.argmax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.argmin.html">cunumeric.argmin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.argwhere.html">cunumeric.argwhere</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.flatnonzero.html">cunumeric.flatnonzero</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nanargmax.html">cunumeric.nanargmax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nanargmin.html">cunumeric.nanargmin</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.nonzero.html">cunumeric.nonzero</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.searchsorted.html">cunumeric.searchsorted</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.extract.html">cunumeric.extract</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.where.html">cunumeric.where</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.count_nonzero.html">cunumeric.count_nonzero</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../statistics.html">Statistics</a><input class="toctree-checkbox" id="toctree-checkbox-15" name="toctree-checkbox-15" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-15"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.mean.html">cunumeric.mean</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.var.html">cunumeric.var</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.bincount.html">cunumeric.bincount</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.histogram.html">cunumeric.histogram</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.quantile.html">cunumeric.quantile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.percentile.html">cunumeric.percentile</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="../window.html">Window functions</a><input class="toctree-checkbox" id="toctree-checkbox-16" name="toctree-checkbox-16" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-16"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.bartlett.html">cunumeric.bartlett</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.blackman.html">cunumeric.blackman</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.hamming.html">cunumeric.hamming</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.hanning.html">cunumeric.hanning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cunumeric.kaiser.html">cunumeric.kaiser</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../settings.html">Settings</a></li>
+</ul>
+</div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item"><nav class="sidebar-indices-items">
+  <p class="sidebar-indices-items__title" role="heading" aria-level="1">Indices</p>
+  <ul class="indices-link">
+        <li class="toctree-l1">
+          <a class="reference internal"
+             href="../../genindex.html"
+             accesskey="I">General Index</a>
+        </li>
+        <li class="toctree-l1">
+          <a class="reference internal" href="../../py-modindex.html">Python Module Index</a>
+        </li>
+  </ul>
+</nav></div>
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item">
+
+
+
+
+
+<nav aria-label="Breadcrumb">
+  <ul class="bd-breadcrumbs">
+    
+    <li class="breadcrumb-item breadcrumb-home">
+      <a href="../../index.html" class="nav-link" aria-label="Home">
+        <i class="fa-solid fa-home"></i>
+      </a>
+    </li>
+    
+    <li class="breadcrumb-item"><a href="../index.html" class="nav-link">API Reference</a></li>
+    
+    
+    <li class="breadcrumb-item"><i class="fa-solid fa-ellipsis"></i></li>
+    
+    
+    <li class="breadcrumb-item"><a href="../ndarray.html" class="nav-link">The N-Dimensional array (<code class="xref py py-class docutils literal notranslate"><span class="pre">cunumeric.ndarray</span></code>)</a></li>
+    
+    <li class="breadcrumb-item active" aria-current="page">cunumeric.nd...</li>
+  </ul>
+</nav>
+</div>
+      
+    </div>
+  
+  
+</div>
+</div>
+              
+              
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="cunumeric-ndarray-nbytes">
+<h1>cunumeric.ndarray.nbytes<a class="headerlink" href="#cunumeric-ndarray-nbytes" title="Link to this heading">#</a></h1>
+<dl class="py property">
+<dt class="sig sig-object py" id="cunumeric.ndarray.nbytes">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">ndarray.</span></span><span class="sig-name descname"><span class="pre">nbytes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.12)"><span class="pre">int</span></a></em><a class="headerlink" href="#cunumeric.ndarray.nbytes" title="Link to this definition">#</a></dt>
+<dd><p>Total bytes consumed by the elements of the array.</p>
+<p class="rubric">Notes</p>
+<p>Does not include memory consumed by non-element attributes of the
+array object.</p>
+</dd></dl>
+
+</section>
+
+
+                </article>
+              
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  <!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="cunumeric.ndarray.itemsize.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">cunumeric.ndarray.itemsize</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="cunumeric.ndarray.base.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">cunumeric.ndarray.base</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> On this page
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#cunumeric.ndarray.nbytes"><code class="docutils literal notranslate"><span class="pre">ndarray.nbytes</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+          </footer>
+        
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="../../_static/scripts/bootstrap.js?digest=365ca57ee442770a23c6"></script>
+<script src="../../_static/scripts/pydata-sphinx-theme.js?digest=365ca57ee442770a23c6"></script>
+
+  <footer class="bd-footer">
+<div class="bd-footer__inner bd-page-width">
+  
+    <div class="footer-items__start">
+      
+        <div class="footer-item">
+  <p class="copyright">
+    
+      © Copyright 2021-2023, NVIDIA.
+      <br/>
+    
+  </p>
+</div>
+      
+    </div>
+  
+  
+  
+    <div class="footer-items__end">
+      
+        <div class="footer-item"><p class="theme-version">
+  Built with the <a href="https://pydata-sphinx-theme.readthedocs.io/en/stable/index.html">PyData Sphinx Theme</a> 0.14.3.
+</p></div>
+      
+    </div>
+  
+</div>
+
+  </footer>
+  </body>
+</html>

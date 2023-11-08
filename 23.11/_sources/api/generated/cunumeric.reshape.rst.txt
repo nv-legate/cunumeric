@@ -1,0 +1,6 @@
+﻿cunumeric.reshape
+=================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: reshape

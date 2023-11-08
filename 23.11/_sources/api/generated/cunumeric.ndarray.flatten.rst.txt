@@ -1,0 +1,6 @@
+﻿cunumeric.ndarray.flatten
+=========================
+
+.. currentmodule:: cunumeric
+
+.. automethod:: ndarray.flatten

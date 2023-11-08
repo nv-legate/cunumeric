@@ -1,0 +1,6 @@
+﻿cunumeric.partition
+===================
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: partition

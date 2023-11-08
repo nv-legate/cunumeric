@@ -1,0 +1,6 @@
+﻿cunumeric.nextafter
+===================
+
+.. currentmodule:: cunumeric
+
+.. autoufunc:: nextafter

@@ -1,0 +1,6 @@
+﻿cunumeric.flip
+==============
+
+.. currentmodule:: cunumeric
+
+.. autofunction:: flip
