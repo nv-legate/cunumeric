@@ -3166,7 +3166,7 @@ class ndarray:
         sum_array = sum_array.astype(dtype)
         if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(
-                np.array(divisor, dtype=dtype),
+                divisor.astype(dtype),
             )
         else:
             sum_array.__ifloordiv__(np.array(divisor, dtype=dtype))
