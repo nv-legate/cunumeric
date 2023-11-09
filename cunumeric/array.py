@@ -3181,7 +3181,7 @@ class ndarray:
     @add_boilerplate()
     def _nanmean(
         self,
-        axis: Any = None,
+        axis: Optional[Union[int, tuple[int, ...]]] = None,
         dtype: Union[np.dtype[Any], None] = None,
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
