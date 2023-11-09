@@ -3169,7 +3169,7 @@ class ndarray:
                 divisor.astype(dtype),
             )
         else:
-            sum_array.__ifloordiv__(np.array(divisor, dtype=dtype))
+            sum_array.__ifloordiv__(divisor.astype(dtype))
         # Convert to the output we didn't already put it there
         if out is not None and sum_array is not out:
             assert out.dtype != sum_array.dtype
