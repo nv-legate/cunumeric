@@ -34,7 +34,7 @@ struct ScalarUnaryRed {
 };
 
 template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, false> {
+struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, false /*doesn't have where*/> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
   using LHS   = typename OP::VAL;
@@ -122,7 +122,7 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, false> {
 };
 
 template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true> {
+struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true /*has where*/> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
   using LHS   = typename OP::VAL;
@@ -158,35 +158,24 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true> {
     out = args.out.reduce_accessor<LG_OP, true, 1>();
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
 
-    if ((args.has_where == true) && (OP_CODE != UnaryRedCode::CONTAINS)) {
-      where = args.where.read_accessor<bool, DIM>(rect);
+    where = args.where.read_accessor<bool, DIM>(rect);
 #ifndef LEGATE_BOUNDS_CHECKS
-      if (in.accessor.is_dense_row_major(rect) && where.accessor.is_dense_row_major(rect)) {
-        dense    = true;
-        inptr    = in.ptr(rect);
-        whereptr = where.ptr(rect);
-      }
-#endif
-    } else {
-#ifndef LEGATE_BOUNDS_CHECKS
-      // Check to see if this is dense or not
-      if (in.accessor.is_dense_row_major(rect)) {
-        dense = true;
-        inptr = in.ptr(rect);
-      }
-#endif
+    if (in.accessor.is_dense_row_major(rect) && where.accessor.is_dense_row_major(rect)) {
+      dense    = true;
+      inptr    = in.ptr(rect);
+      whereptr = where.ptr(rect);
     }
+#endif
   }
 
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, DenseReduction) const noexcept
   {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      if (inptr[idx] == to_find) { lhs = true; }
+      if (whereptr[idx] && (inptr[idx] == to_find)) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
-      if (whereptr[idx])
-        OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
+      if (whereptr[idx]) OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
     } else {
       if (whereptr[idx]) OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
     }
@@ -194,16 +183,14 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true> {
 
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, SparseReduction) const noexcept
   {
+    auto p = pitches.unflatten(idx, origin);
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      auto point = pitches.unflatten(idx, origin);
-      if (in[point] == to_find) { lhs = true; }
+      if (where[p] && (in[p] == to_find)) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
-      auto p = pitches.unflatten(idx, origin);
-      if (where[p] == true) OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
+      if (where[p]) OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
     } else {
-      auto p = pitches.unflatten(idx, origin);
-      if (where[p] == true) OP::template fold<true>(lhs, OP::convert(in[p], identity));
+      if (where[p]) OP::template fold<true>(lhs, OP::convert(in[p], identity));
     }
   }
 
@@ -216,29 +203,24 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true> {
     if constexpr (KIND != VariantKind::GPU) {
       // Check to see if this is dense or not
       if (dense) {
-       ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
-       return;
+        ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
+        return;
       }
     }
 #endif
-   ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
+    ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
   }
 };
 
-template <VariantKind KIND, UnaryRedCode OP_CODE>
+template <VariantKind KIND, UnaryRedCode OP_CODE, int HAS_WHERE>
 struct ScalarUnaryRedImpl {
   template <Type::Code CODE, int DIM>
   void operator()(ScalarUnaryRedArgs& args) const
   {
     // The operation is always valid for contains
     if constexpr (UnaryRedOp<OP_CODE, CODE>::valid || OP_CODE == UnaryRedCode::CONTAINS) {
-      if (args.has_where) {
-        ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true> red(args);
-        red.execute();
-      } else {
-        ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, false> red(args);
-        red.execute();
-      }
+      ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, HAS_WHERE> red(args);
+      red.execute();
     }
   }
 };
@@ -246,10 +228,13 @@ struct ScalarUnaryRedImpl {
 template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
   template <UnaryRedCode OP_CODE>
-  void operator()(ScalarUnaryRedArgs& args) const
+  void operator()(ScalarUnaryRedArgs& args, bool has_where) const
   {
     auto dim = std::max(1, args.in.dim());
-    double_dispatch(dim, args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
+    if (has_where)
+      double_dispatch(dim, args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE, true>{}, args);
+    else
+      double_dispatch(dim, args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE, false>{}, args);
   }
 };
 
@@ -266,28 +251,21 @@ static void scalar_unary_red_template(TaskContext& context)
   std::vector<Store> extra_args;
   extra_args.reserve(inputs.size());
   for (size_t idx = start_idx; idx < inputs.size(); ++idx)
-     extra_args.emplace_back(std::move(inputs[idx]));
+    extra_args.emplace_back(std::move(inputs[idx]));
   // If the RHS was a scalar, use (1,) as the shape
   if (shape.dim == 0) {
     shape.dim = 1;
     shape[0]  = 1;
   }
 
-  if (has_where) {
-    ScalarUnaryRedArgs args{context.reductions()[0],
-                            inputs[0],
-                            inputs[1],
-                            has_where,
-                            op_code,
-                            shape,
-                            std::move(extra_args)};
-    op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
-  } else {
-    Array where;
-    ScalarUnaryRedArgs args{
-      context.reductions()[0], inputs[0], where, has_where, op_code, shape, std::move(extra_args)};
-    op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
-  }
+  Array dummy_where;
+  ScalarUnaryRedArgs args{context.reductions()[0],
+                          inputs[0],
+                          has_where ? inputs[1] : dummy_where,
+                          op_code,
+                          shape,
+                          std::move(extra_args)};
+  op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args, has_where);
 }
 
 }  // namespace cunumeric

@@ -25,7 +25,6 @@ struct ScalarUnaryRedArgs {
   const Array& out;
   const Array& in;
   const Array& where;
-  bool has_where;
   UnaryRedCode op_code;
   legate::DomainPoint shape;
   std::vector<legate::Store> args;

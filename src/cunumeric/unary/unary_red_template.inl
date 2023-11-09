@@ -89,22 +89,13 @@ static void unary_red_template(TaskContext& context)
   auto& reductions = context.reductions();
   auto& scalars    = context.scalars();
   bool has_where   = scalars[2].value<bool>();
-  if (has_where) {
-    UnaryRedArgs args{reductions[0],
-                      inputs[0],
-                      inputs[1],
-                      scalars[0].value<int32_t>(),
-                      scalars[1].value<UnaryRedCode>()};
-    op_dispatch(args.op_code, UnaryRedDispatch<KIND, true>{}, args);
-  } else {
-    Array where;
-    UnaryRedArgs args{reductions[0],
-                      inputs[0],
-                      where,
-                      scalars[0].value<int32_t>(),
-                      scalars[1].value<UnaryRedCode>()};
-    op_dispatch(args.op_code, UnaryRedDispatch<KIND, false>{}, args);
-  }
+  Array dummy_where;
+  UnaryRedArgs args{reductions[0],
+                    inputs[0],
+                    has_where ? inputs[1] : dummy_where,
+                    scalars[0].value<int32_t>(),
+                    scalars[1].value<UnaryRedCode>()};
+  op_dispatch(args.op_code, UnaryRedDispatch<KIND, false>{}, args);
 }
 
 }  // namespace cunumeric
