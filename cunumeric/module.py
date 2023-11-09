@@ -7093,11 +7093,6 @@ def nanmean(
         in the result as dimensions with size one. With this option,
         the result will broadcast correctly against the input array.
 
-        If the default value is passed, then `keepdims` will not be
-        passed through to the `mean` method of sub-classes of
-        `ndarray`, however any non-default value will be.  If the
-        sub-class' method does not implement `keepdims` any
-        exceptions will be raised.
 
     where : array_like of bool, optional
         Elements to include in the mean.
