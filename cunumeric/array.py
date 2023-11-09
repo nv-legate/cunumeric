@@ -3160,7 +3160,7 @@ class ndarray:
             if where_array is not None:
                 divisor = where_array._count_nonzero(axis=axis)
             else:
-                divisor = self.shape[axis]
+                divisor = np.array(self.shape[axis])
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
         sum_array = sum_array.astype(dtype)
