@@ -3194,30 +3194,14 @@ class ndarray:
                 axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
             )
 
-        if dtype is None:
-            dtype = self.dtype
-
         nan_mask = _ufunc.bit_twiddling.bitwise_not(
             _ufunc.floating.isnan(self)
         )
-        normalizer = nan_mask.sum(axis=axis, keepdims=keepdims, where=where)
-        sum_array = self._nansum(axis, keepdims=keepdims, where=where)
-        sum_array = sum_array.astype(dtype)
-        if dtype.kind == "f" or dtype.kind == "c":
-            sum_array.__itruediv__(
-                np.array(normalizer, dtype=dtype),
-            )
-        else:
-            sum_array.__ifloordiv__(np.array(normalizer, dtype=dtype))
-
-        if out is not None and sum_array is not out:
-            if out.dtype != sum_array.dtype:
-                out._thunk.convert(sum_array._thunk)
-            else:
-                out = sum_array
-            return out
-        else:
-            return sum_array
+        if where is not None:
+            nan_mask &= where
+        return self.mean(
+            axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=nan_mask
+        )
 
     @add_boilerplate()
     def min(
