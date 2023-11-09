@@ -216,11 +216,12 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true> {
     if constexpr (KIND != VariantKind::GPU) {
       // Check to see if this is dense or not
       if (dense) {
-        return ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
+       ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
+       return;
       }
     }
 #endif
-    return ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
+   ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
   }
 };
 
