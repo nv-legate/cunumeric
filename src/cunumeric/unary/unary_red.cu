@@ -202,7 +202,7 @@ std::ostream& operator<<(std::ostream& os, const ThreadBlocks<DIM>& blocks)
 }
 
 template <typename REDOP, typename LHS, int32_t DIM>
-static void __device__ collapse_dims(LHS& result,
+static void __device__ __forceinline__ collapse_dims(LHS& result,
                                      Point<DIM>& point,
                                      const Rect<DIM>& domain,
                                      int32_t collapsed_dim,
