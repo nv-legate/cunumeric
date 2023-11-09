@@ -3152,13 +3152,13 @@ class ndarray:
 
         if axis is None:
             if where_array is not None:
-                divisor = where_array._count_nonzero()
+                divisor = np.array(where_array._count_nonzero())
             else:
                 divisor = np.array(reduce(lambda x, y: x * y, self.shape, 1))
 
         else:
             if where_array is not None:
-                divisor = where_array._count_nonzero(axis=axis)
+                divisor = np.array(where_array._count_nonzero(axis=axis))
             else:
                 divisor = np.array(self.shape[axis])
         # Divide by the number of things in the collapsed dimensions
