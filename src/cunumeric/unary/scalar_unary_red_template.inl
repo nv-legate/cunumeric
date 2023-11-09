@@ -273,7 +273,7 @@ static void scalar_unary_red_template(TaskContext& context)
     shape[0]  = 1;
   }
 
-  if (has_where == true) {
+  if (has_where) {
     ScalarUnaryRedArgs args{context.reductions()[0],
                             inputs[0],
                             inputs[1],
