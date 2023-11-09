@@ -1499,7 +1499,7 @@ class EagerArray(NumPyThunk):
                 initial,
             )
             return
-        if not where:
+        if where is None:
             where = True
         if op in _UNARY_RED_OPS_WITH_ARG:
             fn = _UNARY_RED_OPS_WITH_ARG[op]
