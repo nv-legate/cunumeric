@@ -185,7 +185,7 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true> {
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
-      if (whereptr[idx] == true)
+      if (whereptr[idx])
         OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
     } else {
       if (whereptr[idx] == true) OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
