@@ -3154,7 +3154,7 @@ class ndarray:
             if where_array is not None:
                 divisor = where_array._count_nonzero()
             else:
-                divisor = reduce(lambda x, y: x * y, self.shape, 1)
+                divisor = np.array(reduce(lambda x, y: x * y, self.shape, 1))
 
         else:
             if where_array is not None:
