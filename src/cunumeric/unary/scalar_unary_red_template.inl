@@ -188,7 +188,7 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true> {
       if (whereptr[idx])
         OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
     } else {
-      if (whereptr[idx] == true) OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
+      if (whereptr[idx]) OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
     }
   }
 
