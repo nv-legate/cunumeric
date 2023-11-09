@@ -7100,7 +7100,7 @@ def nanmean(
     Returns
     -------
     m : ndarray
-        If `out=None`, returns a new array of the same dtype a above
+        If `out=None`, returns a new array of the same dtype as a above
         containing the mean values, otherwise a reference to the output
         array is returned.
 
