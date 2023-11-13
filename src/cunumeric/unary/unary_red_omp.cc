@@ -72,34 +72,8 @@ class Splitter {
   size_t pitches_[DIM];
 };
 
-template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM> {
-  using OP    = UnaryRedOp<OP_CODE, CODE>;
-  using LG_OP = typename OP::OP;
-  using RHS   = legate_type_of<CODE>;
-
-  void operator()(AccessorRD<LG_OP, true, DIM> lhs,
-                  AccessorRO<RHS, DIM> rhs,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  int collapsed_dim,
-                  size_t volume) const
-  {
-    Splitter<DIM> splitter;
-    auto split = splitter.split(rect, collapsed_dim);
-
-#pragma omp parallel for schedule(static)
-    for (size_t o_idx = 0; o_idx < split.outer; ++o_idx)
-      for (size_t i_idx = 0; i_idx < split.inner; ++i_idx) {
-        auto point    = splitter.combine(o_idx, i_idx, rect.lo);
-        auto identity = LG_OP::identity;
-        lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
-      }
-  }
-};
-
-template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct UnaryRedImplBodyWhere<VariantKind::OMP, OP_CODE, CODE, DIM> {
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM, bool HAS_WHERE>
+struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM, HAS_WHERE> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
   using RHS   = legate_type_of<CODE>;
@@ -120,8 +94,9 @@ struct UnaryRedImplBodyWhere<VariantKind::OMP, OP_CODE, CODE, DIM> {
       for (size_t i_idx = 0; i_idx < split.inner; ++i_idx) {
         auto point    = splitter.combine(o_idx, i_idx, rect.lo);
         auto identity = LG_OP::identity;
-        if (where[point] == true)
-          lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
+        bool mask     = true;
+        if constexpr (HAS_WHERE) mask = (where[point] == true);
+        if (mask) lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
       }
   }
 };

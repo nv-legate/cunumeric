@@ -27,11 +27,8 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
+template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM, bool HAS_WHERE>
 struct UnaryRedImplBody;
-
-template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct UnaryRedImplBodyWhere;
 
 template <VariantKind KIND, UnaryRedCode OP_CODE, bool HAS_WHERE>
 struct UnaryRedImpl {
@@ -55,11 +52,11 @@ struct UnaryRedImpl {
 
     if constexpr (HAS_WHERE) {
       auto where = args.where.read_accessor<bool, DIM>(rect);
-      UnaryRedImplBodyWhere<KIND, OP_CODE, CODE, DIM>()(
+      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM, HAS_WHERE>()(
         lhs, rhs, where, rect, pitches, args.collapsed_dim, volume);
     } else {
-      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM>()(
-        lhs, rhs, rect, pitches, args.collapsed_dim, volume);
+      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM, HAS_WHERE>()(
+        lhs, rhs, AccessorRO<bool, DIM>(), rect, pitches, args.collapsed_dim, volume);
     }
   }
 

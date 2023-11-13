@@ -203,11 +203,11 @@ std::ostream& operator<<(std::ostream& os, const ThreadBlocks<DIM>& blocks)
 
 template <typename REDOP, typename LHS, int32_t DIM>
 static void __device__ __forceinline__ collapse_dims(LHS& result,
-                                     Point<DIM>& point,
-                                     const Rect<DIM>& domain,
-                                     int32_t collapsed_dim,
-                                     LHS identity,
-                                     coord_t tid)
+                                                     Point<DIM>& point,
+                                                     const Rect<DIM>& domain,
+                                                     int32_t collapsed_dim,
+                                                     LHS identity,
+                                                     coord_t tid)
 {
 #if __CUDA_ARCH__ >= 700
   // If we're collapsing the innermost dimension, we perform some optimization
@@ -347,35 +347,8 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   if (result != identity) out.reduce(point, result);
 }
 
-template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
-  using OP    = UnaryRedOp<OP_CODE, CODE>;
-  using LG_OP = typename OP::OP;
-  using RHS   = legate_type_of<CODE>;
-  using LHS   = typename OP::VAL;
-
-  void operator()(AccessorRD<LG_OP, false, DIM> lhs,
-                  AccessorRO<RHS, DIM> rhs,
-                  const Rect<DIM>& rect,
-                  const Pitches<DIM - 1>& pitches,
-                  int collapsed_dim,
-                  size_t volume) const
-  {
-    auto Kernel = reduce_with_rd_acc<OP, LG_OP, LHS, RHS, DIM>;
-    auto stream = get_cached_stream();
-
-    ThreadBlocks<DIM> blocks;
-    blocks.initialize(rect, collapsed_dim);
-
-    blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
-    Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
-      lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
-    CHECK_CUDA_STREAM(stream);
-  }
-};
-
-template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct UnaryRedImplBodyWhere<VariantKind::GPU, OP_CODE, CODE, DIM> {
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM, bool HAS_WHERE>
+struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM, HAS_WHERE> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
   using RHS   = legate_type_of<CODE>;
@@ -389,15 +362,19 @@ struct UnaryRedImplBodyWhere<VariantKind::GPU, OP_CODE, CODE, DIM> {
                   int collapsed_dim,
                   size_t volume) const
   {
-    auto Kernel = reduce_with_rd_acc_where<OP, LG_OP, LHS, RHS, DIM>;
+    auto Kernel = reduce_with_rd_acc<OP, LG_OP, LHS, RHS, DIM>;
     auto stream = get_cached_stream();
 
     ThreadBlocks<DIM> blocks;
     blocks.initialize(rect, collapsed_dim);
 
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
-    Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
-      lhs, rhs, where, LG_OP::identity, blocks, rect, collapsed_dim);
+    if constexpr (HAS_WHERE)
+      Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
+        lhs, rhs, where, LG_OP::identity, blocks, rect, collapsed_dim);
+    else
+      Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
+        lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
     CHECK_CUDA_STREAM(stream);
   }
 };
