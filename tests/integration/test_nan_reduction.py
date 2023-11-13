@@ -301,7 +301,31 @@ class TestNanReductions:
         out_num = num.nanprod(arr, where=[False, True, True])
         assert np.allclose(out_np, out_num)
 
+        out_np = np.nanmax(
+            arr, where=[[False, True, True], [False, False, True]], initial=-1
+        )
+        out_num = num.nanmax(
+            arr, where=[[False, True, True], [False, False, True]], initial=-1
+        )
+        assert np.allclose(out_np, out_num)
+
+        out_np = np.nanmin(
+            arr, where=[[False, True, True], [False, True, True]], initial=10
+        )
+        out_num = num.nanmin(
+            arr, where=[[False, True, True], [False, True, True]], initial=10
+        )
+        assert np.allclose(out_np, out_num)
+
         # where is a boolean
+        out_np = np.nansum(arr, where=True)
+        out_num = num.nansum(arr, where=True)
+        assert np.allclose(out_np, out_num)
+
+        out_np = np.nanprod(arr, where=False)
+        out_num = num.nanprod(arr, where=False)
+        assert np.allclose(out_np, out_num)
+
         out_np = np.nanmax(arr, where=True, initial=-1)
         out_num = num.nanmax(arr, where=True, initial=-1)
         assert np.allclose(out_np, out_num)

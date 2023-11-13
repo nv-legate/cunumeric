@@ -5803,8 +5803,8 @@ def nanmin(
     )
 
     if cunumeric_settings.numpy_compat() and a.dtype.kind == "f":
-        where = all(isnan(a), axis=axis, keepdims=keepdims)
-        putmask(out_array, where, np.nan)  # type: ignore
+        all_nan = all(isnan(a), axis=axis, keepdims=keepdims, where=where)
+        putmask(out_array, all_nan, np.nan)  # type: ignore
 
     return out_array
 
@@ -5899,8 +5899,8 @@ def nanmax(
     )
 
     if cunumeric_settings.numpy_compat() and a.dtype.kind == "f":
-        where = all(isnan(a), axis=axis, keepdims=keepdims)
-        putmask(out_array, where, np.nan)  # type: ignore
+        all_nan = all(isnan(a), axis=axis, keepdims=keepdims, where=where)
+        putmask(out_array, all_nan, np.nan)  # type: ignore
 
     return out_array
 
