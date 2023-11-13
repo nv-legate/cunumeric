@@ -22,7 +22,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Literal,
     Optional,
     Sequence,
     TypeVar,
@@ -4115,33 +4114,31 @@ class ndarray:
         out: Union[Any, None] = None,
         extra_args: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
-        where: Union[None, ndarray] = None,
         out_dtype: Union[np.dtype[Any], None] = None,
     ) -> ndarray:
         if out is not None:
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
-            if isinstance(where, ndarray):
-                np.broadcast_shapes(src.shape, out.shape, where.shape)
-            else:
-                np.broadcast_shapes(src.shape, out.shape)
+            if np.broadcast_shapes(src.shape, out.shape) != out.shape:
+                raise ValueError(
+                    f"non-broadcastable output operand with shape {out.shape} "
+                    f"doesn't match the broadcast shape {src.shape}"
+                )
         else:
             # No output yet, so make one
-            if isinstance(where, ndarray):
-                out_shape = np.broadcast_shapes(src.shape, where.shape)
-            else:
-                out_shape = src.shape
+            out_shape = src.shape
+
             if dtype is not None:
                 out = ndarray(
                     shape=out_shape,
                     dtype=dtype,
-                    inputs=(src, where),
+                    inputs=(src,),
                 )
             elif out_dtype is not None:
                 out = ndarray(
                     shape=out_shape,
                     dtype=out_dtype,
-                    inputs=(src, where),
+                    inputs=(src,),
                 )
             else:
                 out = ndarray(
@@ -4151,10 +4148,9 @@ class ndarray:
                     else np.dtype(np.float32)
                     if src.dtype == np.dtype(np.complex64)
                     else np.dtype(np.float64),
-                    inputs=(src, where),
+                    inputs=(src,),
                 )
 
-        where_array = broadcast_where(where, out.shape)
         if out_dtype is None:
             if out.dtype != src.dtype and not (
                 op == UnaryOpCode.ABSOLUTE and src.dtype.kind == "c"
@@ -4162,12 +4158,12 @@ class ndarray:
                 temp = ndarray(
                     out.shape,
                     dtype=src.dtype,
-                    inputs=(src, where_array),
+                    inputs=(src,),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where_array, out.shape),
+                    True,
                     extra_args,
                 )
                 out._thunk.convert(temp._thunk)
@@ -4175,7 +4171,7 @@ class ndarray:
                 out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where_array, out.shape),
+                    True,
                     extra_args,
                 )
         else:
@@ -4183,12 +4179,12 @@ class ndarray:
                 temp = ndarray(
                     out.shape,
                     dtype=out_dtype,
-                    inputs=(src, where_array),
+                    inputs=(src,),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where_array, out.shape),
+                    True,
                     extra_args,
                 )
                 out._thunk.convert(temp._thunk)
@@ -4196,7 +4192,7 @@ class ndarray:
                 out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where_array, out.shape),
+                    True,
                     extra_args,
                 )
         return out
@@ -4236,13 +4232,6 @@ class ndarray:
 
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
-        if where is not None and isinstance(where, ndarray):
-            # The where array has to broadcast to the src.shape
-            if np.broadcast_shapes(src.shape, where.shape) != src.shape:
-                raise ValueError(
-                    '"where" array must broadcast against source array '
-                    "for reduction"
-                )
         if (
             op
             in (
