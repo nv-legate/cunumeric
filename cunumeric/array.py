@@ -130,13 +130,11 @@ def add_boilerplate(
             for k, v in kwargs.items():
                 if v is None:
                     continue
-                elif k == "where":
-                    kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                     if not kwargs[k].flags.writeable:
                         raise ValueError("out is not writeable")
-                elif k in keys:
+                elif (k in keys) or (k == "where"):
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
 
             return func(*args, **kwargs)
@@ -156,13 +154,6 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
         obj.flags.writeable if isinstance(obj, np.ndarray) and share else True
     )
     return ndarray(shape=None, thunk=thunk, writeable=writeable)
-
-
-def convert_to_predicate_ndarray(obj: Any) -> Any:
-    # Keep all boolean types and None as they are
-    if obj is True or obj is False or obj is None:
-        return obj
-    return convert_to_cunumeric_ndarray(obj)
 
 
 def maybe_convert_to_np_ndarray(obj: Any) -> Any:
@@ -188,20 +179,15 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
 
 
 def broadcast_where(
-    where: Union[bool, ndarray, None], shape: NdShape
+    where: Union[ndarray, None], shape: NdShape
 ) -> Union[ndarray, None]:
-    if where is not None:
-        where_array = convert_to_cunumeric_ndarray(where)
-    else:
-        where_array = None
-
-    if where_array is not None and where_array.shape != shape:
-        where_array = ndarray(
+    if where is not None and where.shape != shape:
+        where = ndarray(
             shape=shape,
-            thunk=where_array._thunk.broadcast_to(shape),
+            thunk=where._thunk.broadcast_to(shape),
             writeable=False,
         )
-    return where_array
+    return where
 
 
 class flagsobj:
@@ -4129,7 +4115,7 @@ class ndarray:
         out: Union[Any, None] = None,
         extra_args: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
-        where: Union[bool, None, ndarray] = True,
+        where: Union[None, ndarray] = None,
         out_dtype: Union[np.dtype[Any], None] = None,
     ) -> ndarray:
         if out is not None:
@@ -4168,9 +4154,6 @@ class ndarray:
                     inputs=(src, where),
                 )
 
-        # Quick exit
-        if where is False:
-            return out
         where_array = broadcast_where(where, out.shape)
         if out_dtype is None:
             if out.dtype != src.dtype and not (
