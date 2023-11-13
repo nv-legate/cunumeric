@@ -182,11 +182,9 @@ def broadcast_where(
     where: Union[ndarray, None], shape: NdShape
 ) -> Union[ndarray, None]:
     if where is not None and where.shape != shape:
-        where = ndarray(
-            shape=shape,
-            thunk=where._thunk.broadcast_to(shape),
-            writeable=False,
-        )
+        from .module import broadcast_to
+
+        where = broadcast_to(where, shape)
     return where
 
 
@@ -4059,10 +4057,12 @@ class ndarray:
     ) -> Union[Literal[True], None, NumPyThunk]:
         if where is True or where is None:
             return where
-        if not isinstance(where, ndarray) or where.dtype != np.bool_:
+        if (
+            not isinstance(where, ndarray)
+            or where.dtype != np.bool_
+            or where.shape != out_shape
+        ):
             raise RuntimeError("should have converted this earlier")
-        if where.shape != out_shape:
-            raise ValueError("where parameter must have same shape as output")
         return where._thunk
 
     @staticmethod
