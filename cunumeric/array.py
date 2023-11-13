@@ -3111,6 +3111,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         where: Union[ndarray, None] = None,
+        ignore_nan: bool = False,
     ) -> ndarray:
         """a.mean(axis=None, dtype=None, out=None, keepdims=False)
 
@@ -3141,14 +3142,19 @@ class ndarray:
 
         where_array = broadcast_where(where, self.shape)
         # Do the sum
-        if out is not None and out.dtype == dtype:
-            sum_array = self.sum(
+        sum_array = (
+            self._nansum(
                 axis=axis, out=out, keepdims=keepdims, where=where_array
             )
-        else:
-            sum_array = self.sum(
-                axis=axis, keepdims=keepdims, where=where_array
+            if out is not None and out.dtype == dtype and ignore_nan
+            else self.sum(
+                axis=axis, out=out, keepdims=keepdims, where=where_array
             )
+            if out is not None and out.dtype == dtype
+            else self._nansum(axis=axis, keepdims=keepdims, where=where_array)
+            if ignore_nan
+            else self.sum(axis=axis, keepdims=keepdims, where=where_array)
+        )
 
         if axis is None:
             if where_array is not None:
@@ -3158,9 +3164,12 @@ class ndarray:
 
         else:
             if where_array is not None:
-                divisor = np.array(where_array._count_nonzero(axis=axis))
+                divisor = np.array(
+                    where_array.sum(axis=axis, keepdims=keepdims)
+                )
             else:
                 divisor = np.array(self.shape[axis])
+
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
         sum_array = sum_array.astype(dtype)
@@ -3200,7 +3209,12 @@ class ndarray:
         if where is not None:
             nan_mask &= where
         return self.mean(
-            axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=nan_mask
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            keepdims=keepdims,
+            where=nan_mask,
+            ignore_nan=True,
         )
 
     @add_boilerplate()
