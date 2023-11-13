@@ -30,99 +30,6 @@ using namespace legate;
 
 template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM, bool HAS_WHERE>
 struct ScalarUnaryRed {
-  ScalarUnaryRed(ScalarUnaryRedArgs& args) { assert(false); }
-};
-
-template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, false /*doesn't have where*/> {
-  using OP    = UnaryRedOp<OP_CODE, CODE>;
-  using LG_OP = typename OP::OP;
-  using LHS   = typename OP::VAL;
-  using RHS   = legate_type_of<CODE>;
-  using OUT   = AccessorRD<LG_OP, true, 1>;
-  using IN    = AccessorRO<RHS, DIM>;
-
-  IN in;
-  const RHS* inptr;
-  OUT out;
-  size_t volume;
-  Pitches<DIM - 1> pitches;
-  Rect<DIM> rect;
-  Point<DIM> origin;
-  Point<DIM> shape;
-  RHS to_find;
-  bool dense;
-
-  struct DenseReduction {};
-  struct SparseReduction {};
-
-  ScalarUnaryRed(ScalarUnaryRedArgs& args) : dense(false)
-  {
-    rect   = args.in.shape<DIM>();
-    origin = rect.lo;
-    in     = args.in.read_accessor<RHS, DIM>(rect);
-    volume = pitches.flatten(rect);
-    shape  = args.shape;
-
-    out = args.out.reduce_accessor<LG_OP, true, 1>();
-    if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
-
-#ifndef LEGATE_BOUNDS_CHECKS
-    // Check to see if this is dense or not
-    if (in.accessor.is_dense_row_major(rect)) {
-      dense = true;
-      inptr = in.ptr(rect);
-    }
-#endif
-  }
-
-  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, DenseReduction) const noexcept
-  {
-    if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      if (inptr[idx] == to_find) { lhs = true; }
-    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
-                         OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
-      auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
-    } else {
-      OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
-    }
-  }
-
-  __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, SparseReduction) const noexcept
-  {
-    if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      auto point = pitches.unflatten(idx, origin);
-      if (in[point] == to_find) { lhs = true; }
-    } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
-                         OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
-      auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
-    } else {
-      auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(in[p], identity));
-    }
-  }
-
-  void execute() const noexcept
-  {
-    auto identity = LG_OP::identity;
-#ifndef LEGATE_BOUNDS_CHECKS
-    // The constexpr if here prevents the DenseReduction from being instantiated for GPU kernels
-    // which limits compile times and binary sizes.
-    if constexpr (KIND != VariantKind::GPU) {
-      // Check to see if this is dense or not
-      if (dense) {
-        return ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
-      }
-    }
-#endif
-    return ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
-  }
-};
-
-template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true /*has where*/> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
   using LHS   = typename OP::VAL;
@@ -158,39 +65,49 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true /*has where*/> {
     out = args.out.reduce_accessor<LG_OP, true, 1>();
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
 
-    where = args.where.read_accessor<bool, DIM>(rect);
+    if constexpr (HAS_WHERE) where = args.where.read_accessor<bool, DIM>(rect);
 #ifndef LEGATE_BOUNDS_CHECKS
-    if (in.accessor.is_dense_row_major(rect) && where.accessor.is_dense_row_major(rect)) {
-      dense    = true;
-      inptr    = in.ptr(rect);
-      whereptr = where.ptr(rect);
+    // Check to see if this is dense or not
+    if (in.accessor.is_dense_row_major(rect)) {
+      dense = true;
+      inptr = in.ptr(rect);
+    }
+    if constexpr (HAS_WHERE) {
+      dense = dense && where.accessor.is_dense_row_major(rect);
+      if (dense) whereptr = where.ptr(rect);
     }
 #endif
   }
 
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, DenseReduction) const noexcept
   {
+    bool mask = true;
+    if constexpr (HAS_WHERE) mask = (whereptr[idx] == true);
+
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      if (whereptr[idx] && (inptr[idx] == to_find)) { lhs = true; }
+      if (mask && (inptr[idx] == to_find)) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
-      if (whereptr[idx]) OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
+      if (mask) OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
     } else {
-      if (whereptr[idx]) OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
+      if (mask) OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
     }
   }
 
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, SparseReduction) const noexcept
   {
-    auto p = pitches.unflatten(idx, origin);
+    auto p    = pitches.unflatten(idx, origin);
+    bool mask = true;
+    if constexpr (HAS_WHERE) mask = (where[p] == true);
+
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      if (where[p] && (in[p] == to_find)) { lhs = true; }
+      if (mask && (in[p] == to_find)) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
-      if (where[p]) OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
+      if (mask) OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
     } else {
-      if (where[p]) OP::template fold<true>(lhs, OP::convert(in[p], identity));
+      if (mask) OP::template fold<true>(lhs, OP::convert(in[p], identity));
     }
   }
 
@@ -203,12 +120,11 @@ struct ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, true /*has where*/> {
     if constexpr (KIND != VariantKind::GPU) {
       // Check to see if this is dense or not
       if (dense) {
-        ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
-        return;
+        return ScalarReductionPolicy<KIND, LG_OP, DenseReduction>()(volume, out, identity, *this);
       }
     }
 #endif
-    ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
+    return ScalarReductionPolicy<KIND, LG_OP, SparseReduction>()(volume, out, identity, *this);
   }
 };
 
