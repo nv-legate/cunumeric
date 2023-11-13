@@ -4053,9 +4053,9 @@ class ndarray:
 
     @classmethod
     def _get_where_thunk(
-        cls, where: Union[Literal[True], None, ndarray], out_shape: NdShape
-    ) -> Union[Literal[True], None, NumPyThunk]:
-        if where is True or where is None:
+        cls, where: Union[None, ndarray], out_shape: NdShape
+    ) -> Union[None, NumPyThunk]:
+        if where is None:
             return where
         if (
             not isinstance(where, ndarray)
