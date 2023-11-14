@@ -128,7 +128,7 @@ struct ScalarUnaryRed {
   }
 };
 
-template <VariantKind KIND, UnaryRedCode OP_CODE, int HAS_WHERE>
+template <VariantKind KIND, UnaryRedCode OP_CODE, bool HAS_WHERE>
 struct ScalarUnaryRedImpl {
   template <Type::Code CODE, int DIM>
   void operator()(ScalarUnaryRedArgs& args) const

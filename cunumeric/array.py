@@ -3713,7 +3713,6 @@ class ndarray:
             where=where,
         )
 
-    @add_boilerplate()
     def _nansum(
         self,
         axis: Any = None,
