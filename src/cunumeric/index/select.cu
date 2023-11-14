@@ -86,6 +86,7 @@ struct SelectImplBody<VariantKind::GPU, CODE, DIM> {
     const size_t blocks = (out_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
     auto stream = get_cached_stream();
+
     if (dense && (DIM <= 1 || rect.volume() == 0)) {
       auto cond_arr = create_buffer<const bool*>(condlist.size(), legate::Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < condlist.size(); ++idx) cond_arr[idx] = condlist[idx].ptr(rect);
@@ -93,17 +94,19 @@ struct SelectImplBody<VariantKind::GPU, CODE, DIM> {
         create_buffer<const VAL*>(choicelist.size(), legate::Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < choicelist.size(); ++idx)
         choice_arr[idx] = choicelist[idx].ptr(rect);
+
       VAL* outptr = out.ptr(rect);
       select_kernel_dense<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
         outptr, narrays, cond_arr, choice_arr, default_val, out_size);
-    } else {
+
+    } else {  // not dense
       auto cond_arr =
         create_buffer<AccessorRO<bool, DIM>>(condlist.size(), legate::Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < condlist.size(); ++idx) cond_arr[idx] = condlist[idx];
-
       auto choice_arr =
         create_buffer<AccessorRO<VAL, DIM>>(choicelist.size(), legate::Memory::Kind::Z_COPY_MEM);
       for (uint32_t idx = 0; idx < choicelist.size(); ++idx) choice_arr[idx] = choicelist[idx];
+
       if (out_size == 0) return;
       select_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
         out, narrays, cond_arr, choice_arr, default_val, rect, pitches, out_size, rect.volume());
