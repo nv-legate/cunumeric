@@ -26,7 +26,15 @@ struct rayleigh_t<float> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
-    float y = curand_uniform(&gen);  // y cannot be 0
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);  // [0, 1)
+    auto y = dis(gen);
+
+    // bring to (0, 1]; y cannot be 0:
+    y = 1 - y;
+#else
+    auto y = curand_uniform(&gen);  // returns (0, 1]; y cannot be 0
+#endif
     return sigma * ::sqrtf(-2.0f * ::logf(y));
   }
 };
@@ -38,7 +46,15 @@ struct rayleigh_t<double> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
-    double y = curand_uniform_double(&gen);  // y cannot be 0
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::uniform_real_distribution<double> dis(0.0, 1.0);  // [0, 1)
+    auto y = dis(gen);
+
+    // bring to (0, 1]; y cannot be 0:
+    y = 1 - y;
+#else
+    auto y = curand_uniform_double(&gen);  // returns (0, 1]; y cannot be 0
+#endif
     return sigma * ::sqrt(-2.0 * ::log(y));
   }
 };

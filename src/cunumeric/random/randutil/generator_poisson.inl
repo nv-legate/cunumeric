@@ -22,6 +22,11 @@ struct poisson {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS unsigned operator()(gen_t& gen)
   {
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::poisson_distribution<unsigned> dis(lambda);
+    return dis(gen);
+#else
     return curand_poisson(&gen, lambda);
+#endif
   }
 };

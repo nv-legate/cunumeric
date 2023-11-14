@@ -14,6 +14,18 @@
  *
  */
 
+#ifndef LEGATE_USE_CUDA
+
+// assume on MACOS for testing:
+//
+#define IS_MAC_OS_ 1
+
+#if IS_MAC_OS_ == 1
+#define USE_STL_RANDOM_ENGINE_
+#endif
+
+#endif
+
 #include "generator.h"
 
 template <typename field_t>
@@ -26,7 +38,16 @@ struct uniform_t<float> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
-    return offset + mult * curand_uniform(&gen);
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+    auto y = dis(gen);  // returns [0, 1);
+
+    // bring to (0, 1]:
+    y = 1 - y;
+#else
+    auto y = curand_uniform(&gen);  // returns (0, 1];
+#endif
+    return offset + mult * y;
   }
 };
 
@@ -37,6 +58,15 @@ struct uniform_t<double> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
-    return offset + mult * curand_uniform_double(&gen);
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+    auto y = dis(gen);  // returns [0, 1);
+
+    // bring to (0, 1]:
+    y = 1 - y;
+#else
+    auto y = curand_uniform_double(&gen);  // returns (0, 1];
+#endif
+    return offset + mult * y;
   }
 };

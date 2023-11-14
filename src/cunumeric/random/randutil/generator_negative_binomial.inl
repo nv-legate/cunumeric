@@ -29,6 +29,11 @@ struct negative_binomial_t<uint32_t> {
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
     double lambda = rk_standard_gamma(&gen, (double)n) * ((1 - p) / p);
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::poisson_distribution<uint32_t> dis(lambda);
+    return dis(gen);
+#else
     return curand_poisson(&gen, lambda);
+#endif
   }
 };

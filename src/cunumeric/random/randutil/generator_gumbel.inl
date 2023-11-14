@@ -27,7 +27,16 @@ struct gumbel_t<float> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+    auto y = dis(gen);  // returns [0, 1);
+
+    // bring to (0, 1]:
+    y = 1 - y;
+#else
     float y = curand_uniform(&gen);  // y cannot be zero
+#endif
+
     if (y == 1.0f) return mu;
     float lny = ::logf(y);
     return mu - beta * ::logf(-lny);
@@ -41,7 +50,16 @@ struct gumbel_t<double> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+    auto y = dis(gen);  // returns [0, 1);
+
+    // bring to (0, 1]:
+    y = 1 - y;
+#else
     double y = curand_uniform_double(&gen);  // y cannot be zero
+#endif
+
     if (y == 1.0) return mu;
     double lny = ::log(y);
     return mu - beta * ::log(-lny);
