@@ -1487,6 +1487,10 @@ def _broadcast_to(
     arr = array(arr, copy=False, subok=subok)
     # 'broadcast_to' returns a read-only view of the original array
     out_shape = broadcast_shapes(arr.shape, shape)
+    if out_shape != shape:
+        raise ValueError(
+            f"cannot broadcast an array of shape {arr.shape} to {shape}"
+        )
     result = ndarray(
         shape=out_shape,
         thunk=arr._thunk.broadcast_to(out_shape),
@@ -6978,7 +6982,7 @@ def count_nonzero(
 # Averages and variances
 
 
-@add_boilerplate("a", "where")
+@add_boilerplate("a")
 def mean(
     a: ndarray,
     axis: Optional[Union[int, tuple[int, ...]]] = None,

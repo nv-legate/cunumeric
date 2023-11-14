@@ -19,7 +19,12 @@ from typing import TYPE_CHECKING, Any, Dict, Optional, Sequence, Union
 import numpy as np
 from legate.core.utils import OrderedSet
 
-from ..array import check_writeable, convert_to_cunumeric_ndarray, ndarray
+from ..array import (
+    add_boilerplate,
+    check_writeable,
+    convert_to_cunumeric_ndarray,
+    ndarray,
+)
 from ..config import BinaryOpCode, UnaryOpCode, UnaryRedCode
 from ..types import NdShape
 
@@ -680,6 +685,7 @@ class binary_ufunc(ufunc):
 
         return self._maybe_cast_output(out, result)
 
+    @add_boilerplate("array")
     def reduce(
         self,
         array: ndarray,
@@ -742,8 +748,6 @@ class binary_ufunc(ufunc):
         --------
         numpy.ufunc.reduce
         """
-        array = convert_to_cunumeric_ndarray(array)
-
         if self._red_code is None:
             raise NotImplementedError(
                 f"reduction for {self} is not yet implemented"

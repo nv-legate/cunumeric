@@ -3170,7 +3170,6 @@ class ndarray:
         else:
             return sum_array
 
-    @add_boilerplate()
     def _nanmean(
         self,
         axis: Optional[Union[int, tuple[int, ...]]] = None,
