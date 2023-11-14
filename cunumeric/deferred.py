@@ -777,8 +777,10 @@ class DeferredArray(NumPyThunk):
         computed_key: tuple[Any, ...]
         if isinstance(key, NumPyThunk):
             computed_key = (key,)
-        assert isinstance(key, tuple)
-        computed_key = self._unpack_ellipsis(key, self.ndim)
+        else:
+            computed_key = key
+        assert isinstance(computed_key, tuple)
+        computed_key = self._unpack_ellipsis(computed_key, self.ndim)
 
         # the index where the first index_array is passed to the [] operator
         start_index = -1
@@ -824,7 +826,9 @@ class DeferredArray(NumPyThunk):
             )
             key_transpose_indices += post_indices
             store = store.transpose(transpose_indices)
-            key = tuple(computed_key[i] for i in key_transpose_indices)
+            computed_key = tuple(
+                computed_key[i] for i in key_transpose_indices
+            )
 
         shift = 0
         for dim, k in enumerate(computed_key):
