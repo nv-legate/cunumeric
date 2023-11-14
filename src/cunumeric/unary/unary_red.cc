@@ -36,11 +36,13 @@ struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM, HAS_WHERE> {
                   size_t volume) const
   {
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto point    = pitches.unflatten(idx, rect.lo);
-      auto identity = LG_OP::identity;
-      bool mask     = true;
+      auto point = pitches.unflatten(idx, rect.lo);
+      bool mask  = true;
       if constexpr (HAS_WHERE) mask = (where[point] == true);
-      if (mask) lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
+      if (mask) {
+        auto identity = LG_OP::identity;
+        lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
+      }
     }
   }
 };
