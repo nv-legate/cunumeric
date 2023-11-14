@@ -14,6 +14,13 @@
 #
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any, Type, Union
+
+if TYPE_CHECKING:
+    import numpy.typing as npt
+    from ..types import NdShape
+
+
 import numpy as _np
 
 from ..array import maybe_convert_to_np_ndarray
@@ -36,24 +43,26 @@ nomask = MaskType(0)
 
 @clone_class(_np.ma.MaskedArray, NDARRAY_INTERNAL, maybe_convert_to_np_ndarray)
 class MaskedArray:
-    def __new__(cls, *args, **kw):
+    _internal_ma: _np.ma.MaskedArray[Any, Any]
+
+    def __new__(cls: Type[Any], *args: Any, **kw: Any) -> MaskedArray:
         return super().__new__(cls)
 
     def __init__(
         self,
-        data=None,
-        mask=nomask,
-        dtype=None,
-        copy=False,
-        subok=True,
-        ndmin=0,
-        fill_value=None,
-        keep_mask=True,
-        hard_mask=None,
-        shrink=True,
-        order=None,
-    ):
-        self._internal_ma = _np.ma.MaskedArray(
+        data: Any = None,
+        mask: _np.bool_ = nomask,
+        dtype: Union[npt.DTypeLike, None] = None,
+        copy: bool = False,
+        subok: bool = True,
+        ndmin: int = 0,
+        fill_value: Any = None,
+        keep_mask: Any = True,
+        hard_mask: Any = None,
+        shrink: bool = True,
+        order: Union[str, None] = None,
+    ) -> None:
+        self._internal_ma = _np.ma.MaskedArray(  # type: ignore
             data=maybe_convert_to_np_ndarray(data),
             mask=maybe_convert_to_np_ndarray(mask),
             dtype=dtype,
@@ -67,13 +76,13 @@ class MaskedArray:
             order=order,
         )
 
-    def __array__(self, _dtype=None):
+    def __array__(self, _dtype: Any = None) -> _np.ma.MaskedArray[Any, Any]:
         return self._internal_ma
 
     @property
-    def size(self):
+    def size(self) -> int:
         return self._internal_ma.size
 
     @property
-    def shape(self):
+    def shape(self) -> NdShape:
         return self._internal_ma.shape
