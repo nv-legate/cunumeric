@@ -101,6 +101,47 @@ class TestFlip:
         assert num.array_equal(b, bnp)
 
 
+class TestFlipud:
+    def test_empty_array(self):
+        anp = []
+        b = num.flipud(anp)
+        bnp = np.flipud(anp)
+        assert num.array_equal(b, bnp)
+
+    def test_basic(self):
+        anp = a.__array__()
+        b = num.flipud(a)
+        bnp = np.flipud(anp)
+        assert num.array_equal(b, bnp)
+
+    def test_wrong_dim(self):
+        anp = 4
+        msg = r"Input must be >= 1-d"
+        with pytest.raises(ValueError, match=msg):
+            num.flipud(anp)
+
+
+class TestFliplr:
+    def test_empty_array(self):
+        arr = num.random.random((1, 0, 1))
+        anp = arr.__array__()
+        b = num.fliplr(anp)
+        bnp = np.fliplr(anp)
+        assert num.array_equal(b, bnp)
+
+    def test_basic(self):
+        anp = a.__array__()
+        b = num.fliplr(a)
+        bnp = np.fliplr(anp)
+        assert num.array_equal(b, bnp)
+
+    def test_wrong_dim(self):
+        anp = []
+        msg = r"Input must be >= 2-d."
+        with pytest.raises(ValueError, match=msg):
+            num.fliplr(anp)
+
+
 if __name__ == "__main__":
     import sys
 
