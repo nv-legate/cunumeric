@@ -16,6 +16,8 @@
 
 #include "generator.h"
 
+#include "randomizer.h"
+
 template <typename field_t>
 struct pareto_t;
 
@@ -26,16 +28,8 @@ struct pareto_t<float> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
-#ifdef USE_STL_RANDOM_ENGINE_
-    std::uniform_real_distribution<float> dis(0.0f, 1.0f);
-    float y = dis(gen);  // returns [0, 1);
-
-    // bring to (0, 1]:
-    y = 1 - y;
-#else
-    float y = curand_uniform(&gen);  // y cannot be 0
-#endif
-    return xm * ::expf(-::logf(y) * invalpha) - 1.0f;  // here, use -1.0f to align with numpy
+    auto y = randutilimpl::engine_uniform_single(gen);  // y cannot be 0
+    return xm * ::expf(-::logf(y) * invalpha) - 1.0f;   // here, use -1.0f to align with numpy
   }
 };
 
@@ -46,15 +40,7 @@ struct pareto_t<double> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
-#ifdef USE_STL_RANDOM_ENGINE_
-    std::uniform_real_distribution<double> dis(0.0f, 1.0f);
-    double y = dis(gen);  // returns [0, 1);
-
-    // bring to (0, 1]:
-    y = 1 - y;
-#else
-    double y = curand_uniform_double(&gen);  // y cannot be 0
-#endif
-    return xm * ::exp(-::log(y) * invalpha) - 1.0;  // here, use -1.0 to align with numpy
+    auto y = randutilimpl::engine_uniform_double(gen);  // y cannot be 0
+    return xm * ::exp(-::log(y) * invalpha) - 1.0;      // here, use -1.0 to align with numpy
   }
 };

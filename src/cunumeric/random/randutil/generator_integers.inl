@@ -17,7 +17,7 @@
 #include "generator.h"
 #include <type_traits>
 
-#include <cstdlib>
+#include "randomizer.h"
 
 template <typename field_t, typename = void>
 struct integers;
@@ -33,11 +33,7 @@ struct integers<
   template <typename gen_t>
   RANDUTIL_QUALIFIERS field_t operator()(gen_t& gen)
   {
-#ifdef USE_STL_RANDOM_ENGINE_
-    auto y = std::rand();
-#else
-    auto y = curand(&gen);
-#endif
+    auto y = randutilimpl::engine_rand(gen);
     return (field_t)(y % (ufield_t)(to - from)) + from;
   }
 };
@@ -52,13 +48,8 @@ struct integers<field_t, std::enable_if_t<std::is_same_v<field_t, int64_t>>> {
   RANDUTIL_QUALIFIERS field_t operator()(gen_t& gen)
   {
     // take two draws to get a 64 bits value
-#ifdef USE_STL_RANDOM_ENGINE_
-    unsigned low  = std::rand();
-    unsigned high = std::rand();
-#else
-    unsigned low  = curand(&gen);
-    unsigned high = curand(&gen);
-#endif
+    unsigned low  = randutilimpl::engine_rand(gen);
+    unsigned high = randutilimpl::engine_rand(gen);
 
     return (field_t)((((ufield_t)high << 32) | (ufield_t)low) % (to - from)) + from;
   }

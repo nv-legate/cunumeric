@@ -49,20 +49,12 @@
 
 #pragma once
 
+#include "randomizer.h"
+
 template <typename rk_state>
 RANDUTIL_QUALIFIERS double rk_double(rk_state* gen)
 {
-#ifdef USE_STL_RANDOM_ENGINE_
-  std::uniform_real_distribution<double> dis(0.0, 1.0);
-  auto y = dis(*gen);  // returns [0, 1);
-
-  // bring to (0, 1]:
-  y = 1 - y;
-#else
-  auto y = curand_uniform_double(gen);  // returns (0, 1];
-#endif
-
-  return y;
+  return randutilimpl::engine_uniform_double(*gen);  // returns (0, 1];
 }
 
 RANDUTIL_QUALIFIERS double loggam(double x)
@@ -130,12 +122,7 @@ RANDUTIL_QUALIFIERS double rk_gauss(rk_state* state)
         return f*x2;
     }
 #endif
-#ifdef USE_STL_RANDOM_ENGINE_
-  std::normal_distribution dis{0.0, 1.0};
-  return dis(*state);
-#else
-  return curand_normal(state);
-#endif
+  return randutilimpl::engine_normal(*state);
 }
 
 template <typename rk_state>
@@ -275,12 +262,7 @@ RANDUTIL_QUALIFIERS long rk_poisson(rk_state* state, double lam)
         return rk_poisson_mult(state, lam);
     }
 #endif
-#ifdef USE_STL_RANDOM_ENGINE_
-  std::poisson_distribution<long> dis(lam);  // curand::lambda == std::mu ?
-  return dis(*state);
-#else
-  return curand_poisson(state, lam);
-#endif
+  return randutilimpl::engine_poisson<long>(*state, lam);
 }
 
 template <typename rk_state>
