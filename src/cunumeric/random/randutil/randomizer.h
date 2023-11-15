@@ -18,6 +18,7 @@
 
 #include <random>
 #include <functional>
+#include <type_traits>
 
 #include <cstdlib>
 
@@ -75,6 +76,20 @@ RANDUTIL_QUALIFIERS decltype(auto) engine_normal(gen_t& gen)
   return dis(gen);
 #else
   return curand_normal(&gen);
+#endif
+}
+
+template <typename gen_t, typename element_t>
+RANDUTIL_QUALIFIERS decltype(auto) engine_log_normal(gen_t& gen, element_t mean, element_t stddev)
+{
+#ifdef USE_STL_RANDOM_ENGINE_
+  std::lognormal_distribution<element_t> dis{mean, stddev};
+  return dis(gen);
+#else
+  if constexpr (std::is_same_v<element_t, float>)
+    return curand_log_normal(&gen, mean, stddev);
+  else
+    return curand_log_normal_double(&gen, mean, stddev);
 #endif
 }
 
