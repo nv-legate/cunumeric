@@ -27,7 +27,7 @@ namespace randutilimpl {
 // implementations (STL used on platforms that don't support CUDA)
 //
 template <typename gen_t>
-decltype(auto) engine_uniform_single(gen_t& gen)
+RANDUTIL_QUALIFIERS decltype(auto) engine_uniform_single(gen_t& gen)
 {
 #ifdef USE_STL_RANDOM_ENGINE_
   std::uniform_real_distribution<float> dis(0.0f, 1.0f);
@@ -42,7 +42,7 @@ decltype(auto) engine_uniform_single(gen_t& gen)
 }
 
 template <typename gen_t>
-decltype(auto) engine_uniform_double(gen_t& gen)
+RANDUTIL_QUALIFIERS decltype(auto) engine_uniform_double(gen_t& gen)
 {
 #ifdef USE_STL_RANDOM_ENGINE_
   std::uniform_real_distribution<double> dis(0.0f, 1.0f);
@@ -57,7 +57,7 @@ decltype(auto) engine_uniform_double(gen_t& gen)
 }
 
 template <typename ret_t, typename gen_t>
-decltype(auto) engine_poisson(gen_t& gen, double lambda)
+RANDUTIL_QUALIFIERS decltype(auto) engine_poisson(gen_t& gen, double lambda)
 {
 #ifdef USE_STL_RANDOM_ENGINE_
   std::poisson_distribution<ret_t> dis(lambda);
@@ -68,7 +68,7 @@ decltype(auto) engine_poisson(gen_t& gen, double lambda)
 }
 
 template <typename gen_t>
-decltype(auto) engine_normal(gen_t& gen)
+RANDUTIL_QUALIFIERS decltype(auto) engine_normal(gen_t& gen)
 {
 #ifdef USE_STL_RANDOM_ENGINE_
   std::normal_distribution dis{0.0, 1.0};
@@ -79,7 +79,7 @@ decltype(auto) engine_normal(gen_t& gen)
 }
 
 template <typename gen_t>
-decltype(auto) engine_rand(gen_t& gen)
+RANDUTIL_QUALIFIERS decltype(auto) engine_rand(gen_t& gen)
 {
 #ifdef USE_STL_RANDOM_ENGINE_
   return std::rand();

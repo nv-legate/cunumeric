@@ -24,6 +24,6 @@ struct poisson {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS unsigned operator()(gen_t& gen)
   {
-    return randutilimpl::engine_poisson(gen, lambda);
+    return randutilimpl::engine_poisson<unsigned>(gen, lambda);
   }
 };

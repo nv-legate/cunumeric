@@ -22,7 +22,7 @@
 template <typename field_t, typename = void>
 struct integers;
 
-template <field_t>
+template <typename field_t>
 struct integers<
   field_t,
   std::enable_if_t<std::is_same_v<field_t, int16_t> || std::is_same_v<field_t, int32_t>>> {
@@ -38,7 +38,7 @@ struct integers<
   }
 };
 
-template <field_t>
+template <typename field_t>
 struct integers<field_t, std::enable_if_t<std::is_same_v<field_t, int64_t>>> {
   using ufield_t = uint64_t;
   field_t from;
