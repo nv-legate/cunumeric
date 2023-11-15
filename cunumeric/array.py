@@ -1675,8 +1675,6 @@ class ndarray:
 
         """
         check_writeable(self)
-        if key is None:
-            raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
             temp = ndarray(value.shape, dtype=self.dtype, inputs=(value,))
             temp._thunk.convert(value._thunk)
