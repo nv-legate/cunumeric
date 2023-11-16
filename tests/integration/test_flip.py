@@ -16,6 +16,7 @@ from itertools import product
 
 import numpy as np
 import pytest
+from legate.core import LEGATE_MAX_DIM
 
 import cunumeric as num
 
@@ -140,6 +141,25 @@ class TestFliplr:
         msg = r"Input must be >= 2-d."
         with pytest.raises(ValueError, match=msg):
             num.fliplr(anp)
+
+
+FLIP_FUNCS = ("flip", "fliplr", "flipud")
+
+
+@pytest.mark.parametrize("func_name", FLIP_FUNCS)
+@pytest.mark.parametrize("ndim", range(2, LEGATE_MAX_DIM + 1))
+def test_max_dims(func_name, ndim):
+    func_np = getattr(np, func_name)
+    func_num = getattr(num, func_name)
+
+    shape = (5,) * ndim
+    a_np = np.random.random(shape)
+    a_num = num.array(a_np)
+
+    out_np = func_np(a_np)
+    out_num = func_num(a_num)
+
+    assert np.array_equal(out_num, out_np)
 
 
 if __name__ == "__main__":
