@@ -27,34 +27,21 @@ namespace randutilimpl {
 // trampoline functions for branching-off CURAND vs. STL
 // implementations (STL used on platforms that don't support CUDA)
 //
-template <typename gen_t>
-RANDUTIL_QUALIFIERS decltype(auto) engine_uniform_single(gen_t& gen)
+template <typename element_t, typename gen_t>
+RANDUTIL_QUALIFIERS decltype(auto) engine_uniform(gen_t& gen)
 {
 #ifdef USE_STL_RANDOM_ENGINE_
-  std::uniform_real_distribution<float> dis(0.0f, 1.0f);
+  std::uniform_real_distribution<element_t> dis(0, 1);
   auto y = dis(gen);  // returns [0, 1);
 
   // bring to (0, 1]:
-  y = 1 - y;
+  return 1 - y;
 #else
-  auto y = curand_uniform(&gen);  // returns (0, 1];
+  if constexpr (std::is_same_v<element_t, float>)
+    return curand_uniform(&gen);  // returns (0, 1];
+  else
+    return curand_uniform_double(&gen);  // returns (0, 1];
 #endif
-  return y;
-}
-
-template <typename gen_t>
-RANDUTIL_QUALIFIERS decltype(auto) engine_uniform_double(gen_t& gen)
-{
-#ifdef USE_STL_RANDOM_ENGINE_
-  std::uniform_real_distribution<double> dis(0.0f, 1.0f);
-  auto y = dis(gen);  // returns [0, 1);
-
-  // bring to (0, 1]:
-  y = 1 - y;
-#else
-  auto y = curand_uniform_double(&gen);  // returns (0, 1];
-#endif
-  return y;
 }
 
 template <typename ret_t, typename gen_t>

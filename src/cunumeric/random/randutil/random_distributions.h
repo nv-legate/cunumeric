@@ -54,7 +54,7 @@
 template <typename rk_state>
 RANDUTIL_QUALIFIERS double rk_double(rk_state* gen)
 {
-  return randutilimpl::engine_uniform_double(*gen);  // returns (0, 1];
+  return randutilimpl::engine_uniform<double>(*gen);  // returns (0, 1];
 }
 
 RANDUTIL_QUALIFIERS double loggam(double x)

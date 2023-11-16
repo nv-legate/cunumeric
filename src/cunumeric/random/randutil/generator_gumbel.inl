@@ -29,7 +29,7 @@ struct gumbel_t<float> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
-    auto y = randutilimpl::engine_uniform_single(gen);  // y cannot be zero
+    auto y = randutilimpl::engine_uniform<float>(gen);  // y cannot be zero
 
     if (y == 1.0f) return mu;
     float lny = ::logf(y);
@@ -44,7 +44,7 @@ struct gumbel_t<double> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
-    auto y = randutilimpl::engine_uniform_double(gen);  // y cannot be zero
+    auto y = randutilimpl::engine_uniform<double>(gen);  // y cannot be zero
 
     if (y == 1.0) return mu;
     double lny = ::log(y);

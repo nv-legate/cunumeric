@@ -33,7 +33,7 @@ struct wald_t<float> {
     float y = v * v;
     float x = mu + (mu * mu * y) / (2.0f * lambda) -
               (mu / (2.0f * lambda)) * ::sqrtf(mu * y * (4.0f * lambda + mu * y));
-    float z = randutilimpl::engine_uniform_single(gen);
+    float z = randutilimpl::engine_uniform<float>(gen);
     if (z <= (mu) / (mu + x))
       return x;
     else
@@ -52,7 +52,7 @@ struct wald_t<double> {
     double y = v * v;
     double x = mu + (mu * mu * y) / (2.0 * lambda) -
                (mu / (2.0 * lambda)) * ::sqrtf(mu * y * (4.0 * lambda + mu * y));
-    double z = randutilimpl::engine_uniform_double(gen);
+    double z = randutilimpl::engine_uniform<double>(gen);
     if (z <= (mu) / (mu + x))
       return x;
     else

@@ -28,7 +28,7 @@ struct weibull_t<float> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
-    float y = randutilimpl::engine_uniform_single(gen);  // y cannot be 0
+    float y = randutilimpl::engine_uniform<float>(gen);  // y cannot be 0
     // log(y) can be zero !
     auto lny = ::logf(y);
     if (lny == 0.0f) return 0.0f;
@@ -43,7 +43,7 @@ struct weibull_t<double> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
-    double y = randutilimpl::engine_uniform_double(gen);  // y cannot be 0
+    double y = randutilimpl::engine_uniform<double>(gen);  // y cannot be 0
     // log(y) can be zero !
     auto lny = ::log(y);
     if (lny == 0.0f) return 0.0f;

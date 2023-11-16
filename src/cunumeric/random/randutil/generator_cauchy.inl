@@ -30,7 +30,7 @@ struct cauchy_t<float> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS float operator()(gen_t& gen)
   {
-    float y = randutilimpl::engine_uniform_single(gen);  // y cannot be 0
+    float y = randutilimpl::engine_uniform<float>(gen);  // y cannot be 0
     return x0 + gamma * ::tanf(pi * (y - 0.5f));
   }
 };
@@ -44,7 +44,7 @@ struct cauchy_t<double> {
   template <typename gen_t>
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
-    double y = randutilimpl::engine_uniform_double(gen);  // y cannot be 0
+    double y = randutilimpl::engine_uniform<double>(gen);  // y cannot be 0
     return x0 + gamma * ::tan(pi * (y - 0.5));
   }
 };
