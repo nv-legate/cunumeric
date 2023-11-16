@@ -2759,8 +2759,8 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     Returns
     -------
     out : array_like
-        A view of `m` with the entries of axis reversed.  Since a view is
-        returned, this operation is done in constant time.
+        A new array that is constructed from `m` with the entries of axis
+        reversed.
 
     See Also
     --------
@@ -2769,8 +2769,83 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     Availability
     --------
     Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
     """
     return m.flip(axis=axis)
+
+
+@add_boilerplate("m")
+def flipud(m: ndarray) -> ndarray:
+    """
+    Reverse the order of elements along axis 0 (up/down).
+
+    For a 2-D array, this flips the entries in each column in the up/down
+    direction. Rows are preserved, but appear in a different order than before.
+
+    Parameters
+    ----------
+    m : array_like
+        Input array.
+
+    Returns
+    -------
+    out : array_like
+        A new array that is constructed from `m` with rows reversed.
+
+    See Also
+    --------
+    numpy.flipud
+
+    Availability
+    --------
+    Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
+    """
+    if m.ndim < 1:
+        raise ValueError("Input must be >= 1-d.")
+    return flip(m, axis=0)
+
+
+@add_boilerplate("m")
+def fliplr(m: ndarray) -> ndarray:
+    """
+    Reverse the order of elements along axis 1 (left/right).
+
+    For a 2-D array, this flips the entries in each row in the left/right
+    direction. Columns are preserved, but appear in a different order than
+    before.
+
+    Parameters
+    ----------
+    m : array_like
+        Input array, must be at least 2-D.
+
+    Returns
+    -------
+    f : ndarray
+        A new array that is constructed from `m` with the columns reversed.
+
+    See Also
+    --------
+    numpy.fliplr
+
+    Availability
+    --------
+    Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
+    """
+    if m.ndim < 2:
+        raise ValueError("Input must be >= 2-d.")
+    return flip(m, axis=1)
 
 
 ###################
@@ -7198,7 +7273,7 @@ def bincount(
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if x.dtype.kind != "i":
+    if not np.issubdtype(x.dtype, np.integer):
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:
         raise ValueError("'minlength' must not be negative")
