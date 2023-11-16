@@ -2841,8 +2841,6 @@ def fliplr(m: ndarray) -> ndarray:
 
     Notes
     -----
-    Equivalent to ``m[:,::-1]`` or ``np.flip(m, axis=1)``.
-    Requires the array to be at least 2-D.
     cuNumeric implementation doesn't return a view, it returns a new array
     """
     if m.ndim < 2:
