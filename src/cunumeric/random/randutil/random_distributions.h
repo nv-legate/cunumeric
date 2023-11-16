@@ -122,7 +122,7 @@ RANDUTIL_QUALIFIERS double rk_gauss(rk_state* state)
         return f*x2;
     }
 #endif
-  return randutilimpl::engine_normal(*state);
+  return randutilimpl::engine_normal<double>(*state);
 }
 
 template <typename rk_state>

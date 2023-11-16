@@ -68,14 +68,17 @@ RANDUTIL_QUALIFIERS decltype(auto) engine_poisson(gen_t& gen, double lambda)
 #endif
 }
 
-template <typename gen_t>
+template <typename element_t, typename gen_t>
 RANDUTIL_QUALIFIERS decltype(auto) engine_normal(gen_t& gen)
 {
 #ifdef USE_STL_RANDOM_ENGINE_
-  std::normal_distribution dis{0.0, 1.0};
+  std::normal_distribution<element_t> dis(0, 1);
   return dis(gen);
 #else
-  return curand_normal(&gen);
+  if constexpr (std::is_same_v<element_t, float>)
+    return curand_normal(&gen);
+  else
+    return curand_normal_double(&gen);
 #endif
 }
 
