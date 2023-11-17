@@ -3147,9 +3147,7 @@ class ndarray:
 
         else:
             if where_array is not None:
-                divisor = np.array(
-                    where_array.sum(axis=axis, keepdims=keepdims)
-                )
+                divisor = where_array.sum(axis=axis, keepdims=keepdims)
             else:
                 divisor = np.array(self.shape[axis])
 
