@@ -92,7 +92,11 @@ static void unary_red_template(TaskContext& context)
                     has_where ? inputs[1] : dummy_where,
                     scalars[0].value<int32_t>(),
                     scalars[1].value<UnaryRedCode>()};
-  op_dispatch(args.op_code, UnaryRedDispatch<KIND, false>{}, args);
+  if (has_where) {
+    op_dispatch(args.op_code, UnaryRedDispatch<KIND, true>{}, args);
+  } else {
+    op_dispatch(args.op_code, UnaryRedDispatch<KIND, false>{}, args);
+  }
 }
 
 }  // namespace cunumeric
