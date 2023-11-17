@@ -50,14 +50,12 @@ struct UnaryRedImpl {
 
     auto lhs = args.lhs.reduce_accessor<typename OP::OP, KIND != VariantKind::GPU, DIM>(rect);
 
+    AccessorRO<bool, DIM> where;
     if constexpr (HAS_WHERE) {
-      auto where = args.where.read_accessor<bool, DIM>(rect);
-      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM, HAS_WHERE>()(
-        lhs, rhs, where, rect, pitches, args.collapsed_dim, volume);
-    } else {
-      UnaryRedImplBody<KIND, OP_CODE, CODE, DIM, HAS_WHERE>()(
-        lhs, rhs, AccessorRO<bool, DIM>(), rect, pitches, args.collapsed_dim, volume);
+      where = args.where.read_accessor<bool, DIM>(rect);
     }
+    UnaryRedImplBody<KIND, OP_CODE, CODE, DIM, HAS_WHERE>()(
+        lhs, rhs, where, rect, pitches, args.collapsed_dim, volume);
   }
 
   template <Type::Code CODE,
