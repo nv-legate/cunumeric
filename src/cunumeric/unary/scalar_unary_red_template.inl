@@ -99,7 +99,7 @@ struct ScalarUnaryRed {
   {
     auto p    = pitches.unflatten(idx, origin);
     bool mask = true;
-    if constexpr (HAS_WHERE) mask = (where[p] == true);
+    if constexpr (HAS_WHERE) mask = where[p];
 
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
       if (mask && (in[p] == to_find)) { lhs = true; }
