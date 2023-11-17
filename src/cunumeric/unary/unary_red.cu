@@ -282,8 +282,8 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
   if (!domain.contains(point)) return point;
 
   bool mask = true;
-  if constexpr (HAS_WHERE) mask = where[point];
   while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
+    if constexpr (HAS_WHERE) mask = where[point];
     if (mask) {
       LHS value = OP::convert(point, collapsed_dim, identity, in[point]);
       REDOP::template fold<true>(result, value);
