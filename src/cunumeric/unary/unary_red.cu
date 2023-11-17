@@ -333,12 +333,8 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM, HAS_WHERE> {
     blocks.initialize(rect, collapsed_dim);
 
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
-    if constexpr (HAS_WHERE)
-      Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
-        lhs, rhs, where, LG_OP::identity, blocks, rect, collapsed_dim);
-    else
-      Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
-        lhs, rhs, AccessorRO<bool, DIM>(), LG_OP::identity, blocks, rect, collapsed_dim);
+    Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
+      lhs, rhs, where, LG_OP::identity, blocks, rect, collapsed_dim);
     CHECK_CUDA_STREAM(stream);
   }
 };
