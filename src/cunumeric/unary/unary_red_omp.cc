@@ -94,7 +94,7 @@ struct UnaryRedImplBody<VariantKind::OMP, OP_CODE, CODE, DIM, HAS_WHERE> {
       for (size_t i_idx = 0; i_idx < split.inner; ++i_idx) {
         auto point = splitter.combine(o_idx, i_idx, rect.lo);
         bool mask  = true;
-        if constexpr (HAS_WHERE) mask = (where[point] == true);
+        if constexpr (HAS_WHERE) mask = where[point];
         if (mask) {
           auto identity = LG_OP::identity;
           lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
