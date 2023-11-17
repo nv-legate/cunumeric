@@ -82,7 +82,7 @@ struct ScalarUnaryRed {
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, DenseReduction) const noexcept
   {
     bool mask = true;
-    if constexpr (HAS_WHERE) mask = (whereptr[idx] == true);
+    if constexpr (HAS_WHERE) mask = whereptr[idx];
 
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
       if (mask && (inptr[idx] == to_find)) { lhs = true; }
