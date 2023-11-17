@@ -38,7 +38,7 @@ struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM, HAS_WHERE> {
     for (size_t idx = 0; idx < volume; ++idx) {
       auto point = pitches.unflatten(idx, rect.lo);
       bool mask  = true;
-      if constexpr (HAS_WHERE) mask = (where[point] == true);
+      if constexpr (HAS_WHERE) mask = where[point];
       if (mask) {
         auto identity = LG_OP::identity;
         lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
