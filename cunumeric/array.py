@@ -3094,7 +3094,6 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         where: Union[ndarray, None] = None,
-        ignore_nan: bool = False,
     ) -> ndarray:
         """a.mean(axis=None, dtype=None, out=None, keepdims=False)
 
@@ -3126,15 +3125,7 @@ class ndarray:
         where_array = broadcast_where(where, self.shape)
         # Do the sum
         sum_array = (
-            self._nansum(
-                axis=axis,
-                out=out,
-                keepdims=keepdims,
-                dtype=dtype,
-                where=where_array,
-            )
-            if out is not None and out.dtype == dtype and ignore_nan
-            else self.sum(
+            self.sum(
                 axis=axis,
                 out=out,
                 keepdims=keepdims,
@@ -3142,10 +3133,6 @@ class ndarray:
                 where=where_array,
             )
             if out is not None and out.dtype == dtype
-            else self._nansum(
-                axis=axis, keepdims=keepdims, dtype=dtype, where=where_array
-            )
-            if ignore_nan
             else self.sum(
                 axis=axis, keepdims=keepdims, dtype=dtype, where=where_array
             )
@@ -3207,7 +3194,6 @@ class ndarray:
             out=out,
             keepdims=keepdims,
             where=nan_mask,
-            ignore_nan=True,
         )
 
     @add_boilerplate()
