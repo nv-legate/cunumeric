@@ -165,7 +165,7 @@ static void scalar_unary_red_template(TaskContext& context)
   bool has_where   = scalars[2].value<bool>();
   size_t start_idx = has_where ? 2 : 1;
   std::vector<Store> extra_args;
-  extra_args.reserve(inputs.size());
+  extra_args.reserve(inputs.size() - start_idx);
   for (size_t idx = start_idx; idx < inputs.size(); ++idx)
     extra_args.emplace_back(std::move(inputs[idx]));
   // If the RHS was a scalar, use (1,) as the shape
