@@ -1524,6 +1524,26 @@ class EagerArray(NumPyThunk):
                 else where.array,
                 **kws,
             )
+        elif op == UnaryRedCode.SUM_SQUARES:
+            squared = np.square(rhs.array)
+            np.sum(
+                squared,
+                out=self.array,
+                axis=orig_axis,
+                where=where,
+                keepdims=keepdims,
+            )
+        elif op == UnaryRedCode.VARIANCE:
+            (mu,) = args
+            centered = np.subtract(rhs.array, mu)
+            squares = np.square(centered)
+            np.sum(
+                squares,
+                axis=orig_axis,
+                where=where,
+                keepdims=keepdims,
+                out=self.array,
+            )
         elif op == UnaryRedCode.CONTAINS:
             self.array.fill(args[0] in rhs.array)
         elif op == UnaryRedCode.COUNT_NONZERO:
@@ -1595,7 +1615,7 @@ class EagerArray(NumPyThunk):
         if self.deferred is not None:
             self.deferred.where(rhs1, rhs2, rhs3)
         else:
-            self.array[:] = np.where(rhs1.array, rhs2.array, rhs3.array)
+            self.array[...] = np.where(rhs1.array, rhs2.array, rhs3.array)
 
     def argwhere(self) -> NumPyThunk:
         if self.deferred is not None:

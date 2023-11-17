@@ -82,10 +82,6 @@ def cholesky(a: ndarray) -> ndarray:
     elif shape[-1] != shape[-2]:
         raise ValueError("Last 2 dimensions of the array must be square")
 
-    if len(shape) > 2:
-        raise NotImplementedError(
-            "cuNumeric needs to support stacked 2d arrays"
-        )
     return _cholesky(a)
 
 

@@ -4587,7 +4587,7 @@ def einsum(
     out: Optional[ndarray] = None,
     dtype: Optional[np.dtype[Any]] = None,
     casting: CastingKind = "safe",
-    optimize: Union[bool, str] = False,
+    optimize: Union[bool, Literal["greedy", "optimal"]] = True,
 ) -> ndarray:
     """
     Evaluates the Einstein summation convention on the operands.
@@ -4628,9 +4628,10 @@ def einsum(
 
         Default is 'safe'.
     optimize : ``{False, True, 'greedy', 'optimal'}``, optional
-        Controls if intermediate optimization should occur. No optimization
-        will occur if False. Uses opt_einsum to find an optimized contraction
-        plan if True.
+        Controls if intermediate optimization should occur. If False then
+        arrays will be contracted in input order, one at a time. True (the
+        default) will use the 'greedy' algorithm. See ``cunumeric.einsum_path``
+        for more information on the available optimization algorithms.
 
     Returns
     -------
@@ -4654,7 +4655,9 @@ def einsum(
     if out is not None:
         out = convert_to_cunumeric_ndarray(out, share=True)
 
-    if not optimize:
+    if optimize is True:
+        optimize = "greedy"
+    elif optimize is False:
         optimize = NullOptimizer()
 
     # This call normalizes the expression (adds the output part if it's
@@ -4760,7 +4763,7 @@ def einsum_path(
     """
     computed_operands = [convert_to_cunumeric_ndarray(op) for op in operands]
     memory_limit = _builtin_max(op.size for op in computed_operands)
-    if type(optimize) == tuple:
+    if isinstance(optimize, tuple):
         if len(optimize) != 2:
             raise ValueError("einsum_path expects optimize tuples of size 2")
         optimize, memory_limit = optimize
@@ -4771,7 +4774,7 @@ def einsum_path(
     elif optimize in ["greedy", "optimal"]:
         pass
     elif (
-        type(optimize) == list
+        isinstance(optimize, list)
         and len(optimize) > 1
         and optimize[0] == "einsum_path"
     ):
@@ -7059,6 +7062,79 @@ def mean(
     Multiple GPUs, Multiple CPUs
     """
     return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+
+
+@add_boilerplate("a")
+def var(
+    a: ndarray,
+    axis: Optional[Union[int, tuple[int, ...]]] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+    ddof: int = 0,
+    keepdims: bool = False,
+    *,
+    where: Union[bool, ndarray] = True,
+) -> ndarray:
+    """
+    Compute the variance along the specified axis.
+
+    Returns the variance of the array elements, a measure of the spread of
+    a distribution. The variance is computed for the flattened array
+    by default, otherwise over the specified axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose variance is desired. If `a` is not an
+        array, a conversion is attempted.
+    axis : None or int or tuple[int], optional
+        Axis or axes along which the variance is computed. The default is to
+        compute the variance of the flattened array.
+
+        If this is a tuple of ints, a variance is performed over multiple axes,
+        instead of a single axis or all the axes as before.
+    dtype : data-type, optional
+        Type to use in computing the variance. For arrays of integer type
+        the default is float64; for arrays of float types
+        it is the same as the array type.
+    out : ndarray, optional
+        Alternate output array in which to place the result. It must have the
+        same shape as the expected output, but the type is cast if necessary.
+    ddof : int, optional
+        “Delta Degrees of Freedom”: the divisor used in the calculation is
+        N - ddof, where N represents the number of elements. By default
+        ddof is zero.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+    where : array_like of bool, optional
+        A boolean array which is broadcasted to match the dimensions of array,
+        and selects elements to include in the reduction.
+
+    Returns
+    -------
+    m : ndarray, see dtype parameter above
+        If `out=None`, returns a new array of the same dtype as above
+        containing the variance values, otherwise a reference to the output
+        array is returned.
+
+    See Also
+    --------
+    numpy.var
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.var(
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        ddof=ddof,
+        keepdims=keepdims,
+        where=where,
+    )
 
 
 # Histograms

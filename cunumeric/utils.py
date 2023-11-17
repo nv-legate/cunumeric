@@ -18,10 +18,11 @@ import traceback
 from functools import reduce
 from string import ascii_lowercase, ascii_uppercase
 from types import FrameType
-from typing import Any, Callable, List, Sequence, Tuple, Union
+from typing import Any, Callable, List, Sequence, Tuple, TypeVar, Union
 
 import legate.core.types as ty
 import numpy as np
+from legate.core.utils import OrderedSet
 
 from .types import NdShape
 
@@ -105,6 +106,13 @@ def calculate_volume(shape: NdShape) -> int:
     if len(shape) == 0:
         return 0
     return reduce(lambda x, y: x * y, shape)
+
+
+T = TypeVar("T")
+
+
+def tuple_pop(tup: Tuple[T, ...], index: int) -> Tuple[T, ...]:
+    return tup[:index] + tup[index + 1 :]
 
 
 Modes = Tuple[List[str], List[str], List[str]]
@@ -194,8 +202,8 @@ def tensordot_modes(a_ndim: int, b_ndim: int, axes: AxesPairLike) -> Modes:
             len(a_axes) != len(b_axes)
             or len(a_axes) > a_ndim
             or len(b_axes) > b_ndim
-            or len(a_axes) != len(set(a_axes))
-            or len(b_axes) != len(set(b_axes))
+            or len(a_axes) != len(OrderedSet(a_axes))
+            or len(b_axes) != len(OrderedSet(b_axes))
             or any(ax < 0 for ax in a_axes)
             or any(ax < 0 for ax in b_axes)
             or any(ax >= a_ndim for ax in a_axes)
@@ -211,8 +219,14 @@ def tensordot_modes(a_ndim: int, b_ndim: int, axes: AxesPairLike) -> Modes:
     b_modes = list(ascii_uppercase[:b_ndim])
     for a_i, b_i in zip(a_axes, b_axes):
         b_modes[b_i] = a_modes[a_i]
-    a_out = [a_modes[a_i] for a_i in sorted(set(range(a_ndim)) - set(a_axes))]
-    b_out = [b_modes[b_i] for b_i in sorted(set(range(b_ndim)) - set(b_axes))]
+    a_out = [
+        a_modes[a_i]
+        for a_i in sorted(OrderedSet(range(a_ndim)) - OrderedSet(a_axes))
+    ]
+    b_out = [
+        b_modes[b_i]
+        for b_i in sorted(OrderedSet(range(b_ndim)) - OrderedSet(b_axes))
+    ]
 
     return (a_modes, b_modes, a_out + b_out)
 
@@ -227,11 +241,11 @@ def deep_apply(obj: Any, func: Callable[[Any], Any]) -> Any:
     primarily meant to be used for arguments of NumPy API calls, which
     shouldn't nest their arrays very deep.
     """
-    if type(obj) == list:
+    if isinstance(obj, list):
         return [deep_apply(x, func) for x in obj]
-    elif type(obj) == tuple:
+    elif isinstance(obj, tuple):
         return tuple(deep_apply(x, func) for x in obj)
-    elif type(obj) == dict:
+    elif isinstance(obj, dict):
         return {k: deep_apply(v, func) for k, v in obj.items()}
     else:
         return func(obj)
