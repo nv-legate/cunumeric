@@ -143,6 +143,7 @@ def test_CuNumericOpCode() -> None:
         "RAND",
         "READ",
         "REPEAT",
+        "SELECT",
         "SCALAR_UNARY_RED",
         "SCAN_GLOBAL",
         "SCAN_LOCAL",
