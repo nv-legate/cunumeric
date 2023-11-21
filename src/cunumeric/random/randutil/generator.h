@@ -19,10 +19,6 @@
 #include <cstdint>
 #include <cassert>
 
-#ifdef USE_STL_RANDOM_ENGINE_
-#include <random>
-#endif
-
 #include "legate.h"
 #include "randutil_curand.h"
 #include "randutil_impl.h"

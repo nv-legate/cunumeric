@@ -19,6 +19,8 @@
 #ifdef USE_STL_RANDOM_ENGINE_
 using rnd_status_t = int;
 enum class randRngType : int { STL_MT19937 = 1 };
+using randRngType_t              = randRngType;
+constexpr int RND_STATUS_SUCCESS = 0;
 
 #define CHECK_RND_ENGINE(expr)                             \
   do {                                                     \
@@ -53,8 +55,10 @@ static inline randRngType get_rndRngType(cunumeric::BitGeneratorType kind)
 
 #else
 #include "cunumeric/random/curand_help.h"
-using rnd_status_t = curandStatus_t;
-using randRngType  = curandRngType;
+using rnd_status_t                        = curandStatus_t;
+using randRngType                         = curandRngType;
+using randRngType_t                       = curandRngType_t;
+constexpr rnd_status_t RND_STATUS_SUCCESS = CURAND_STATUS_SUCCESS;
 
 #define CHECK_RND_ENGINE(expr) CHECK_CURAND((expr))
 #define randutil_check_status randutil_check_curand
