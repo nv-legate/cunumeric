@@ -13,6 +13,8 @@
 # limitations under the License.
 #
 
+import os
+
 import numpy as np
 import pytest
 import scipy.signal as sig
@@ -20,8 +22,57 @@ from utils.comparisons import allclose
 
 import cunumeric as num
 
-SHAPES = [(100,), (10, 10), (10, 10, 10)]
-FILTER_SHAPES = [(5,), (3, 5), (3, 5, 3)]
+CUDA_TEST = os.environ.get("LEGATE_NEED_CUDA") == "1"
+
+SHAPES = [(100,), (10, 10), (10, 10, 10), (32, 2, 32)]
+FILTER_SHAPES = [(5,), (3, 5), (3, 5, 3), (32, 1, 32)]
+
+LARGE_SHAPES = [
+    pytest.param(
+        (128, 2, 1024),
+        (64, 2, 512),
+        marks=pytest.mark.xfail(
+            not CUDA_TEST, run=False, reason="test hang on CPU variants"
+        ),
+    ),
+    pytest.param(
+        (1024, 2, 8192),
+        (128, 16, 64),
+        marks=pytest.mark.xfail(
+            not CUDA_TEST, run=False, reason="test hang on CPU variants"
+        ),
+    ),
+    pytest.param(
+        (1024, 2, 1024),
+        (5, 1, 5),
+        marks=pytest.mark.xfail(
+            CUDA_TEST, run=False, reason="GPU variant hits SIGABRT"
+        ),
+    ),
+    pytest.param(
+        (1024, 2, 1024),
+        (128, 1, 128),
+        marks=pytest.mark.xfail(
+            run=False, reason="GPU variant hits SIGFPE, CPU hangs"
+        ),
+    ),
+]
+
+DTYPES = [
+    np.int8,
+    np.int16,
+    np.int32,
+    np.int64,
+    np.uint8,
+    np.uint16,
+    np.uint32,
+    np.uint64,
+    np.float16,
+    np.float32,
+    np.float64,
+    np.complex64,
+    np.complex128,
+]
 
 
 @pytest.mark.xfail
@@ -68,7 +119,9 @@ def check_convolve(a, v):
 
 
 @pytest.mark.parametrize(
-    "shape, filter_shape", zip(SHAPES, FILTER_SHAPES), ids=str
+    "shape, filter_shape",
+    list(zip(SHAPES, FILTER_SHAPES)) + LARGE_SHAPES,
+    ids=str,
 )
 def test_double(shape, filter_shape):
     a = num.random.rand(*shape)
@@ -79,7 +132,9 @@ def test_double(shape, filter_shape):
 
 
 @pytest.mark.parametrize(
-    "shape, filter_shape", zip(SHAPES, FILTER_SHAPES), ids=str
+    "shape, filter_shape",
+    list(zip(SHAPES, FILTER_SHAPES)) + LARGE_SHAPES,
+    ids=str,
 )
 def test_int(shape, filter_shape):
     a = num.random.randint(0, 5, shape)
@@ -88,10 +143,11 @@ def test_int(shape, filter_shape):
     check_convolve(a, v)
 
 
-def test_dtype():
+@pytest.mark.parametrize("dtype", DTYPES, ids=str)
+def test_dtype(dtype):
     shape = (5,) * 2
     arr1 = num.random.randint(0, 5, shape, dtype=np.int64)
-    arr2 = num.random.random(shape)
+    arr2 = num.random.random(shape).astype(dtype)
     out_num = num.convolve(arr1, arr2, mode="same")
     out_np = np.convolve(arr1, arr2, mode="same")
     assert allclose(out_num, out_np)
