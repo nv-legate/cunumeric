@@ -11,6 +11,7 @@ Averages and variances
 
    mean
    nanmean
+   var
 
 
 Histograms

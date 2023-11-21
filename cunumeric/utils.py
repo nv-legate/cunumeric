@@ -18,7 +18,7 @@ import traceback
 from functools import reduce
 from string import ascii_lowercase, ascii_uppercase
 from types import FrameType
-from typing import Any, Callable, List, Sequence, Tuple, Union
+from typing import Any, Callable, List, Sequence, Tuple, TypeVar, Union
 
 import legate.core.types as ty
 import numpy as np
@@ -106,6 +106,13 @@ def calculate_volume(shape: NdShape) -> int:
     if len(shape) == 0:
         return 0
     return reduce(lambda x, y: x * y, shape)
+
+
+T = TypeVar("T")
+
+
+def tuple_pop(tup: Tuple[T, ...], index: int) -> Tuple[T, ...]:
+    return tup[:index] + tup[index + 1 :]
 
 
 Modes = Tuple[List[str], List[str], List[str]]

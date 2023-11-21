@@ -53,7 +53,13 @@ from .config import (
 from .coverage import FALLBACK_WARNING, clone_class, is_implemented
 from .runtime import runtime
 from .types import NdShape
-from .utils import deep_apply, dot_modes, to_core_dtype
+from .utils import (
+    calculate_volume,
+    deep_apply,
+    dot_modes,
+    to_core_dtype,
+    tuple_pop,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -159,7 +165,9 @@ def maybe_convert_to_np_ndarray(obj: Any) -> Any:
     """
     Converts cuNumeric arrays into NumPy arrays, otherwise has no effect.
     """
-    if isinstance(obj, ndarray):
+    from .ma import MaskedArray
+
+    if isinstance(obj, (ndarray, MaskedArray)):
         return obj.__array__()
     return obj
 
@@ -1664,8 +1672,6 @@ class ndarray:
 
         """
         check_writeable(self)
-        if key is None:
-            raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
             temp = ndarray(value.shape, dtype=self.dtype, inputs=(value,))
             temp._thunk.convert(value._thunk)
@@ -3086,12 +3092,54 @@ class ndarray:
             axis=axis,
         )
 
+    def _summation_dtype(
+        self, dtype: Optional[np.dtype[Any]]
+    ) -> np.dtype[Any]:
+        # Pick our dtype if it wasn't picked yet
+        if dtype is None:
+            if self.dtype.kind != "f" and self.dtype.kind != "c":
+                return np.dtype(np.float64)
+            else:
+                return self.dtype
+        return dtype
+
+    def _normalize_summation(
+        self,
+        sum_array: Any,
+        axis: Any,
+        dtype: np.dtype[Any],
+        ddof: int = 0,
+        keepdims: bool = False,
+        where: Union[ndarray, None] = None,
+    ) -> None:
+        if axis is None:
+            if where is not None:
+                divisor = where._count_nonzero() - ddof
+            else:
+                divisor = reduce(lambda x, y: x * y, self.shape, 1) - ddof
+        else:
+            if where is not None:
+                divisor = (
+                    where.sum(axis=axis, dtype=dtype, keepdims=keepdims) - ddof
+                )
+            else:
+                divisor = self.shape[axis] - ddof
+
+        # Divide by the number of things in the collapsed dimensions
+        # Pick the right kinds of division based on the dtype
+        if np.ndim(divisor) == 0:
+            divisor = np.array(divisor, dtype=sum_array.dtype)  # type: ignore [assignment] # noqa
+        if dtype.kind == "f" or dtype.kind == "c":
+            sum_array.__itruediv__(divisor)
+        else:
+            sum_array.__ifloordiv__(divisor)
+
     @add_boilerplate()
     def mean(
         self,
         axis: Any = None,
-        dtype: Union[np.dtype[Any], None] = None,
-        out: Union[ndarray, None] = None,
+        dtype: Optional[np.dtype[Any]] = None,
+        out: Optional[ndarray] = None,
         keepdims: bool = False,
         where: Union[ndarray, None] = None,
     ) -> ndarray:
@@ -3113,16 +3161,12 @@ class ndarray:
         if axis is not None and not isinstance(axis, int):
             raise NotImplementedError(
                 "cunumeric.mean only supports int types for "
-                "'axis' currently"
+                "`axis` currently"
             )
-        # Pick our dtype if it wasn't picked yet
-        if dtype is None:
-            if self.dtype.kind != "f" and self.dtype.kind != "c":
-                dtype = np.dtype(np.float64)
-            else:
-                dtype = self.dtype
 
+        dtype = self._summation_dtype(dtype)
         where_array = broadcast_where(where, self.shape)
+
         # Do the sum
         sum_array = (
             self.sum(
@@ -3138,28 +3182,10 @@ class ndarray:
             )
         )
 
-        if axis is None:
-            if where_array is not None:
-                divisor = where_array._count_nonzero()
-            else:
-                divisor = reduce(lambda x, y: x * y, self.shape, 1)
+        self._normalize_summation(
+            sum_array, axis, dtype, keepdims=keepdims, where=where_array
+        )
 
-        else:
-            if where_array is not None:
-                divisor = where_array.sum(
-                    axis=axis, dtype=dtype, keepdims=keepdims
-                )
-            else:
-                divisor = self.shape[axis]
-
-        # Divide by the number of things in the collapsed dimensions
-        # Pick the right kinds of division based on the dtype
-        if dtype.kind == "f" or dtype.kind == "c":
-            sum_array.__itruediv__(
-                divisor,
-            )
-        else:
-            sum_array.__ifloordiv__(divisor)
         # Convert to the output we didn't already put it there
         if out is not None and sum_array is not out:
             assert out.dtype != sum_array.dtype
@@ -3195,6 +3221,91 @@ class ndarray:
             keepdims=keepdims,
             where=nan_mask,
         )
+
+    @add_boilerplate()
+    def var(
+        self,
+        axis: Optional[Union[int, tuple[int, ...]]] = None,
+        dtype: Optional[np.dtype[Any]] = None,
+        out: Optional[ndarray] = None,
+        ddof: int = 0,
+        keepdims: bool = False,
+        *,
+        where: Union[ndarray, None] = None,
+    ) -> ndarray:
+        """a.var(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False)
+
+        Returns the variance of the array elements along given axis.
+
+        Refer to :func:`cunumeric.var` for full documentation.
+
+        See Also
+        --------
+        cunumeric.var : equivalent function
+
+        Availability
+        --------
+        Multiple GPUs, Multiple CPUs
+
+        """
+        if axis is not None and not isinstance(axis, int):
+            raise NotImplementedError(
+                "cunumeric.var only supports int types for `axis` currently"
+            )
+
+        # this could be computed as a single pass through the array
+        # by computing both <x^2> and <x> and then computing <x^2> - <x>^2.
+        # this would takee the difference of two large numbers and is unstable
+        # the mean needs to be computed first and the variance computed
+        # directly as <(x-mu)^2>, which then requires two passes through the
+        # data to first compute the mean and then compute the variance
+        # see https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+        # TODO(https://github.com/nv-legate/cunumeric/issues/590)
+
+        dtype = self._summation_dtype(dtype)
+        # calculate the mean, but keep the dimensions so that the
+        # mean can be broadcast against the original array
+        mu = self.mean(axis=axis, dtype=dtype, keepdims=True, where=where)
+
+        # 1D arrays (or equivalent) should benefit from this unary reduction:
+        #
+        if axis is None or calculate_volume(tuple_pop(self.shape, axis)) == 1:
+            # this is a scalar reduction and we can optimize this as a single
+            # pass through a scalar reduction
+            result = self._perform_unary_reduction(
+                UnaryRedCode.VARIANCE,
+                self,
+                axis=axis,
+                dtype=dtype,
+                out=out,
+                keepdims=keepdims,
+                where=where,
+                args=(mu,),
+            )
+        else:
+            # TODO(https://github.com/nv-legate/cunumeric/issues/591)
+            # there isn't really support for generic binary reductions
+            # right now all of the current binary reductions are boolean
+            # reductions like allclose. To implement this a single pass would
+            # require a variant of einsum/dot that produces
+            # (self-mu)*(self-mu) rather than self*mu. For now, we have to
+            # compute delta = self-mu in a first pass and then compute
+            # delta*delta in second pass
+            delta = self - mu
+
+            result = self._perform_unary_reduction(
+                UnaryRedCode.SUM_SQUARES,
+                delta,
+                axis=axis,
+                dtype=dtype,
+                out=out,
+                keepdims=keepdims,
+                where=where,
+            )
+
+        self._normalize_summation(result, axis=axis, dtype=dtype, ddof=ddof)
+
+        return result
 
     @add_boilerplate()
     def min(

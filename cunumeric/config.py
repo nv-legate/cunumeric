@@ -32,6 +32,7 @@ class _CunumericSharedLib:
     CUNUMERIC_ADVANCED_INDEXING: int
     CUNUMERIC_ARANGE: int
     CUNUMERIC_ARGWHERE: int
+    CUNUMERIC_BATCHED_CHOLESKY: int
     CUNUMERIC_BINARY_OP: int
     CUNUMERIC_BINARY_RED: int
     CUNUMERIC_BINCOUNT: int
@@ -187,6 +188,8 @@ class _CunumericSharedLib:
     CUNUMERIC_RED_NANSUM: int
     CUNUMERIC_RED_PROD: int
     CUNUMERIC_RED_SUM: int
+    CUNUMERIC_RED_SUM_SQUARES: int
+    CUNUMERIC_RED_VARIANCE: int
     CUNUMERIC_REPEAT: int
     CUNUMERIC_SCALAR_UNARY_RED: int
     CUNUMERIC_SCAN_GLOBAL: int
@@ -331,6 +334,7 @@ class CuNumericOpCode(IntEnum):
     ADVANCED_INDEXING = _cunumeric.CUNUMERIC_ADVANCED_INDEXING
     ARANGE = _cunumeric.CUNUMERIC_ARANGE
     ARGWHERE = _cunumeric.CUNUMERIC_ARGWHERE
+    BATCHED_CHOLESKY = _cunumeric.CUNUMERIC_BATCHED_CHOLESKY
     BINARY_OP = _cunumeric.CUNUMERIC_BINARY_OP
     BINARY_RED = _cunumeric.CUNUMERIC_BINARY_RED
     BINCOUNT = _cunumeric.CUNUMERIC_BINCOUNT
@@ -452,6 +456,8 @@ class UnaryRedCode(IntEnum):
     NANSUM = _cunumeric.CUNUMERIC_RED_NANSUM
     PROD = _cunumeric.CUNUMERIC_RED_PROD
     SUM = _cunumeric.CUNUMERIC_RED_SUM
+    SUM_SQUARES = _cunumeric.CUNUMERIC_RED_SUM_SQUARES
+    VARIANCE = _cunumeric.CUNUMERIC_RED_VARIANCE
 
 
 # Match these to CuNumericBinaryOpCode in cunumeric_c.h

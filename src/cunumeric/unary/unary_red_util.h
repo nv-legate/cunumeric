@@ -40,6 +40,8 @@ enum class UnaryRedCode : int {
   NANSUM        = CUNUMERIC_RED_NANSUM,
   PROD          = CUNUMERIC_RED_PROD,
   SUM           = CUNUMERIC_RED_SUM,
+  SUM_SQUARES   = CUNUMERIC_RED_SUM_SQUARES,
+  VARIANCE      = CUNUMERIC_RED_VARIANCE
 };
 
 template <UnaryRedCode OP_CODE>
@@ -89,6 +91,10 @@ constexpr decltype(auto) op_dispatch(UnaryRedCode op_code, Functor f, Fnargs&&..
       return f.template operator()<UnaryRedCode::PROD>(std::forward<Fnargs>(args)...);
     case UnaryRedCode::SUM:
       return f.template operator()<UnaryRedCode::SUM>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::SUM_SQUARES:
+      return f.template operator()<UnaryRedCode::SUM_SQUARES>(std::forward<Fnargs>(args)...);
+    case UnaryRedCode::VARIANCE:
+      return f.template operator()<UnaryRedCode::VARIANCE>(std::forward<Fnargs>(args)...);
     default: break;
   }
   assert(false);
@@ -262,6 +268,52 @@ struct UnaryRedOp<UnaryRedCode::SUM, TYPE_CODE> {
   }
 
   __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs; }
+};
+
+template <legate::Type::Code TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::SUM_SQUARES, TYPE_CODE> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
+  using OP  = Legion::SumReduction<VAL>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
+  {
+    return rhs * rhs;
+  }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs * rhs; }
+};
+
+template <legate::Type::Code TYPE_CODE>
+struct UnaryRedOp<UnaryRedCode::VARIANCE, TYPE_CODE> {
+  static constexpr bool valid = true;
+
+  using RHS = legate::legate_type_of<TYPE_CODE>;
+  using VAL = RHS;
+  using OP  = Legion::SumReduction<VAL>;
+
+  template <bool EXCLUSIVE>
+  __CUDA_HD__ static void fold(VAL& a, VAL b)
+  {
+    OP::template fold<EXCLUSIVE>(a, b);
+  }
+
+  template <int32_t DIM>
+  __CUDA_HD__ static VAL convert(const Legion::Point<DIM>&, int32_t, const VAL, const RHS& rhs)
+  {
+    return rhs * rhs;
+  }
+
+  __CUDA_HD__ static VAL convert(const RHS& rhs, const VAL) { return rhs * rhs; }
 };
 
 template <legate::Type::Code TYPE_CODE>

@@ -29,6 +29,14 @@ def test_basic():
     assert x[2] == 3
 
 
+def test_newaxis():
+    arr = num.ones((4,))
+    arr[None] = 1
+    assert np.array_equal(arr, [1, 1, 1, 1])
+    arr[None, :] = 2
+    assert np.array_equal(arr, [2, 2, 2, 2])
+
+
 ARRAYS_4_3_2_1_0 = [
     4 - num.arange(5),
     4 - np.arange(5),

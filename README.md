@@ -40,15 +40,15 @@ If you have questions, please contact us at legate(at)nvidia.com.
 cuNumeric is available [on conda](https://anaconda.org/legate/cunumeric):
 
 ```
-conda install -c nvidia -c conda-forge -c legate cunumeric
+mamba install -c nvidia -c conda-forge -c legate cunumeric
 ```
 
 Only linux-64 packages are available at the moment.
 
 The default package contains GPU support, and is compatible with CUDA >= 11.8
 (CUDA driver version >= r520), and Volta or later GPU architectures. There are
-also CPU-only packages available, and will be automatically selected by `conda`
-when installing on a machine without GPUs.
+also CPU-only packages available, and will be automatically selected when
+installing on a machine without GPUs.
 
 See the build instructions at https://nv-legate.github.io/cunumeric for details
 about building cuNumeric from source.
@@ -119,7 +119,7 @@ with cuNumeric going forward:
   new features to cuNumeric.
 * We plan to add support for sharded file I/O for loading and
   storing large data sets that could never be loaded on a single node.
-  Initially this will begin with native support for [h5py](https://www.h5py.org/)
+  Initially this will begin with native support for hdf5 and zarr,
   but will grow to accommodate other formats needed by our lighthouse
   applications.
 * Strong scaling: while cuNumeric is currently implemented in a way that

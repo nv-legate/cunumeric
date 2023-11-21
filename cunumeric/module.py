@@ -2763,8 +2763,8 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     Returns
     -------
     out : array_like
-        A view of `m` with the entries of axis reversed.  Since a view is
-        returned, this operation is done in constant time.
+        A new array that is constructed from `m` with the entries of axis
+        reversed.
 
     See Also
     --------
@@ -2773,8 +2773,83 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     Availability
     --------
     Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
     """
     return m.flip(axis=axis)
+
+
+@add_boilerplate("m")
+def flipud(m: ndarray) -> ndarray:
+    """
+    Reverse the order of elements along axis 0 (up/down).
+
+    For a 2-D array, this flips the entries in each column in the up/down
+    direction. Rows are preserved, but appear in a different order than before.
+
+    Parameters
+    ----------
+    m : array_like
+        Input array.
+
+    Returns
+    -------
+    out : array_like
+        A new array that is constructed from `m` with rows reversed.
+
+    See Also
+    --------
+    numpy.flipud
+
+    Availability
+    --------
+    Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
+    """
+    if m.ndim < 1:
+        raise ValueError("Input must be >= 1-d.")
+    return flip(m, axis=0)
+
+
+@add_boilerplate("m")
+def fliplr(m: ndarray) -> ndarray:
+    """
+    Reverse the order of elements along axis 1 (left/right).
+
+    For a 2-D array, this flips the entries in each row in the left/right
+    direction. Columns are preserved, but appear in a different order than
+    before.
+
+    Parameters
+    ----------
+    m : array_like
+        Input array, must be at least 2-D.
+
+    Returns
+    -------
+    f : ndarray
+        A new array that is constructed from `m` with the columns reversed.
+
+    See Also
+    --------
+    numpy.fliplr
+
+    Availability
+    --------
+    Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
+    """
+    if m.ndim < 2:
+        raise ValueError("Input must be >= 2-d.")
+    return flip(m, axis=1)
 
 
 ###################
@@ -4591,7 +4666,7 @@ def einsum(
     out: Optional[ndarray] = None,
     dtype: Optional[np.dtype[Any]] = None,
     casting: CastingKind = "safe",
-    optimize: Union[bool, str] = False,
+    optimize: Union[bool, Literal["greedy", "optimal"]] = True,
 ) -> ndarray:
     """
     Evaluates the Einstein summation convention on the operands.
@@ -4632,9 +4707,10 @@ def einsum(
 
         Default is 'safe'.
     optimize : ``{False, True, 'greedy', 'optimal'}``, optional
-        Controls if intermediate optimization should occur. No optimization
-        will occur if False. Uses opt_einsum to find an optimized contraction
-        plan if True.
+        Controls if intermediate optimization should occur. If False then
+        arrays will be contracted in input order, one at a time. True (the
+        default) will use the 'greedy' algorithm. See ``cunumeric.einsum_path``
+        for more information on the available optimization algorithms.
 
     Returns
     -------
@@ -4658,7 +4734,9 @@ def einsum(
     if out is not None:
         out = convert_to_cunumeric_ndarray(out, share=True)
 
-    if not optimize:
+    if optimize is True:
+        optimize = "greedy"
+    elif optimize is False:
         optimize = NullOptimizer()
 
     # This call normalizes the expression (adds the output part if it's
@@ -7121,6 +7199,79 @@ def nanmean(
     )
 
 
+@add_boilerplate("a")
+def var(
+    a: ndarray,
+    axis: Optional[Union[int, tuple[int, ...]]] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+    ddof: int = 0,
+    keepdims: bool = False,
+    *,
+    where: Union[ndarray, None] = None,
+) -> ndarray:
+    """
+    Compute the variance along the specified axis.
+
+    Returns the variance of the array elements, a measure of the spread of
+    a distribution. The variance is computed for the flattened array
+    by default, otherwise over the specified axis.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose variance is desired. If `a` is not an
+        array, a conversion is attempted.
+    axis : None or int or tuple[int], optional
+        Axis or axes along which the variance is computed. The default is to
+        compute the variance of the flattened array.
+
+        If this is a tuple of ints, a variance is performed over multiple axes,
+        instead of a single axis or all the axes as before.
+    dtype : data-type, optional
+        Type to use in computing the variance. For arrays of integer type
+        the default is float64; for arrays of float types
+        it is the same as the array type.
+    out : ndarray, optional
+        Alternate output array in which to place the result. It must have the
+        same shape as the expected output, but the type is cast if necessary.
+    ddof : int, optional
+        “Delta Degrees of Freedom”: the divisor used in the calculation is
+        N - ddof, where N represents the number of elements. By default
+        ddof is zero.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+    where : array_like of bool, optional
+        A boolean array which is broadcasted to match the dimensions of array,
+        and selects elements to include in the reduction.
+
+    Returns
+    -------
+    m : ndarray, see dtype parameter above
+        If `out=None`, returns a new array of the same dtype as above
+        containing the variance values, otherwise a reference to the output
+        array is returned.
+
+    See Also
+    --------
+    numpy.var
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a.var(
+        axis=axis,
+        dtype=dtype,
+        out=out,
+        ddof=ddof,
+        keepdims=keepdims,
+        where=where,
+    )
+
+
 # Histograms
 
 
@@ -7182,7 +7333,7 @@ def bincount(
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if x.dtype.kind != "i":
+    if not np.issubdtype(x.dtype, np.integer):
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:
         raise ValueError("'minlength' must not be negative")

@@ -28,7 +28,7 @@ import os
 
 import numpy as _np
 
-from cunumeric import linalg, random, fft
+from cunumeric import linalg, random, fft, ma
 from cunumeric.array import maybe_convert_to_np_ndarray, ndarray
 from cunumeric.bits import packbits, unpackbits
 from cunumeric.module import *

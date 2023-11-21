@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -202,11 +202,47 @@ def tril(context: Context, p_output: StorePartition, n: int) -> None:
     task.execute()
 
 
+def _batched_cholesky(output: DeferredArray, input: DeferredArray) -> None:
+    # the only feasible implementation for right now is that
+    # each cholesky submatrix fits on a single proc. We will have
+    # wildly varying memory available depending on the system.
+    # Just use a fixed cutoff to provide some sensible warning.
+    # TODO: find a better way to inform the user dims are too big
+    context: Context = output.context  # type: ignore
+    task = context.create_auto_task(CuNumericOpCode.BATCHED_CHOLESKY)
+    task.add_input(input.base)
+    task.add_output(output.base)
+    ndim = input.base.ndim
+    task.add_broadcast(input.base, (ndim - 2, ndim - 1))
+    task.add_broadcast(output.base, (ndim - 2, ndim - 1))
+    task.add_alignment(input.base, output.base)
+    task.throws_exception(LinAlgError)
+    task.execute()
+
+
 def cholesky(
     output: DeferredArray, input: DeferredArray, no_tril: bool
 ) -> None:
     runtime = output.runtime
-    context = output.context
+    context: Context = output.context
+    if len(input.base.shape) > 2:
+        if no_tril:
+            raise NotImplementedError(
+                "batched cholesky expects to only "
+                "produce the lower triangular matrix"
+            )
+        size = input.base.shape[-1]
+        # Choose 32768 as dimension cutoff for warning
+        # so that for float64 anything larger than
+        # 8 GiB produces a warning
+        if size > 32768:
+            runtime.warn(
+                "batched cholesky is only valid"
+                " when the square submatrices fit"
+                f" on a single proc, n > {size} may be too large",
+                category=UserWarning,
+            )
+        return _batched_cholesky(output, input)
 
     if runtime.num_procs == 1:
         transpose_copy_single(context, input.base, output.base)

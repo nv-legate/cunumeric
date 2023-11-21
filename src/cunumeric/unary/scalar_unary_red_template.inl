@@ -47,6 +47,7 @@ struct ScalarUnaryRed {
   Point<DIM> origin;
   Point<DIM> shape;
   RHS to_find;
+  RHS mu;
   bool dense;
   WHERE where;
   const bool* whereptr;
@@ -64,6 +65,7 @@ struct ScalarUnaryRed {
 
     out = args.out.reduce_accessor<LG_OP, true, 1>();
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
+    if constexpr (OP_CODE == UnaryRedCode::VARIANCE) { mu = args.args[0].scalar<RHS>(); }
 
     if constexpr (HAS_WHERE) where = args.where.read_accessor<bool, DIM>(rect);
 #ifndef LEGATE_BOUNDS_CHECKS
@@ -90,6 +92,8 @@ struct ScalarUnaryRed {
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
       if (mask) OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
+    } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
+      if (mask) OP::template fold<true>(lhs, OP::convert(inptr[idx] - mu, identity));
     } else {
       if (mask) OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
     }
@@ -106,6 +110,8 @@ struct ScalarUnaryRed {
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       if (mask) OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
+    } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
+      if (mask) OP::template fold<true>(lhs, OP::convert(in[p] - mu, identity));
     } else {
       if (mask) OP::template fold<true>(lhs, OP::convert(in[p], identity));
     }
