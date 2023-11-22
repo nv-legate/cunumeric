@@ -57,7 +57,7 @@ struct _cholesky_supported {
 
 template <VariantKind KIND>
 struct BatchedCholeskyImpl {
-  template <Type::Code CODE, int32_t DIM, std::enable_if_t<2 < DIM>* = nullptr>
+  template <Type::Code CODE, int32_t DIM, std::enable_if_t<(DIM > 2)>* = nullptr>
   void operator()(Array& input_array, Array& output_array) const
   {
     using VAL = legate_type_of<CODE>;
