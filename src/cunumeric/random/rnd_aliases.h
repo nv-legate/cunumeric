@@ -17,13 +17,38 @@
 #pragma once
 
 #ifdef USE_STL_RANDOM_ENGINE_
+#include <random>
+
 using rnd_status_t = int;
-enum class randRngType : int { STL_MT19937 = 1 };
-using randRngType_t              = randRngType;
-constexpr int RND_STATUS_SUCCESS = 0;
+enum class randRngType : int { STL_MT_19937 = 1 };
+using randRngType_t                              = randRngType;
+constexpr int RND_STATUS_SUCCESS                 = 0;
+constexpr rnd_status_t RND_STATUS_INTERNAL_ERROR = 1;  //???
+
+namespace randutilimpl {
+constexpr int RND_RNG_PSEUDO_XORWOW        = randRngType::STL_MT_19937;
+constexpr int RND_RNG_PSEUDO_PHILOX4_32_10 = randRngType::STL_MT_19937;
+constexpr int RND_RNG_PSEUDO_MRG32K3A      = randRngType::STL_MT_19937;
+
+using gen_XORWOW_t        = std::mt19937;
+using gen_Philox4_32_10_t = std::mt19937;
+using gen_MRG32k3a_t      = std::mt19937;
+}  // namespace randutilimpl
 #else
-using rnd_status_t                        = curandStatus_t;
-using randRngType                         = curandRngType;
-using randRngType_t                       = curandRngType_t;
-constexpr rnd_status_t RND_STATUS_SUCCESS = CURAND_STATUS_SUCCESS;
+#include <curand_kernel.h>
+
+using rnd_status_t                               = curandStatus_t;
+using randRngType                                = curandRngType;
+using randRngType_t                              = curandRngType_t;
+constexpr rnd_status_t RND_STATUS_SUCCESS        = CURAND_STATUS_SUCCESS;
+constexpr rnd_status_t RND_STATUS_INTERNAL_ERROR = CURAND_STATUS_INTERNAL_ERROR;
+
+constexpr int RND_RNG_PSEUDO_XORWOW        = CURAND_RNG_PSEUDO_XORWOW;
+constexpr int RND_RNG_PSEUDO_PHILOX4_32_10 = CURAND_RNG_PSEUDO_PHILOX4_32_10;
+constexpr int RND_RNG_PSEUDO_MRG32K3A      = CURAND_RNG_PSEUDO_MRG32K3A;
+
+using gen_XORWOW_t        = curandStateXORWOW_t;
+using gen_Philox4_32_10_t = curandStatePhilox4_32_10_t;
+using gen_MRG32k3a_t      = curandStateMRG32k3a_t;
+
 #endif

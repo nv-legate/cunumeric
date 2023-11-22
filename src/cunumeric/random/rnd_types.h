@@ -37,12 +37,12 @@ static inline randRngType get_rndRngType(cunumeric::BitGeneratorType kind)
   // this might become more flexible in the future;
   //
   switch (kind) {
-    case cunumeric::BitGeneratorType::DEFAULT: return randRngType::STL_MT19937;
-    case cunumeric::BitGeneratorType::XORWOW: return randRngType::STL_MT19937;
-    case cunumeric::BitGeneratorType::MRG32K3A: return randRngType::STL_MT19937;
-    case cunumeric::BitGeneratorType::MTGP32: return randRngType::STL_MT19937;
-    case cunumeric::BitGeneratorType::MT19937: return randRngType::STL_MT19937;
-    case cunumeric::BitGeneratorType::PHILOX4_32_10: return randRngType::STL_MT19937;
+    case cunumeric::BitGeneratorType::DEFAULT: return randRngType::STL_MT_19937;
+    case cunumeric::BitGeneratorType::XORWOW: return randRngType::STL_MT_19937;
+    case cunumeric::BitGeneratorType::MRG32K3A: return randRngType::STL_MT_19937;
+    case cunumeric::BitGeneratorType::MTGP32: return randRngType::STL_MT_19937;
+    case cunumeric::BitGeneratorType::MT19937: return randRngType::STL_MT_19937;
+    case cunumeric::BitGeneratorType::PHILOX4_32_10: return randRngType::STL_MT_19937;
     default: LEGATE_ABORT;
   }
   return randRngType::CURAND_RNG_TEST;
