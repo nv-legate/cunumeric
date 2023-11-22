@@ -103,3 +103,5 @@ Rearranging elements
    :toctree: generated/
 
    flip
+   fliplr
+   flipud

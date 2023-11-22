@@ -178,7 +178,9 @@ def maybe_convert_to_np_ndarray(obj: Any) -> Any:
     """
     Converts cuNumeric arrays into NumPy arrays, otherwise has no effect.
     """
-    if isinstance(obj, ndarray):
+    from .ma import MaskedArray
+
+    if isinstance(obj, (ndarray, MaskedArray)):
         return obj.__array__()
     return obj
 
@@ -1673,8 +1675,6 @@ class ndarray:
 
         """
         check_writeable(self)
-        if key is None:
-            raise KeyError("invalid key passed to cunumeric.ndarray")
         if value.dtype != self.dtype:
             temp = ndarray(value.shape, dtype=self.dtype, inputs=(value,))
             temp._thunk.convert(value._thunk)
