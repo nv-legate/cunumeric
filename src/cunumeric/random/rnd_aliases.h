@@ -16,7 +16,16 @@
 
 #pragma once
 
+// attempt to masquerade as MacOS on host:
+//
+// #ifndef LEGATE_USE_CUDA
+// #define USE_STL_RANDOM_ENGINE_
+// #endif
+
 #ifdef USE_STL_RANDOM_ENGINE_
+
+// #pragma message("************ STL path *************")
+
 #include <random>
 
 using rnd_status_t = int;
@@ -42,6 +51,8 @@ using gen_MRG32k3a_t      = std::mt19937;
 using stream_t = void*;
 #else
 #include <curand_kernel.h>
+
+// #pragma message("************ CURAND path ************")
 
 using rnd_status_t                               = curandStatus_t;
 using randRngType                                = curandRngType;

@@ -16,8 +16,9 @@
 
 #pragma once
 
-#ifdef USE_STL_RANDOM_ENGINE_
 #include "cunumeric/random/rnd_aliases.h"
+
+#ifdef USE_STL_RANDOM_ENGINE_
 
 #define CHECK_RND_ENGINE(expr)                             \
   do {                                                     \
@@ -52,10 +53,6 @@ static inline randRngType get_rndRngType(cunumeric::BitGeneratorType kind)
 
 #else
 #include "cunumeric/random/curand_help.h"
-
-// in this case include aliases _after_ curand_help
-//
-#include "cunumeric/random/rnd_aliases.h"
 
 #define CHECK_RND_ENGINE(expr) CHECK_CURAND((expr))
 #define randutil_check_status randutil_check_curand
