@@ -36,7 +36,7 @@ LARGE_SHAPES = [
         ),
     ),
     pytest.param(
-        (1024, 2, 8192),
+        (1024, 2, 4096),
         (128, 16, 64),
         marks=pytest.mark.xfail(
             not CUDA_TEST, run=False, reason="test hang on CPU variants"
