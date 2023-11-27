@@ -298,8 +298,8 @@ def test_diagonal():
         num_array = mk_seq_array(num, a_shape)
         for num_axes in range(3, ndim + 1):
             for axes in permutations(range(ndim), num_axes):
-                res_num = num.diagonal(
-                    num_array, offset=0, extract=True, axes=axes
+                res_num = num_array._diag_helper(
+                    offset=0, extract=True, axes=axes
                 )
                 res_ref = diagonal_reference(np_array, axes)
                 assert np.array_equal(res_num, res_ref)
@@ -425,32 +425,17 @@ class TestDiagonalErrors:
             num.diagonal(self.a, 0, None, 0)
 
     @pytest.mark.diff
-    def test_scalar_axes(self):
-        # NumPy does not have axes arg
-        with pytest.raises(ValueError):
-            num.diagonal(self.a, axes=(0,))
-
-    @pytest.mark.diff
-    def test_duplicate_axes(self):
-        # NumPy does not have axes arg
-        expected_exc = ValueError
-        with pytest.raises(expected_exc):
-            num.diagonal(self.a, axis1=1, axes=(0, 1))
-        with pytest.raises(expected_exc):
-            num.diagonal(self.a, axis1=1, axis2=0, axes=(0, 1))
-
-    @pytest.mark.diff
     def test_extra_axes(self):
         # NumPy does not have axes arg
         axes = num.arange(self.a.ndim + 1, dtype=int)
         with pytest.raises(ValueError):
-            num.diagonal(self.a, axes=axes)
+            self.a._diag_helper(self.a, axes=axes)
 
     @pytest.mark.diff
     def test_n_axes_offset(self):
         # NumPy does not have axes arg
         with pytest.raises(ValueError):
-            num.diagonal(self.a, offset=1, axes=(2, 1, 0))
+            self.a._diag_helper(offset=1, axes=(2, 1, 0))
 
     @pytest.mark.parametrize(
         "k",
