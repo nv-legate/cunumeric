@@ -57,7 +57,7 @@ struct _cholesky_supported {
 
 template <VariantKind KIND>
 struct BatchedCholeskyImpl {
-  template <Type::Code CODE, int DIM>
+  template <Type::Code CODE, int32_t DIM, std::enable_if_t<(DIM > 2)>* = nullptr>
   void operator()(Array& input_array, Array& output_array) const
   {
     using VAL = legate_type_of<CODE>;
@@ -94,8 +94,8 @@ struct BatchedCholeskyImpl {
 
     if (shape.empty()) return;
 
-    int num_blocks = 1;
-    for (int i = 0; i < (DIM - 2); ++i) { num_blocks *= (shape.hi[i] - shape.lo[i] + 1); }
+    int32_t num_blocks = 1;
+    for (int32_t i = 0; i < (DIM - 2); ++i) { num_blocks *= (shape.hi[i] - shape.lo[i] + 1); }
 
     auto m = static_cast<int32_t>(shape.hi[DIM - 2] - shape.lo[DIM - 2] + 1);
     auto n = static_cast<int32_t>(shape.hi[DIM - 1] - shape.lo[DIM - 1] + 1);
@@ -103,7 +103,7 @@ struct BatchedCholeskyImpl {
 
     auto block_stride = m * n;
 
-    for (int i = 0; i < num_blocks; ++i) {
+    for (int32_t i = 0; i < num_blocks; ++i) {
       if constexpr (_cholesky_supported<CODE>::value) {
         CopyBlockImpl<KIND>()(output, input, sizeof(VAL) * block_stride);
         PotrfImplBody<KIND, CODE>()(output, m, n);
@@ -118,6 +118,12 @@ struct BatchedCholeskyImpl {
         output += block_stride;
       }
     }
+  }
+
+  template <Type::Code CODE, int32_t DIM, std::enable_if_t<DIM <= 2>* = nullptr>
+  void operator()(Array& input_array, Array& output_array) const
+  {
+    assert(false);
   }
 };
 
