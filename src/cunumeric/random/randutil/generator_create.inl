@@ -25,7 +25,7 @@ rnd_status_t randutilGenerator(randutilGenerator_t* generator,
   randutilimpl::inner_generator<gen_t, location>* result =
     new randutilimpl::inner_generator<gen_t, location>(seed, generatorID, stream);
   *generator = (randutilGenerator_t)result;
-  return CURAND_STATUS_SUCCESS;
+  return RND_STATUS_SUCCESS;
 }
 
 template <randutilimpl::execlocation location>
@@ -35,7 +35,7 @@ static rnd_status_t inner_randutilCreateGenerator(randutilGenerator_t* generator
                                                   uint64_t generatorID,
                                                   stream_t stream = nullptr)
 {
-  switch (rng_type) {
+  switch (static_cast<int>(rng_type)) {
     case RND_RNG_PSEUDO_XORWOW:
       return randutilGenerator<gen_XORWOW_t, location>(generator, seed, generatorID, stream);
     case RND_RNG_PSEUDO_PHILOX4_32_10:

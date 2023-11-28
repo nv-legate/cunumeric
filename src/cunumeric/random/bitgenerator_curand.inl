@@ -41,7 +41,7 @@ struct CURANDGenerator {
   randutilGenerator_t gen_;
   uint64_t seed_;
   uint64_t generatorId_;
-  curandRngType type_;
+  randRngType type_;
 
  protected:
   CURANDGenerator(BitGeneratorType gentype, uint64_t seed, uint64_t generatorId)

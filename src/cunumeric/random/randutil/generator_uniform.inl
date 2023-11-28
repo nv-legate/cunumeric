@@ -14,18 +14,6 @@
  *
  */
 
-#ifndef LEGATE_USE_CUDA
-//{-
-// assume on MACOS for testing:
-//
-#define IS_MAC_OS_ 0
-//
-#if IS_MAC_OS_ == 1
-#define USE_STL_RANDOM_ENGINE_
-#endif
-//-}
-#endif
-
 #include "generator.h"
 
 #include "randomizer.h"

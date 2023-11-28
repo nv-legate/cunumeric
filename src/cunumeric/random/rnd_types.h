@@ -46,7 +46,7 @@ static inline randRngType get_rndRngType(cunumeric::BitGeneratorType kind)
     case cunumeric::BitGeneratorType::PHILOX4_32_10: return randRngType::STL_MT_19937;
     default: LEGATE_ABORT;
   }
-  return randRngType::CURAND_RNG_TEST;
+  return randRngType::RND_RNG_TEST;
 }
 
 }  // namespace cunumeric

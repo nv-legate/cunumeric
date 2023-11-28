@@ -16,20 +16,15 @@
 
 #pragma once
 
-// attempt to masquerade as MacOS on host:
-//
-// #ifndef LEGATE_USE_CUDA
-// #define USE_STL_RANDOM_ENGINE_
-// #endif
-
 #ifdef USE_STL_RANDOM_ENGINE_
 
 // #pragma message("************ STL path *************")
 
+#include <cstdlib>
 #include <random>
 
 using rnd_status_t = int;
-enum class randRngType : int { STL_MT_19937 = 1 };
+enum class randRngType : int { RND_RNG_TEST = 0, STL_MT_19937 = 1 };
 using randRngType_t              = randRngType;
 constexpr int RND_STATUS_SUCCESS = 0;
 
@@ -38,19 +33,23 @@ constexpr int RND_STATUS_SUCCESS = 0;
 constexpr rnd_status_t RND_STATUS_INTERNAL_ERROR = 999;
 constexpr rnd_status_t RND_STATUS_TYPE_ERROR     = 103;
 
-namespace randutilimpl {
-constexpr int RND_RNG_PSEUDO_XORWOW        = randRngType::STL_MT_19937;
-constexpr int RND_RNG_PSEUDO_PHILOX4_32_10 = randRngType::STL_MT_19937;
-constexpr int RND_RNG_PSEUDO_MRG32K3A      = randRngType::STL_MT_19937;
+// namespace randutilimpl {
+constexpr int RND_RNG_PSEUDO_XORWOW        = static_cast<int>(randRngType::STL_MT_19937);
+constexpr int RND_RNG_PSEUDO_PHILOX4_32_10 = static_cast<int>(randRngType::STL_MT_19937) + 1;
+constexpr int RND_RNG_PSEUDO_MRG32K3A      = static_cast<int>(randRngType::STL_MT_19937) + 2;
 
+// cannot be same, b/c they are used for
+// specializing class generatorid:
+//
 using gen_XORWOW_t        = std::mt19937;
 using gen_Philox4_32_10_t = std::mt19937;
 using gen_MRG32k3a_t      = std::mt19937;
-}  // namespace randutilimpl
+//}  // namespace randutilimpl
 
 using stream_t = void*;
 #else
 #include <curand_kernel.h>
+#include <curand.h>
 
 // #pragma message("************ CURAND path ************")
 
@@ -60,6 +59,8 @@ using randRngType_t                              = curandRngType_t;
 constexpr rnd_status_t RND_STATUS_SUCCESS        = CURAND_STATUS_SUCCESS;
 constexpr rnd_status_t RND_STATUS_INTERNAL_ERROR = CURAND_STATUS_INTERNAL_ERROR;
 constexpr rnd_status_t RND_STATUS_TYPE_ERROR     = CURAND_STATUS_TYPE_ERROR;
+
+constexpr randRngType_t RND_RNG_TEST = CURAND_RNG_TEST;
 
 constexpr int RND_RNG_PSEUDO_XORWOW        = CURAND_RNG_PSEUDO_XORWOW;
 constexpr int RND_RNG_PSEUDO_PHILOX4_32_10 = CURAND_RNG_PSEUDO_PHILOX4_32_10;

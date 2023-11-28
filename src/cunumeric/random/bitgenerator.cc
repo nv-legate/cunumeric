@@ -14,6 +14,10 @@
  *
  */
 
+// attempt to masquerade as MacOS on host:
+//
+#define USE_STL_RANDOM_ENGINE_
+
 #include "cunumeric/random/bitgenerator.h"
 #include "cunumeric/random/bitgenerator_template.inl"
 #include "cunumeric/random/bitgenerator_util.h"

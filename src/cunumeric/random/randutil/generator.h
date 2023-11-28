@@ -41,6 +41,10 @@ template <>
 struct generatorid<gen_XORWOW_t> {
   static constexpr int rng_type = RND_RNG_PSEUDO_XORWOW;
 };
+
+#ifndef USE_STL_RANDOM_ENGINE_
+// Curand *different* specializations, not possible with only one generator
+//
 template <>
 struct generatorid<gen_Philox4_32_10_t> {
   static constexpr int rng_type = RND_RNG_PSEUDO_PHILOX4_32_10;
@@ -49,6 +53,7 @@ template <>
 struct generatorid<gen_MRG32k3a_t> {
   static constexpr int rng_type = RND_RNG_PSEUDO_MRG32K3A;
 };
+#endif
 
 #if 0
 // this seems dead code
@@ -76,16 +81,17 @@ struct inner_generator<gen_t, randutilimpl::execlocation::HOST> : basegenerator 
   uint64_t generatorID;
   gen_t generator;
 
-  inner_generator(uint64_t seed, uint64_t generatorID, cudaStream_t ignored)
+  inner_generator(uint64_t seed, uint64_t generatorID, stream_t ignored)
     : seed(seed),
       generatorID(generatorID)
 #ifdef USE_STL_RANDOM_ENGINE_
       ,
-      generator(seed),
-      std::srand(seed)
+      generator(seed)
 #endif
   {
-#if !defined USE_STL_RANDOM_ENGINE_
+#ifdef USE_STL_RANDOM_ENGINE_
+    std::srand(seed);
+#else
     curand_init(seed, generatorID, 0, &generator);
 #endif
   }

@@ -14,6 +14,10 @@
  *
  */
 
+// attempt to masquerade as MacOS on host:
+//
+#define USE_STL_RANDOM_ENGINE_
+
 #include "generator.h"
 #include "generator_create.inl"
 #include "cunumeric/random/rnd_aliases.h"
