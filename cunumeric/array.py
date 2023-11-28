@@ -2535,10 +2535,9 @@ class ndarray:
     def diagonal(
         self,
         offset: int = 0,
-        axis1: Any = None,
-        axis2: Any = None,
+        axis1: int = 0,
+        axis2: int = 1,
         extract: bool = True,
-        axes: Any = None,
     ) -> ndarray:
         """a.diagonal(offset=0, axis1=None, axis2=None)
 
@@ -2560,19 +2559,7 @@ class ndarray:
                 raise ValueError("extract can be true only for Ndim >=2")
             axes = None
         else:
-            if isinstance(axis1, int) and isinstance(axis2, int):
-                if axes is not None:
-                    raise ValueError(
-                        "Either axis1/axis2 or axes must be supplied"
-                    )
-                axes = (axis1, axis2)
-            # default values for axes
-            elif (axis1 is None) and (axis2 is None) and (axes is None):
-                axes = (0, 1)
-            elif (axes is not None) and (
-                (axis1 is not None) or (axis2 is not None)
-            ):
-                raise ValueError("Either axis1/axis2 or axes must be supplied")
+            axes = (axis1, axis2)
         return self._diag_helper(offset=offset, axes=axes, extract=extract)
 
     @add_boilerplate("indices", "values")
