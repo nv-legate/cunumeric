@@ -26,6 +26,8 @@
     randutil_check_status(__result__, __FILE__, __LINE__); \
   } while (false)
 
+// #define randutil_check_curand randutil_check_status
+
 namespace cunumeric {
 legate::Logger& randutil_log();
 
