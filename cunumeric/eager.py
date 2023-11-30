@@ -1532,7 +1532,9 @@ class EagerArray(NumPyThunk):
                 squared,
                 out=self.array,
                 axis=orig_axis,
-                where=where,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
                 keepdims=keepdims,
             )
         elif op == UnaryRedCode.VARIANCE:
@@ -1542,7 +1544,9 @@ class EagerArray(NumPyThunk):
             np.sum(
                 squares,
                 axis=orig_axis,
-                where=where,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
                 keepdims=keepdims,
                 out=self.array,
             )
