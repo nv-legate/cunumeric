@@ -3806,10 +3806,9 @@ def compress(
 def diagonal(
     a: ndarray,
     offset: int = 0,
-    axis1: Optional[int] = None,
-    axis2: Optional[int] = None,
+    axis1: int = 0,
+    axis2: int = 1,
     extract: bool = True,
-    axes: Optional[tuple[int, int]] = None,
 ) -> ndarray:
     """
     diagonal(a: ndarray, offset=0, axis1=None, axis2=None)
@@ -3868,9 +3867,7 @@ def diagonal(
     Multiple GPUs, Multiple CPUs
 
     """
-    return a.diagonal(
-        offset=offset, axis1=axis1, axis2=axis2, extract=extract, axes=axes
-    )
+    return a.diagonal(offset=offset, axis1=axis1, axis2=axis2, extract=extract)
 
 
 @add_boilerplate("a", "indices", "values")
