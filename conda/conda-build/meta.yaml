@@ -116,11 +116,12 @@ requirements:
     - cuda-nvcc ={{ cuda_version }}
     - cuda-cccl ={{ cuda_version }}
     - cuda-cudart ={{ cuda_version }}
+    - cuda-cudart-static ={{ cuda_version }}
     - cuda-driver-dev ={{ cuda_version }}
     - cuda-cudart-dev ={{ cuda_version }}
     - cuda-nvtx ={{ cuda_version }}
     # - libcutensor-dev >=1.3
-    - cutensor >=1.3 =*_*
+    - cutensor >=1.3,<2.0 =*_*
     - libcublas-dev
     - libcusolver-dev
     - libcufft-dev
@@ -140,6 +141,8 @@ requirements:
     - libcublas
     - libcusolver >=11.4.1.48-0
     - libcufft
+    - libnvjitlink
+    - libcusparse
 {% endif %}
     - opt_einsum >=3.3
     - scipy
