@@ -3119,16 +3119,25 @@ class ndarray:
                 divisor = reduce(lambda x, y: x * y, self.shape, 1) - ddof
         else:
             if where is not None:
-                divisor = (
-                    where.sum(axis=axis, dtype=dtype, keepdims=keepdims) - ddof
+                divisor = where.sum(
+                    axis=axis, dtype=sum_array.dtype, keepdims=keepdims
                 )
+                if ddof != 0 and not np.isscalar(divisor):
+                    mask = divisor != 0
+                    values = divisor - ddof
+                    divisor._thunk.putmask(mask._thunk, values._thunk)
+                else:
+                    divisor -= ddof
             else:
                 divisor = self.shape[axis] - ddof
 
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
-        if np.ndim(divisor) == 0:
+        if isinstance(divisor, ndarray):
+            divisor = divisor.astype(sum_array.dtype)
+        else:
             divisor = np.array(divisor, dtype=sum_array.dtype)  # type: ignore [assignment] # noqa
+
         if dtype.kind == "f" or dtype.kind == "c":
             sum_array.__itruediv__(divisor)
         else:
@@ -3267,8 +3276,9 @@ class ndarray:
         # mean can be broadcast against the original array
         mu = self.mean(axis=axis, dtype=dtype, keepdims=True, where=where)
 
+        where_array = broadcast_where(where, self.shape)
+
         # 1D arrays (or equivalent) should benefit from this unary reduction:
-        #
         if axis is None or calculate_volume(tuple_pop(self.shape, axis)) == 1:
             # this is a scalar reduction and we can optimize this as a single
             # pass through a scalar reduction
@@ -3279,7 +3289,7 @@ class ndarray:
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
-                where=where,
+                where=where_array,
                 args=(mu,),
             )
         else:
@@ -3300,10 +3310,17 @@ class ndarray:
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
-                where=where,
+                where=where_array,
             )
 
-        self._normalize_summation(result, axis=axis, dtype=dtype, ddof=ddof)
+        self._normalize_summation(
+            result,
+            axis=axis,
+            dtype=result.dtype,
+            ddof=ddof,
+            keepdims=keepdims,
+            where=where_array,
+        )
 
         return result
 

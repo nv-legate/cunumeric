@@ -39,7 +39,7 @@ def check_result(in_np, out_np, out_num, **isclose_kwargs):
         is_negative_test = False
 
     result = (
-        allclose(out_np, out_num, **isclose_kwargs)
+        allclose(out_np, out_num, equal_nan=True, **isclose_kwargs)
         and out_np.dtype == out_num.dtype
     )
     if not result and not is_negative_test:
@@ -126,6 +126,24 @@ def test_var_default_shape(dtype, ddof, axis, keepdims):
     op_np = functools.partial(np.var, ddof=ddof, axis=axis, keepdims=keepdims)
     op_num = functools.partial(
         num.var, ddof=ddof, axis=axis, keepdims=keepdims
+    )
+
+    check_op(op_np, op_num, np_in, dtype)
+
+
+@pytest.mark.parametrize("dtype", dtypes)
+@pytest.mark.parametrize("ddof", [0, 1])
+@pytest.mark.parametrize("axis", [None, 0, 1])
+@pytest.mark.parametrize("keepdims", [False, True])
+def test_var_where(dtype, ddof, axis, keepdims):
+    np_in = get_op_input(astype=dtype)
+    where = (np_in.astype(int) % 2).astype(bool)
+
+    op_np = functools.partial(
+        np.var, ddof=ddof, axis=axis, keepdims=keepdims, where=where
+    )
+    op_num = functools.partial(
+        num.var, ddof=ddof, axis=axis, keepdims=keepdims, where=where
     )
 
     check_op(op_np, op_num, np_in, dtype)
