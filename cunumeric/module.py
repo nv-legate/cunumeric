@@ -2759,8 +2759,8 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     Returns
     -------
     out : array_like
-        A view of `m` with the entries of axis reversed.  Since a view is
-        returned, this operation is done in constant time.
+        A new array that is constructed from `m` with the entries of axis
+        reversed.
 
     See Also
     --------
@@ -2769,8 +2769,83 @@ def flip(m: ndarray, axis: Optional[NdShapeLike] = None) -> ndarray:
     Availability
     --------
     Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
     """
     return m.flip(axis=axis)
+
+
+@add_boilerplate("m")
+def flipud(m: ndarray) -> ndarray:
+    """
+    Reverse the order of elements along axis 0 (up/down).
+
+    For a 2-D array, this flips the entries in each column in the up/down
+    direction. Rows are preserved, but appear in a different order than before.
+
+    Parameters
+    ----------
+    m : array_like
+        Input array.
+
+    Returns
+    -------
+    out : array_like
+        A new array that is constructed from `m` with rows reversed.
+
+    See Also
+    --------
+    numpy.flipud
+
+    Availability
+    --------
+    Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
+    """
+    if m.ndim < 1:
+        raise ValueError("Input must be >= 1-d.")
+    return flip(m, axis=0)
+
+
+@add_boilerplate("m")
+def fliplr(m: ndarray) -> ndarray:
+    """
+    Reverse the order of elements along axis 1 (left/right).
+
+    For a 2-D array, this flips the entries in each row in the left/right
+    direction. Columns are preserved, but appear in a different order than
+    before.
+
+    Parameters
+    ----------
+    m : array_like
+        Input array, must be at least 2-D.
+
+    Returns
+    -------
+    f : ndarray
+        A new array that is constructed from `m` with the columns reversed.
+
+    See Also
+    --------
+    numpy.fliplr
+
+    Availability
+    --------
+    Single GPU, Single CPU
+
+    Notes
+    -----
+    cuNumeric implementation doesn't return a view, it returns a new array
+    """
+    if m.ndim < 2:
+        raise ValueError("Input must be >= 2-d.")
+    return flip(m, axis=1)
 
 
 ###################
@@ -3727,10 +3802,9 @@ def compress(
 def diagonal(
     a: ndarray,
     offset: int = 0,
-    axis1: Optional[int] = None,
-    axis2: Optional[int] = None,
+    axis1: int = 0,
+    axis2: int = 1,
     extract: bool = True,
-    axes: Optional[tuple[int, int]] = None,
 ) -> ndarray:
     """
     diagonal(a: ndarray, offset=0, axis1=None, axis2=None)
@@ -3789,9 +3863,7 @@ def diagonal(
     Multiple GPUs, Multiple CPUs
 
     """
-    return a.diagonal(
-        offset=offset, axis1=axis1, axis2=axis2, extract=extract, axes=axes
-    )
+    return a.diagonal(offset=offset, axis1=axis1, axis2=axis2, extract=extract)
 
 
 @add_boilerplate("a", "indices", "values")
@@ -4587,7 +4659,7 @@ def einsum(
     out: Optional[ndarray] = None,
     dtype: Optional[np.dtype[Any]] = None,
     casting: CastingKind = "safe",
-    optimize: Union[bool, str] = False,
+    optimize: Union[bool, Literal["greedy", "optimal"]] = True,
 ) -> ndarray:
     """
     Evaluates the Einstein summation convention on the operands.
@@ -4628,9 +4700,10 @@ def einsum(
 
         Default is 'safe'.
     optimize : ``{False, True, 'greedy', 'optimal'}``, optional
-        Controls if intermediate optimization should occur. No optimization
-        will occur if False. Uses opt_einsum to find an optimized contraction
-        plan if True.
+        Controls if intermediate optimization should occur. If False then
+        arrays will be contracted in input order, one at a time. True (the
+        default) will use the 'greedy' algorithm. See ``cunumeric.einsum_path``
+        for more information on the available optimization algorithms.
 
     Returns
     -------
@@ -4654,7 +4727,9 @@ def einsum(
     if out is not None:
         out = convert_to_cunumeric_ndarray(out, share=True)
 
-    if not optimize:
+    if optimize is True:
+        optimize = "greedy"
+    elif optimize is False:
         optimize = NullOptimizer()
 
     # This call normalizes the expression (adds the output part if it's
@@ -7195,7 +7270,7 @@ def bincount(
             raise ValueError("weights must be convertible to float64")
         # Make sure the weights are float64
         weights = weights.astype(np.float64)
-    if x.dtype.kind != "i":
+    if not np.issubdtype(x.dtype, np.integer):
         raise TypeError("input array for bincount must be integer type")
     if minlength < 0:
         raise ValueError("'minlength' must not be negative")

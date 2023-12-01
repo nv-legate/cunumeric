@@ -26,6 +26,26 @@ using namespace legate;
 template <VariantKind KIND, Type::Code CODE>
 struct PotrfImplBody;
 
+template <VariantKind KIND>
+struct PotrfImplBody<KIND, Type::Code::FLOAT32> {
+  void operator()(float* array, int32_t m, int32_t n);
+};
+
+template <VariantKind KIND>
+struct PotrfImplBody<KIND, Type::Code::FLOAT64> {
+  void operator()(double* array, int32_t m, int32_t n);
+};
+
+template <VariantKind KIND>
+struct PotrfImplBody<KIND, Type::Code::COMPLEX64> {
+  void operator()(complex<float>* array, int32_t m, int32_t n);
+};
+
+template <VariantKind KIND>
+struct PotrfImplBody<KIND, Type::Code::COMPLEX128> {
+  void operator()(complex<double>* array, int32_t m, int32_t n);
+};
+
 template <Type::Code CODE>
 struct support_potrf : std::false_type {};
 template <>

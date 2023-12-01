@@ -3,12 +3,6 @@
 setup_env() {
     yaml_file=$(find ~/.artifacts -name "environment*.yaml" | head -n 1)
 
-    [ "${USE_CUDA:-}" = "ON" ] &&
-        echo "  - libcublas-dev" >> "${yaml_file}" &&
-        echo "  - libcufft-dev" >> "${yaml_file}" &&
-        echo "  - libcurand-dev" >> "${yaml_file}" &&
-        echo "  - libcusolver-dev" >> "${yaml_file}";
-
     echo "YAML file..."
     cat "${yaml_file}"
 
