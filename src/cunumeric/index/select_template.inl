@@ -57,7 +57,7 @@ struct SelectImpl {
       assert(rect_c == out_rect);
 #endif
       condlist.push_back(args.inputs[i].read_accessor<bool, DIM>(rect_c));
-      dense = dense && condlist[i].accessor.is_dense_row_major(out_rect);
+      dense = dense && condlist.back().accessor.is_dense_row_major(out_rect);
     }
 
     std::vector<AccessorRO<VAL, DIM>> choicelist;
