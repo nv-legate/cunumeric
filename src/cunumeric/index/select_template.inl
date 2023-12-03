@@ -50,7 +50,8 @@ struct SelectImpl {
 #endif
 
     std::vector<AccessorRO<bool, DIM>> condlist;
-    for (int i = 0; i < args.inputs.size() / 2; i++) {
+    condlist.reserve(args.inputs.size() / 2);
+    for (int32_t i = 0; i < args.inputs.size() / 2; i++) {
       auto rect_c = args.inputs[i].shape<DIM>();
 #ifdef DEBUG_CUNUMERIC
       assert(rect_c == out_rect);
