@@ -39,7 +39,7 @@ struct SelectImplBody<VariantKind::OMP, CODE, DIM> {
     assert(narrays == choicelist.size());
 #endif
 
-    if (dense && DIM <= 1) {
+    if (dense) {
       auto outptr = out.ptr(rect);
 #pragma omp parallel for schedule(static)
       for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = default_val;
