@@ -83,7 +83,7 @@ struct SelectImplBody<VariantKind::GPU, CODE, DIM> {
 #ifdef DEBUG_CUNUMERIC
     assert(narrays == choicelist.size());
 #endif
-    const size_t blocks = (out_size + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
+    const size_t blocks = (rect.volume() + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
     auto stream = get_cached_stream();
 
