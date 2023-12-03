@@ -97,7 +97,7 @@ struct SelectImplBody<VariantKind::GPU, CODE, DIM> {
 
       VAL* outptr = out.ptr(rect);
       select_kernel_dense<VAL><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-        outptr, narrays, cond_arr, choice_arr, default_val, out_size);
+        outptr, narrays, cond_arr, choice_arr, default_val, rect.volume());
 
     } else {  // not dense
       auto cond_arr =
