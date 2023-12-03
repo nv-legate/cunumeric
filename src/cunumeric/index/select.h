@@ -22,7 +22,7 @@ namespace cunumeric {
 
 struct SelectArgs {
   const Array& out;
-  const std::vector<Array>& inputs;
+  std::vector<Array> inputs;
   const legate::Scalar& default_value;
 };
 
