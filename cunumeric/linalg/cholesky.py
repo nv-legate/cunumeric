@@ -208,7 +208,7 @@ def _batched_cholesky(output: DeferredArray, input: DeferredArray) -> None:
     # wildly varying memory available depending on the system.
     # Just use a fixed cutoff to provide some sensible warning.
     # TODO: find a better way to inform the user dims are too big
-    context: Context = output.context
+    context: Context = output.context  # type: ignore
     task = context.create_auto_task(CuNumericOpCode.BATCHED_CHOLESKY)
     task.add_input(input.base)
     task.add_output(output.base)

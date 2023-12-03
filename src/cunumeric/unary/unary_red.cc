@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2021-2023 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,23 +21,28 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM> {
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM, bool HAS_WHERE>
+struct UnaryRedImplBody<VariantKind::CPU, OP_CODE, CODE, DIM, HAS_WHERE> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
   using RHS   = legate_type_of<CODE>;
 
   void operator()(AccessorRD<LG_OP, true, DIM> lhs,
                   AccessorRO<RHS, DIM> rhs,
+                  AccessorRO<bool, DIM> where,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
     for (size_t idx = 0; idx < volume; ++idx) {
-      auto point    = pitches.unflatten(idx, rect.lo);
-      auto identity = LG_OP::identity;
-      lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
+      auto point = pitches.unflatten(idx, rect.lo);
+      bool mask  = true;
+      if constexpr (HAS_WHERE) mask = where[point];
+      if (mask) {
+        auto identity = LG_OP::identity;
+        lhs.reduce(point, OP::convert(point, collapsed_dim, identity, rhs[point]));
+      }
     }
   }
 };

@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2021-2023 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -201,26 +201,14 @@ std::ostream& operator<<(std::ostream& os, const ThreadBlocks<DIM>& blocks)
   return os;
 }
 
-template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
-static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
-                                                          AccessorRO<RHS, DIM> in,
-                                                          LHS identity,
-                                                          const ThreadBlocks<DIM>& blocks,
-                                                          const Rect<DIM>& domain,
-                                                          int32_t collapsed_dim)
+template <typename REDOP, typename LHS, int32_t DIM>
+static void __device__ __forceinline__ collapse_dims(LHS& result,
+                                                     Point<DIM>& point,
+                                                     const Rect<DIM>& domain,
+                                                     int32_t collapsed_dim,
+                                                     LHS identity,
+                                                     coord_t tid)
 {
-  const coord_t tid = threadIdx.x;
-  const coord_t bid = blockIdx.x;
-
-  Point<DIM> point = blocks.point(bid, tid, domain.lo);
-  if (!domain.contains(point)) return point;
-
-  while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
-    LHS value = OP::convert(point, collapsed_dim, identity, in[point]);
-    REDOP::template fold<true>(result, value);
-    blocks.next_point(point);
-  }
-
 #if __CUDA_ARCH__ >= 700
   // If we're collapsing the innermost dimension, we perform some optimization
   // with shared memory to reduce memory traffic due to atomic updates
@@ -276,26 +264,55 @@ static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
   // put points back in the bounds to appease the checks.
   point[collapsed_dim] = domain.lo[collapsed_dim];
 #endif
+}
+
+template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM, bool HAS_WHERE>
+static __device__ __forceinline__ Point<DIM> local_reduce(LHS& result,
+                                                          AccessorRO<RHS, DIM> in,
+                                                          AccessorRO<bool, DIM> where,
+                                                          LHS identity,
+                                                          const ThreadBlocks<DIM>& blocks,
+                                                          const Rect<DIM>& domain,
+                                                          int32_t collapsed_dim)
+{
+  const coord_t tid = threadIdx.x;
+  const coord_t bid = blockIdx.x;
+
+  Point<DIM> point = blocks.point(bid, tid, domain.lo);
+  if (!domain.contains(point)) return point;
+
+  bool mask = true;
+  while (point[collapsed_dim] <= domain.hi[collapsed_dim]) {
+    if constexpr (HAS_WHERE) mask = where[point];
+    if (mask) {
+      LHS value = OP::convert(point, collapsed_dim, identity, in[point]);
+      REDOP::template fold<true>(result, value);
+    }
+    blocks.next_point(point);
+  }
+
+  collapse_dims<REDOP, LHS>(result, point, domain, collapsed_dim, identity, tid);
   return point;
 }
 
-template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM>
+template <typename OP, typename REDOP, typename LHS, typename RHS, int32_t DIM, bool HAS_WHERE>
 static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
   reduce_with_rd_acc(AccessorRD<REDOP, false, DIM> out,
                      AccessorRO<RHS, DIM> in,
+                     AccessorRO<bool, DIM> where,
                      LHS identity,
                      ThreadBlocks<DIM> blocks,
                      Rect<DIM> domain,
                      int32_t collapsed_dim)
 {
   auto result = identity;
-  auto point =
-    local_reduce<OP, REDOP, LHS, RHS, DIM>(result, in, identity, blocks, domain, collapsed_dim);
+  auto point  = local_reduce<OP, REDOP, LHS, RHS, DIM, HAS_WHERE>(
+    result, in, where, identity, blocks, domain, collapsed_dim);
   if (result != identity) out.reduce(point, result);
 }
 
-template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
-struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
+template <UnaryRedCode OP_CODE, Type::Code CODE, int DIM, bool HAS_WHERE>
+struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM, HAS_WHERE> {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
   using RHS   = legate_type_of<CODE>;
@@ -303,12 +320,13 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
   void operator()(AccessorRD<LG_OP, false, DIM> lhs,
                   AccessorRO<RHS, DIM> rhs,
+                  AccessorRO<bool, DIM> where,
                   const Rect<DIM>& rect,
                   const Pitches<DIM - 1>& pitches,
                   int collapsed_dim,
                   size_t volume) const
   {
-    auto Kernel = reduce_with_rd_acc<OP, LG_OP, LHS, RHS, DIM>;
+    auto Kernel = reduce_with_rd_acc<OP, LG_OP, LHS, RHS, DIM, HAS_WHERE>;
     auto stream = get_cached_stream();
 
     ThreadBlocks<DIM> blocks;
@@ -316,7 +334,7 @@ struct UnaryRedImplBody<VariantKind::GPU, OP_CODE, CODE, DIM> {
 
     blocks.compute_maximum_concurrency(reinterpret_cast<const void*>(Kernel));
     Kernel<<<blocks.num_blocks(), blocks.num_threads(), 0, stream>>>(
-      lhs, rhs, LG_OP::identity, blocks, rect, collapsed_dim);
+      lhs, rhs, where, LG_OP::identity, blocks, rect, collapsed_dim);
     CHECK_CUDA_STREAM(stream);
   }
 };
