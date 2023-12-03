@@ -117,6 +117,7 @@ def test_CuNumericOpCode() -> None:
         "ADVANCED_INDEXING",
         "ARANGE",
         "ARGWHERE",
+        "BATCHED_CHOLESKY",
         "BINARY_OP",
         "BINARY_RED",
         "BINCOUNT",

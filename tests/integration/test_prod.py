@@ -147,13 +147,19 @@ class TestProdNegative(object):
         out_np = np.prod(arr_np, initial=initial_value)
         assert allclose(out_np, out_num)
 
-    @pytest.mark.xfail
     def test_where(self):
         arr = [[1, 2], [3, 4]]
-        out_np = np.prod(arr, where=[False, True])  # return 8
-        # cuNumeric raises NotImplementedError:
-        # the `where` parameter is currently not supported
+        out_np = np.prod(arr, where=[False, True])
         out_num = num.prod(arr, where=[False, True])
+        assert allclose(out_np, out_num)
+
+        # where is boolean
+        out_np = np.prod(arr, where=True)
+        out_num = num.prod(arr, where=True)
+        assert allclose(out_np, out_num)
+
+        out_np = np.prod(arr, where=False)
+        out_num = num.prod(arr, where=False)
         assert allclose(out_np, out_num)
 
 

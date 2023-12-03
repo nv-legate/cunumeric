@@ -11,3 +11,4 @@ Versions
   23.03 <https://nv-legate.github.io/cunumeric/23.03>
   23.07 <https://nv-legate.github.io/cunumeric/23.07>
   23.09 <https://nv-legate.github.io/cunumeric/23.09>
+  23.11 <https://nv-legate.github.io/cunumeric/23.11>

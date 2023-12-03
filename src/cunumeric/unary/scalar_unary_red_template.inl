@@ -1,4 +1,4 @@
-/* Copyright 2021-2022 NVIDIA Corporation
+/* Copyright 2021-2023 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ namespace cunumeric {
 
 using namespace legate;
 
-template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM>
+template <VariantKind KIND, UnaryRedCode OP_CODE, Type::Code CODE, int DIM, bool HAS_WHERE>
 struct ScalarUnaryRed {
   using OP    = UnaryRedOp<OP_CODE, CODE>;
   using LG_OP = typename OP::OP;
@@ -36,6 +36,7 @@ struct ScalarUnaryRed {
   using RHS   = legate_type_of<CODE>;
   using OUT   = AccessorRD<LG_OP, true, 1>;
   using IN    = AccessorRO<RHS, DIM>;
+  using WHERE = AccessorRO<bool, DIM>;
 
   IN in;
   const RHS* inptr;
@@ -48,6 +49,8 @@ struct ScalarUnaryRed {
   RHS to_find;
   RHS mu;
   bool dense;
+  WHERE where;
+  const bool* whereptr;
 
   struct DenseReduction {};
   struct SparseReduction {};
@@ -64,42 +67,53 @@ struct ScalarUnaryRed {
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) { to_find = args.args[0].scalar<RHS>(); }
     if constexpr (OP_CODE == UnaryRedCode::VARIANCE) { mu = args.args[0].scalar<RHS>(); }
 
+    if constexpr (HAS_WHERE) where = args.where.read_accessor<bool, DIM>(rect);
 #ifndef LEGATE_BOUNDS_CHECKS
     // Check to see if this is dense or not
     if (in.accessor.is_dense_row_major(rect)) {
       dense = true;
       inptr = in.ptr(rect);
     }
+    if constexpr (HAS_WHERE) {
+      dense = dense && where.accessor.is_dense_row_major(rect);
+      if (dense) whereptr = where.ptr(rect);
+    }
 #endif
   }
 
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, DenseReduction) const noexcept
   {
+    bool mask = true;
+    if constexpr (HAS_WHERE) mask = whereptr[idx];
+
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      if (inptr[idx] == to_find) { lhs = true; }
+      if (mask && (inptr[idx] == to_find)) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
       auto p = pitches.unflatten(idx, origin);
-      OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
+      if (mask) OP::template fold<true>(lhs, OP::convert(p, shape, identity, inptr[idx]));
     } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
-      OP::template fold<true>(lhs, OP::convert(inptr[idx] - mu, identity));
+      if (mask) OP::template fold<true>(lhs, OP::convert(inptr[idx] - mu, identity));
     } else {
-      OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
+      if (mask) OP::template fold<true>(lhs, OP::convert(inptr[idx], identity));
     }
   }
 
   __CUDA_HD__ void operator()(LHS& lhs, size_t idx, LHS identity, SparseReduction) const noexcept
   {
-    auto p = pitches.unflatten(idx, origin);
+    auto p    = pitches.unflatten(idx, origin);
+    bool mask = true;
+    if constexpr (HAS_WHERE) mask = where[p];
+
     if constexpr (OP_CODE == UnaryRedCode::CONTAINS) {
-      if (in[p] == to_find) { lhs = true; }
+      if (mask && (in[p] == to_find)) { lhs = true; }
     } else if constexpr (OP_CODE == UnaryRedCode::ARGMAX || OP_CODE == UnaryRedCode::ARGMIN ||
                          OP_CODE == UnaryRedCode::NANARGMAX || OP_CODE == UnaryRedCode::NANARGMIN) {
-      OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
+      if (mask) OP::template fold<true>(lhs, OP::convert(p, shape, identity, in[p]));
     } else if constexpr (OP_CODE == UnaryRedCode::VARIANCE) {
-      OP::template fold<true>(lhs, OP::convert(in[p] - mu, identity));
+      if (mask) OP::template fold<true>(lhs, OP::convert(in[p] - mu, identity));
     } else {
-      OP::template fold<true>(lhs, OP::convert(in[p], identity));
+      if (mask) OP::template fold<true>(lhs, OP::convert(in[p], identity));
     }
   }
 
@@ -120,14 +134,14 @@ struct ScalarUnaryRed {
   }
 };
 
-template <VariantKind KIND, UnaryRedCode OP_CODE>
+template <VariantKind KIND, UnaryRedCode OP_CODE, bool HAS_WHERE>
 struct ScalarUnaryRedImpl {
   template <Type::Code CODE, int DIM>
   void operator()(ScalarUnaryRedArgs& args) const
   {
     // The operation is always valid for contains
     if constexpr (UnaryRedOp<OP_CODE, CODE>::valid || OP_CODE == UnaryRedCode::CONTAINS) {
-      ScalarUnaryRed<KIND, OP_CODE, CODE, DIM> red(args);
+      ScalarUnaryRed<KIND, OP_CODE, CODE, DIM, HAS_WHERE> red(args);
       red.execute();
     }
   }
@@ -136,10 +150,13 @@ struct ScalarUnaryRedImpl {
 template <VariantKind KIND>
 struct ScalarUnaryRedDispatch {
   template <UnaryRedCode OP_CODE>
-  void operator()(ScalarUnaryRedArgs& args) const
+  void operator()(ScalarUnaryRedArgs& args, bool has_where) const
   {
     auto dim = std::max(1, args.in.dim());
-    double_dispatch(dim, args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE>{}, args);
+    if (has_where)
+      double_dispatch(dim, args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE, true>{}, args);
+    else
+      double_dispatch(dim, args.in.code(), ScalarUnaryRedImpl<KIND, OP_CODE, false>{}, args);
   }
 };
 
@@ -149,19 +166,28 @@ static void scalar_unary_red_template(TaskContext& context)
   auto& inputs  = context.inputs();
   auto& scalars = context.scalars();
 
+  auto op_code     = scalars[0].value<UnaryRedCode>();
+  auto shape       = scalars[1].value<DomainPoint>();
+  bool has_where   = scalars[2].value<bool>();
+  size_t start_idx = has_where ? 2 : 1;
   std::vector<Store> extra_args;
-  for (size_t idx = 1; idx < inputs.size(); ++idx) extra_args.push_back(std::move(inputs[idx]));
-
-  auto op_code = scalars[0].value<UnaryRedCode>();
-  auto shape   = scalars[1].value<DomainPoint>();
+  extra_args.reserve(inputs.size() - start_idx);
+  for (size_t idx = start_idx; idx < inputs.size(); ++idx)
+    extra_args.emplace_back(std::move(inputs[idx]));
   // If the RHS was a scalar, use (1,) as the shape
   if (shape.dim == 0) {
     shape.dim = 1;
     shape[0]  = 1;
   }
-  ScalarUnaryRedArgs args{
-    context.reductions()[0], inputs[0], op_code, shape, std::move(extra_args)};
-  op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args);
+
+  Array dummy_where;
+  ScalarUnaryRedArgs args{context.reductions()[0],
+                          inputs[0],
+                          has_where ? inputs[1] : dummy_where,
+                          op_code,
+                          shape,
+                          std::move(extra_args)};
+  op_dispatch(args.op_code, ScalarUnaryRedDispatch<KIND>{}, args, has_where);
 }
 
 }  // namespace cunumeric

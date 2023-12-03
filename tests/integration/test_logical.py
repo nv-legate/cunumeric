@@ -102,19 +102,24 @@ def test_nd_inputs(ndim, func):
         assert np.array_equal(out_np, out_num)
 
 
-@pytest.mark.skip
 def test_where():
-    # "the `where` parameter is currently not supported"
-    x = np.array([[True, True, False], [True, True, True]])
     y = np.array([[True, False], [True, True]])
     cy = num.array(y)
 
+    # where needs to be broadcasted
     assert num.array_equal(
-        num.all(cy, where=[True, False]), np.all(x, where=[True, False])
+        num.all(cy, where=[True, False]), np.all(y, where=[True, False])
     )
     assert num.array_equal(
         num.any(cy, where=[[True], [False]]),
-        np.any(x, where=[[True], [False]]),
+        np.any(y, where=[[True], [False]]),
+    )
+
+    # Where is a boolean
+    assert num.array_equal(num.all(cy, where=True), np.all(y, where=True))
+    assert num.array_equal(
+        num.any(cy, where=False),
+        np.any(y, where=False),
     )
 
 

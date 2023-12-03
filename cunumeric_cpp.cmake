@@ -144,6 +144,7 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/index/zip.cc
   src/cunumeric/item/read.cc
   src/cunumeric/item/write.cc
+  src/cunumeric/matrix/batched_cholesky.cc
   src/cunumeric/matrix/contract.cc
   src/cunumeric/matrix/diag.cc
   src/cunumeric/matrix/gemm.cc
@@ -197,6 +198,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/index/select_omp.cc
     src/cunumeric/index/wrap_omp.cc
     src/cunumeric/index/zip_omp.cc
+    src/cunumeric/matrix/batched_cholesky_omp.cc
     src/cunumeric/matrix/contract_omp.cc
     src/cunumeric/matrix/diag_omp.cc
     src/cunumeric/matrix/gemm_omp.cc
@@ -248,6 +250,7 @@ if(Legion_USE_CUDA)
     src/cunumeric/index/zip.cu
     src/cunumeric/item/read.cu
     src/cunumeric/item/write.cu
+    src/cunumeric/matrix/batched_cholesky.cu
     src/cunumeric/matrix/contract.cu
     src/cunumeric/matrix/diag.cu
     src/cunumeric/matrix/gemm.cu
