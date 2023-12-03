@@ -61,7 +61,8 @@ struct SelectImpl {
     }
 
     std::vector<AccessorRO<VAL, DIM>> choicelist;
-    for (int i = args.inputs.size() / 2; i < args.inputs.size(); i++) {
+    choicelist.reserve(args.inputs.size() / 2);
+    for (int32_t i = args.inputs.size() / 2; i < args.inputs.size(); i++) {
       auto rect_c = args.inputs[i].shape<DIM>();
 #ifdef DEBUG_CUNUMERIC
       assert(rect_c == out_rect);
