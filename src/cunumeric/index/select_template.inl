@@ -68,7 +68,7 @@ struct SelectImpl {
       assert(rect_c == out_rect);
 #endif
       choicelist.push_back(args.inputs[i].read_accessor<VAL, DIM>(rect_c));
-      dense = dense && choicelist[i - args.inputs.size() / 2].accessor.is_dense_row_major(out_rect);
+      dense = dense && choicelist.back().accessor.is_dense_row_major(out_rect);
     }
 
     VAL default_value = args.default_value.value<VAL>();
