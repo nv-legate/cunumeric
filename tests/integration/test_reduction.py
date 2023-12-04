@@ -151,13 +151,19 @@ class TestSumNegative(object):
         out_np = np.sum(arr_np, initial=initial_value)  # return initial_value
         assert allclose(out_np, out_num)
 
-    @pytest.mark.xfail
     def test_where(self):
         arr = [[1, 2], [3, 4]]
         out_np = np.sum(arr, where=[False, True])  # return 6
-        # cuNumeric raises NotImplementedError:
-        # "the `where` parameter is currently not supported"
         out_num = num.sum(arr, where=[False, True])
+        assert allclose(out_np, out_num)
+
+        # where is a boolean
+        out_np = np.sum(arr, where=True)
+        out_num = num.sum(arr, where=True)
+        assert allclose(out_np, out_num)
+
+        out_np = np.sum(arr, where=False)
+        out_num = num.sum(arr, where=False)
         assert allclose(out_np, out_num)
 
 

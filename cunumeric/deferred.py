@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2021-2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -3131,7 +3131,7 @@ class DeferredArray(NumPyThunk):
 
     # Perform a unary reduction operation from one set of dimensions down to
     # fewer
-    @auto_convert("src")
+    @auto_convert("src", "where")
     def unary_reduction(
         self,
         op: UnaryRedCode,
@@ -3162,6 +3162,7 @@ class DeferredArray(NumPyThunk):
                 inputs=[self],
             )
 
+        is_where = bool(where is not None)
         # See if we are doing reduction to a point or another region
         if lhs_array.size == 1:
             assert axes is None or lhs_array.ndim == rhs_array.ndim - (
@@ -3189,6 +3190,10 @@ class DeferredArray(NumPyThunk):
                 task.add_input(rhs_array.base)
                 task.add_scalar_arg(op, ty.int32)
                 task.add_scalar_arg(rhs_array.shape, (ty.int64,))
+                task.add_scalar_arg(is_where, ty.bool_)
+                if is_where:
+                    task.add_input(where.base)
+                    task.add_alignment(rhs_array.base, where.base)
 
                 self.add_arguments(task, args)
 
@@ -3228,6 +3233,10 @@ class DeferredArray(NumPyThunk):
                 task.add_reduction(result, _UNARY_RED_TO_REDUCTION_OPS[op])
                 task.add_scalar_arg(axis, ty.int32)
                 task.add_scalar_arg(op, ty.int32)
+                task.add_scalar_arg(is_where, ty.bool_)
+                if is_where:
+                    task.add_input(where.base)
+                    task.add_alignment(rhs_array.base, where.base)
 
                 self.add_arguments(task, args)
 

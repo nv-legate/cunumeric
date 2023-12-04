@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2021-2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1499,6 +1499,8 @@ class EagerArray(NumPyThunk):
                 initial,
             )
             return
+        if where is None:
+            where = True
         if op in _UNARY_RED_OPS_WITH_ARG:
             fn = _UNARY_RED_OPS_WITH_ARG[op]
             # arg based APIs don't have the following arguments: where, initial
@@ -1530,7 +1532,9 @@ class EagerArray(NumPyThunk):
                 squared,
                 out=self.array,
                 axis=orig_axis,
-                where=where,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
                 keepdims=keepdims,
             )
         elif op == UnaryRedCode.VARIANCE:
@@ -1540,7 +1544,9 @@ class EagerArray(NumPyThunk):
             np.sum(
                 squares,
                 axis=orig_axis,
-                where=where,
+                where=where
+                if not isinstance(where, EagerArray)
+                else where.array,
                 keepdims=keepdims,
                 out=self.array,
             )
