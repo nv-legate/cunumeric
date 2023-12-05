@@ -47,23 +47,22 @@ struct SelectImplBody<VariantKind::OMP, CODE, DIM> {
         auto condptr   = condlist[c].ptr(rect);
         auto choiseptr = choicelist[c].ptr(rect);
 #pragma omp parallel for schedule(static)
-        for (int32_t idx = (volume - 1); idx >= 0; idx--) {
+        for (int32_t idx = 0; idx < volume; idx++) {
           if (condptr[idx]) outptr[idx] = choiseptr[idx];
         }
       }
     } else {
-#pragma omp parallel for schedule(static)
-      for (size_t idx = 0; idx < volume; ++idx) {
-        auto p = pitches.unflatten(idx, rect.lo);
-        out[p] = default_val;
-      }
       const size_t out_size = rect.hi[0] - rect.lo[0] + 1;
       for (int32_t c = (narrays - 1); c >= 0; c--) {
 #pragma omp parallel for schedule(static)
         for (int32_t out_idx = 0; out_idx <= out_size; out_idx++) {
-          for (int32_t idx = (volume - out_size + out_idx); idx >= 0; idx -= out_size) {
+          for (int32_t idx = 0; idx <= (volume - out_size + out_idx); idx += out_size) {
             auto p = pitches.unflatten(idx, rect.lo);
-            if (condlist[c][p]) out[p] = choicelist[c][p];
+            if (condlist[c][p])
+              out[p] = choicelist[c][p];
+            else if (c == (narrays - 1)) {
+              out[p] = default_val;
+            }
           }
         }
       }

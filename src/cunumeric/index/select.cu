@@ -51,15 +51,14 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 {
   const size_t tid = global_tid_1d();
   if (tid >= out_size) return;
-  for (int32_t idx = (volume - out_size + tid); idx >= 0; idx -= out_size) {
-    auto p = pitches.unflatten(idx, rect.lo);
-    out[p] = default_val;
-  }
-  __syncthreads();
   for (int32_t c = (narrays - 1); c >= 0; c--) {
-    for (int32_t idx = (volume - out_size + tid); idx >= 0; idx -= out_size) {
+    for (int32_t idx = 0; idx <= (volume - out_size + tid); idx += out_size) {
       auto p = pitches.unflatten(idx, rect.lo);
-      if (condlist[c][p]) { out[p] = choicelist[c][p]; }
+      if (condlist[c][p]) {
+        out[p] = choicelist[c][p];
+      } else if (c == (narrays - 1)) {
+        out[p] = default_val;
+      }
     }
   }
 }

@@ -41,23 +41,20 @@ struct SelectImplBody<VariantKind::CPU, CODE, DIM> {
 
     if (dense) {
       auto outptr = out.ptr(rect);
-      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = default_val;
       for (int32_t c = (narrays - 1); c >= 0; c--) {
         auto condptr   = condlist[c].ptr(rect);
         auto choiseptr = choicelist[c].ptr(rect);
-        for (int32_t idx = (volume - 1); idx >= 0; idx--) {
+        for (int32_t idx = 0; idx < volume; idx++) {
+          if (c == (narrays - 1)) { outptr[idx] = default_val; }
           if (condptr[idx]) outptr[idx] = choiseptr[idx];
         }
       }
     } else {
-      for (size_t idx = 0; idx < volume; ++idx) {
-        auto p = pitches.unflatten(idx, rect.lo);
-        out[p] = default_val;
-      }
       for (int32_t c = (narrays - 1); c >= 0; c--) {
-        for (int32_t idx = (volume - 1); idx >= 0; idx--) {
+        for (int32_t idx = 0; idx < volume; idx++) {
           auto p = pitches.unflatten(idx, rect.lo);
-          if (condlist[c][p]) out[p] = choicelist[c][p];
+          if (c == (narrays - 1)) { out[p] = default_val; };
+          if (condlist[c][p]) { out[p] = choicelist[c][p]; }
         }
       }
     }
