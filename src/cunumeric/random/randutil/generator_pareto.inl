@@ -41,6 +41,6 @@ struct pareto_t<double> {
   RANDUTIL_QUALIFIERS double operator()(gen_t& gen)
   {
     auto y = randutilimpl::engine_uniform<double>(gen);  // y cannot be 0
-    return xm * ::exp(-::log(y) * invalpha) - 1.0;      // here, use -1.0 to align with numpy
+    return xm * ::exp(-::log(y) * invalpha) - 1.0;       // here, use -1.0 to align with numpy
   }
 };
