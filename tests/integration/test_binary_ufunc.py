@@ -24,7 +24,10 @@ import cunumeric as num
 
 
 def check_result(op, in_np, out_np, out_num):
-    result = allclose(out_np, out_num) and out_np.dtype == out_num.dtype
+    rtol = 1e-02 if any(x.dtype == np.float16 for x in in_np) else 1e-05
+    result = (
+        allclose(out_np, out_num, rtol=rtol) and out_np.dtype == out_num.dtype
+    )
     if not result:
         print(f"cunumeric.{op} failed the test")
         print("Inputs:")
@@ -128,8 +131,12 @@ def test_all():
     # We want to test array-array, array-scalar, and scalar-array cases
     arrs = (
         np.random.randint(3, 10, size=(4, 5)).astype("I"),
+        np.random.uniform(size=(4, 5)).astype("e"),
+        np.random.uniform(size=(4, 5)).astype("f"),
+        np.random.uniform(size=(4, 5)).astype("d"),
         np.random.uniform(size=(4, 5)).astype("F"),
     )
+
     scalars = (
         np.uint64(2),
         np.int64(-3),
@@ -152,6 +159,7 @@ def test_all():
         "arctan2",
         "copysign",
         "floor_divide",
+        "mod",
         "fmod",
         "hypot",
         "logaddexp",
