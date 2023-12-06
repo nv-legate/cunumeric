@@ -1,3 +1,5 @@
+from typing import Tuple
+
 class Opaque: ...
 
 class NoneType(Opaque):
@@ -16,6 +18,13 @@ class RawPointer:
 
 class CPointer(Type):
     def __init__(self, dtype: Type) -> None: ...
+
+class Sized(Type): ...
+class ConstSized(Type): ...
+class Hashable(Type): ...
+
+class BaseTuple(ConstSized, Hashable):
+    types: Tuple[Type]
 
 none = NoneType("none")
 
