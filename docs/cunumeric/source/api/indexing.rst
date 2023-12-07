@@ -32,6 +32,7 @@ Indexing-like operations
    compress
    diag
    diagonal
+   select
    take
    take_along_axis
 
@@ -41,7 +42,7 @@ Inserting data into arrays
 
 .. autosummary::
    :toctree: generated/
- 
+
    fill_diagonal
    put
    putmask

@@ -268,6 +268,133 @@ class TestChooseErrors:
             num.choose(self.a, self.choices, out=aout)
 
 
+DIM = 7
+
+SELECT_SHAPES = (
+    (DIM,),
+    (1, 1),
+    (1, DIM),
+    (DIM, 1),
+    (DIM, 0),
+    (DIM, DIM),
+    (1, 1, 1),
+    (1, 0, DIM),
+    (DIM, 1, 1),
+    (1, DIM, 1),
+    (1, 1, DIM),
+    (DIM, DIM, DIM),
+)
+
+DEFAULTS = (0, -100, 5)
+
+
+@pytest.mark.parametrize("size", SELECT_SHAPES)
+def test_select(size):
+    # test with 2 conditions/choices + no default passed
+    arr = np.random.randint(-15, 15, size=size)
+    cond_np1 = arr > 1
+    cond_num1 = num.array(cond_np1)
+    cond_np2 = arr < 0
+    cond_num2 = num.array(cond_np2)
+    choice_np1 = arr * 10
+    choice_num1 = num.array(choice_np1)
+    choice_np2 = arr * 2
+    choice_num2 = num.array(choice_np2)
+    res_np = np.select(
+        (
+            cond_np1,
+            cond_np2,
+        ),
+        (
+            choice_np1,
+            choice_np2,
+        ),
+    )
+    res_num = num.select(
+        (
+            cond_num1,
+            cond_num2,
+        ),
+        (
+            choice_num1,
+            choice_num2,
+        ),
+    )
+    assert np.array_equal(res_np, res_num)
+
+    # test with all False
+    cond_np = arr > 100
+    cond_num = num.array(cond_np)
+    choice_np = arr * 100
+    choice_num = num.array(choice_np)
+    res_np = np.select(cond_np, choice_np)
+    res_num = num.select(cond_num, choice_num)
+    assert np.array_equal(res_np, res_num)
+
+    # test with all True
+    cond_np = arr < 100
+    cond_num = num.array(cond_np)
+    choice_np = arr * 10
+    choice_num = num.array(choice_np)
+    res_np = np.select(cond_np, choice_np)
+    res_num = num.select(cond_num, choice_num)
+    assert np.array_equal(res_np, res_num)
+
+
+def test_select_maxdim():
+    for ndim in range(2, LEGATE_MAX_DIM + 1):
+        a_shape = tuple(np.random.randint(1, 9) for i in range(ndim))
+        arr = mk_seq_array(np, a_shape)
+        condlist_np = list()
+        choicelist_np = list()
+        condlist_num = list()
+        choicelist_num = list()
+        nlist = np.random.randint(1, 5)
+        for nl in range(0, nlist):
+            arr_con = arr > nl * 2
+            arr_ch = arr * nl
+            condlist_np += (arr_con,)
+            choicelist_np += (arr_ch,)
+            condlist_num += (num.array(arr_con),)
+            choicelist_num += (num.array(arr_ch),)
+        res_np = np.select(condlist_np, choicelist_np)
+        res_num = num.select(condlist_num, choicelist_num)
+        assert np.array_equal(res_np, res_num)
+
+
+@pytest.mark.parametrize("size", SELECT_SHAPES)
+@pytest.mark.parametrize("default", DEFAULTS)
+def test_select_default(size, default):
+    arr_np = np.random.randint(-5, 5, size=size)
+    cond_np = arr_np > 1
+    cond_num = num.array(cond_np)
+    choice_np = arr_np**2
+    choice_num = num.array(choice_np)
+    res_np = np.select(cond_np, choice_np, default)
+    res_num = num.select(cond_num, choice_num, default)
+    assert np.array_equal(res_np, res_num)
+
+
+SELECT_ZERO_SHAPES = (
+    (0,),
+    (0, 1),
+)
+
+
+@pytest.mark.parametrize("size", SELECT_ZERO_SHAPES)
+def test_select_zero_shape(size):
+    arr_np = np.random.randint(-15, 15, size=size)
+    cond_np = arr_np > 1
+    cond_num = num.array(cond_np)
+    choice_np = arr_np * 10
+    choice_num = num.array(choice_np)
+    msg = "select with an empty condition list is not possible"
+    with pytest.raises(ValueError, match=msg):
+        np.select(cond_np, choice_np)
+    with pytest.raises(ValueError, match=msg):
+        num.select(cond_num, choice_num)
+
+
 def test_diagonal():
     ad = np.arange(24).reshape(4, 3, 2)
     num_ad = num.array(ad)

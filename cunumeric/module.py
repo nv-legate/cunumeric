@@ -378,7 +378,7 @@ def zeros_like(
 
 def full(
     shape: NdShapeLike,
-    value: Union[int, float],
+    value: Any,
     dtype: Optional[npt.DTypeLike] = None,
 ) -> ndarray:
     """
@@ -3741,6 +3741,77 @@ def choose(
     Multiple GPUs, Multiple CPUs
     """
     return a.choose(choices=choices, out=out, mode=mode)
+
+
+def select(
+    condlist: Sequence[npt.ArrayLike | ndarray],
+    choicelist: Sequence[npt.ArrayLike | ndarray],
+    default: Any = 0,
+) -> ndarray:
+    """
+    Return an array drawn from elements in choicelist, depending on conditions.
+
+    Parameters
+    ----------
+    condlist : list of bool ndarrays
+        The list of conditions which determine from which array in `choicelist`
+        the output elements are taken. When multiple conditions are satisfied,
+        the first one encountered in `condlist` is used.
+    choicelist : list of ndarrays
+        The list of arrays from which the output elements are taken. It has
+        to be of the same length as `condlist`.
+    default : scalar, optional
+        The element inserted in `output` when all conditions evaluate to False.
+
+    Returns
+    -------
+    output : ndarray
+        The output at position m is the m-th element of the array in
+        `choicelist` where the m-th element of the corresponding array in
+        `condlist` is True.
+
+    See Also
+    --------
+    numpy.select
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    if len(condlist) != len(choicelist):
+        raise ValueError(
+            "list of cases must be same length as list of conditions"
+        )
+    if len(condlist) == 0:
+        raise ValueError("select with an empty condition list is not possible")
+
+    condlist_ = tuple(convert_to_cunumeric_ndarray(c) for c in condlist)
+    for i, c in enumerate(condlist_):
+        if c.dtype != bool:
+            raise TypeError(
+                f"invalid entry {i} in condlist: should be boolean ndarray"
+            )
+
+    choicelist_ = tuple(convert_to_cunumeric_ndarray(c) for c in choicelist)
+    common_type = np.result_type(*choicelist_, default)
+    args = condlist_ + choicelist_
+    choicelist_ = tuple(
+        c._maybe_convert(common_type, args) for c in choicelist_
+    )
+    default_ = np.array(default, dtype=common_type)
+
+    out_shape = np.broadcast_shapes(
+        *(c.shape for c in condlist_),
+        *(c.shape for c in choicelist_),
+    )
+    out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
+    out._thunk.select(
+        tuple(c._thunk for c in condlist_),
+        tuple(c._thunk for c in choicelist_),
+        default_,
+    )
+    return out
 
 
 @add_boilerplate("condition", "a")
