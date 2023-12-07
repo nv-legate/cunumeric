@@ -46,14 +46,20 @@ __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
                 VAL default_val,
                 const Rect<DIM> rect,
                 const Pitches<DIM - 1> pitches,
+                int out_size,
                 int volume)
 {
   const size_t tid = global_tid_1d();
-  if (tid >= volume) return;
-  auto p = pitches.unflatten(tid, rect.lo);
-  out[p] = default_val;
+  if (tid >= out_size) return;
+  for (int32_t idx = 0; idx <= (volume - out_size + tid); idx += out_size) {
+    auto p = pitches.unflatten(idx, rect.lo);
+    out[p] = default_val;
+  }
   for (int32_t c = (narrays - 1); c >= 0; c--) {
-    if (condlist[c][p]) { out[p] = choicelist[c][p]; }
+    for (int32_t idx = 0; idx <= (volume - out_size + tid); idx += out_size) {
+      auto p = pitches.unflatten(idx, rect.lo);
+      if (condlist[c][p]) { out[p] = choicelist[c][p]; }
+    }
   }
 }
 
@@ -71,7 +77,8 @@ struct SelectImplBody<VariantKind::GPU, CODE, DIM> {
                   const Pitches<DIM - 1>& pitches,
                   bool dense) const
   {
-    uint32_t narrays = condlist.size();
+    const size_t out_size = rect.hi[0] - rect.lo[0] + 1;
+    uint32_t narrays      = condlist.size();
 #ifdef DEBUG_CUNUMERIC
     assert(narrays == choicelist.size());
 #endif
@@ -100,7 +107,7 @@ struct SelectImplBody<VariantKind::GPU, CODE, DIM> {
       for (uint32_t idx = 0; idx < choicelist.size(); ++idx) choice_arr[idx] = choicelist[idx];
 
       select_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-        out, narrays, cond_arr, choice_arr, default_val, rect, pitches, rect.volume());
+        out, narrays, cond_arr, choice_arr, default_val, rect, pitches, out_size, rect.volume());
     }
 
     CHECK_CUDA_STREAM(stream);

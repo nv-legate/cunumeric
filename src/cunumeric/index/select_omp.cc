@@ -42,7 +42,7 @@ struct SelectImplBody<VariantKind::OMP, CODE, DIM> {
     if (dense) {
       auto outptr = out.ptr(rect);
 #pragma omp parallel for schedule(static)
-      for (size_t idx = 0; idx < volume; ++idx) outptr[idx] = default_val;
+      for (size_t idx = 0; idx < volume; ++idx) { outptr[idx] = default_val; }
       for (int32_t c = (narrays - 1); c >= 0; c--) {
         auto condptr   = condlist[c].ptr(rect);
         auto choiseptr = choicelist[c].ptr(rect);
@@ -52,18 +52,16 @@ struct SelectImplBody<VariantKind::OMP, CODE, DIM> {
         }
       }
     } else {
-      const size_t out_size = rect.hi[0] - rect.lo[0] + 1;
+#pragma omp parallel for schedule(static)
+      for (size_t idx = 0; idx < volume; ++idx) {
+        auto p = pitches.unflatten(idx, rect.lo);
+        out[p] = default_val;
+      }
       for (int32_t c = (narrays - 1); c >= 0; c--) {
 #pragma omp parallel for schedule(static)
-        for (int32_t out_idx = 0; out_idx <= out_size; out_idx++) {
-          for (int32_t idx = 0; idx <= (volume - out_size + out_idx); idx += out_size) {
-            auto p = pitches.unflatten(idx, rect.lo);
-            if (condlist[c][p])
-              out[p] = choicelist[c][p];
-            else if (c == (narrays - 1)) {
-              out[p] = default_val;
-            }
-          }
+        for (int32_t idx = 0; idx < volume; idx++) {
+          auto p = pitches.unflatten(idx, rect.lo);
+          if (condlist[c][p]) { out[p] = choicelist[c][p]; }
         }
       }
     }
