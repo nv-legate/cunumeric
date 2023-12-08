@@ -375,6 +375,7 @@ def install_cunumeric(
         cmake_flags += ["-Dcunumeric_cuRAND_INCLUDE_DIR=%s" % curand_dir]
 
     cmake_flags += ["-Dlegate_core_ROOT=%s" % legate_dir]
+    cmake_flags += ["-DCMAKE_BUILD_PARALLEL_LEVEL=%s" % thread_count]
 
     cmake_flags += extra_flags
     build_flags = [f"-j{str(thread_count)}"]
