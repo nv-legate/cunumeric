@@ -137,10 +137,11 @@ list(APPEND cunumeric_SOURCES
   src/cunumeric/nullary/window.cc
   src/cunumeric/index/advanced_indexing.cc
   src/cunumeric/index/choose.cc
+  src/cunumeric/index/putmask.cc
   src/cunumeric/index/repeat.cc
+  src/cunumeric/index/select.cc
   src/cunumeric/index/wrap.cc
   src/cunumeric/index/zip.cc
-  src/cunumeric/index/putmask.cc
   src/cunumeric/item/read.cc
   src/cunumeric/item/write.cc
   src/cunumeric/matrix/batched_cholesky.cc
@@ -194,6 +195,7 @@ if(Legion_USE_OpenMP)
     src/cunumeric/index/choose_omp.cc
     src/cunumeric/index/putmask_omp.cc
     src/cunumeric/index/repeat_omp.cc
+    src/cunumeric/index/select_omp.cc
     src/cunumeric/index/wrap_omp.cc
     src/cunumeric/index/zip_omp.cc
     src/cunumeric/matrix/batched_cholesky_omp.cc
@@ -241,10 +243,11 @@ if(Legion_USE_CUDA)
     src/cunumeric/nullary/window.cu
     src/cunumeric/index/advanced_indexing.cu
     src/cunumeric/index/choose.cu
+    src/cunumeric/index/putmask.cu
     src/cunumeric/index/repeat.cu
+    src/cunumeric/index/select.cu
     src/cunumeric/index/wrap.cu
     src/cunumeric/index/zip.cu
-    src/cunumeric/index/putmask.cu
     src/cunumeric/item/read.cu
     src/cunumeric/item/write.cu
     src/cunumeric/matrix/batched_cholesky.cu

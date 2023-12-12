@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2021-2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -378,7 +378,7 @@ def zeros_like(
 
 def full(
     shape: NdShapeLike,
-    value: Union[int, float],
+    value: Any,
     dtype: Optional[npt.DTypeLike] = None,
 ) -> ndarray:
     """
@@ -1487,6 +1487,10 @@ def _broadcast_to(
     arr = array(arr, copy=False, subok=subok)
     # 'broadcast_to' returns a read-only view of the original array
     out_shape = broadcast_shapes(arr.shape, shape)
+    if out_shape != shape:
+        raise ValueError(
+            f"cannot broadcast an array of shape {arr.shape} to {shape}"
+        )
     result = ndarray(
         shape=out_shape,
         thunk=arr._thunk.broadcast_to(out_shape),
@@ -3739,6 +3743,77 @@ def choose(
     return a.choose(choices=choices, out=out, mode=mode)
 
 
+def select(
+    condlist: Sequence[npt.ArrayLike | ndarray],
+    choicelist: Sequence[npt.ArrayLike | ndarray],
+    default: Any = 0,
+) -> ndarray:
+    """
+    Return an array drawn from elements in choicelist, depending on conditions.
+
+    Parameters
+    ----------
+    condlist : list of bool ndarrays
+        The list of conditions which determine from which array in `choicelist`
+        the output elements are taken. When multiple conditions are satisfied,
+        the first one encountered in `condlist` is used.
+    choicelist : list of ndarrays
+        The list of arrays from which the output elements are taken. It has
+        to be of the same length as `condlist`.
+    default : scalar, optional
+        The element inserted in `output` when all conditions evaluate to False.
+
+    Returns
+    -------
+    output : ndarray
+        The output at position m is the m-th element of the array in
+        `choicelist` where the m-th element of the corresponding array in
+        `condlist` is True.
+
+    See Also
+    --------
+    numpy.select
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+
+    if len(condlist) != len(choicelist):
+        raise ValueError(
+            "list of cases must be same length as list of conditions"
+        )
+    if len(condlist) == 0:
+        raise ValueError("select with an empty condition list is not possible")
+
+    condlist_ = tuple(convert_to_cunumeric_ndarray(c) for c in condlist)
+    for i, c in enumerate(condlist_):
+        if c.dtype != bool:
+            raise TypeError(
+                f"invalid entry {i} in condlist: should be boolean ndarray"
+            )
+
+    choicelist_ = tuple(convert_to_cunumeric_ndarray(c) for c in choicelist)
+    common_type = np.result_type(*choicelist_, default)
+    args = condlist_ + choicelist_
+    choicelist_ = tuple(
+        c._maybe_convert(common_type, args) for c in choicelist_
+    )
+    default_ = np.array(default, dtype=common_type)
+
+    out_shape = np.broadcast_shapes(
+        *(c.shape for c in condlist_),
+        *(c.shape for c in choicelist_),
+    )
+    out = ndarray(shape=out_shape, dtype=common_type, inputs=args)
+    out._thunk.select(
+        tuple(c._thunk for c in condlist_),
+        tuple(c._thunk for c in choicelist_),
+        default_,
+    )
+    return out
+
+
 @add_boilerplate("condition", "a")
 def compress(
     condition: ndarray,
@@ -4939,7 +5014,7 @@ def all(
     axis: Optional[Union[int, tuple[int, ...]]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Test whether all array elements along a given axis evaluate to True.
@@ -4997,7 +5072,7 @@ def any(
     axis: Optional[Union[int, tuple[int, ...]]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Test whether any array element along a given axis evaluates to True.
@@ -5257,7 +5332,7 @@ def prod(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -5338,7 +5413,7 @@ def sum(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -5798,7 +5873,7 @@ def nanmin(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Any = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Return minimum of an array or minimum along an axis, ignoring any
@@ -5878,8 +5953,8 @@ def nanmin(
     )
 
     if cunumeric_settings.numpy_compat() and a.dtype.kind == "f":
-        where = all(isnan(a), axis=axis, keepdims=keepdims)
-        putmask(out_array, where, np.nan)  # type: ignore
+        all_nan = all(isnan(a), axis=axis, keepdims=keepdims, where=where)
+        putmask(out_array, all_nan, np.nan)  # type: ignore
 
     return out_array
 
@@ -5891,7 +5966,7 @@ def nanmax(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Any = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Return the maximum of an array or maximum along an axis, ignoring any
@@ -5974,8 +6049,8 @@ def nanmax(
     )
 
     if cunumeric_settings.numpy_compat() and a.dtype.kind == "f":
-        where = all(isnan(a), axis=axis, keepdims=keepdims)
-        putmask(out_array, where, np.nan)  # type: ignore
+        all_nan = all(isnan(a), axis=axis, keepdims=keepdims, where=where)
+        putmask(out_array, all_nan, np.nan)  # type: ignore
 
     return out_array
 
@@ -5988,7 +6063,7 @@ def nanprod(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Any = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Return the product of array elements over a given axis treating
@@ -6084,7 +6159,7 @@ def nansum(
     out: Union[ndarray, None] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: Any = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Return the sum of array elements over a given axis treating
@@ -6151,17 +6226,7 @@ def nansum(
     Multiple GPUs, Multiple CPUs
     """
 
-    # Note that np.nansum and np.sum allow complex datatypes
-    # so there are no "disallowed types" for this API
-
-    if a.dtype.kind in ("f", "c"):
-        unary_red_code = UnaryRedCode.NANSUM
-    else:
-        unary_red_code = UnaryRedCode.SUM
-
-    return a._perform_unary_reduction(
-        unary_red_code,
-        a,
+    return a._nansum(
         axis=axis,
         dtype=dtype,
         out=out,
@@ -6248,7 +6313,7 @@ def amax(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -6325,7 +6390,7 @@ def amin(
     out: Optional[ndarray] = None,
     keepdims: bool = False,
     initial: Optional[Union[int, float]] = None,
-    where: bool = True,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -7053,14 +7118,7 @@ def count_nonzero(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    if a.size == 0:
-        return 0
-    return ndarray._perform_unary_reduction(
-        UnaryRedCode.COUNT_NONZERO,
-        a,
-        res_dtype=np.dtype(np.uint64),
-        axis=axis,
-    )
+    return a._count_nonzero(axis)
 
 
 ############
@@ -7077,6 +7135,7 @@ def mean(
     dtype: Optional[np.dtype[Any]] = None,
     out: Optional[ndarray] = None,
     keepdims: bool = False,
+    where: Optional[ndarray] = None,
 ) -> ndarray:
     """
 
@@ -7118,10 +7177,13 @@ def mean(
         sub-class' method does not implement `keepdims` any
         exceptions will be raised.
 
+    where : array_like of bool, optional
+        Elements to include in the mean.
+
     Returns
     -------
     m : ndarray
-        If `out=None`, returns a new array of the same dtype a above
+        If `out is None`, returns a new array of the same dtype a above
         containing the mean values, otherwise a reference to the output
         array is returned.
 
@@ -7133,7 +7195,76 @@ def mean(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    return a.mean(axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+    return a.mean(
+        axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
+    )
+
+
+@add_boilerplate("a")
+def nanmean(
+    a: ndarray,
+    axis: Optional[Union[int, tuple[int, ...]]] = None,
+    dtype: Optional[np.dtype[Any]] = None,
+    out: Optional[ndarray] = None,
+    keepdims: bool = False,
+    where: Optional[ndarray] = None,
+) -> ndarray:
+    """
+
+    Compute the arithmetic mean along the specified axis, ignoring NaNs.
+
+    Returns the average of the array elements.  The average is taken over
+    the flattened array by default, otherwise over the specified axis.
+    `float64` intermediate and return values are used for integer inputs.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose mean is desired. If `a` is not an
+        array, a conversion is attempted.
+    axis : None or int or tuple[int], optional
+        Axis or axes along which the means are computed. The default is to
+        compute the mean of the flattened array.
+
+        If this is a tuple of ints, a mean is performed over multiple axes,
+        instead of a single axis or all the axes as before.
+    dtype : data-type, optional
+        Type to use in computing the mean.  For integer inputs, the default
+        is `float64`; for floating point inputs, it is the same as the
+        input dtype.
+    out : ndarray, optional
+        Alternate output array in which to place the result.  The default
+        is ``None``; if provided, it must have the same shape as the
+        expected output, but the type will be cast if necessary.
+        See `ufuncs-output-type` for more details.
+
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left
+        in the result as dimensions with size one. With this option,
+        the result will broadcast correctly against the input array.
+
+
+    where : array_like of bool, optional
+        Elements to include in the mean.
+
+    Returns
+    -------
+    m : ndarray
+        If `out is None`, returns a new array of the same dtype as a above
+        containing the mean values, otherwise a reference to the output
+        array is returned.
+
+    See Also
+    --------
+    numpy.nanmean
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    return a._nanmean(
+        axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
+    )
 
 
 @add_boilerplate("a")
@@ -7145,7 +7276,7 @@ def var(
     ddof: int = 0,
     keepdims: bool = False,
     *,
-    where: Union[bool, ndarray] = True,
+    where: Union[ndarray, None] = None,
 ) -> ndarray:
     """
     Compute the variance along the specified axis.

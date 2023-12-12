@@ -1,4 +1,4 @@
-# Copyright 2021-2022 NVIDIA Corporation
+# Copyright 2021-2023 NVIDIA Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,6 @@ from typing import (
     TYPE_CHECKING,
     Any,
     Callable,
-    Literal,
     Optional,
     Sequence,
     TypeVar,
@@ -136,13 +135,11 @@ def add_boilerplate(
             for k, v in kwargs.items():
                 if v is None:
                     continue
-                elif k == "where":
-                    kwargs[k] = convert_to_predicate_ndarray(v)
                 elif k == "out":
                     kwargs[k] = convert_to_cunumeric_ndarray(v, share=True)
                     if not kwargs[k].flags.writeable:
                         raise ValueError("out is not writeable")
-                elif k in keys:
+                elif (k in keys) or (k == "where"):
                     kwargs[k] = convert_to_cunumeric_ndarray(v)
 
             return func(*args, **kwargs)
@@ -162,16 +159,6 @@ def convert_to_cunumeric_ndarray(obj: Any, share: bool = False) -> ndarray:
         obj.flags.writeable if isinstance(obj, np.ndarray) and share else True
     )
     return ndarray(shape=None, thunk=thunk, writeable=writeable)
-
-
-def convert_to_predicate_ndarray(obj: Any) -> bool:
-    # Keep all boolean types as they are
-    if obj is True or obj is False:
-        return obj
-    # GH #135
-    raise NotImplementedError(
-        "the `where` parameter is currently not supported"
-    )
 
 
 def maybe_convert_to_np_ndarray(obj: Any) -> Any:
@@ -196,6 +183,16 @@ def check_writeable(arr: Union[ndarray, tuple[ndarray, ...], None]) -> None:
     check_list = (arr,) if not isinstance(arr, tuple) else arr
     if any(not arr.flags.writeable for arr in check_list):
         raise ValueError("array is not writeable")
+
+
+def broadcast_where(
+    where: Union[ndarray, None], shape: NdShape
+) -> Union[ndarray, None]:
+    if where is not None and where.shape != shape:
+        from .module import broadcast_to
+
+        where = broadcast_to(where, shape)
+    return where
 
 
 class flagsobj:
@@ -1767,7 +1764,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.all(axis=None, out=None, keepdims=False, initial=None, where=True)
 
@@ -1802,7 +1799,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.any(axis=None, out=None, keepdims=False, initial=None, where=True)
 
@@ -3044,7 +3041,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.max(axis=None, out=None, keepdims=False, initial=<no value>,
                  where=True)
@@ -3072,6 +3069,16 @@ class ndarray:
             where=where,
         )
 
+    def _count_nonzero(self, axis: Any = None) -> Union[int, ndarray]:
+        if self.size == 0:
+            return 0
+        return ndarray._perform_unary_reduction(
+            UnaryRedCode.COUNT_NONZERO,
+            self,
+            res_dtype=np.dtype(np.uint64),
+            axis=axis,
+        )
+
     def _summation_dtype(
         self, dtype: Optional[np.dtype[Any]]
     ) -> np.dtype[Any]:
@@ -3084,21 +3091,42 @@ class ndarray:
         return dtype
 
     def _normalize_summation(
-        self, sum_array: Any, axis: Any, dtype: np.dtype[Any], ddof: int = 0
+        self,
+        sum_array: Any,
+        axis: Any,
+        ddof: int = 0,
+        keepdims: bool = False,
+        where: Union[ndarray, None] = None,
     ) -> None:
+        dtype = sum_array.dtype
         if axis is None:
-            divisor = reduce(lambda x, y: x * y, self.shape, 1) - ddof
+            if where is not None:
+                divisor = where._count_nonzero() - ddof
+            else:
+                divisor = reduce(lambda x, y: x * y, self.shape, 1) - ddof
         else:
-            divisor = self.shape[axis] - ddof
+            if where is not None:
+                divisor = where.sum(axis=axis, dtype=dtype, keepdims=keepdims)
+                if ddof != 0 and not np.isscalar(divisor):
+                    mask = divisor != 0
+                    values = divisor - ddof
+                    divisor._thunk.putmask(mask._thunk, values._thunk)
+                else:
+                    divisor -= ddof
+            else:
+                divisor = self.shape[axis] - ddof
 
         # Divide by the number of things in the collapsed dimensions
         # Pick the right kinds of division based on the dtype
-        if dtype.kind == "f" or dtype.kind == "c":
-            sum_array.__itruediv__(
-                np.array(divisor, dtype=sum_array.dtype),
-            )
+        if isinstance(divisor, ndarray):
+            divisor = divisor.astype(dtype)
         else:
-            sum_array.__ifloordiv__(np.array(divisor, dtype=sum_array.dtype))
+            divisor = np.array(divisor, dtype=dtype)  # type: ignore [assignment] # noqa
+
+        if dtype.kind == "f" or dtype.kind == "c":
+            sum_array.__itruediv__(divisor)
+        else:
+            sum_array.__ifloordiv__(divisor)
 
     @add_boilerplate()
     def mean(
@@ -3107,6 +3135,7 @@ class ndarray:
         dtype: Optional[np.dtype[Any]] = None,
         out: Optional[ndarray] = None,
         keepdims: bool = False,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.mean(axis=None, dtype=None, out=None, keepdims=False)
 
@@ -3130,23 +3159,26 @@ class ndarray:
             )
 
         dtype = self._summation_dtype(dtype)
+        where_array = broadcast_where(where, self.shape)
 
         # Do the sum
-        if out is not None and out.dtype == dtype:
-            sum_array = self.sum(
+        sum_array = (
+            self.sum(
                 axis=axis,
-                dtype=dtype,
                 out=out,
                 keepdims=keepdims,
-            )
-        else:
-            sum_array = self.sum(
-                axis=axis,
                 dtype=dtype,
-                keepdims=keepdims,
+                where=where_array,
             )
+            if out is not None and out.dtype == dtype
+            else self.sum(
+                axis=axis, keepdims=keepdims, dtype=dtype, where=where_array
+            )
+        )
 
-        self._normalize_summation(sum_array, axis, dtype)
+        self._normalize_summation(
+            sum_array, axis, keepdims=keepdims, where=where_array
+        )
 
         # Convert to the output we didn't already put it there
         if out is not None and sum_array is not out:
@@ -3155,6 +3187,34 @@ class ndarray:
             return out
         else:
             return sum_array
+
+    def _nanmean(
+        self,
+        axis: Optional[Union[int, tuple[int, ...]]] = None,
+        dtype: Union[np.dtype[Any], None] = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        where: Union[ndarray, None] = None,
+    ) -> ndarray:
+        from . import _ufunc
+
+        if np.issubdtype(dtype, np.integer) or np.issubdtype(dtype, np.bool_):
+            return self.mean(
+                axis=axis, dtype=dtype, out=out, keepdims=keepdims, where=where
+            )
+
+        nan_mask = _ufunc.bit_twiddling.bitwise_not(
+            _ufunc.floating.isnan(self)
+        )
+        if where is not None:
+            nan_mask &= where
+        return self.mean(
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            keepdims=keepdims,
+            where=nan_mask,
+        )
 
     @add_boilerplate()
     def var(
@@ -3165,7 +3225,7 @@ class ndarray:
         ddof: int = 0,
         keepdims: bool = False,
         *,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.var(a, axis=None, dtype=None, out=None, ddof=0, keepdims=False)
 
@@ -3199,10 +3259,11 @@ class ndarray:
         dtype = self._summation_dtype(dtype)
         # calculate the mean, but keep the dimensions so that the
         # mean can be broadcast against the original array
-        mu = self.mean(axis=axis, dtype=dtype, keepdims=True)
+        mu = self.mean(axis=axis, dtype=dtype, keepdims=True, where=where)
+
+        where_array = broadcast_where(where, self.shape)
 
         # 1D arrays (or equivalent) should benefit from this unary reduction:
-        #
         if axis is None or calculate_volume(tuple_pop(self.shape, axis)) == 1:
             # this is a scalar reduction and we can optimize this as a single
             # pass through a scalar reduction
@@ -3213,7 +3274,7 @@ class ndarray:
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
-                where=where,
+                where=where_array,
                 args=(mu,),
             )
         else:
@@ -3234,10 +3295,16 @@ class ndarray:
                 dtype=dtype,
                 out=out,
                 keepdims=keepdims,
-                where=where,
+                where=where_array,
             )
 
-        self._normalize_summation(result, axis=axis, dtype=dtype, ddof=ddof)
+        self._normalize_summation(
+            result,
+            axis=axis,
+            ddof=ddof,
+            keepdims=keepdims,
+            where=where_array,
+        )
 
         return result
 
@@ -3248,7 +3315,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.min(axis=None, out=None, keepdims=False, initial=<no value>,
                  where=True)
@@ -3346,7 +3413,7 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.prod(axis=None, dtype=None, out=None, keepdims=False, initial=1,
         where=True)
@@ -3716,10 +3783,10 @@ class ndarray:
         out: Union[ndarray, None] = None,
         keepdims: bool = False,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         """a.sum(axis=None, dtype=None, out=None, keepdims=False, initial=0,
-        where=True)
+        where=None)
 
         Return the sum of the array elements over the given axis.
 
@@ -3747,6 +3814,34 @@ class ndarray:
         return self._perform_unary_reduction(
             UnaryRedCode.SUM,
             self_array,
+            axis=axis,
+            dtype=dtype,
+            out=out,
+            keepdims=keepdims,
+            initial=initial,
+            where=where,
+        )
+
+    def _nansum(
+        self,
+        axis: Any = None,
+        dtype: Any = None,
+        out: Union[ndarray, None] = None,
+        keepdims: bool = False,
+        initial: Optional[Union[int, float]] = None,
+        where: Optional[ndarray] = None,
+    ) -> ndarray:
+        # Note that np.nansum and np.sum allow complex datatypes
+        # so there are no "disallowed types" for this API
+
+        if self.dtype.kind in ("f", "c"):
+            unary_red_code = UnaryRedCode.NANSUM
+        else:
+            unary_red_code = UnaryRedCode.SUM
+
+        return self._perform_unary_reduction(
+            unary_red_code,
+            self,
             axis=axis,
             dtype=dtype,
             out=out,
@@ -4064,16 +4159,16 @@ class ndarray:
 
     @classmethod
     def _get_where_thunk(
-        cls, where: Union[bool, ndarray], out_shape: NdShape
-    ) -> Union[Literal[True], NumPyThunk]:
-        if where is True:
-            return True
-        if where is False:
-            raise RuntimeError("should have caught this earlier")
-        if not isinstance(where, ndarray) or where.dtype != np.bool_:
+        cls, where: Union[None, ndarray], out_shape: NdShape
+    ) -> Union[None, NumPyThunk]:
+        if where is None:
+            return where
+        if (
+            not isinstance(where, ndarray)
+            or where.dtype != np.bool_
+            or where.shape != out_shape
+        ):
             raise RuntimeError("should have converted this earlier")
-        if where.shape != out_shape:
-            raise ValueError("where parameter must have same shape as output")
         return where._thunk
 
     @staticmethod
@@ -4126,33 +4221,31 @@ class ndarray:
         out: Union[Any, None] = None,
         extra_args: Any = None,
         dtype: Union[np.dtype[Any], None] = None,
-        where: Union[bool, ndarray] = True,
         out_dtype: Union[np.dtype[Any], None] = None,
     ) -> ndarray:
         if out is not None:
             # If the shapes don't match see if we can broadcast
             # This will raise an exception if they can't be broadcast together
-            if isinstance(where, ndarray):
-                np.broadcast_shapes(src.shape, out.shape, where.shape)
-            else:
-                np.broadcast_shapes(src.shape, out.shape)
+            if np.broadcast_shapes(src.shape, out.shape) != out.shape:
+                raise ValueError(
+                    f"non-broadcastable output operand with shape {out.shape} "
+                    f"doesn't match the broadcast shape {src.shape}"
+                )
         else:
             # No output yet, so make one
-            if isinstance(where, ndarray):
-                out_shape = np.broadcast_shapes(src.shape, where.shape)
-            else:
-                out_shape = src.shape
+            out_shape = src.shape
+
             if dtype is not None:
                 out = ndarray(
                     shape=out_shape,
                     dtype=dtype,
-                    inputs=(src, where),
+                    inputs=(src,),
                 )
             elif out_dtype is not None:
                 out = ndarray(
                     shape=out_shape,
                     dtype=out_dtype,
-                    inputs=(src, where),
+                    inputs=(src,),
                 )
             else:
                 out = ndarray(
@@ -4162,12 +4255,8 @@ class ndarray:
                     else np.dtype(np.float32)
                     if src.dtype == np.dtype(np.complex64)
                     else np.dtype(np.float64),
-                    inputs=(src, where),
+                    inputs=(src,),
                 )
-
-        # Quick exit
-        if where is False:
-            return out
 
         if out_dtype is None:
             if out.dtype != src.dtype and not (
@@ -4176,12 +4265,12 @@ class ndarray:
                 temp = ndarray(
                     out.shape,
                     dtype=src.dtype,
-                    inputs=(src, where),
+                    inputs=(src,),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, out.shape),
+                    True,
                     extra_args,
                 )
                 out._thunk.convert(temp._thunk)
@@ -4189,7 +4278,7 @@ class ndarray:
                 out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, out.shape),
+                    True,
                     extra_args,
                 )
         else:
@@ -4197,12 +4286,12 @@ class ndarray:
                 temp = ndarray(
                     out.shape,
                     dtype=out_dtype,
-                    inputs=(src, where),
+                    inputs=(src,),
                 )
                 temp._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, out.shape),
+                    True,
                     extra_args,
                 )
                 out._thunk.convert(temp._thunk)
@@ -4210,7 +4299,7 @@ class ndarray:
                 out._thunk.unary_op(
                     op,
                     src._thunk,
-                    cls._get_where_thunk(where, out.shape),
+                    True,
                     extra_args,
                 )
         return out
@@ -4228,7 +4317,7 @@ class ndarray:
         keepdims: bool = False,
         args: Union[Any, None] = None,
         initial: Union[int, float, None] = None,
-        where: Union[bool, ndarray] = True,
+        where: Union[ndarray, None] = None,
     ) -> ndarray:
         # When 'res_dtype' is not None, the input and output of the reduction
         # have different types. Such reduction operators don't take a dtype of
@@ -4250,13 +4339,6 @@ class ndarray:
 
         # TODO: Need to require initial to be given when the array is empty
         #       or a where mask is given.
-        if isinstance(where, ndarray):
-            # The where array has to broadcast to the src.shape
-            if np.broadcast_shapes(src.shape, where.shape) != src.shape:
-                raise ValueError(
-                    '"where" array must broadcast against source array '
-                    "for reduction"
-                )
         if (
             op
             in (
@@ -4304,17 +4386,17 @@ class ndarray:
                 shape=out_shape, dtype=res_dtype, inputs=(src, where)
             )
 
-        if where:
-            result._thunk.unary_reduction(
-                op,
-                src._thunk,
-                cls._get_where_thunk(where, result.shape),
-                axis,
-                axes,
-                keepdims,
-                args,
-                initial,
-            )
+        where_array = broadcast_where(where, src.shape)
+        result._thunk.unary_reduction(
+            op,
+            src._thunk,
+            cls._get_where_thunk(where_array, src.shape),
+            axis,
+            axes,
+            keepdims,
+            args,
+            initial,
+        )
 
         if result is not out:
             out._thunk.convert(result._thunk)

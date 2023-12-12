@@ -1,4 +1,4 @@
-/* Copyright 2021-2023 NVIDIA Corporation
+/* Copyright 2023 NVIDIA Corporation
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,23 +17,18 @@
 #pragma once
 
 #include "cunumeric/cunumeric.h"
-#include "cunumeric/unary/unary_red_util.h"
 
 namespace cunumeric {
 
-struct ScalarUnaryRedArgs {
+struct SelectArgs {
   const Array& out;
-  const Array& in;
-  const Array& where;
-  UnaryRedCode op_code;
-  legate::DomainPoint shape;
-  std::vector<legate::Store> args;
+  const std::vector<Array>& inputs;
+  const legate::Scalar& default_value;
 };
 
-// Unary reduction task that produces scalar results
-class ScalarUnaryRedTask : public CuNumericTask<ScalarUnaryRedTask> {
+class SelectTask : public CuNumericTask<SelectTask> {
  public:
-  static const int TASK_ID = CUNUMERIC_SCALAR_UNARY_RED;
+  static const int TASK_ID = CUNUMERIC_SELECT;
 
  public:
   static void cpu_variant(legate::TaskContext& context);

@@ -1,11 +1,11 @@
 {
   "packages" : {
     "legate_core" : {
-      "version": "23.11.00",
+      "version": "24.01.00",
       "git_url" : "https://github.com/nv-legate/legate.core.git",
       "git_shallow": false,
       "always_download": false,
-      "git_tag" : "c05ebdab30dee6ac2d6e2808fb835fad0302822d"
+      "git_tag" : "08da13fc544f3db26bf1ef7ce9bdb85e72a9d9fb"
     }
   }
 }

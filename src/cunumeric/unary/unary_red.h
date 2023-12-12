@@ -24,6 +24,7 @@ namespace cunumeric {
 struct UnaryRedArgs {
   const Array& lhs;
   const Array& rhs;
+  const Array& where;
   int32_t collapsed_dim;
   UnaryRedCode op_code;
 };
