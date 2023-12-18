@@ -1,4 +1,4 @@
-from typing import List
+from typing import Sequence
 
 from llvmlite.ir._utils import _StrCaching
 
@@ -6,7 +6,7 @@ class Type(_StrCaching): ...
 
 class FunctionType(Type):
     def __init__(
-        self, return_type: Type, args: List[Type], var_arg: bool = False
+        self, return_type: Type, args: Sequence[Type], var_arg: bool = False
     ): ...
 
 class PointerType(Type): ...

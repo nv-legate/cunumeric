@@ -1,7 +1,7 @@
 from typing import Tuple, Union
 
 from numba.core.types import Type
-from numba.core.typing.signature import Signature
+from numba.core.typing.templates import Signature
 
 def normalize_signature(
     sig: Union[Tuple[Type, ...], str, Signature]

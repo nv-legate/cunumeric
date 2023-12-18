@@ -36,7 +36,7 @@ from numba.core.callconv import BaseCallConv
 from numba.core.codegen import CodeLibrary
 from numba.core.compiler_lock import global_compiler_lock
 from numba.core.funcdesc import FunctionDescriptor
-from numba.core.typing.signature import Signature
+from numba.core.typing.templates import Signature
 from numba.cuda.codegen import CUDACodeLibrary
 from numba.cuda.compiler import compile_cuda
 
