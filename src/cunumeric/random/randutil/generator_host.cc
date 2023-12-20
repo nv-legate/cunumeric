@@ -14,9 +14,11 @@
  *
  */
 
-// attempt to masquerade as MacOS on host:
+// MacOS host variant:
 //
+#if defined(__APPLE__) && defined(__MACH__)
 #define USE_STL_RANDOM_ENGINE_
+#endif
 
 #include "generator.h"
 #include "generator_create.inl"
