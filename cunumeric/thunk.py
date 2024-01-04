@@ -15,7 +15,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod, abstractproperty
-from typing import TYPE_CHECKING, Any, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Sequence, Union
 
 from .config import ConvertCode
 
@@ -74,7 +74,7 @@ class NumPyThunk(ABC):
     # Abstract methods
 
     @abstractproperty
-    def storage(self) -> Union[Future, tuple[Region, FieldID]]:
+    def storage(self) -> Union[Future, tuple[Region, Union[int, FieldID]]]:
         """Return the Legion storage primitive for this NumPy thunk"""
         ...
 
@@ -189,6 +189,15 @@ class NumPyThunk(ABC):
 
     @abstractmethod
     def choose(self, rhs: Any, *args: Any) -> None:
+        ...
+
+    @abstractmethod
+    def select(
+        self,
+        condlist: Iterable[Any],
+        choicelist: Iterable[Any],
+        default: npt.NDArray[Any],
+    ) -> None:
         ...
 
     @abstractmethod
