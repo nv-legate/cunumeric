@@ -1870,6 +1870,9 @@ class DeferredArray(NumPyThunk):
 
         assert indices.size == values.size
 
+        # Handle store overlap
+        values = values._copy_if_overlapping(self_tmp)
+
         # first, we create indirect array with PointN type that
         # (indices.size,) shape and is used to copy data from values
         # to the target ND array (self)
@@ -1910,11 +1913,12 @@ class DeferredArray(NumPyThunk):
     @auto_convert("mask", "values")
     def putmask(self, mask: Any, values: Any) -> None:
         assert self.shape == mask.shape
-
+        values = values._copy_if_overlapping(self)
         if values.shape != self.shape:
             values_new = values._broadcast(self.shape)
         else:
             values_new = values.base
+
         task = self.context.create_auto_task(CuNumericOpCode.PUTMASK)
         task.add_input(self.base)
         task.add_input(mask.base)
@@ -3142,6 +3146,7 @@ class DeferredArray(NumPyThunk):
         multiout: Optional[Any] = None,
     ) -> None:
         lhs = self.base
+        src = src._copy_if_overlapping(self)
         rhs = src._broadcast(lhs.shape)
 
         with Annotation({"OpCode": op.name}):
@@ -3304,7 +3309,9 @@ class DeferredArray(NumPyThunk):
         args: Any,
     ) -> None:
         lhs = self.base
+        src1 = src1._copy_if_overlapping(self)
         rhs1 = src1._broadcast(lhs.shape)
+        src2 = src2._copy_if_overlapping(self)
         rhs2 = src2._broadcast(lhs.shape)
 
         with Annotation({"OpCode": op_code.name}):
