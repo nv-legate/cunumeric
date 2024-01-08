@@ -38,8 +38,18 @@ def binary_arith(lib, a, slice_lhs, slice_rhs):
     a[slice_lhs] += a[slice_rhs]
 
 
+def put(lib, a, slice_lhs, slice_rhs):
+    indices = lib.flip(lib.arange(a[slice_rhs].size))
+    a[slice_lhs].put(indices, a[slice_rhs])
+
+
+def putmask(lib, a, slice_lhs, slice_rhs):
+    mask = (mk_seq_array(lib, a[slice_rhs].shape) % 2).astype(bool)
+    lib.putmask(a[slice_lhs], mask, a[slice_rhs])
+
+
 SHAPES = ((4,), (4, 5), (4, 5, 6))
-OPERATIONS = (setitem, dot, unary_arith, binary_arith)
+OPERATIONS = (setitem, dot, unary_arith, binary_arith, put, putmask)
 
 
 @pytest.mark.parametrize("partial", (True, False))
