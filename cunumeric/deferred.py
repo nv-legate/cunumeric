@@ -296,6 +296,7 @@ class DeferredArray(NumPyThunk):
             self.runtime.create_empty_thunk(
                 self.shape,
                 self.base.type,
+                inputs=[self],
             ),
         )
         copy.copy(self, deep=True)
@@ -1098,21 +1099,12 @@ class DeferredArray(NumPyThunk):
                 # to set the result back. In cuNumeric, the object we
                 # return in step (1) is actually a subview to the array arr
                 # through which we make updates in place, so after step (2) is
-                # done, # the effect of inplace update is already reflected
+                # done, the effect of inplace update is already reflected
                 # to the arr. Therefore, we skip the copy to avoid redundant
                 # copies if we know that we hit such a scenario.
                 # TODO: We should make this work for the advanced indexing case
                 if view.base == rhs.base:
                     return
-
-                if view.base.overlaps(rhs.base):
-                    rhs_copy = self.runtime.create_empty_thunk(
-                        rhs.shape,
-                        rhs.base.type,
-                        inputs=[rhs],
-                    )
-                    rhs_copy.copy(rhs, deep=False)
-                    rhs = rhs_copy
 
                 view.copy(rhs, deep=False)
 
