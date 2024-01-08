@@ -1106,7 +1106,11 @@ class DeferredArray(NumPyThunk):
                 # NOTE: Neither Store nor Storage have an __eq__, so we can
                 # only check that the underlying RegionField/Future corresponds
                 # to the same Legion handle.
-                if view.base.storage.same_handle(rhs.base.storage):
+                if (
+                    view.base.has_storage
+                    and rhs.base.has_storage
+                    and view.base.storage.same_handle(rhs.base.storage)
+                ):
                     return
 
                 view.copy(rhs, deep=False)
