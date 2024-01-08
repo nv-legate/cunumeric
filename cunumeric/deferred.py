@@ -1103,7 +1103,10 @@ class DeferredArray(NumPyThunk):
                 # to the arr. Therefore, we skip the copy to avoid redundant
                 # copies if we know that we hit such a scenario.
                 # TODO: We should make this work for the advanced indexing case
-                if view.base == rhs.base:
+                # NOTE: Neither Store nor Storage have an __eq__, so we can
+                # only check that the underlying RegionField/Future corresponds
+                # to the same Legion handle.
+                if view.base.storage.same_handle(rhs.base.storage):
                     return
 
                 view.copy(rhs, deep=False)
