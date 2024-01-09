@@ -30,31 +30,19 @@ template <Type::Code CODE>
 struct TransposeImplBody<VariantKind::CPU, CODE> {
   using VAL = legate_type_of<CODE>;
 
-  void operator()(const Rect<2>& out_rect,
-                  const Rect<2>& in_rect,
+  void operator()(const Rect<2>& rect,
                   const AccessorWO<VAL, 2>& out,
-                  const AccessorRO<VAL, 2>& in,
-                  bool logical) const
+                  const AccessorRO<VAL, 2>& in) const
   {
     constexpr coord_t BF = 128 / sizeof(VAL);
-    if (logical)
-      for (auto i1 = in_rect.lo[0]; i1 <= in_rect.hi[0]; i1 += BF) {
-        for (auto j1 = in_rect.lo[1]; j1 <= in_rect.hi[1]; j1 += BF) {
-          const auto max_i2 = ((i1 + BF) <= in_rect.hi[0]) ? i1 + BF : in_rect.hi[0];
-          const auto max_j2 = ((j1 + BF) <= in_rect.hi[1]) ? j1 + BF : in_rect.hi[1];
-          for (auto i2 = i1; i2 <= max_i2; i2++)
-            for (auto j2 = j1; j2 <= max_j2; j2++) out[j2][i2] = in[i2][j2];
-        }
+    for (auto i1 = rect.lo[0]; i1 <= rect.hi[0]; i1 += BF) {
+      for (auto j1 = rect.lo[1]; j1 <= rect.hi[1]; j1 += BF) {
+        const auto max_i2 = ((i1 + BF) <= rect.hi[0]) ? i1 + BF : rect.hi[0];
+        const auto max_j2 = ((j1 + BF) <= rect.hi[1]) ? j1 + BF : rect.hi[1];
+        for (auto i2 = i1; i2 <= max_i2; i2++)
+          for (auto j2 = j1; j2 <= max_j2; j2++) out[i2][j2] = in[i2][j2];
       }
-    else
-      for (auto i1 = in_rect.lo[0]; i1 <= in_rect.hi[0]; i1 += BF) {
-        for (auto j1 = in_rect.lo[1]; j1 <= in_rect.hi[1]; j1 += BF) {
-          const auto max_i2 = ((i1 + BF) <= in_rect.hi[0]) ? i1 + BF : in_rect.hi[0];
-          const auto max_j2 = ((j1 + BF) <= in_rect.hi[1]) ? j1 + BF : in_rect.hi[1];
-          for (auto i2 = i1; i2 <= max_i2; i2++)
-            for (auto j2 = j1; j2 <= max_j2; j2++) out[i2][j2] = in[i2][j2];
-        }
-      }
+    }
   }
 };
 

@@ -33,20 +33,13 @@ struct TransposeImpl {
   {
     using VAL = legate_type_of<CODE>;
 
-    const auto out_rect = args.out.shape<2>();
-    if (out_rect.empty()) return;
-
-    Rect<2> in_rect;
-    if (args.logical) {
-      in_rect.lo = Point<2>(out_rect.lo[1], out_rect.lo[0]);
-      in_rect.hi = Point<2>(out_rect.hi[1], out_rect.hi[0]);
-    } else
-      in_rect = out_rect;
+    const auto rect = args.out.shape<2>();
+    if (rect.empty()) return;
 
     auto out = args.out.write_accessor<VAL, 2>();
     auto in  = args.in.read_accessor<VAL, 2>();
 
-    TransposeImplBody<KIND, CODE>{}(out_rect, in_rect, out, in, args.logical);
+    TransposeImplBody<KIND, CODE>{}(rect, out, in);
   }
 };
 
@@ -55,9 +48,8 @@ static void transpose_template(TaskContext& context)
 {
   auto& output = context.outputs()[0];
   auto& input  = context.inputs()[0];
-  auto logical = context.scalars()[0].value<bool>();
 
-  TransposeArgs args{output, input, logical};
+  TransposeArgs args{output, input};
   type_dispatch(input.code(), TransposeImpl<KIND>{}, args);
 }
 
