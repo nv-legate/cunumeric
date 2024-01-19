@@ -1054,7 +1054,7 @@ class ndarray:
                 _WARN_SINGLE_ELEM_ACCESS,
                 category=RuntimeWarning,
             )
-            return self.__array__()[key]
+            return convert_to_cunumeric_ndarray(self.__array__()[key])
         return ndarray(shape=None, thunk=self._thunk.get_item(key))
 
     def __gt__(self, rhs: Any) -> ndarray:
@@ -1697,8 +1697,9 @@ class ndarray:
                 _WARN_SINGLE_ELEM_ACCESS,
                 category=RuntimeWarning,
             )
-            self.__array__()[key] = raw_value
-            return
+            if self._thunk.can_write_through_numpy_array:
+                self.__array__()[key] = raw_value
+                return
         value = convert_to_cunumeric_ndarray(raw_value)
         if value.dtype != self.dtype:
             temp = ndarray(value.shape, dtype=self.dtype, inputs=(value,))
@@ -2975,7 +2976,7 @@ class ndarray:
             raise KeyError("invalid key")
         return args
 
-    def item(self, *args: Any) -> Any:
+    def item(self, *args: Any) -> npt.NDArray[Any]:
         """a.item(*args)
 
         Copy an element of an array to a standard Python scalar and return it.
