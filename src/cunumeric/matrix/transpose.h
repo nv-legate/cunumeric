@@ -23,7 +23,6 @@ namespace cunumeric {
 struct TransposeArgs {
   const Array& out;
   const Array& in;
-  bool logical;
 };
 
 class TransposeTask : public CuNumericTask<TransposeTask> {
