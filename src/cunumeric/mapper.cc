@@ -96,16 +96,12 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       return std::move(mappings);
     }
     case CUNUMERIC_TRANSPOSE_COPY_2D: {
-      auto logical = task.scalars()[0].value<bool>();
-      if (!logical) {
-        std::vector<StoreMapping> mappings;
-        auto& outputs = task.outputs();
-        mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
-        mappings.back().policy.ordering.set_fortran_order();
-        mappings.back().policy.exact = true;
-        return std::move(mappings);
-      } else
-        return {};
+      std::vector<StoreMapping> mappings;
+      auto& outputs = task.outputs();
+      mappings.push_back(StoreMapping::default_mapping(outputs[0], options.front()));
+      mappings.back().policy.ordering.set_fortran_order();
+      mappings.back().policy.exact = true;
+      return std::move(mappings);
     }
     case CUNUMERIC_MATMUL:
     case CUNUMERIC_MATVECMUL:
