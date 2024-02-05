@@ -748,6 +748,9 @@ class binary_ufunc(ufunc):
         --------
         numpy.ufunc.reduce
         """
+        if self._op_code in [BinaryOpCode.LOGICAL_AND, BinaryOpCode.LOGICAL_OR, BinaryOpCode.LOGICAL_XOR]:
+            array = array._astype(bool, temporary=True)
+
         if self._red_code is None:
             raise NotImplementedError(
                 f"reduction for {self} is not yet implemented"
