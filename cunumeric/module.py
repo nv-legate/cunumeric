@@ -8192,7 +8192,7 @@ def nanquantile_impl(
     # construct result Np.Ndarray, non-flattening approach:
     #
     if qs_all is None:
-        qs_all = np.zeros(qresult_shape, dtype=to_dtype)
+        qs_all = zeros(qresult_shape, dtype=to_dtype)
     else:
         # implicit conversion from to_dtype to qs_all.dtype assumed
         #
@@ -8201,17 +8201,18 @@ def nanquantile_impl(
 
     # ndarray of non-NaNs:
     #
-    non_nan_counts = np.count_nonzero((np.isnan(arr) == False), axis = axis)
+    non_nan_counts = count_nonzero((np.isnan(arr) == False), axis = axis)
     assert non_nan_counts.shape == remaining_shape
+
+    arr_ones = ones(remaining_shape, dtype=arr.dtype)
+
+    arr_gammas = zeros(remaining_shape, dtype=arr.dtype)
+    arr_lvals = zeros(remaining_shape, dtype=arr.dtype)
+    arr_rvals = zeros(remaining_shape, dtype=arr.dtype)
 
     for qindex, q in np.ndenumerate(q_arr):
 
         assert qs_all[qindex].shape == remaining_shape
-
-        arr_gammas = np.zeros(remaining_shape, dtype=arr.dtype)
-        arr_lvals = np.zeros(remaining_shape, dtype=arr.dtype)
-        arr_rvals = np.zeros(remaining_shape, dtype=arr.dtype)
-        arr_ones = np.ones(remaining_shape, dtype=arr.dtype)
 
         for aindex, n in np.ndenumerate(non_nan_counts):
             (gamma, left_pos) = method(q, n)
