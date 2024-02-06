@@ -8449,6 +8449,109 @@ def nanquantile(
         return res
 
 
+@add_boilerplate("a")
+def nanpercentile(
+    a: ndarray,
+    q: Union[float, Iterable[float], ndarray],
+    axis: Union[None, int, tuple[int, ...]] = None,
+    out: Optional[ndarray] = None,
+    overwrite_input: bool = False,
+    method: str = "linear",
+    keepdims: bool = False,
+) -> ndarray:
+    """
+    Compute the q-th percentile of the data along the specified axis,
+    while ignoring nan values.
+
+    Parameters
+    ----------
+    a : array_like
+        Input array or object that can be converted to an array,
+        containing nan values to be ignored.
+    q : array_like of float
+        Percentile or sequence of percentiles to compute, which must be between
+        0 and 100 inclusive.
+    axis : {int, tuple of int, None}, optional
+        Axis or axes along which the percentiles are computed. The default is
+        to compute the percentile(s) along a flattened version of the array.
+    out : ndarray, optional
+        Alternative output array in which to place the result. It must have
+        the same shape as the expected output.
+    overwrite_input : bool, optional
+        If True, then allow the input array `a` to be modified by
+        intermediate calculations, to save memory. In this case, the
+        contents of the input `a` after this function completes is
+        undefined.
+    method : str, optional
+        This parameter specifies the method to use for estimating the
+        percentile.  The options sorted by their R type
+        as summarized in the H&F paper [1]_ are:
+        1. 'inverted_cdf'
+        2. 'averaged_inverted_cdf'
+        3. 'closest_observation'
+        4. 'interpolated_inverted_cdf'
+        5. 'hazen'
+        6. 'weibull'
+        7. 'linear'  (default)
+        8. 'median_unbiased'
+        9. 'normal_unbiased'
+        The first three methods are discontinuous.  NumPy further defines the
+        following discontinuous variations of the default 'linear' (7.) option:
+        * 'lower'
+        * 'higher',
+        * 'midpoint'
+        * 'nearest'
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left in
+        the result as dimensions with size one. With this option, the
+        result will broadcast correctly against the original array `a`.
+
+    Returns
+    -------
+    percentile : scalar or ndarray
+        If `q` is a single percentile and `axis=None`, then the result
+        is a scalar. If multiple percentiles are given, first axis of
+        the result corresponds to the percentiles. The other axes are
+        the axes that remain after the reduction of `a`. If the input
+        contains integers or floats smaller than ``float64``, the output
+        data-type is ``float64``. Otherwise, the output data-type is the
+        same as that of the input. If `out` is specified, that array is
+        returned instead.
+
+    Raises
+    ------
+    TypeError
+        If the type of the input is complex.
+
+    See Also
+    --------
+    numpy.nanpercentile
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+
+    References
+    ----------
+    .. [1] R. J. Hyndman and Y. Fan,
+       "Sample quantiles in statistical packages,"
+       The American Statistician, 50(4), pp. 361-365, 1996
+    """
+
+    q_arr = np.asarray(q)
+    q01 = q_arr / 100.0
+
+    return nanquantile(
+        a,
+        q01,
+        axis,
+        out=out,
+        overwrite_input=overwrite_input,
+        method=method,
+        keepdims=keepdims,
+    )
+
+
 @add_boilerplate("x", "weights")
 def histogram(
     x: ndarray,
