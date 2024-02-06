@@ -8286,8 +8286,8 @@ def histogram(
 
 @add_boilerplate("x", "bins")
 def digitize(
-    x: Union[ndarray, npt.ArrayLike],
-    bins: Union[ndarray, npt.ArrayLike],
+    x: ndarray,
+    bins: ndarray,
     right: bool = False,
 ) -> Union[int, ndarray]:
     """
@@ -8308,8 +8308,7 @@ def digitize(
     Parameters
     ----------
     x : array_like
-        Input array to be binned. Prior to NumPy 1.10.0, this array had to
-        be 1-dimensional, but can now have any shape.
+        Input array to be binned. Doesn't need to be 1-dimensional.
     bins : array_like
         Array of bins. It has to be 1-dimensional and monotonic.
     right : bool, optional
@@ -8333,18 +8332,13 @@ def digitize(
 
     See Also
     --------
-    bincount, histogram, unique, searchsorted
+    numpy.digitize
 
     Notes
     -----
     If values in `x` are such that they fall outside the bin range,
     attempting to index `bins` with the indices that `digitize` returns
     will result in an IndexError.
-
-    `numpy.digitize` is  implemented in terms of `numpy.searchsorted`.
-    This means that a binary search is used to bin the values, which scales
-    much better for larger number of bins than the previous linear search.
-    It also removes the requirement for the input array to be 1-dimensional.
 
     For monotonically *increasing* `bins`, the following are equivalent::
 
@@ -8381,15 +8375,12 @@ def digitize(
     --------
     Multiple GPUs, Multiple CPUs
     """
-    x = asarray(x)
-    bins = asarray(bins)
-
     # here for compatibility, searchsorted below is happy to take this
     if np.issubdtype(x.dtype, np.complexfloating):
         raise TypeError("x may not be complex")
 
-    increasing = np.all(bins[1:] >= bins[:-1])
-    decreasing = np.all(bins[1:] <= bins[:-1])
+    increasing = (bins[1:] >= bins[:-1]).all()
+    decreasing = (bins[1:] <= bins[:-1]).all()
     if not increasing and not decreasing:
         raise ValueError("bins must be monotonically increasing or decreasing")
 
@@ -8397,6 +8388,6 @@ def digitize(
     side: SortSide = "left" if right else "right"
     if decreasing:
         # reverse the bins, and invert the results
-        return len(bins) - searchsorted(bins[::-1], x, side=side)
+        return len(bins) - searchsorted(bins.flip(), x, side=side)
     else:
         return searchsorted(bins, x, side=side)
