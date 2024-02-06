@@ -8201,7 +8201,7 @@ def nanquantile_impl(
 
     # ndarray of non-NaNs:
     #
-    non_nan_counts = count_nonzero((isnan(arr) == False), axis = axis)
+    non_nan_counts = count_nonzero((isnan(arr) == False), axis=axis)
     assert non_nan_counts.shape == remaining_shape
 
     arr_ones = ones(remaining_shape, dtype=arr.dtype)
@@ -8211,7 +8211,6 @@ def nanquantile_impl(
     arr_rvals = zeros(remaining_shape, dtype=arr.dtype)
 
     for qindex, q in np.ndenumerate(q_arr):
-
         assert qs_all[qindex].shape == remaining_shape
 
         for aindex, n in np.ndenumerate(non_nan_counts):
@@ -8222,7 +8221,7 @@ def nanquantile_impl(
             # `aindex` are the same indices as those needed
             # to access `a`'s remaining shape slices;
             #
-            full_l_index =(*aindex[:axis], left_pos, *aindex[axis:])
+            full_l_index = (*aindex[:axis], left_pos, *aindex[axis:])
             arr_lvals[aindex] = arr[full_l_index]
             arr_gammas[aindex] = gamma
 
@@ -8231,22 +8230,32 @@ def nanquantile_impl(
             # this test _IS_ needed
             # hence, cannot fill arr_rvals same as arr_lvals;
             #
-            if right_pos < n: 
+            if right_pos < n:
                 # reconstruct full index from aindex entries everywhere except on `axis`
                 # and `right_pos` on `axis`:
                 #
-                full_r_index =(*aindex[:axis], right_pos, *aindex[axis:])
+                full_r_index = (*aindex[:axis], right_pos, *aindex[axis:])
                 arr_rvals[aindex] = arr[full_r_index]
 
         # vectorized for axis != None;
         #
         if len(qindex) == 0:
-            left = (arr_ones.reshape(qs_all.shape) - arr_gammas.reshape(qs_all.shape))* arr_lvals.reshape(qs_all.shape)
-            right = arr_gammas.reshape(qs_all.shape) * arr_rvals.reshape(qs_all.shape)
+            left = (
+                arr_ones.reshape(qs_all.shape)
+                - arr_gammas.reshape(qs_all.shape)
+            ) * arr_lvals.reshape(qs_all.shape)
+            right = arr_gammas.reshape(qs_all.shape) * arr_rvals.reshape(
+                qs_all.shape
+            )
             qs_all[...] = left + right
         else:
-            left = (arr_ones.reshape(qs_all[qindex].shape) - arr_gammas.reshape(qs_all[qindex].shape)) * arr_lvals.reshape(qs_all[qindex].shape)
-            right = arr_gammas.reshape(qs_all[qindex].shape) * arr_rvals.reshape(qs_all[qindex].shape)
+            left = (
+                arr_ones.reshape(qs_all[qindex].shape)
+                - arr_gammas.reshape(qs_all[qindex].shape)
+            ) * arr_lvals.reshape(qs_all[qindex].shape)
+            right = arr_gammas.reshape(
+                qs_all[qindex].shape
+            ) * arr_rvals.reshape(qs_all[qindex].shape)
             qs_all[qindex] = left + right
 
     return qs_all
@@ -8263,13 +8272,13 @@ def nanquantile(
     keepdims: bool = False,
 ) -> np.ndarray:
     """
-    Compute the q-th quantile of the data along the specified axis, 
+    Compute the q-th quantile of the data along the specified axis,
     while ignoring nan values.
 
     Parameters
     ----------
     a : array_like
-        Input array or object that can be converted to an array, 
+        Input array or object that can be converted to an array,
         containing nan values to be ignored.
     q : array_like of float
         Quantile or sequence of quantiles to compute, which must be between

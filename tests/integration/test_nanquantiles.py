@@ -43,29 +43,16 @@ ALL_METHODS = (
 @pytest.mark.parametrize(
     "qin_arr", (0.5, [0.001, 0.37, 0.42, 0.67, 0.83, 0.99, 0.39, 0.49, 0.5])
 )
-@pytest.mark.parametrize("keepdims", (False, ))
-@pytest.mark.parametrize("overwrite_input", (False, ))
+@pytest.mark.parametrize("keepdims", (False,))
+@pytest.mark.parametrize("overwrite_input", (False,))
 def test_multi_axes(str_method, axes, qin_arr, keepdims, overwrite_input):
     eps = 1.0e-8
     arr = np.ndarray(
-        shape = (3,4),
-        buffer = np.array(
-            [
-                1.,
-                2,
-                2,
-                40,
-                1,
-                np.nan,
-                2,
-                1,
-                0,
-                10,
-                np.nan,
-                np.nan
-            ]
+        shape=(3, 4),
+        buffer=np.array(
+            [1.0, 2, 2, 40, 1, np.nan, 2, 1, 0, 10, np.nan, np.nan]
         ),
-        dtype = float,
+        dtype=float,
     )
 
     if num.isscalar(qin_arr):
