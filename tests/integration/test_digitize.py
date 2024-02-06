@@ -108,9 +108,32 @@ def test_empty(right):
 @pytest.mark.parametrize("shape", SHAPES, ids=str)
 @pytest.mark.parametrize("dtype", DTYPES, ids=str)
 @pytest.mark.parametrize("right", (True, False))
-def test_ndmin(shape, dtype, right):
+def test_increasing_bins(shape, dtype, right):
     a = generate_random(shape, dtype)
     bins = [0, 3, 5]
+
+    a_num = num.array(a)
+    bins_num = num.array(bins)
+
+    res_np = np.digitize(a, bins, right=right)
+    res_num = num.digitize(a, bins, right=right)
+    assert num.array_equal(res_np, res_num)
+
+    res_np = np.digitize(a, bins, right=right)
+    res_num = num.digitize(a_num, bins, right=right)
+    assert num.array_equal(res_np, res_num)
+
+    res_np = np.digitize(a, bins, right=right)
+    res_num = num.digitize(a_num, bins_num, right=right)
+    assert num.array_equal(res_np, res_num)
+
+
+@pytest.mark.parametrize("shape", SHAPES, ids=str)
+@pytest.mark.parametrize("dtype", DTYPES, ids=str)
+@pytest.mark.parametrize("right", (True, False))
+def test_decreasing_bins(shape, dtype, right):
+    a = generate_random(shape, dtype)
+    bins = [5, 3, 0]
 
     a_num = num.array(a)
     bins_num = num.array(bins)
