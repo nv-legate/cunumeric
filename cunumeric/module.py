@@ -8201,7 +8201,7 @@ def nanquantile_impl(
 
     # ndarray of non-NaNs:
     #
-    non_nan_counts = count_nonzero((np.isnan(arr) == False), axis = axis)
+    non_nan_counts = count_nonzero((isnan(arr) == False), axis = axis)
     assert non_nan_counts.shape == remaining_shape
 
     arr_ones = ones(remaining_shape, dtype=arr.dtype)
