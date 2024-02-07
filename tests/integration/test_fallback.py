@@ -28,8 +28,8 @@ def test_ufunc():
     in_num = num.array([0, 1, 2, 3])
     in_np = in_num.__array__()
 
-    out_num = np.logical_and.reduce(in_num)
-    out_np = np.logical_and.reduce(in_np)
+    out_num = np.logical_or.reduce(in_num)
+    out_np = np.logical_or.reduce(in_np)
     assert np.array_equal(out_num, out_np)
 
 

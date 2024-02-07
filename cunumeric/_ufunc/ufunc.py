@@ -753,6 +753,13 @@ class binary_ufunc(ufunc):
                 f"reduction for {self} is not yet implemented"
             )
 
+        if self._op_code in [
+            BinaryOpCode.LOGICAL_AND,
+            BinaryOpCode.LOGICAL_OR,
+            BinaryOpCode.LOGICAL_XOR,
+        ]:
+            array = array._astype(bool, temporary=True)
+
         # NumPy seems to be using None as the default axis value for scalars
         if array.ndim == 0 and axis == 0:
             axis = None

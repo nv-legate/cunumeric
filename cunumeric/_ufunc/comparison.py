@@ -73,6 +73,7 @@ logical_and = create_binary_ufunc(
     "logical_and",
     BinaryOpCode.LOGICAL_AND,
     relation_types_of(all_dtypes),
+    red_code=UnaryRedCode.PROD,
 )
 
 logical_or = create_binary_ufunc(
