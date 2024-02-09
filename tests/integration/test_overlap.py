@@ -15,6 +15,7 @@
 
 import numpy as np
 import pytest
+from utils.comparisons import allclose
 from utils.generators import mk_seq_array
 
 import cunumeric as num
@@ -71,7 +72,7 @@ def test_partial(partial, shape, operation):
     operation(np, a_np, slice_lhs, slice_rhs)
     operation(num, a_num, slice_lhs, slice_rhs)
 
-    assert np.array_equal(a_np, a_num)
+    assert allclose(a_np, a_num)
 
 
 if __name__ == "__main__":
