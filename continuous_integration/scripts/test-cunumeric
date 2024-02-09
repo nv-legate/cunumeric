@@ -5,7 +5,7 @@ setup_env() {
 }
 
 setup_test_env() {
-    mamba install -y "clang-tools>=8" "clang>=8" colorama coverage mock pre-commit pytest-cov pytest-lazy-fixture pytest-mock pytest types-docutils pynvml
+    mamba install -y "clang-tools>=8" "clang>=8" colorama coverage mock pre-commit pytest-cov pytest-lazy-fixture pytest-mock "pytest<8" types-docutils pynvml
 
     pip install tifffile
 }
