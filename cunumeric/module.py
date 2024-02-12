@@ -8379,6 +8379,9 @@ def digitize(
     if np.issubdtype(x.dtype, np.complexfloating):
         raise TypeError("x may not be complex")
 
+    if bins.ndim > 1:
+        raise ValueError("bins must be one-dimensional")
+
     increasing = (bins[1:] >= bins[:-1]).all()
     decreasing = (bins[1:] <= bins[:-1]).all()
     if not increasing and not decreasing:

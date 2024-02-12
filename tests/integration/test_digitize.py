@@ -73,6 +73,15 @@ class TestDigitizeErrors(object):
         with pytest.raises(expected_exc):
             np.digitize(a, bins)
 
+    def test_bins_ndim(self):
+        a = [2, 3, 10, 9]
+        bins = np.array([[0], [5], [3]])
+        expected_exc = ValueError
+        with pytest.raises(expected_exc):
+            num.digitize(a, bins)
+        with pytest.raises(expected_exc):
+            np.digitize(a, bins)
+
 
 def generate_random(shape, dtype):
     a_np = None
