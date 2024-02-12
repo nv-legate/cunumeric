@@ -42,7 +42,7 @@ from numpy.core.numeric import (  # type: ignore [attr-defined]
 
 from cunumeric.coverage import is_implemented
 
-from ._ufunc.comparison import maximum, minimum
+from ._ufunc.comparison import maximum, minimum, not_equal
 from ._ufunc.floating import floor, isnan
 from ._ufunc.math import add, multiply, subtract
 from ._unary_red_utils import get_non_nan_unary_red_code
