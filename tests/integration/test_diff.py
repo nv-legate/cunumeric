@@ -20,22 +20,25 @@ from utils.comparisons import allclose
 import cunumeric as cn
 
 
-@pytest.mark.parametrize("args", [
-    ((100,), 1, -1, None, None),
-    ((100,), 2, -1, None, None),
-    ((100,), 3, -1, None, None),
-    ((100,), 2,  0, None, None),
-    ((10, 10), 2, -1, None, None),
-    ((10, 10), 2, 0, None, None),
-    ((10, 10), 2, 1, None, None),
-    ((100,), 3, -1, [1.0, 2.0], None),
-    ((100,), 3, -1, None, [1.0, 2.0]),
-    ((100,), 3, -1, [1.0, 2.0], [1.0, 2.0]),
-    ((5,), 5,  -1, None, None),
-    ((5,), 6,   0, None, None),
-    ((5,5), 5, 1, None, None),
-    ((5,5), 6, 1, None, None),
-])
+@pytest.mark.parametrize(
+    "args",
+    [
+        ((100,), 1, -1, None, None),
+        ((100,), 2, -1, None, None),
+        ((100,), 3, -1, None, None),
+        ((100,), 2, 0, None, None),
+        ((10, 10), 2, -1, None, None),
+        ((10, 10), 2, 0, None, None),
+        ((10, 10), 2, 1, None, None),
+        ((100,), 3, -1, [1.0, 2.0], None),
+        ((100,), 3, -1, None, [1.0, 2.0]),
+        ((100,), 3, -1, [1.0, 2.0], [1.0, 2.0]),
+        ((5,), 5, -1, None, None),
+        ((5,), 6, 0, None, None),
+        ((5, 5), 5, 1, None, None),
+        ((5, 5), 6, 1, None, None),
+    ],
+)
 def test_diff(args):
     shape, n, axis, prepend, append = args
     num = np.random.random(shape)
