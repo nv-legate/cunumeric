@@ -17,7 +17,7 @@ import numpy as np
 import pytest
 from utils.comparisons import allclose
 
-import cunumeric as cn
+import cunumeric as num
 
 
 @pytest.mark.parametrize(
@@ -41,22 +41,22 @@ import cunumeric as cn
 )
 def test_diff(args):
     shape, n, axis, prepend, append = args
-    num = np.random.random(shape)
-    cun = cn.array(num)
+    nparr = np.random.random(shape)
+    cnarr = num.array(nparr)
 
     # We are not adopting the np._NoValue default arguments
     # for this function, as no special behavior is needed on None.
     n_prepend = np._NoValue if prepend is None else prepend
     n_append = np._NoValue if append is None else append
-    res_num = np.diff(num, n=n, axis=axis, prepend=n_prepend, append=n_append)
-    res_cn = cn.diff(cun, n=n, axis=axis, prepend=prepend, append=append)
+    res_np = np.diff(nparr, n=n, axis=axis, prepend=n_prepend, append=n_append)
+    res_cn = num.diff(cnarr, n=n, axis=axis, prepend=prepend, append=append)
 
-    assert allclose(res_num, res_cn)
+    assert allclose(res_np, res_cn)
 
 
 def test_diff_nzero():
-    a = cn.ones(100)
-    ad = cn.diff(a, n=0)
+    a = num.ones(100)
+    ad = num.diff(a, n=0)
     assert a is ad
 
 

@@ -6242,13 +6242,13 @@ def nansum(
 # Arithmetic operations
 
 
-@add_boilerplate("a")
+@add_boilerplate("a", "prepend", "append")
 def diff(
     a: ndarray,
     n: int = 1,
     axis: int = -1,
-    prepend: Any = None,
-    append: Any = None,
+    prepend: ndarray | None = None,
+    append: ndarray | None = None,
 ) -> ndarray:
     """
     Calculate the n-th discrete difference along the given axis.
@@ -6278,11 +6278,10 @@ def diff(
         except along `axis` where the dimension is smaller by `n`. The
         type of the output is the same as the type of the difference
         between any two elements of `a`. This is the same as the type of
-        `a` in most cases. A notable exception is `datetime64`, which
-        results in a `timedelta64` output array.
+        `a` in most cases. 
     See Also
     --------
-    gradient, ediff1d, cumsum
+    numpy.diff
     Notes
     -----
     Type is preserved for boolean arrays, so the result will contain
@@ -6314,9 +6313,6 @@ def diff(
            [5, 1, 2]])
     >>> np.diff(x, axis=0)
     array([[-1,  2,  0, -2]])
-    >>> x = np.arange('1066-10-13', '1066-10-16', dtype=np.datetime64)
-    >>> np.diff(x)
-    array([1, 1], dtype='timedelta64[D]')
 
     Availability
     --------
@@ -6336,25 +6332,23 @@ def diff(
 
     combined = []
     if prepend is not None:
-        prepend = np.asanyarray(prepend)
         if prepend.ndim == 0:
             shape = list(a.shape)
             shape[axis] = 1
-            prepend = np.broadcast_to(prepend, tuple(shape))
+            prepend = broadcast_to(prepend, tuple(shape))
         combined.append(prepend)
 
     combined.append(a)
 
     if append is not None:
-        append = np.asanyarray(append)
         if append.ndim == 0:
             shape = list(a.shape)
             shape[axis] = 1
-            append = np.broadcast_to(append, tuple(shape))
+            append = broadcast_to(append, tuple(shape))
         combined.append(append)
 
     if len(combined) > 1:
-        a = np.concatenate(combined, axis)
+        a = concatenate(combined, axis)
 
     # Diffing with n > shape results in an empty array. We have
     # to handle this case explicitly as our slicing routines raise
@@ -6362,7 +6356,7 @@ def diff(
     if a.shape[axis] <= n:
         shape = list(a.shape)
         shape[axis] = 0
-        return np.empty(shape=shape, dtype=a.dtype)
+        return empty(shape=shape, dtype=a.dtype)
 
     slice1l = [slice(None)] * nd
     slice2l = [slice(None)] * nd
