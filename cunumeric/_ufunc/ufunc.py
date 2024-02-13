@@ -756,9 +756,12 @@ class binary_ufunc(ufunc):
         if self._op_code in [
             BinaryOpCode.LOGICAL_AND,
             BinaryOpCode.LOGICAL_OR,
-            BinaryOpCode.LOGICAL_XOR,
         ]:
-            array = array._astype(bool, temporary=True)
+            res_dtype = bool
+            if dtype is not None:
+                raise TypeError("Cannot set dtype on a logical reduction")
+        else:
+            res_dtype = None
 
         # NumPy seems to be using None as the default axis value for scalars
         if array.ndim == 0 and axis == 0:
@@ -774,6 +777,7 @@ class binary_ufunc(ufunc):
             keepdims=keepdims,
             initial=initial,
             where=where,
+            res_dtype=res_dtype,
         )
 
 
