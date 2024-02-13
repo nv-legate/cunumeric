@@ -6356,7 +6356,7 @@ def diff(
     if a.shape[axis] <= n:
         shape = list(a.shape)
         shape[axis] = 0
-        return empty(shape=shape, dtype=a.dtype)
+        return empty(shape=tuple(shape), dtype=a.dtype)
 
     slice1l = [slice(None)] * nd
     slice2l = [slice(None)] * nd
