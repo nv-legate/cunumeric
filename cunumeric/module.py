@@ -6278,7 +6278,7 @@ def diff(
         except along `axis` where the dimension is smaller by `n`. The
         type of the output is the same as the type of the difference
         between any two elements of `a`. This is the same as the type of
-        `a` in most cases. 
+        `a` in most cases.
     See Also
     --------
     numpy.diff
