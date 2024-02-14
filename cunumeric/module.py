@@ -42,9 +42,9 @@ from numpy.core.numeric import (  # type: ignore [attr-defined]
 
 from cunumeric.coverage import is_implemented
 
-from ._ufunc.comparison import maximum, minimum
+from ._ufunc.comparison import maximum, minimum, not_equal
 from ._ufunc.floating import floor, isnan
-from ._ufunc.math import add, multiply
+from ._ufunc.math import add, multiply, subtract
 from ._unary_red_utils import get_non_nan_unary_red_code
 from .array import (
     add_boilerplate,
@@ -6242,6 +6242,136 @@ def nansum(
 # Arithmetic operations
 
 
+@add_boilerplate("a", "prepend", "append")
+def diff(
+    a: ndarray,
+    n: int = 1,
+    axis: int = -1,
+    prepend: ndarray | None = None,
+    append: ndarray | None = None,
+) -> ndarray:
+    """
+    Calculate the n-th discrete difference along the given axis.
+    The first difference is given by ``out[i] = a[i+1] - a[i]`` along
+    the given axis, higher differences are calculated by using `diff`
+    recursively.
+    Parameters
+    ----------
+    a : array_like
+        Input array
+    n : int, optional
+        The number of times values are differenced. If zero, the input
+        is returned as-is.
+    axis : int, optional
+        The axis along which the difference is taken, default is the
+        last axis.
+    prepend, append : array_like, optional
+        Values to prepend or append to `a` along axis prior to
+        performing the difference.  Scalar values are expanded to
+        arrays with length 1 in the direction of axis and the shape
+        of the input array in along all other axes.  Otherwise the
+        dimension and shape must match `a` except along axis.
+    Returns
+    -------
+    diff : ndarray
+        The n-th differences. The shape of the output is the same as `a`
+        except along `axis` where the dimension is smaller by `n`. The
+        type of the output is the same as the type of the difference
+        between any two elements of `a`. This is the same as the type of
+        `a` in most cases.
+    See Also
+    --------
+    numpy.diff
+    Notes
+    -----
+    Type is preserved for boolean arrays, so the result will contain
+    `False` when consecutive elements are the same and `True` when they
+    differ.
+    For unsigned integer arrays, the results will also be unsigned. This
+    should not be surprising, as the result is consistent with
+    calculating the difference directly:
+    >>> u8_arr = np.array([1, 0], dtype=np.uint8)
+    >>> np.diff(u8_arr)
+    array([255], dtype=uint8)
+    >>> u8_arr[1,...] - u8_arr[0,...]
+    255
+    If this is not desirable, then the array should be cast to a larger
+    integer type first:
+    >>> i16_arr = u8_arr.astype(np.int16)
+    >>> np.diff(i16_arr)
+    array([-1], dtype=int16)
+    Examples
+    --------
+    >>> x = np.array([1, 2, 4, 7, 0])
+    >>> np.diff(x)
+    array([ 1,  2,  3, -7])
+    >>> np.diff(x, n=2)
+    array([  1,   1, -10])
+    >>> x = np.array([[1, 3, 6, 10], [0, 5, 6, 8]])
+    >>> np.diff(x)
+    array([[2, 3, 4],
+           [5, 1, 2]])
+    >>> np.diff(x, axis=0)
+    array([[-1,  2,  0, -2]])
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    if n == 0:
+        return a
+    if n < 0:
+        raise ValueError("order must be non-negative but got " + repr(n))
+
+    nd = a.ndim
+    if nd == 0:
+        raise ValueError(
+            "diff requires input that is at least one dimensional"
+        )
+    axis = normalize_axis_index(axis, nd)
+
+    combined = []
+    if prepend is not None:
+        if prepend.ndim == 0:
+            shape = list(a.shape)
+            shape[axis] = 1
+            prepend = broadcast_to(prepend, tuple(shape))
+        combined.append(prepend)
+
+    combined.append(a)
+
+    if append is not None:
+        if append.ndim == 0:
+            shape = list(a.shape)
+            shape[axis] = 1
+            append = broadcast_to(append, tuple(shape))
+        combined.append(append)
+
+    if len(combined) > 1:
+        a = concatenate(combined, axis)
+
+    # Diffing with n > shape results in an empty array. We have
+    # to handle this case explicitly as our slicing routines raise
+    # an exception with out-of-bounds slices, while NumPy's dont.
+    if a.shape[axis] <= n:
+        shape = list(a.shape)
+        shape[axis] = 0
+        return empty(shape=tuple(shape), dtype=a.dtype)
+
+    slice1l = [slice(None)] * nd
+    slice2l = [slice(None)] * nd
+    slice1l[axis] = slice(1, None)
+    slice2l[axis] = slice(None, -1)
+    slice1 = tuple(slice1l)
+    slice2 = tuple(slice2l)
+
+    op = not_equal if a.dtype == np.bool_ else subtract
+    for _ in range(n):
+        a = op(a[slice1], a[slice2])
+
+    return a
+
+
 # Handling complex numbers
 
 
@@ -8282,3 +8412,115 @@ def histogram(
         hist /= bins_array[1:] - bins_array[:-1]
 
     return hist.astype(result_type), bins_array.astype(bins_orig_type)
+
+
+@add_boilerplate("x", "bins")
+def digitize(
+    x: ndarray,
+    bins: ndarray,
+    right: bool = False,
+) -> Union[int, ndarray]:
+    """
+    Return the indices of the bins to which each value in input array belongs.
+
+    =========  =============  ============================
+    `right`    order of bins  returned index `i` satisfies
+    =========  =============  ============================
+    ``False``  increasing     ``bins[i-1] <= x < bins[i]``
+    ``True``   increasing     ``bins[i-1] < x <= bins[i]``
+    ``False``  decreasing     ``bins[i-1] > x >= bins[i]``
+    ``True``   decreasing     ``bins[i-1] >= x > bins[i]``
+    =========  =============  ============================
+
+    If values in `x` are beyond the bounds of `bins`, 0 or ``len(bins)`` is
+    returned as appropriate.
+
+    Parameters
+    ----------
+    x : array_like
+        Input array to be binned. Doesn't need to be 1-dimensional.
+    bins : array_like
+        Array of bins. It has to be 1-dimensional and monotonic.
+    right : bool, optional
+        Indicating whether the intervals include the right or the left bin
+        edge. Default behavior is (right==False) indicating that the interval
+        does not include the right edge. The left bin end is open in this
+        case, i.e., bins[i-1] <= x < bins[i] is the default behavior for
+        monotonically increasing bins.
+
+    Returns
+    -------
+    indices : ndarray of ints
+        Output array of indices, of same shape as `x`.
+
+    Raises
+    ------
+    ValueError
+        If `bins` is not monotonic.
+    TypeError
+        If the type of the input is complex.
+
+    See Also
+    --------
+    numpy.digitize
+
+    Notes
+    -----
+    If values in `x` are such that they fall outside the bin range,
+    attempting to index `bins` with the indices that `digitize` returns
+    will result in an IndexError.
+
+    For monotonically *increasing* `bins`, the following are equivalent::
+
+        np.digitize(x, bins, right=True)
+        np.searchsorted(bins, x, side='left')
+
+    Note that as the order of the arguments are reversed, the side must be too.
+    The `searchsorted` call is marginally faster, as it does not do any
+    monotonicity checks. Perhaps more importantly, it supports all dtypes.
+
+    Examples
+    --------
+    >>> x = np.array([0.2, 6.4, 3.0, 1.6])
+    >>> bins = np.array([0.0, 1.0, 2.5, 4.0, 10.0])
+    >>> inds = np.digitize(x, bins)
+    >>> inds
+    array([1, 4, 3, 2])
+    >>> for n in range(x.size):
+    ...   print(bins[inds[n]-1], "<=", x[n], "<", bins[inds[n]])
+    ...
+    0.0 <= 0.2 < 1.0
+    4.0 <= 6.4 < 10.0
+    2.5 <= 3.0 < 4.0
+    1.0 <= 1.6 < 2.5
+
+    >>> x = np.array([1.2, 10.0, 12.4, 15.5, 20.])
+    >>> bins = np.array([0, 5, 10, 15, 20])
+    >>> np.digitize(x,bins,right=True)
+    array([1, 2, 3, 4, 4])
+    >>> np.digitize(x,bins,right=False)
+    array([1, 3, 3, 4, 5])
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    # here for compatibility, searchsorted below is happy to take this
+    if np.issubdtype(x.dtype, np.complexfloating):
+        raise TypeError("x may not be complex")
+
+    if bins.ndim > 1:
+        raise ValueError("bins must be one-dimensional")
+
+    increasing = (bins[1:] >= bins[:-1]).all()
+    decreasing = (bins[1:] <= bins[:-1]).all()
+    if not increasing and not decreasing:
+        raise ValueError("bins must be monotonically increasing or decreasing")
+
+    # this is backwards because the arguments below are swapped
+    side: SortSide = "left" if right else "right"
+    if decreasing:
+        # reverse the bins, and invert the results
+        return len(bins) - searchsorted(bins.flip(), x, side=side)
+    else:
+        return searchsorted(bins, x, side=side)
