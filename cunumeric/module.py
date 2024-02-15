@@ -7330,6 +7330,69 @@ def mean(
     )
 
 
+# weighted average
+
+
+@add_boilerplate("a")
+def average(
+    a: ndarray,
+    axis: Optional[Union[int, tuple[int, ...]]] = None,
+    weights: Union[ndarray, None] = None,
+    returned: bool = False,
+    *,
+    keepdims: bool = False,
+) -> Union[
+    Union[int, ndarray], Tuple[Union[int, ndarray], Union[int, ndarray]]
+]:
+    a = asarray(a)
+    clean_axis: Optional[tuple[int, ...]] = None
+    if axis is not None:
+        clean_axis = normalize_axis_tuple(axis, a.ndim, argname="axis")
+
+    scl: Union[float, int, ndarray] = 1
+    if weights is None:
+        scl = float(
+            a.size
+            if clean_axis is None
+            else math.prod([a.shape[i] for i in clean_axis])
+        )
+        avg = a.sum(axis=clean_axis, keepdims=keepdims) / scl
+    elif weights.shape == a.shape:
+        scl = weights.sum(
+            axis=clean_axis, keepdims=keepdims, dtype=np.dtype(float)
+        )
+        if any(scl == 0):
+            raise ZeroDivisionError("Weights along axis sum to 0")
+        avg = (a * weights).sum(axis=clean_axis, keepdims=keepdims) / scl
+    else:
+        if clean_axis is None:
+            raise ValueError(
+                "a and weights must share shape or axis must be specified"
+            )
+        if weights.ndim != 1 or len(clean_axis) != 1:
+            raise ValueError(
+                "Weights must be either 1 dimension along single"
+                "axis or the same shape as a"
+            )
+        if weights.size != a.shape[clean_axis[0]]:
+            raise ValueError("Weights length does not match axis")
+
+        scl = weights.sum(dtype=np.dtype(float))
+        project_shape = [1] * a.ndim
+        project_shape[clean_axis[0]] = -1
+        weights = weights.reshape(project_shape)
+        if any(scl == 0):
+            raise ZeroDivisionError("Weights along axis sum to 0")
+        avg = (a * weights).sum(axis=clean_axis[0], keepdims=keepdims) / scl
+
+    if returned:
+        if not isinstance(scl, ndarray) or scl.ndim == 0:
+            scl = full(avg.shape, scl)
+        return avg, scl
+    else:
+        return avg
+
+
 @add_boilerplate("a")
 def nanmean(
     a: ndarray,
