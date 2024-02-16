@@ -30,9 +30,11 @@ in_np = np.array(input)
 @pytest.mark.parametrize("axis", axes)
 def test_no_mask(axis):
     out_num, scl_num = num.average(in_num, axis=axis, returned=True)
+    out_num_no_scl = num.average(in_num, axis=axis, returned=False)
     out_np, scl_np = np.average(in_np, axis=axis, returned=True)
     assert allclose(out_num, out_np)
     assert allclose(scl_num, scl_np)
+    assert allclose(out_num, out_num_no_scl)
 
 
 @pytest.mark.parametrize("axis", axes)
@@ -44,11 +46,15 @@ def test_full_weights(axis):
     out_num, scl_num = num.average(
         in_num, weights=weights_num, axis=axis, returned=True
     )
+    out_num_no_scl = num.average(
+        in_num, weights=weights_num, axis=axis, returned=False
+    )
     out_np, scl_np = np.average(
         in_np, weights=weights_np, axis=axis, returned=True
     )
     assert allclose(out_num, out_np)
     assert allclose(scl_num, scl_np)
+    assert allclose(out_num, out_num_no_scl)
 
 
 single_dimension_weights = [
@@ -69,11 +75,26 @@ def test_single_axis_weights(weights, axis):
     out_num, scl_num = num.average(
         in_num, weights=weights_num, axis=axis, returned=True
     )
+    out_num_no_scl = num.average(
+        in_num, weights=weights_num, axis=axis, returned=False
+    )
     out_np, scl_np = np.average(
         in_np, weights=weights_np, axis=axis, returned=True
     )
     assert allclose(out_num, out_np)
     assert allclose(scl_num, scl_np)
+    assert allclose(out_num, out_num_no_scl)
+
+
+def test_exception_raising():
+    with pytest.raises(ValueError):
+        num.average(in_num, weights=[0, 2])
+    with pytest.raises(ValueError):
+        num.average(in_num, axis=2, weights=[0, 2])
+    with pytest.raises(ValueError):
+        num.average(in_num, axis=0, weights=[[0, 2]])
+    with pytest.raises(ZeroDivisionError):
+        num.average(in_num, axis=0, weights=[0, 0])
 
 
 if __name__ == "__main__":

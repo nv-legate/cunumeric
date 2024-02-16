@@ -7333,7 +7333,7 @@ def mean(
 # weighted average
 
 
-@add_boilerplate("a")
+@add_boilerplate("a", "weights")
 def average(
     a: ndarray,
     axis: Optional[Union[int, tuple[int, ...]]] = None,
@@ -7344,7 +7344,6 @@ def average(
 ) -> Union[
     Union[int, ndarray], Tuple[Union[int, ndarray], Union[int, ndarray]]
 ]:
-    a = asarray(a)
     clean_axis: Optional[tuple[int, ...]] = None
     if axis is not None:
         clean_axis = normalize_axis_tuple(axis, a.ndim, argname="axis")
