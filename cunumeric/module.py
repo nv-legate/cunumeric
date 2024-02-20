@@ -8366,9 +8366,9 @@ def nanquantile_impl(
         # vectorized for axis != None;
         #
         if len(qindex) == 0:
-            left = (
-                1 - arr_gammas.reshape(qs_all.shape)
-            ) * arr_lvals.reshape(qs_all.shape)
+            left = (1 - arr_gammas.reshape(qs_all.shape)) * arr_lvals.reshape(
+                qs_all.shape
+            )
             right = arr_gammas.reshape(qs_all.shape) * arr_rvals.reshape(
                 qs_all.shape
             )
