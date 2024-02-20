@@ -8518,10 +8518,6 @@ def nanquantile(
     #
     non_nan_counts = count_nonzero((isnan(a_rr) == False), axis=real_axis)
 
-    # replace NaN's by dtype.max:
-    #
-    b_rr = where(isnan(a_rr), np.finfo(a_rr.dtype).max, a_rr)
-
     # covers both array-like and scalar cases:
     #
     q_arr = np.asarray(q)
@@ -8534,9 +8530,17 @@ def nanquantile(
     # if no axis given then elements are sorted as a 1D array
     #
     if overwrite_input:
-        b_rr.sort(axis=real_axis)
-        arr = b_rr
+        # replace NaN's by dtype.max:
+        #
+        a_rr = where(isnan(a_rr), np.finfo(a_rr.dtype).max, a_rr)
+
+        a_rr.sort(axis=real_axis)
+        arr = a_rr
     else:
+        # replace NaN's by dtype.max:
+        #
+        b_rr = where(isnan(a_rr), np.finfo(a_rr.dtype).max, a_rr)
+
         arr = sort(b_rr, axis=real_axis)
 
     if arr.dtype.kind == "c":
