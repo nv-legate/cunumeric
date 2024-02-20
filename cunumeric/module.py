@@ -8332,8 +8332,6 @@ def nanquantile_impl(
 
     assert non_nan_counts.shape == remaining_shape
 
-    arr_ones = ones(remaining_shape, dtype=arr.dtype)
-
     arr_gammas = zeros(remaining_shape, dtype=arr.dtype)
     arr_lvals = zeros(remaining_shape, dtype=arr.dtype)
     arr_rvals = zeros(remaining_shape, dtype=arr.dtype)
@@ -8369,8 +8367,7 @@ def nanquantile_impl(
         #
         if len(qindex) == 0:
             left = (
-                arr_ones.reshape(qs_all.shape)
-                - arr_gammas.reshape(qs_all.shape)
+                1 - arr_gammas.reshape(qs_all.shape)
             ) * arr_lvals.reshape(qs_all.shape)
             right = arr_gammas.reshape(qs_all.shape) * arr_rvals.reshape(
                 qs_all.shape
@@ -8378,8 +8375,7 @@ def nanquantile_impl(
             qs_all[...] = left + right
         else:
             left = (
-                arr_ones.reshape(qs_all[qindex].shape)
-                - arr_gammas.reshape(qs_all[qindex].shape)
+                1 - arr_gammas.reshape(qs_all[qindex].shape)
             ) * arr_lvals.reshape(qs_all[qindex].shape)
             right = arr_gammas.reshape(
                 qs_all[qindex].shape
