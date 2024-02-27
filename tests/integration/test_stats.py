@@ -215,6 +215,52 @@ def test_var_xfail(dtype, ddof, axis, shape):
     check_op(op_np, op_num, np_in, dtype, negative_test=True)
 
 
+@pytest.mark.parametrize("dtype", dtypes)
+@pytest.mark.parametrize("rowvar", [True, False])
+@pytest.mark.parametrize("ddof", [None, 0, 1])
+def test_cov(dtype, rowvar, ddof):
+    np_in = get_op_input(astype=dtype)
+    num_in = num.array(np_in)
+
+    np_out = np.cov(np_in, rowvar=rowvar, ddof=ddof)
+    num_out = num.cov(num_in, rowvar=rowvar, ddof=ddof)
+    if dtype == dtypes[0]:
+        assert allclose(np_out, num_out, atol=1e-2)
+    else:
+        assert allclose(np_out, num_out)
+
+
+fweights_base = [[9, 2, 1, 2, 3], [1, 1, 3, 2, 4]]
+
+
+@pytest.mark.parametrize("dtype", dtypes)
+@pytest.mark.parametrize("bias", [True, False])
+@pytest.mark.parametrize("ddof", [None, 0, 1])
+@pytest.mark.parametrize("fweights", fweights_base)
+def test_cov_full(dtype, bias, ddof, fweights):
+    np_in = get_op_input(astype=dtype, shape=(4, 5))
+    num_in = num.array(np_in)
+    np_fweights = np.array(fweights)
+    num_fweights = num.array(fweights)
+    np_aweights = np.abs(get_op_input(astype=dtype, shape=(5,)))
+    num_aweights = num.array(np_aweights)
+
+    np_out = np.cov(
+        np_in, bias=bias, ddof=ddof, fweights=np_fweights, aweights=np_aweights
+    )
+    num_out = num.cov(
+        num_in,
+        bias=bias,
+        ddof=ddof,
+        fweights=num_fweights,
+        aweights=num_aweights,
+    )
+    if dtype == dtypes[0]:
+        assert allclose(np_out, num_out, atol=1e-2)
+    else:
+        assert allclose(np_out, num_out)
+
+
 if __name__ == "__main__":
     import sys
 

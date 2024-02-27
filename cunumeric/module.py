@@ -7470,6 +7470,144 @@ def var(
     )
 
 
+@add_boilerplate("m", "y", "fweights", "aweights")
+def cov(
+    m: ndarray,
+    y: Optional[ndarray] = None,
+    rowvar: bool = True,
+    bias: bool = False,
+    ddof: Optional[int] = None,
+    fweights: Optional[ndarray] = None,
+    aweights: Optional[ndarray] = None,
+    *,
+    dtype: Optional[np.dtype[Any]] = None,
+) -> ndarray:
+    """
+    Compute and return covariance matrix with each column acting as a sample
+    and each row acting as a random variable
+    Parameters
+    ----------
+    m : array_like
+        Array containing sample of random variables
+    y : optional ndarray
+        Additional set of observations to be appended to m
+    rowvar : bool
+        If true, each row is considered a random variable
+    bias :
+        Default False represents normalization by (N - 1).
+        If, true set normalization to N
+    ddof : int, optional
+        “Delta Degrees of Freedom”: the divisor used in the calculation is
+        N - ddof, where N represents the number of elements. By default
+        ddof is zero. If set, overwrites divisor normalization set by bias.
+    fweights : optional ndarray
+        A weights matrix applied to each random variable to specify
+        repeated observations over a given sample.
+    aweights : optional ndarray
+        A weights matrix applied to each random variable to specify
+        relative importance of each observation.
+
+    Returns
+    -------
+    a : ndarray, see dtype parameter above
+        If `out=None`, returns a new array of the same dtype as above
+        containing the variance values, otherwise a reference to the output
+        array is returned.
+
+    See Also
+    --------
+    numpy.cov
+
+    Availability
+    --------
+    Multiple GPUs, Multiple CPUs
+    """
+    # Check inputs
+    if ddof is not None and ddof != int(ddof):
+        raise ValueError("ddof must be integer")
+
+    # Handles complex arrays too
+    if m.ndim > 2:
+        raise ValueError("m has more than 2 dimensions")
+
+    if y is not None and y.ndim > 2:
+        raise ValueError("y has more than 2 dimensions")
+
+    if dtype is None:
+        dtype = dtype = np.dtype(np.float64)
+    X = array(m, ndmin=2, dtype=dtype)
+    if not rowvar and X.shape[0] != 1:
+        X = X.T
+    if X.shape[0] == 0:
+        return array([]).reshape(0, 0)
+    if y is not None:
+        y = array(y, copy=False, ndmin=2, dtype=dtype)
+        if not rowvar and y.shape[0] != 1:
+            y = y.T
+        X = concatenate((X, y), axis=0)
+
+    if ddof is None:
+        if bias == 0:
+            ddof = 1
+        else:
+            ddof = 0
+
+    # Get the product of frequencies and weights
+    w: Union[ndarray, None] = None
+    if fweights is not None:
+        if fweights.ndim > 1:
+            raise RuntimeError("cannot handle multidimensional fweights")
+        if fweights.shape[0] != X.shape[1]:
+            raise RuntimeError("incompatible numbers of samples and fweights")
+        if any(fweights < 0):
+            raise ValueError("fweights cannot be negative")
+        w = fweights
+    if aweights is not None:
+        if aweights.ndim > 1:
+            raise RuntimeError("cannot handle multidimensional aweights")
+        if aweights.shape[0] != X.shape[1]:
+            raise RuntimeError("incompatible numbers of samples and aweights")
+        if any(aweights < 0):
+            raise ValueError("aweights cannot be negative")
+        if w is None:
+            w = aweights
+        else:
+            w = w * aweights
+
+    # TODO upon merge of average() replace this code
+    w_sum: Union[ndarray, int] = 0
+    if w is None:
+        avg = mean(X, axis=1)
+        w_sum = X.shape[1]
+    else:
+        w_sum = sum(w)
+        avg = sum(X * w, axis=1) / w_sum
+
+    # Determine the normalization
+    fact: Union[ndarray, float] = 0.0
+    if w is None:
+        fact = X.shape[1] - ddof
+    elif ddof == 0:
+        fact = w_sum
+    elif aweights is None:
+        fact = w_sum - ddof
+    else:
+        fact = w_sum - ddof * sum(w * aweights) / w_sum
+
+    if fact <= 0:
+        runtime.warn("Degrees of freedom <= 0 for slice")
+        fact = 0.0
+
+    X -= avg[:, None]
+    if w is None:
+        X_T = X.T
+    else:
+        X_T = (X * w).T
+    c = dot(X, X_T.conj())
+    c = c / fact
+    return c.squeeze()
+
+
 # Histograms
 
 
