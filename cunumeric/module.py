@@ -59,7 +59,8 @@ from .types import NdShape, NdShapeLike, OrderType, SortSide
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from os import PathLike
+    from typing import BinaryIO, Callable
 
     import numpy.typing as npt
 
@@ -614,6 +615,55 @@ def copy(a: ndarray) -> ndarray:
     result = empty_like(a, dtype=a.dtype)
     result._thunk.copy(a._thunk, deep=True)
     return result
+
+
+def load(
+    file: str | bytes | PathLike[Any] | BinaryIO,
+    *,
+    max_header_size: int = 10000,
+) -> ndarray:
+    """
+    Load an array from a ``.npy`` file.
+
+    Parameters
+    ----------
+    file : file-like object, string, or pathlib.Path
+        The file to read. File-like objects must support the
+        ``seek()`` and ``read()`` methods and must always
+        be opened in binary mode.
+    max_header_size : int, optional
+        Maximum allowed size of the header.  Large headers may not be safe
+        to load securely and thus require explicitly passing a larger value.
+        See :py:func:`ast.literal_eval()` for details.
+
+    Returns
+    -------
+    result : array
+        Data stored in the file.
+
+    Raises
+    ------
+    OSError
+        If the input file does not exist or cannot be read.
+
+    See Also
+    --------
+    numpy.load
+
+    Notes
+    -----
+    cuNumeric does not currently support ``.npz`` and pickled files.
+
+    Availability
+    --------
+    Single CPU
+    """
+    return array(
+        np.load(
+            file,
+            max_header_size=max_header_size,  # type: ignore [call-arg]
+        )
+    )
 
 
 # Numerical ranges
