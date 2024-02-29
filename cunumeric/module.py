@@ -8414,6 +8414,8 @@ def nanquantile_impl(
     for qindex, q in np.ndenumerate(q_arr):
         assert qs_all[qindex].shape == remaining_shape
 
+        # TODO(aschaffer): Vectorize this operation, see
+        # github.com/nv-legate/cunumeric/pull/1121#discussion_r1484731763
         for aindex, n in np.ndenumerate(non_nan_counts):
             (gamma, left_pos) = method(q, n)
 
