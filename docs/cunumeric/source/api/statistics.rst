@@ -33,3 +33,5 @@ Order statistics
 
    quantile
    percentile
+   nanquantile
+   nanpercentile
