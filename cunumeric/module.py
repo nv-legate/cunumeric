@@ -29,6 +29,7 @@ from typing import (
     Tuple,
     Union,
     cast,
+    overload,
 )
 
 import numpy as np
@@ -42,7 +43,7 @@ from numpy.core.numeric import (  # type: ignore [attr-defined]
 
 from cunumeric.coverage import is_implemented
 
-from ._ufunc.comparison import maximum, minimum, not_equal
+from ._ufunc.comparison import logical_not, maximum, minimum, not_equal
 from ._ufunc.floating import floor, isnan
 from ._ufunc.math import add, multiply, subtract
 from ._unary_red_utils import get_non_nan_unary_red_code
@@ -3083,7 +3084,23 @@ def flatnonzero(a: ndarray) -> ndarray:
     return nonzero(ravel(a))[0]
 
 
-@add_boilerplate("a", "x", "y")
+@overload
+def where(a: npt.ArrayLike | ndarray, x: None, y: None) -> tuple[ndarray, ...]:
+    ...
+
+
+@overload
+def where(
+    a: npt.ArrayLike | ndarray,
+    x: npt.ArrayLike | ndarray,
+    y: npt.ArrayLike | ndarray,
+) -> ndarray:
+    ...
+
+
+# TODO(mpapadakis): @add_boilerplate should extend the types of array
+# arguments from `ndarray` to `npt.ArrayLike | ndarray`.
+@add_boilerplate("a", "x", "y")  # type: ignore[misc]
 def where(
     a: ndarray, x: Optional[ndarray] = None, y: Optional[ndarray] = None
 ) -> Union[ndarray, tuple[ndarray, ...]]:
@@ -7658,7 +7675,7 @@ def inverted_cdf(q: float, n: int) -> tuple[float, int]:
     g = pos - k
     gamma = 1.0 if g > 0 else 0.0
 
-    j = int(k) - 1
+    j = int(k - 1)
     if j < 0:
         return (0.0, 0)
     else:
@@ -7674,11 +7691,11 @@ def averaged_inverted_cdf(q: float, n: int) -> tuple[float, int]:
     g = pos - k
     gamma = 1.0 if g > 0 else 0.5
 
-    j = int(k) - 1
+    j = int(k - 1)
     if j < 0:
         return (0.0, 0)
     elif j >= n - 1:
-        return (1.0, n - 2)
+        return (1.0, int(n - 2))
     else:
         return (gamma, j)
 
@@ -7763,7 +7780,7 @@ def weibull(q: float, n: int) -> tuple[float, int]:
     j = floor_i(k)
 
     if j >= n:
-        j = n - 1
+        j = int(n - 1)
 
     return (gamma, j)
 
@@ -8407,7 +8424,9 @@ def nanquantile_impl(
             #
             full_l_index = (*aindex[:axis], left_pos, *aindex[axis:])
             arr_lvals[aindex] = arr[full_l_index]
-            arr_gammas[aindex] = gamma
+            # TODO(mpapadakis): mypy mysteriously complains that
+            # expression has type "float", target has type "ndarray"
+            arr_gammas[aindex] = gamma  # type: ignore[assignment]
 
             right_pos = left_pos + 1
             #
@@ -8415,8 +8434,8 @@ def nanquantile_impl(
             # hence, cannot fill arr_rvals same as arr_lvals;
             #
             if right_pos < n:
-                # reconstruct full index from aindex entries everywhere except on `axis`
-                # and `right_pos` on `axis`:
+                # reconstruct full index from aindex entries everywhere except
+                # `right_pos` on `axis`:
                 #
                 full_r_index = (*aindex[:axis], right_pos, *aindex[axis:])
                 arr_rvals[aindex] = arr[full_r_index]
@@ -8570,7 +8589,12 @@ def nanquantile(
 
     # ndarray of non-NaNs:
     #
-    non_nan_counts = count_nonzero((isnan(a_rr) == False), axis=real_axis)
+    non_nan_counts = asarray(
+        count_nonzero(
+            logical_not(isnan(a_rr)),
+            axis=real_axis,
+        )
+    )
 
     # covers both array-like and scalar cases:
     #
