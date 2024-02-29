@@ -8581,7 +8581,9 @@ def nanquantile(
             (real_axis, a_rr) = reshuffle_reshape(a, axis)
             # What happens with multiple axes and overwrite_input = True ?
             # It seems overwrite_input is reset to False;
-            overwrite_input = False
+            # But `overwrite_input` doesn't matter for the NaN version of this
+            # function
+            # overwrite_input = False
         axes_set = axis
     else:
         real_axis = axis
@@ -8609,19 +8611,10 @@ def nanquantile(
     # too expensive for many `q` values...
     # if no axis given then elements are sorted as a 1D array
     #
-    if overwrite_input:
-        # replace NaN's by dtype.max:
-        #
-        a_rr = where(isnan(a_rr), np.finfo(a_rr.dtype).max, a_rr)
-
-        a_rr.sort(axis=real_axis)
-        arr = a_rr
-    else:
-        # replace NaN's by dtype.max:
-        #
-        b_rr = where(isnan(a_rr), np.finfo(a_rr.dtype).max, a_rr)
-
-        arr = sort(b_rr, axis=real_axis)
+    # replace NaN's by dtype.max:
+    #
+    arr = where(isnan(a_rr), np.finfo(a_rr.dtype).max, a_rr)
+    arr.sort(axis=real_axis)
 
     if arr.dtype.kind == "c":
         raise TypeError("input array cannot be of complex type")
