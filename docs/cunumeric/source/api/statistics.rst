@@ -22,6 +22,7 @@ Histograms
 
    bincount
    histogram
+   digitize
 
 
 Order statistics

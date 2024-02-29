@@ -59,7 +59,8 @@ from .types import NdShape, NdShapeLike, OrderType, SortSide
 from .utils import AxesPairLike, inner_modes, matmul_modes, tensordot_modes
 
 if TYPE_CHECKING:
-    from typing import Callable
+    from os import PathLike
+    from typing import BinaryIO, Callable
 
     import numpy.typing as npt
 
@@ -614,6 +615,55 @@ def copy(a: ndarray) -> ndarray:
     result = empty_like(a, dtype=a.dtype)
     result._thunk.copy(a._thunk, deep=True)
     return result
+
+
+def load(
+    file: str | bytes | PathLike[Any] | BinaryIO,
+    *,
+    max_header_size: int = 10000,
+) -> ndarray:
+    """
+    Load an array from a ``.npy`` file.
+
+    Parameters
+    ----------
+    file : file-like object, string, or pathlib.Path
+        The file to read. File-like objects must support the
+        ``seek()`` and ``read()`` methods and must always
+        be opened in binary mode.
+    max_header_size : int, optional
+        Maximum allowed size of the header.  Large headers may not be safe
+        to load securely and thus require explicitly passing a larger value.
+        See :py:func:`ast.literal_eval()` for details.
+
+    Returns
+    -------
+    result : array
+        Data stored in the file.
+
+    Raises
+    ------
+    OSError
+        If the input file does not exist or cannot be read.
+
+    See Also
+    --------
+    numpy.load
+
+    Notes
+    -----
+    cuNumeric does not currently support ``.npz`` and pickled files.
+
+    Availability
+    --------
+    Single CPU
+    """
+    return array(
+        np.load(
+            file,
+            max_header_size=max_header_size,  # type: ignore [call-arg]
+        )
+    )
 
 
 # Numerical ranges
@@ -6255,6 +6305,7 @@ def diff(
     The first difference is given by ``out[i] = a[i+1] - a[i]`` along
     the given axis, higher differences are calculated by using `diff`
     recursively.
+
     Parameters
     ----------
     a : array_like
@@ -6271,6 +6322,7 @@ def diff(
         arrays with length 1 in the direction of axis and the shape
         of the input array in along all other axes.  Otherwise the
         dimension and shape must match `a` except along axis.
+
     Returns
     -------
     diff : ndarray
@@ -6279,17 +6331,21 @@ def diff(
         type of the output is the same as the type of the difference
         between any two elements of `a`. This is the same as the type of
         `a` in most cases.
+
     See Also
     --------
     numpy.diff
+
     Notes
     -----
     Type is preserved for boolean arrays, so the result will contain
-    `False` when consecutive elements are the same and `True` when they
+    False when consecutive elements are the same and True when they
     differ.
+
     For unsigned integer arrays, the results will also be unsigned. This
     should not be surprising, as the result is consistent with
     calculating the difference directly:
+
     >>> u8_arr = np.array([1, 0], dtype=np.uint8)
     >>> np.diff(u8_arr)
     array([255], dtype=uint8)
@@ -6300,8 +6356,10 @@ def diff(
     >>> i16_arr = u8_arr.astype(np.int16)
     >>> np.diff(i16_arr)
     array([-1], dtype=int16)
+
     Examples
     --------
+
     >>> x = np.array([1, 2, 4, 7, 0])
     >>> np.diff(x)
     array([ 1,  2,  3, -7])
