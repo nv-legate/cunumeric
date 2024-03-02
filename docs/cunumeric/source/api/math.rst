@@ -55,6 +55,7 @@ Sums, products, differences
 .. autosummary::
    :toctree: generated/
 
+   diff
    prod
    sum
    cumprod

@@ -22,6 +22,7 @@ Histograms
 
    bincount
    histogram
+   digitize
 
 
 Order statistics
@@ -32,3 +33,5 @@ Order statistics
 
    quantile
    percentile
+   nanquantile
+   nanpercentile
