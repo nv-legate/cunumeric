@@ -7616,7 +7616,7 @@ def cov(
     Multiple GPUs, Multiple CPUs
     """
     # Check inputs
-    if ddof is not None and ddof != int(ddof):
+    if ddof is not None and type(ddof) is not int:
         raise ValueError("ddof must be integer")
 
     # Handles complex arrays too
