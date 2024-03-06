@@ -7614,7 +7614,7 @@ def cov(
     if not rowvar and X.shape[0] != 1:
         X = X.T
     if X.shape[0] == 0:
-        return array([]).reshape(0, 0)
+        return empty((0, 0))
     if y is not None:
         y = array(y, copy=False, ndmin=2, dtype=dtype)
         if not rowvar and y.shape[0] != 1:
