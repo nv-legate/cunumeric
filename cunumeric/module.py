@@ -7619,6 +7619,8 @@ def cov(
         y = array(y, copy=False, ndmin=2, dtype=dtype)
         if not rowvar and y.shape[0] != 1:
             y = y.T
+        # TODO(mpapadakis): Could have saved on an intermediate copy of X in
+        # this case, if it was already of the right shape.
         X = concatenate((X, y), axis=0)
 
     if ddof is None:
