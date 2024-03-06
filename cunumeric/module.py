@@ -7558,36 +7558,54 @@ def cov(
     dtype: Optional[np.dtype[Any]] = None,
 ) -> ndarray:
     """
-    Compute and return covariance matrix with each column acting as a sample
-    and each row acting as a random variable
+    Estimate a covariance matrix, given data and weights.
+
+    Covariance indicates the level to which two variables vary together.
+    If we examine N-dimensional samples, :math:`X = [x_1, x_2, ... x_N]^T`,
+    then the covariance matrix element :math:`C_{ij}` is the covariance of
+    :math:`x_i` and :math:`x_j`. The element :math:`C_{ii}` is the variance
+    of :math:`x_i`.
+
     Parameters
     ----------
     m : array_like
-        Array containing sample of random variables
-    y : optional ndarray
-        Additional set of observations to be appended to m
-    rowvar : bool
-        If true, each row is considered a random variable
-    bias :
-        Default False represents normalization by (N - 1).
-        If, true set normalization to N
+        A 1-D or 2-D array containing multiple variables and observations.
+        Each row of `m` represents a variable, and each column a single
+        observation of all those variables. Also see `rowvar` below.
+    y : array_like, optional
+        An additional set of variables and observations. `y` has the same form
+        as that of `m`.
+    rowvar : bool, optional
+        If `rowvar` is True (default), then each row represents a
+        variable, with observations in the columns. Otherwise, the relationship
+        is transposed: each column represents a variable, while the rows
+        contain observations.
+    bias : bool, optional
+        Default normalization (False) is by ``(N - 1)``, where ``N`` is the
+        number of observations given (unbiased estimate). If `bias` is True,
+        then normalization is by ``N``. These values can be overridden by using
+        the keyword ``ddof``.
     ddof : int, optional
-        “Delta Degrees of Freedom”: the divisor used in the calculation is
-        N - ddof, where N represents the number of elements. By default
-        ddof is zero. If set, overwrites divisor normalization set by bias.
-    fweights : optional ndarray
-        A weights matrix applied to each random variable to specify
-        repeated observations over a given sample.
-    aweights : optional ndarray
-        A weights matrix applied to each random variable to specify
-        relative importance of each observation.
+        If not ``None`` the default value implied by `bias` is overridden.
+        Note that ``ddof=1`` will return the unbiased estimate, even if both
+        `fweights` and `aweights` are specified, and ``ddof=0`` will return
+        the simple average. The default value is ``None``.
+    fweights : array_like, int, optional
+        1-D array of integer frequency weights; the number of times each
+        observation vector should be repeated.
+    aweights : array_like, optional
+        1-D array of observation vector weights. These relative weights are
+        typically large for observations considered "important" and smaller for
+        observations considered less "important". If ``ddof=0`` the array of
+        weights can be used to assign probabilities to observation vectors.
+    dtype : data-type, optional
+        Data-type of the result. By default, the return data-type will have
+        at least `float64` precision.
 
     Returns
     -------
-    a : ndarray, see dtype parameter above
-        If `out=None`, returns a new array of the same dtype as above
-        containing the variance values, otherwise a reference to the output
-        array is returned.
+    out : ndarray
+        The covariance matrix of the variables.
 
     See Also
     --------
