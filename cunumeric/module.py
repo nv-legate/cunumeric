@@ -7622,7 +7622,7 @@ def cov(
         X = concatenate((X, y), axis=0)
 
     if ddof is None:
-        if bias == 0:
+        if not bias:
             ddof = 1
         else:
             ddof = 0
