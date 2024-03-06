@@ -7689,9 +7689,7 @@ def cov(
     else:
         fact = w_sum - ddof * sum(w * aweights) / w_sum
 
-    if fact <= 0:
-        runtime.warn("Degrees of freedom <= 0 for slice")
-        fact = 0.0
+    fact = max(0.0, fact)
 
     X -= avg[:, None]
     if w is None:
