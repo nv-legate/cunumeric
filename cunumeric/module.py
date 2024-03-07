@@ -7341,9 +7341,7 @@ def average(
     returned: bool = False,
     *,
     keepdims: bool = False,
-) -> Union[
-    Union[int, ndarray], Tuple[Union[int, ndarray], Union[int, ndarray]]
-]:
+) -> Union[ndarray, Tuple[ndarray, ndarray]]:
     """
     Compute the weighted average along the specified axis.
 
