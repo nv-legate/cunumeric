@@ -7434,7 +7434,7 @@ def average(
             )
         if weights.ndim != 1 or len(clean_axis) != 1:
             raise ValueError(
-                "Weights must be either 1 dimension along single"
+                "Weights must be either 1 dimension along single "
                 "axis or the same shape as a"
             )
         if weights.size != a.shape[clean_axis[0]]:
