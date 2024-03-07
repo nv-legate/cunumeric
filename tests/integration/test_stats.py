@@ -231,7 +231,10 @@ def test_cov(dtype, rowvar, ddof):
 
 
 fweights_base = [[9, 2, 1, 2, 3], [1, 1, 3, 2, 4], None]
-np_aweights_base = [np.abs(get_op_input(astype=dtype, shape=(5,))) for dtype in dtypes] + [[.03,.04,01.01,.02,.08],None]
+np_aweights_base = [
+    np.abs(get_op_input(astype=dtype, shape=(5,))) for dtype in dtypes
+] + [[0.03, 0.04, 01.01, 0.02, 0.08], None]
+
 
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("bias", [True, False])
@@ -276,7 +279,12 @@ def test_cov_full(dtype, bias, ddof, fweights, np_aweights):
 @pytest.mark.parametrize("fweights", fweights_base)
 @pytest.mark.parametrize("np_aweights", np_aweights_base)
 def test_cov_dtype_scaling(rowvar, ddof, fweights, np_aweights):
-    np_in = np.array([[1+3j,1-1j,2+2j,4+3j,-1+2j],[1+3j,1-1j,2+2j,4+3j,-1+2j]])
+    np_in = np.array(
+        [
+            [1 + 3j, 1 - 1j, 2 + 2j, 4 + 3j, -1 + 2j],
+            [1 + 3j, 1 - 1j, 2 + 2j, 4 + 3j, -1 + 2j],
+        ]
+    )
     num_in = num.array(np_in)
     if fweights is not None:
         np_fweights = np.array(fweights)
@@ -289,8 +297,20 @@ def test_cov_dtype_scaling(rowvar, ddof, fweights, np_aweights):
     else:
         num_aweights = np_aweights
 
-    np_out = np.cov(np_in, rowvar=rowvar, ddof=ddof, fweights=np_fweights, aweights=np_aweights)
-    num_out = num.cov(num_in, rowvar=rowvar, ddof=ddof, fweights=num_fweights, aweights=num_aweights)
+    np_out = np.cov(
+        np_in,
+        rowvar=rowvar,
+        ddof=ddof,
+        fweights=np_fweights,
+        aweights=np_aweights,
+    )
+    num_out = num.cov(
+        num_in,
+        rowvar=rowvar,
+        ddof=ddof,
+        fweights=num_fweights,
+        aweights=num_aweights,
+    )
     assert allclose(np_out, num_out, atol=1e-2)
 
 
