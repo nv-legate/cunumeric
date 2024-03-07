@@ -230,20 +230,29 @@ def test_cov(dtype, rowvar, ddof):
         assert allclose(np_out, num_out)
 
 
-fweights_base = [[9, 2, 1, 2, 3], [1, 1, 3, 2, 4]]
-
+fweights_base = [[9, 2, 1, 2, 3], [1, 1, 3, 2, 4], None]
+np_aweights_base = [np.abs(get_op_input(astype=dtype, shape=(5,))) for dtype in dtypes] + [[.03,.04,01.01,.02,.08],None]
 
 @pytest.mark.parametrize("dtype", dtypes)
 @pytest.mark.parametrize("bias", [True, False])
 @pytest.mark.parametrize("ddof", [None, 0, 1])
 @pytest.mark.parametrize("fweights", fweights_base)
-def test_cov_full(dtype, bias, ddof, fweights):
+@pytest.mark.parametrize("np_aweights", np_aweights_base)
+def test_cov_full(dtype, bias, ddof, fweights, np_aweights):
     np_in = get_op_input(astype=dtype, shape=(4, 5))
     num_in = num.array(np_in)
-    np_fweights = np.array(fweights)
-    num_fweights = num.array(fweights)
-    np_aweights = np.abs(get_op_input(astype=dtype, shape=(5,)))
-    num_aweights = num.array(np_aweights)
+    if fweights is not None:
+        np_fweights = np.array(fweights)
+        num_fweights = num.array(fweights)
+    else:
+        np_fweights = None
+        num_fweights = None
+    if isinstance(np_aweights, np.ndarray):
+        num_aweights = num.array(np_aweights)
+    else:
+        num_aweights = np_aweights
+    # num_aweights = None
+    # np_aweights = None
 
     np_out = np.cov(
         np_in, bias=bias, ddof=ddof, fweights=np_fweights, aweights=np_aweights
@@ -255,10 +264,34 @@ def test_cov_full(dtype, bias, ddof, fweights):
         fweights=num_fweights,
         aweights=num_aweights,
     )
-    if dtype == dtypes[0]:
-        assert allclose(np_out, num_out, atol=1e-2)
+    # if dtype == dtypes[0]:
+    #     assert allclose(np_out, num_out, atol=1e-2)
+    # else:
+    #     assert allclose(np_out, num_out)
+    assert allclose(np_out, num_out, atol=1e-2)
+
+
+@pytest.mark.parametrize("rowvar", [True, False])
+@pytest.mark.parametrize("ddof", [None, 0, 1])
+@pytest.mark.parametrize("fweights", fweights_base)
+@pytest.mark.parametrize("np_aweights", np_aweights_base)
+def test_cov_dtype_scaling(rowvar, ddof, fweights, np_aweights):
+    np_in = np.array([[1+3j,1-1j,2+2j,4+3j,-1+2j],[1+3j,1-1j,2+2j,4+3j,-1+2j]])
+    num_in = num.array(np_in)
+    if fweights is not None:
+        np_fweights = np.array(fweights)
+        num_fweights = num.array(fweights)
     else:
-        assert allclose(np_out, num_out)
+        np_fweights = None
+        num_fweights = None
+    if isinstance(np_aweights, np.ndarray):
+        num_aweights = num.array(np_aweights)
+    else:
+        num_aweights = np_aweights
+
+    np_out = np.cov(np_in, rowvar=rowvar, ddof=ddof, fweights=np_fweights, aweights=np_aweights)
+    num_out = num.cov(num_in, rowvar=rowvar, ddof=ddof, fweights=num_fweights, aweights=num_aweights)
+    assert allclose(np_out, num_out, atol=1e-2)
 
 
 if __name__ == "__main__":

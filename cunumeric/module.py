@@ -7627,7 +7627,11 @@ def cov(
         raise ValueError("y has more than 2 dimensions")
 
     if dtype is None:
-        dtype = dtype = np.dtype(np.float64)
+        if y is None:
+            dtype = np.result_type(m.dtype, np.float64)
+        else:
+            dtype = np.result_type(m.dtype, y.dtype, np.float64)
+
     X = array(m, ndmin=2, dtype=dtype)
     if not rowvar and X.shape[0] != 1:
         X = X.T
@@ -7667,6 +7671,7 @@ def cov(
         if w is None:
             w = aweights
         else:
+            # operation cannot be done in place with *= op in case where aweights.dtype != w.dtype
             w = w * aweights
 
     # TODO upon merge of average() replace this code
@@ -7689,7 +7694,7 @@ def cov(
     else:
         fact = w_sum - ddof * sum(w * aweights) / w_sum
 
-    fact = max(0.0, fact)
+    fact = amax([0.0, fact])
 
     X -= avg[:, None]
     if w is None:
