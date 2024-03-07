@@ -7442,7 +7442,7 @@ def average(
         if weights.size != a.shape[clean_axis[0]]:
             raise ValueError("Weights length does not match axis")
 
-        scl = weights.sum(dtype=np.dtype(float))
+        scl = weights.sum(dtype=(np.float64 if a.dtype.kind == "i" else None))
         project_shape = [1] * a.ndim
         project_shape[clean_axis[0]] = -1
         weights = weights.reshape(project_shape)
