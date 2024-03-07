@@ -7414,11 +7414,13 @@ def average(
 
     scl: Union[float, int, ndarray] = 1
     if weights is None:
-        scl = float(
+        scl = (
             a.size
             if clean_axis is None
             else math.prod([a.shape[i] for i in clean_axis])
         )
+        if a.dtype.kind == "i":
+            scl = np.float64(scl)
         avg = a.sum(axis=clean_axis, keepdims=keepdims) / scl
     elif weights.shape == a.shape:
         scl = weights.sum(
