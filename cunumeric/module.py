@@ -7671,7 +7671,7 @@ def cov(
         if w is None:
             w = aweights
         else:
-            # operation cannot be done in place with *= op in case where aweights.dtype != w.dtype
+            # Cannot be done in-place with *= when aweights.dtype != w.dtype
             w = w * aweights
 
     # TODO upon merge of average() replace this code
@@ -7694,7 +7694,7 @@ def cov(
     else:
         fact = w_sum - ddof * sum(w * aweights) / w_sum
 
-    fact = amax([0.0, fact])
+    fact = amax(array([0.0, fact]))
 
     X -= avg[:, None]
     if w is None:
