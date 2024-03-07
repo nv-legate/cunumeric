@@ -7424,8 +7424,8 @@ def average(
         avg = a.sum(axis=clean_axis, keepdims=keepdims) / scl
     elif weights.shape == a.shape:
         scl = weights.sum(
-            axis=clean_axis, 
-            keepdims=keepdims, 
+            axis=clean_axis,
+            keepdims=keepdims,
             dtype=(np.float64 if a.dtype.kind == "i" else None),
         )
         if any(scl == 0):
