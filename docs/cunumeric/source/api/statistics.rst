@@ -13,6 +13,7 @@ Averages and variances
    mean
    nanmean
    var
+   cov
 
 
 Histograms
@@ -23,6 +24,7 @@ Histograms
 
    bincount
    histogram
+   digitize
 
 
 Order statistics
@@ -33,3 +35,5 @@ Order statistics
 
    quantile
    percentile
+   nanquantile
+   nanpercentile
