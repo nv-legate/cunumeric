@@ -7694,7 +7694,7 @@ def cov(
     else:
         fact = w_sum - ddof * sum(w * aweights) / w_sum
 
-    fact = amax(array([0.0, fact]))
+    fact = clip(fact, 0.0, None)
 
     X -= avg[:, None]
     if w is None:
@@ -7702,6 +7702,7 @@ def cov(
     else:
         X_T = (X * w).T
     c = dot(X, X_T.conj())
+    # Cannot be done in-place with /= when the dtypes differ
     c = c / fact
     return c.squeeze()
 
