@@ -7487,7 +7487,7 @@ def average(
     if axis is not None:
         clean_axis = normalize_axis_tuple(axis, a.ndim, argname="axis")
 
-    scl: Union[float, int, ndarray] = 1
+    scl: Union[npt.ArrayLike, ndarray] = 1
     if weights is None:
         scl = (
             a.size
@@ -7501,7 +7501,7 @@ def average(
         scl = weights.sum(
             axis=clean_axis,
             keepdims=keepdims,
-            dtype=(np.float64 if a.dtype.kind == "i" else None),
+            dtype=(np.dtype(np.float64) if a.dtype.kind == "i" else None),
         )
         if any(scl == 0):
             raise ZeroDivisionError("Weights along axis sum to 0")
@@ -7519,7 +7519,9 @@ def average(
         if weights.size != a.shape[clean_axis[0]]:
             raise ValueError("Weights length does not match axis")
 
-        scl = weights.sum(dtype=(np.float64 if a.dtype.kind == "i" else None))
+        scl = weights.sum(
+            dtype=(np.dtype(np.float64) if a.dtype.kind == "i" else None)
+        )
         project_shape = [1] * a.ndim
         project_shape[clean_axis[0]] = -1
         weights = weights.reshape(project_shape)
