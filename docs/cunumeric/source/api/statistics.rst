@@ -12,6 +12,7 @@ Averages and variances
    mean
    nanmean
    var
+   cov
 
 
 Histograms
