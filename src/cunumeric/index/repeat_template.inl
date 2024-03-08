@@ -37,7 +37,7 @@ struct RepeatImpl {
     auto input_arr  = args.input.read_accessor<VAL, DIM>(input_rect);
 
     if (input_rect.empty()) {
-      args.output.bind_empty_data();
+      if (!args.scalar_repeats) { args.output.bind_empty_data(); }
       return;
     }
 

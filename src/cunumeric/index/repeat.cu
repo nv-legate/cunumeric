@@ -50,20 +50,19 @@ static __global__ void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
 
 template <typename VAL, int DIM>
 __global__ static void __launch_bounds__(THREADS_PER_BLOCK, MIN_CTAS_PER_SM)
-  repeat_kernel(Buffer<VAL, DIM> out,
+  repeat_kernel(AccessorWO<VAL, DIM> out,
                 const AccessorRO<VAL, DIM> in,
                 int64_t repeats,
                 const int32_t axis,
-                const Point<DIM> in_lo,
+                const Point<DIM> out_lo,
                 const Pitches<DIM - 1> pitches,
                 const size_t volume)
 {
   const size_t idx = global_tid_1d();
   if (idx >= volume) return;
-  auto out_p = pitches.unflatten(idx, Point<DIM>::ZEROES());
+  auto out_p = pitches.unflatten(idx, out_lo);
   auto in_p  = out_p;
   in_p[axis] /= repeats;
-  in_p += in_lo;
   out[out_p] = in[in_p];
 }
 
@@ -103,12 +102,8 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
                   const int32_t axis,
                   const Rect<DIM>& in_rect) const
   {
-    Point<DIM> extents = in_rect.hi - in_rect.lo + Point<DIM>::ONES();
-    extents[axis] *= repeats;
-
-    auto out = out_array.create_output_buffer<VAL, DIM>(extents, true);
-
-    Rect<DIM> out_rect(Point<DIM>::ZEROES(), extents - Point<DIM>::ONES());
+    auto out_rect = out_array.shape<DIM>();
+    auto out      = out_array.write_accessor<VAL, DIM>(out_rect);
     Pitches<DIM - 1> pitches;
 
     auto out_volume   = pitches.flatten(out_rect);
@@ -116,7 +111,7 @@ struct RepeatImplBody<VariantKind::GPU, CODE, DIM> {
 
     auto stream = get_cached_stream();
     repeat_kernel<VAL, DIM><<<blocks, THREADS_PER_BLOCK, 0, stream>>>(
-      out, in, repeats, axis, in_rect.lo, pitches, out_volume);
+      out, in, repeats, axis, out_rect.lo, pitches, out_volume);
     CHECK_CUDA_STREAM(stream);
   }
 

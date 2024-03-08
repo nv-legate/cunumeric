@@ -2022,10 +2022,34 @@ class DeferredArray(NumPyThunk):
     def repeat(
         self, repeats: Any, axis: int, scalar_repeats: bool
     ) -> DeferredArray:
-        out = self.runtime.create_unbound_thunk(self.base.type, ndim=self.ndim)
         task = self.context.create_auto_task(CuNumericOpCode.REPEAT)
-        task.add_input(self.base)
-        task.add_output(out.base)
+        if scalar_repeats:
+            out_shape = tuple(
+                self.shape[dim] * repeats if dim == axis else self.shape[dim]
+                for dim in range(self.ndim)
+            )
+            out = cast(
+                DeferredArray,
+                self.runtime.create_empty_thunk(
+                    out_shape,
+                    dtype=self.base.type,
+                    inputs=[self],
+                ),
+            )
+            p_in = task.declare_partition(self.base)
+            p_out = task.declare_partition(out.base)
+            task.add_input(self.base, partition=p_in)
+            task.add_output(out.base, partition=p_out)
+            scale = tuple(
+                repeats if dim == axis else 1 for dim in range(self.ndim)
+            )
+            task.add_constraint(p_out <= p_in * scale)
+        else:
+            out = self.runtime.create_unbound_thunk(
+                self.base.type, ndim=self.ndim
+            )
+            task.add_input(self.base)
+            task.add_output(out.base)
         # We pass axis now but don't use for 1D case (will use for ND case
         task.add_scalar_arg(axis, ty.int32)
         task.add_scalar_arg(scalar_repeats, ty.bool_)

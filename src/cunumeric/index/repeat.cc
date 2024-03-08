@@ -31,12 +31,8 @@ struct RepeatImplBody<VariantKind::CPU, CODE, DIM> {
                   const int32_t axis,
                   const Rect<DIM>& in_rect) const
   {
-    Point<DIM> extents = in_rect.hi - in_rect.lo + Point<DIM>::ONES();
-    extents[axis] *= repeats;
-
-    auto out = out_array.create_output_buffer<VAL, DIM>(extents, true);
-
-    Rect<DIM> out_rect(Point<DIM>::ZEROES(), extents - Point<DIM>::ONES());
+    auto out_rect = out_array.shape<DIM>();
+    auto out      = out_array.write_accessor<VAL, DIM>(out_rect);
     Pitches<DIM - 1> pitches;
 
     auto out_volume = pitches.flatten(out_rect);
@@ -44,7 +40,6 @@ struct RepeatImplBody<VariantKind::CPU, CODE, DIM> {
       auto out_p = pitches.unflatten(idx, out_rect.lo);
       auto in_p  = out_p;
       in_p[axis] /= repeats;
-      in_p += in_rect.lo;
       out[out_p] = in[in_p];
     }
   }
