@@ -9,6 +9,7 @@ Averages and variances
 .. autosummary::
    :toctree: generated/
 
+   average
    mean
    nanmean
    var
