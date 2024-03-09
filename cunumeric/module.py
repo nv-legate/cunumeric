@@ -7460,12 +7460,12 @@ def average(
         return a tuple with the average as the first element and the sum
         of the weights as the second element. `sum_of_weights` is of the
         same type as `retval`. The result dtype follows a general pattern.
-        If `weights` is None, the result dtype will be that of `a` , or ``float64``
-        if `a` is integral. Otherwise, if `weights` is not None and `a` is non-
-        integral, the result type will be the type of lowest precision capable of
-        representing values of both `a` and `weights`. If `a` happens to be
-        integral, the previous rules still applies but the result dtype will
-        at least be ``float64``.
+        If `weights` is None, the result dtype will be that of `a` , or
+        ``float64`` if `a` is integral. Otherwise, if `weights` is not None and
+        `a` is non-integral, the result type will be the type of lowest
+        precision capable of representing values of both `a` and `weights`. If
+        `a` happens to be integral, the previous rules still applies but the
+        result dtype will at least be ``float64``.
 
     Raises
     ------
@@ -7806,14 +7806,7 @@ def cov(
             # Cannot be done in-place with *= when aweights.dtype != w.dtype
             w = w * aweights
 
-    # TODO upon merge of average() replace this code
-    w_sum: Union[ndarray, int] = 0
-    if w is None:
-        avg = mean(X, axis=1)
-        w_sum = X.shape[1]
-    else:
-        w_sum = sum(w)
-        avg = sum(X * w, axis=1) / w_sum
+    avg, w_sum = average(X, axis=1, weights=w, returned=True)
 
     # Determine the normalization
     fact: Union[ndarray, float] = 0.0
@@ -7826,7 +7819,9 @@ def cov(
     else:
         fact = w_sum - ddof * sum(w * aweights) / w_sum
 
-    fact = clip(fact, 0.0, None)
+    # TODO(mpapadakis): @add_boilerplate should extend the types of array
+    # arguments from `ndarray` to `npt.ArrayLike | ndarray`.
+    fact = clip(fact, 0.0, None)  # type: ignore[arg-type]
 
     X -= avg[:, None]
     if w is None:
