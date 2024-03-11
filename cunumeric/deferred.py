@@ -55,6 +55,7 @@ from .config import (
     UnaryRedCode,
 )
 from .linalg.cholesky import cholesky
+from .linalg.qr import qr
 from .linalg.solve import solve
 from .sort import sort
 from .thunk import NumPyThunk
@@ -3425,6 +3426,10 @@ class DeferredArray(NumPyThunk):
     @auto_convert("src")
     def cholesky(self, src: Any, no_tril: bool = False) -> None:
         cholesky(self, src, no_tril)
+
+    @auto_convert("q", "r")
+    def qr(self, q: Any, r: Any) -> None:
+        qr(self, q, r)
 
     @auto_convert("a", "b")
     def solve(self, a: Any, b: Any) -> None:

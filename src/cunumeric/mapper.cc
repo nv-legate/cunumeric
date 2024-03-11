@@ -122,6 +122,7 @@ std::vector<StoreMapping> CuNumericMapper::store_mappings(
       return std::move(mappings);
     }
     case CUNUMERIC_POTRF:
+    case CUNUMERIC_QR:
     case CUNUMERIC_TRSM:
     case CUNUMERIC_SOLVE:
     case CUNUMERIC_SYRK:

@@ -141,6 +141,7 @@ def test_CuNumericOpCode() -> None:
         "PACKBITS",
         "POTRF",
         "PUTMASK",
+        "QR",
         "RAND",
         "READ",
         "REPEAT",

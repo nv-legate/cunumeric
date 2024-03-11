@@ -170,6 +170,7 @@ class _CunumericSharedLib:
     CUNUMERIC_PACKBITS: int
     CUNUMERIC_POTRF: int
     CUNUMERIC_PUTMASK: int
+    CUNUMERIC_QR: int
     CUNUMERIC_RAND: int
     CUNUMERIC_READ: int
     CUNUMERIC_RED_ALL: int
@@ -359,6 +360,7 @@ class CuNumericOpCode(IntEnum):
     PACKBITS = _cunumeric.CUNUMERIC_PACKBITS
     POTRF = _cunumeric.CUNUMERIC_POTRF
     PUTMASK = _cunumeric.CUNUMERIC_PUTMASK
+    QR = _cunumeric.CUNUMERIC_QR
     RAND = _cunumeric.CUNUMERIC_RAND
     READ = _cunumeric.CUNUMERIC_READ
     REPEAT = _cunumeric.CUNUMERIC_REPEAT

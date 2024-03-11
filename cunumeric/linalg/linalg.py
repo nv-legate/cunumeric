@@ -85,6 +85,58 @@ def cholesky(a: ndarray) -> ndarray:
     return _cholesky(a)
 
 
+@add_boilerplate("a")
+def qr(a: ndarray) -> tuple[ndarray, ...]:
+    """
+    Compute the qr factorization of a matrix.
+
+    Factor the matrix a as qr, where q is orthonormal
+    and r is upper-triangular.
+
+    Parameters
+    ----------
+    a : (M, N) array_like
+        Array like, at least dimension 2.
+
+    Returns
+    -------
+    q : (M, K) array_like
+        A matrix with orthonormal columns. K = min(M, N).
+    r : (K, N) array_like
+        The uppoer triangular matrix.
+
+    Raises
+    ------
+    LinAlgError
+        If factoring fails.
+
+    Notes
+    -----
+    Currently does not support the parameter 'mode' from numpy 1.8.
+
+    See Also
+    --------
+    numpy.linalg.qr
+
+    Availability
+    --------
+    Single GPU, Single CPU
+    """
+    shape = a.shape
+    if len(shape) < 2:
+        raise LinAlgError(
+            f"{len(shape)}-dimensional array given. "
+            "Array must be at least two-dimensional"
+        )
+    if len(shape) > 2:
+        raise NotImplementedError(
+            "cuNumeric needs to support stacked 2d arrays"
+        )
+    if np.dtype("e") == a.dtype:
+        raise TypeError("array type float16 is unsupported in linalg")
+    return _qr(a)
+
+
 @add_boilerplate("a", "b")
 def solve(a: ndarray, b: ndarray, out: Optional[ndarray] = None) -> ndarray:
     """
@@ -629,6 +681,27 @@ def _cholesky(a: ndarray, no_tril: bool = False) -> ndarray:
     )
     output._thunk.cholesky(input._thunk, no_tril=no_tril)
     return output
+
+
+def _qr(a: ndarray) -> tuple[ndarray, ...]:
+    if a.dtype.kind not in ("f", "c"):
+        a = a.astype("float64")
+
+    k = min(a.shape[0], a.shape[1])
+
+    out_q = ndarray(
+        shape=(a.shape[0], k),
+        dtype=a.dtype,
+        inputs=(a,),
+    )
+    out_r = ndarray(
+        shape=(k, a.shape[1]),
+        dtype=a.dtype,
+        inputs=(a,),
+    )
+
+    a._thunk.qr(out_q._thunk, out_r._thunk)
+    return out_q, out_r
 
 
 def _solve(

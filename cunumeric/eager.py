@@ -1675,6 +1675,20 @@ class EagerArray(NumPyThunk):
                 result = np.triu(result.T.conj(), k=1) + result
             self.array[:] = result
 
+    def qr(self, q: Any, r: Any) -> None:
+        self.check_eager_args(q, r)
+        if self.deferred is not None:
+            self.deferred.qr(q, r)
+        else:
+            try:
+                result_q, result_r = np.linalg.qr(self.array)
+            except np.linalg.LinAlgError as e:
+                from .linalg import LinAlgError
+
+                raise LinAlgError(e) from e
+            q.array[:] = result_q
+            r.array[:] = result_r
+
     def solve(self, a: Any, b: Any) -> None:
         self.check_eager_args(a, b)
         if self.deferred is not None:
