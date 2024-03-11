@@ -1,17 +1,17 @@
 repos:
     - repo: https://github.com/pre-commit/mirrors-mypy
-      rev: 'v1.5.1'
+      rev: 'v1.8.0'
       hooks:
         - id: mypy
           language: system
           pass_filenames: false
           args: ['cunumeric']
     - repo: https://github.com/PyCQA/isort
-      rev: 5.12.0
+      rev: 5.13.2
       hooks:
             - id: isort
     - repo: https://github.com/psf/black
-      rev: 23.9.1
+      rev: 23.12.1
       hooks:
             - id: black
     - repo: https://github.com/PyCQA/flake8
@@ -19,7 +19,7 @@ repos:
       hooks:
             - id: flake8
     - repo: https://github.com/pre-commit/mirrors-clang-format
-      rev: 'v16.0.6'  # Use the sha / tag you want to point at
+      rev: 'v17.0.6'  # Use the sha / tag you want to point at
       hooks:
         - id: clang-format
           files: \.(cu|cuh|h|cc|inl)$
