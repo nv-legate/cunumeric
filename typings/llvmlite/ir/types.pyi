@@ -1,0 +1,13 @@
+from typing import Sequence
+
+from llvmlite.ir._utils import _StrCaching
+
+class Type(_StrCaching): ...
+
+class FunctionType(Type):
+    def __init__(
+        self, return_type: Type, args: Sequence[Type], var_arg: bool = False
+    ): ...
+
+class PointerType(Type): ...
+class VoidType(Type): ...
