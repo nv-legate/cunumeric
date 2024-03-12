@@ -9,9 +9,11 @@ Averages and variances
 .. autosummary::
    :toctree: generated/
 
+   average
    mean
    nanmean
    var
+   cov
 
 
 Histograms
@@ -22,6 +24,7 @@ Histograms
 
    bincount
    histogram
+   digitize
 
 
 Order statistics
@@ -32,3 +35,5 @@ Order statistics
 
    quantile
    percentile
+   nanquantile
+   nanpercentile

@@ -2257,6 +2257,20 @@ class ndarray:
         Multiple GPUs, Multiple CPUs
 
         """
+        min = (
+            min
+            if min is not None
+            else np.iinfo(self.dtype).min
+            if self.dtype.kind == "i"
+            else -np.inf
+        )
+        max = (
+            max
+            if max is not None
+            else np.iinfo(self.dtype).max
+            if self.dtype.kind == "i"
+            else np.inf
+        )
         args = (
             np.array(min, dtype=self.dtype),
             np.array(max, dtype=self.dtype),
